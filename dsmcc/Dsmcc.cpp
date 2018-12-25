@@ -9,7 +9,7 @@
 
 
 CDsmcc::CDsmcc (size_t poolSize)
-	:CSectionParser (poolSize)
+	:CSectionParser (poolSize, EN_SECTION_TYPE__DSMCC)
 {
 	mTables.clear();
 }

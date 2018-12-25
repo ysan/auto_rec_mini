@@ -20,12 +20,19 @@ typedef enum {
 	EN_SECTION_STATE_NUM,
 } EN_SECTION_STATE;
 
+typedef enum {
+	EN_SECTION_TYPE__PSISI = 0,
+	EN_SECTION_TYPE__DSMCC,
+
+	EN_SECTION_TYPE_NUM,
+} EN_SECTION_TYPE;
+
 
 class CSectionInfo {
 public:
 	friend class CSectionParser;
 
-	CSectionInfo (uint8_t *pBuff, size_t size);
+	CSectionInfo (uint8_t *pBuff, size_t size, EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI);
 	CSectionInfo (CSectionInfo *pObj);
 	~CSectionInfo (void);
 
@@ -58,7 +65,7 @@ public:
 	uint8_t *getDataPartAddr (void) const;
 	uint16_t getDataPartLen (void) const;
 
-	static uint8_t * parseHeader (ST_SECTION_HEADER *pHdrOut, uint8_t *pStart, uint8_t *pEnd) ;
+	static uint8_t * parseHeader (ST_SECTION_HEADER *pHdrOut, uint8_t *pStart, uint8_t *pEnd, EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI) ;
 	static void dumpHeader (const ST_SECTION_HEADER *pHdr, bool isShortFormat) ;
 
 private:
@@ -73,17 +80,21 @@ private:
 	uint8_t *mpData; // section data head
 	uint8_t *mpTail; // payload tail
 	EN_SECTION_STATE mState;
-	bool mIsShortFormatHeader;
+	EN_SECTION_TYPE mType;
+
 
 	// link-list
 	CSectionInfo *mpNext;
 };
 
 
-//typedef struct ts_section_list {
-//	CSectionInfo sectInfo;
-//	struct ts_section_list *pNext;
-//} ST_SECTION_LIST;
+
+typedef enum {
+	EN_CHECK_SECTION__COMPLETED = 0,
+	EN_CHECK_SECTION__RECEIVING,
+	EN_CHECK_SECTION__CANCELED,
+	EN_CHECK_SECTION__INVALID,
+} EN_CHECK_SECTION;
 
 class CSectionParser
 {
@@ -91,14 +102,14 @@ public:
     static const uint32_t POOL_SIZE;
 	
 public:
-	CSectionParser (void);
-	CSectionParser (uint8_t fifoNum);
-	CSectionParser (size_t poolSize);
-	CSectionParser (size_t poolSize, uint8_t fifoNum);
+	CSectionParser (EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI);
+	CSectionParser (uint8_t fifoNum, EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI);
+	CSectionParser (size_t poolSize, EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI);
+	CSectionParser (size_t poolSize, uint8_t fifoNum, EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI);
 	virtual ~CSectionParser (void);
 
 
-	bool checkSection (const ST_TS_HEADER *pstTsHdr, uint8_t *pPayload, size_t payloadSize);
+	EN_CHECK_SECTION checkSection (const ST_TS_HEADER *pstTsHdr, uint8_t *pPayload, size_t payloadSize);
 
 protected:
 	CSectionInfo *getLatestCompleteSection (void) const;
@@ -126,8 +137,8 @@ private:
 
 	void dumpSectionList (void) const;
 
-	bool checkSectionFirst (uint8_t *pPayload, size_t payloadSize);
-	bool checkSectionFollow (uint8_t *pPayload, size_t payloadSize);
+	EN_CHECK_SECTION checkSectionFirst (uint8_t *pPayload, size_t payloadSize);
+	EN_CHECK_SECTION checkSectionFollow (uint8_t *pPayload, size_t payloadSize);
 
 	void clearWorkSectionInfo (void);
 
@@ -146,6 +157,8 @@ private:
 	uint8_t *mpPool;
 	size_t mPoolInd;
 	size_t mPoolSize;
+
+	EN_SECTION_TYPE mType;
 };
 
 #endif

@@ -385,7 +385,7 @@ bool CTsParser::parse (void)
 
 			if (stTsHdr.pid == PID_PAT) {
 
-				if (mPAT.checkSection (&stTsHdr, pPayload, payloadSize)) {
+				if (mPAT.checkSection (&stTsHdr, pPayload, payloadSize) == EN_CHECK_SECTION__COMPLETED) {
 
 					memset (mPatTables, 0x00, sizeof(mPatTables));
 
@@ -429,7 +429,7 @@ bool CTsParser::parse (void)
 			} else if (stTsHdr.pid == pCurPatTable->program_map_PID) {
 
 				if (pCurPatTable->mpPMT) {
-					if (pCurPatTable->mpPMT->checkSection (&stTsHdr, pPayload, payloadSize)) {
+					if (pCurPatTable->mpPMT->checkSection (&stTsHdr, pPayload, payloadSize) == EN_CHECK_SECTION__COMPLETED) {
 
 						// stream_typeからDSMCCのPIDを取得する //////////
 						const std::vector<CProgramMapTable::CTable*> *pTables = pCurPatTable->mpPMT->getTables();

@@ -7,8 +7,8 @@ CFLAGS		:=	-std=c++11
 
 INCLUDES	:= \
 	-I./ \
+	-I./descriptor \
 	-I$(BASEDIR) \
-	-I$(BASEDIR)/psisi/ \
 
 LIBS		:= \
 	-L$(BASEDIR)/aribstr -laribstr \
