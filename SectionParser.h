@@ -61,7 +61,7 @@ public:
 
 
 	uint8_t *getHeaderAddr (void) const;
-	ST_SECTION_HEADER *getHeader (void) ;
+	const ST_SECTION_HEADER *getHeader (void) const;
 	uint8_t *getDataPartAddr (void) const;
 	uint16_t getDataPartLen (void) const;
 

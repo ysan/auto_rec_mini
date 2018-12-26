@@ -16,6 +16,7 @@ CEventInformationTable::CEventInformationTable (size_t poolSize)
 
 CEventInformationTable::~CEventInformationTable (void)
 {
+	clear();
 }
 
 void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSection)

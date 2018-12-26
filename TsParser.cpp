@@ -344,7 +344,7 @@ bool CTsParser::parse (void)
 				}
 				if (stTsHdr.pid == pCurDsmccCtl->pid) {
 					_UTL_LOG_I ("###############  DSMCC  ###############");
-					CUtils::dumper (pCur, 188);
+//					CUtils::dumper (pCur, 188);
 					dumpTsHeader (&stTsHdr);
 					isCheck = true;
 					break;

@@ -15,6 +15,7 @@ CNetworkInformationTable::CNetworkInformationTable (void)
 
 CNetworkInformationTable::~CNetworkInformationTable (void)
 {
+	clear();
 }
 
 void CNetworkInformationTable::onSectionCompleted (const CSectionInfo *pCompSection)

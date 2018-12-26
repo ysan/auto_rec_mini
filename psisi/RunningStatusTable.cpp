@@ -15,6 +15,7 @@ CRunningStatusTable::CRunningStatusTable (void)
 
 CRunningStatusTable::~CRunningStatusTable (void)
 {
+	clear();
 }
 
 void CRunningStatusTable::onSectionCompleted (const CSectionInfo *pCompSection)

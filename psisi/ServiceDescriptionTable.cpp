@@ -15,6 +15,7 @@ CServiceDescriptionTable::CServiceDescriptionTable (void)
 
 CServiceDescriptionTable::~CServiceDescriptionTable (void)
 {
+	clear();
 }
 
 void CServiceDescriptionTable::onSectionCompleted (const CSectionInfo *pCompSection)

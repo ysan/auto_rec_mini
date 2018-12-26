@@ -50,9 +50,7 @@ public:
 		,reserved (0)
 		,adaptationLength (0)
 		,messageLength (0)
-	{
-		adaptationHeaders.clear();
-	}
+	{}
 	virtual ~CDsmccMessageHeader (void) {}
 
 
@@ -63,7 +61,7 @@ public:
 	uint8_t reserved;
 	uint8_t adaptationLength;
 	uint16_t messageLength;
-	std::vector <CDsmccAdaptationHeader> adaptationHeaders;
+	CDsmccAdaptationHeader dsmccAdaptationHeader;
 };
 
 // DII
@@ -103,7 +101,7 @@ public:
 		modules.clear();
 		memset (privateDataByte, 0x00, sizeof(privateDataByte));
 	}
-	virtual ~CDownloadInfoIndication (void);
+	virtual ~CDownloadInfoIndication (void) {}
 
 	
 	CDsmccMessageHeader messageHeader;
@@ -150,6 +148,7 @@ public:
 // DDB
 class CDownloadDataBlock
 {
+public:
 	CDownloadDataBlock (void)
 		:moduleId (0)
 		,moduleVersion (0)
@@ -168,35 +167,52 @@ class CDownloadDataBlock
 	uint8_t blockDataByte [0xffff];
 };
 
+
 class CDsmcc : public CSectionParser
 {
 public:
-	class CTable {
+	class CDII {
 	public:
-		CTable (void) {};
-		virtual ~CTable (void) {};
-
+		CDII (void) {}
+		virtual ~CDII (void) {}
 
 		ST_SECTION_HEADER header;
+		CDownloadInfoIndication dii;
+	};
 
+	class CDDB {
+	public:
+		CDDB (void) {}
+		virtual ~CDDB (void) {}
+
+		ST_SECTION_HEADER header;
+		CDownloadDataBlock ddb;
 	};
 
 public:
 	explicit CDsmcc (size_t poolSize);
 	virtual ~CDsmcc (void);
 
-//	bool onSectionStarted (const CSectionInfo *pSection) override;
+	bool onSectionStarted (const CSectionInfo *pSection) override;
 	void onSectionCompleted (const CSectionInfo *pCompSection) override;
 
-	void dumpTables (void) const;
-	void dumpTable (const CTable* pTable) const;
+	void dumpDIIs (void) const;
+	void dumpDII (const CDII* pDII) const;
+	void dumpDDBs (void) const;
+	void dumpDDB (const CDDB* pDDB) const;
+
 	void clear (void);
 
-private:
-	bool parse (const CSectionInfo *pCompSection, CTable* pOutTable);
-	void releaseTables (void);
 
-	std::vector <CTable*> mTables;
+private:
+	bool parseDII (const CSectionInfo *pCompSection, CDII* pOutDII);
+	bool parseDDB (const CSectionInfo *pCompSection, CDDB* pOutDDB);
+
+	void releaseDIIs (void);
+	void releaseDDBs (void);
+
+	std::vector <CDII*> mDIIs;
+	std::vector <CDDB*> mDDBs;
 };
 
 #endif

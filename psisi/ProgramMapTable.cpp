@@ -15,6 +15,7 @@ CProgramMapTable::CProgramMapTable (void)
 
 CProgramMapTable::~CProgramMapTable (void)
 {
+	clear();
 }
 
 

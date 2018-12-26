@@ -15,6 +15,7 @@ CBroadcasterInformationTable::CBroadcasterInformationTable (void)
 
 CBroadcasterInformationTable::~CBroadcasterInformationTable (void)
 {
+	clear();
 }
 
 void CBroadcasterInformationTable::onSectionCompleted (const CSectionInfo *pCompSection)

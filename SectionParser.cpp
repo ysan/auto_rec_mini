@@ -71,7 +71,7 @@ uint8_t *CSectionInfo::getHeaderAddr (void) const
 /**
  *
  */
-ST_SECTION_HEADER *CSectionInfo::getHeader (void)
+const ST_SECTION_HEADER *CSectionInfo::getHeader (void) const
 {
 	return &mSectHdr;
 }
@@ -973,7 +973,7 @@ mpWorkSectInfo->dumpHeader ();
 	_UTL_LOG_I ("nDataPartLen %d\n", nDataPartLen);
 
 
-	if (mType == EN_SECTION_TYPE__PSISI) {
+//	if (mType == EN_SECTION_TYPE__PSISI) {
 		// check CRC
 		if (!mpWorkSectInfo->checkCRC32()) {
 			detachSectionList (mpWorkSectInfo);
@@ -983,11 +983,11 @@ mpWorkSectInfo->dumpHeader ();
 		}
 		_UTL_LOG_I ("CRC32 ok");
 
-	} else if (mType == EN_SECTION_TYPE__DSMCC) {
-
-	} else {
-		_UTL_LOG_E ("EN_SECTION_TYPE is invalid.");
-	}
+//	} else if (mType == EN_SECTION_TYPE__DSMCC) {
+//
+//	} else {
+//		_UTL_LOG_E ("EN_SECTION_TYPE is invalid.");
+//	}
 
 
 	// すでに持っているsectionかどうかチェック
@@ -1067,7 +1067,7 @@ mpWorkSectInfo->dumpHeader ();
 	_UTL_LOG_I ("nDataPartLen %d\n", nDataPartLen);
 
 
-	if (mType == EN_SECTION_TYPE__PSISI) {
+//	if (mType == EN_SECTION_TYPE__PSISI) {
 		// check CRC
 		if (!mpWorkSectInfo->checkCRC32()) {
 			detachSectionList (mpWorkSectInfo);
@@ -1077,11 +1077,11 @@ mpWorkSectInfo->dumpHeader ();
 		}
 		_UTL_LOG_I ("CRC32 ok");
 
-	} else if (mType == EN_SECTION_TYPE__DSMCC) {
-
-	} else {
-		_UTL_LOG_E ("EN_SECTION_TYPE is invalid.");
-	}
+//	} else if (mType == EN_SECTION_TYPE__DSMCC) {
+//
+//	} else {
+//		_UTL_LOG_E ("EN_SECTION_TYPE is invalid.");
+//	}
 
 
 	// すでに持っているsectionかどうかチェック
