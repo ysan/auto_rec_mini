@@ -145,6 +145,7 @@ void CProgramMapTable::dumpTable (const CTable* pTable) const
 		return;
 	}
 
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
 	_UTL_LOG_I ("========================================\n");
 
 	_UTL_LOG_I ("PCR_PID             [0x%04x]\n", pTable->PCR_PID);
@@ -170,7 +171,7 @@ void CProgramMapTable::dumpTable (const CTable* pTable) const
 		}
 	}
 
-	_UTL_LOG_I ("========================================\n");
+	_UTL_LOG_I ("\n");
 }
 
 void CProgramMapTable:: clear (void)

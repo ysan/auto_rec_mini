@@ -168,8 +168,10 @@ public:
 
 
 	static FILE *mfpLog;
+
 	static bool initLog (void);
 	static void finalizLog (void);
+
 	static void putsLog (
 		FILE *pFp,
 		EN_LOG_LEVEL enLogLevel,
@@ -246,6 +248,13 @@ private:
 		va_list va
 	);
 
+	static void putsLogLW (
+		FILE *pFp,
+		EN_LOG_LEVEL enLogLevel,
+		const char *pszFormat,
+		va_list va
+	);
+
 	static void putsLogFprintf (
 		FILE *pFp,
 		EN_LOG_LEVEL enLogLevel,
@@ -256,7 +265,8 @@ private:
 		const char *pszPerror,
 		const char *pszFile,
 		const char *pszFunc,
-		int nLine
+		int nLine,
+		bool isNeedLF=true
 	);
 
 	static void putsLogFprintf (
@@ -266,15 +276,10 @@ private:
 		char type,
 		const char *pszTime,
 		const char *pszBuf,
-		const char *pszPerror
+		const char *pszPerror,
+		bool isNeedLF=true
 	);
 
-	static void putsLogLW (
-		FILE *pFp,
-		EN_LOG_LEVEL enLogLevel,
-		const char *pszFormat,
-		va_list va
-	);
 };
 
 #endif

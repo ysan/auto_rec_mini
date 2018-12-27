@@ -150,7 +150,7 @@ void CNetworkInformationTable::dumpTable (const CTable* pTable) const
 	if (!pTable) {
 		return;
 	}
-	
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
 	_UTL_LOG_I ("========================================\n");
 
 	_UTL_LOG_I ("table_id                         [0x%02x]\n", pTable->header.table_id);
@@ -178,7 +178,7 @@ void CNetworkInformationTable::dumpTable (const CTable* pTable) const
 		}
 	}
 
-	_UTL_LOG_I ("========================================\n");
+	_UTL_LOG_I ("\n");
 }
 
 void CNetworkInformationTable::clear (void)

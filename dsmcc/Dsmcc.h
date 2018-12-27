@@ -12,16 +12,7 @@
 #include "Defs.h"
 #include "TsCommon.h"
 #include "SectionParser.h"
-#include "DescriptorDefs.h"
-
-
-//#define BIT_FIX_LEN				(2) // reserved_future_use        3  bslbf
-									// broadcast_view_propriety   1  uimsbf
-									// first_descriptors_length  12  uimsbf
-
-//#define BIT_BROADCASTER_FIX_LEN	(3) // broadcaster_id                   8  uimsbf
-									// reserved_future_use              4  bslbf
-									// broadcaster_descriptors_length  12  uimsbf
+#include "DsmccDescriptorDefs.h"
 
 
 class CDsmccAdaptationHeader
@@ -104,7 +95,7 @@ public:
 	virtual ~CDownloadInfoIndication (void) {}
 
 	
-	CDsmccMessageHeader messageHeader;
+	CDsmccMessageHeader dsmccMessageHeader;
 	uint32_t downloadId;
 	uint16_t blockSize;
 	uint8_t windowSize;
@@ -130,9 +121,7 @@ public:
 		,reserved (0)
 		,adaptationLength (0)
 		,messageLength (0)
-	{
-		adaptationHeaders.clear();
-	}
+	{}
 	virtual ~CDsmccDownloadDataHeader (void) {}
 
 	uint8_t protocolDiscriminator;
@@ -142,8 +131,13 @@ public:
 	uint8_t reserved;
 	uint8_t adaptationLength;
 	uint16_t messageLength;
-	std::vector <CDsmccAdaptationHeader> adaptationHeaders;
+	CDsmccAdaptationHeader dsmccAdaptationHeader;
 };
+
+#define DDB_FIX_LEN		(6) // moduleId      16  uimsbf
+							// moduleVersion  8  uimsbf
+							// reserved       8  uimsbf
+							// blockNumber   16  uimsbf
 
 // DDB
 class CDownloadDataBlock
@@ -154,6 +148,7 @@ public:
 		,moduleVersion (0)
 		,reserved (0)
 		,blockNumber (0)
+		,m_blockDataByteLen (0)
 	{
 		memset (blockDataByte, 0x00, sizeof(blockDataByte));
 	}
@@ -165,6 +160,8 @@ public:
 	uint8_t reserved;
 	uint16_t blockNumber;
 	uint8_t blockDataByte [0xffff];
+
+	int m_blockDataByteLen; // for blockDataByte
 };
 
 
@@ -197,8 +194,9 @@ public:
 	void onSectionCompleted (const CSectionInfo *pCompSection) override;
 
 	void dumpDIIs (void) const;
-	void dumpDII (const CDII* pDII) const;
 	void dumpDDBs (void) const;
+
+	void dumpDII (const CDII* pDII) const;
 	void dumpDDB (const CDDB* pDDB) const;
 
 	void clear (void);

@@ -4,11 +4,11 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "Descriptor.h"
+#include "DsmccDescriptor.h"
 #include "Utils.h"
 
 
-CDescriptor::CDescriptor (const uint8_t *pDesc)
+CDsmccDescriptor::CDsmccDescriptor (const uint8_t *pDesc)
 	:tag (0)
 	,length (0)
 	,isValid (true)
@@ -23,7 +23,7 @@ CDescriptor::CDescriptor (const uint8_t *pDesc)
 	}
 }
 
-CDescriptor::CDescriptor (const CDescriptor &obj)
+CDsmccDescriptor::CDsmccDescriptor (const CDsmccDescriptor &obj)
 	:tag (0)
 	,length (0)
 	,isValid (true)
@@ -35,11 +35,11 @@ CDescriptor::CDescriptor (const CDescriptor &obj)
 	isValid = obj.isValid;
 }
 
-CDescriptor::~CDescriptor (void)
+CDsmccDescriptor::~CDsmccDescriptor (void)
 {
 }
 
-bool CDescriptor::parse (const uint8_t *pDesc)
+bool CDsmccDescriptor::parse (const uint8_t *pDesc)
 {
 	if (!pDesc) {
 		return false;
@@ -57,12 +57,12 @@ bool CDescriptor::parse (const uint8_t *pDesc)
 	return true;
 }
 
-void CDescriptor::dump (void) const
+void CDsmccDescriptor::dump (void) const
 {
 	dump (true);
 }
 
-void CDescriptor::dump (bool isDataDump) const
+void CDsmccDescriptor::dump (bool isDataDump) const
 {
 	_UTL_LOG_I ("tag    [0x%02x]\n", tag);
 	_UTL_LOG_I ("length [%d]\n", length);

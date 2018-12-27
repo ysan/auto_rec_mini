@@ -17,7 +17,7 @@ LIBS		:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	descriptor
+TARGET_NAME	:=	dsmcc_descriptor
 
 #
 #   Target type
@@ -31,7 +31,7 @@ TARGET_TYPE	:=	OBJECT
 SRCS		:=
 
 SRCS_CPP	:= \
-	Descriptor.cpp \
+	DsmccDescriptor.cpp \
 
 #
 #   Configurations

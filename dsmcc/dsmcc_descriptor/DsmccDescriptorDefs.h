@@ -1,5 +1,5 @@
-#ifndef _DESCRIPTOR_DEFS_H_
-#define _DESCRIPTOR_DEFS_H_
+#ifndef _DSMCC_DESCRIPTOR_DEFS_H_
+#define _DSMCC_DESCRIPTOR_DEFS_H_
 
 
 #include "Utils.h"

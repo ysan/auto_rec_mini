@@ -1,5 +1,5 @@
-#ifndef _DESCRIPTOR_H_
-#define _DESCRIPTOR_H_
+#ifndef _DSMCC_DESCRIPTOR_H_
+#define _DSMCC_DESCRIPTOR_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,11 +11,11 @@
 #include "TsCommon.h"
 
 
-class CDescriptor {
+class CDsmccDescriptor {
 public:
-	explicit CDescriptor (const uint8_t *pDesc);
-	CDescriptor (const CDescriptor &obj);
-	~CDescriptor (void);
+	explicit CDsmccDescriptor (const uint8_t *pDesc);
+	CDsmccDescriptor (const CDsmccDescriptor &obj);
+	~CDsmccDescriptor (void);
 
 	virtual void dump (void) const;
 

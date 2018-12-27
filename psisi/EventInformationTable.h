@@ -82,6 +82,9 @@ public:
 
 	void dumpTables (void) const;
 	void dumpTable (const CTable* pTable) const;
+	void dumpTables_simple (void) const;
+	void dumpTable_simple (const CTable* pTable) const;
+
 	void clear (void);
 
 private:

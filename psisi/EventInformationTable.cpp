@@ -34,6 +34,7 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 	}
 
 	mTables.push_back (pTable);
+	dumpTables_simple ();
 	dumpTable (pTable);
 
 //TODO
@@ -137,13 +138,14 @@ void CEventInformationTable::dumpTable (const CTable* pTable) const
 		return;
 	}
 	
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
 	_UTL_LOG_I ("========================================\n");
 
 	_UTL_LOG_I ("table_id                    [0x%02x]\n", pTable->header.table_id);
 	_UTL_LOG_I ("transport_stream_id         [0x%04x]\n", pTable->transport_stream_id);
 	_UTL_LOG_I ("original_network_id         [0x%04x]\n", pTable->original_network_id);
 	_UTL_LOG_I ("segment_last_section_number [0x%02x]\n", pTable->segment_last_section_number);
-	_UTL_LOG_I ("original_network_id         [0x%02x]\n", pTable->last_table_id);
+	_UTL_LOG_I ("last_table_id               [0x%02x]\n", pTable->last_table_id);
 
 	std::vector<CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
 	for (; iter_event != pTable->events.end(); ++ iter_event) {
@@ -168,7 +170,55 @@ void CEventInformationTable::dumpTable (const CTable* pTable) const
 		}
 	}
 
-	_UTL_LOG_I ("========================================\n");
+	_UTL_LOG_I ("\n");
+}
+
+void CEventInformationTable::dumpTables_simple (void) const
+{
+	if (mTables.size() == 0) {
+		return;
+	}
+
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+
+	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
+	for (; iter != mTables.end(); ++ iter) {
+		CTable *pTable = *iter;
+		dumpTable_simple (pTable);
+	}
+}
+
+void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
+{
+	if (!pTable) {
+		return;
+	}
+	
+	char buf[128] = {0};
+	snprintf (buf, sizeof(buf) -1, "event_id:");
+	std::vector<CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
+	for (; iter_event != pTable->events.end(); ++ iter_event) {
+		int len = strlen (buf);
+		if (len > 120) {
+			return;
+		}
+		snprintf (buf+len, sizeof(buf) -1, "[0x%04x]", iter_event->event_id);
+	}
+
+	_UTL_LOG_I (
+		"table_id:[0x%02x][%s] transport_stream_id:[0x%04x] original_network_id:[0x%04x] %s\n",
+		pTable->header.table_id,
+		pTable->header.table_id == 0x4e ? "PF,A " :
+			pTable->header.table_id == 0x4f ? "PF,O " :
+			pTable->header.table_id >= 0x50 && pTable->header.table_id < 0x58 ? "Sh,A " :
+			pTable->header.table_id == 0x58 ? "Sh,AE" :
+			pTable->header.table_id >= 0x60 && pTable->header.table_id < 0x68 ? "Sh,O " :
+			pTable->header.table_id == 0x68 ? "Sh,OE" :
+			"unsup",
+		pTable->transport_stream_id,
+		pTable->original_network_id,
+		buf
+	);
 }
 
 void CEventInformationTable::clear (void)

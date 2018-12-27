@@ -481,7 +481,8 @@ void CUtils::putsLogFprintf (
 	const char *pszPerror,
 	const char *pszFile,
 	const char *pszFunc,
-	int nLine
+	int nLine,
+	bool isNeedLF
 )
 {
 	if (!pFp || !pszTime || !pszBuf || !pszFile || !pszFunc) {
@@ -492,7 +493,8 @@ void CUtils::putsLogFprintf (
 	case EN_LOG_LEVEL_PE:
 		fprintf (
 			pFp,
-			"[%s] %c %s  %s: %s   src=[%s %s()] line=[%d]\n",
+			isNeedLF ? "[%s] %c %s  %s: %s   src=[%s %s()] line=[%d]\n" :
+						"[%s] %c %s  %s: %s   src=[%s %s()] line=[%d]",
 			pszThreadName,
 			type,
 			pszTime,
@@ -511,7 +513,8 @@ void CUtils::putsLogFprintf (
 	default:
 		fprintf (
 			pFp,
-			"[%s] %c %s  %s   src=[%s %s()] line=[%d]\n",
+			isNeedLF ? "[%s] %c %s  %s   src=[%s %s()] line=[%d]\n":
+						"[%s] %c %s  %s   src=[%s %s()] line=[%d]",
 			pszThreadName,
 			type,
 			pszTime,
@@ -728,7 +731,8 @@ void CUtils::putsLogFprintf (
 	char type,
 	const char *pszTime,
 	const char *pszBuf,
-	const char *pszPerror
+	const char *pszPerror,
+	bool isNeedLF
 )
 {
 	if (!pFp || !pszTime || !pszBuf) {
@@ -739,7 +743,8 @@ void CUtils::putsLogFprintf (
 	case EN_LOG_LEVEL_PE:
 		fprintf (
 			pFp,
-			"[%s] %c %s  %s: %s\n",
+			isNeedLF ? "[%s] %c %s  %s: %s\n":
+						"[%s] %c %s  %s: %s",
 			pszThreadName,
 			type,
 			pszTime,
@@ -755,7 +760,8 @@ void CUtils::putsLogFprintf (
 	default:
 		fprintf (
 			pFp,
-			"[%s] %c %s  %s\n",
+			isNeedLF ? "[%s] %c %s  %s\n":
+						"[%s] %c %s  %s",
 			pszThreadName,
 			type,
 			pszTime,

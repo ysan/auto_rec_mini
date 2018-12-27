@@ -211,7 +211,7 @@ void CTsParser::dumpTsHeader (const ST_TS_HEADER *p) const
 		return ;
 	}
 	_UTL_LOG_I (
-		"TsHeader: sync:0x%02x trans_err:0x%02x start_ind:0x%02x prio:0x%02x pid:0x%04x scram:0x%02x adap:0x%02x cont:0x%02x\n",
+		"TsHeader: sync:[0x%02x] trans_err:[0x%02x] start_ind:[0x%02x] prio:[0x%02x] pid:[0x%04x] scram:[0x%02x] adap:[0x%02x] cont:[0x%02x]\n",
 		p->sync,
 		p->transport_error_indicator,
 		p->payload_unit_start_indicator,

@@ -7,16 +7,16 @@ CFLAGS		:=	-std=c++11
 
 INCLUDES	:= \
 	-I./ \
-	-I./descriptor \
+	-I./dsmcc_descriptor \
 	-I$(BASEDIR) \
 
 LIBS		:= \
 	-L$(BASEDIR)/aribstr -laribstr \
 
 
-APPEND_OBJS := ./descriptor/descriptor.o
+APPEND_OBJS := ./dsmcc_descriptor/dsmcc_descriptor.o
 
-SUBDIRS		:= ./descriptor
+SUBDIRS		:= ./dsmcc_descriptor
 
 #
 #   Target object

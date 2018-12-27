@@ -112,8 +112,9 @@ void CRunningStatusTable::dumpTable (const CTable* pTable) const
 {
 	if (!pTable) {
 		return;
-	}
 	
+	}
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
 	_UTL_LOG_I ("========================================\n");
 
 	std::vector<CTable::CStatus>::const_iterator iter_stt = pTable->statuses.begin();
@@ -126,7 +127,7 @@ void CRunningStatusTable::dumpTable (const CTable* pTable) const
 		_UTL_LOG_I ("running_status      [0x%01x]\n", iter_stt->running_status);
 	}
 
-	_UTL_LOG_I ("========================================\n");
+	_UTL_LOG_I ("\n");
 }
 
 void CRunningStatusTable::clear (void)
