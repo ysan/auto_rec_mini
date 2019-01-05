@@ -1,17 +1,19 @@
 #
 #   Defines
 #
-BASEDIR		:=	../../
+BASEDIR		:=	../../../
 CFLAGS		:=	-std=c++11 -fPIC
 INCLUDES	:= \
-	-I./ \
 	-I$(BASEDIR) \
-	-I$(BASEDIR)/section_parser \
-	-I$(BASEDIR)/aribstr \
+	-I$(BASEDIR)/common \
+	-I./ \
+	-I../ \
+	-I../../ \
+	-I../../aribstr \
 
 LIBS		:= \
-	-L$(BASEDIR)/section_parser -lsection_parser \
-	-L$(BASEDIR)/aribstr -laribstr \
+	-L../aribstr -laribstr \
+	-L$(BASEDIR)/common -lcommon \
 
 
 #

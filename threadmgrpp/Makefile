@@ -3,25 +3,22 @@
 #
 BASEDIR		:=	../
 
-CFLAGS		:=	-std=c++11
-
 INCLUDES	:= \
 	-I./ \
-	-I./dsmcc_descriptor \
-	-I$(BASEDIR) \
+	-I../threadmgr \
 
 LIBS		:= \
-	-L$(BASEDIR)/aribstr -laribstr \
+	-lpthread \
+	-rdynamic \
+	-L../threadmgr -lthreadmgr \
 
-
-APPEND_OBJS := ./dsmcc_descriptor/dsmcc_descriptor.o
-
-SUBDIRS		:= ./dsmcc_descriptor
+USERDEFS	:= \
+#	-D_LOG_SIMPLE \
 
 #
 #   Target object
 #
-TARGET_NAME	:=	dsmcc
+TARGET_NAME	:=	threadmgrpp
 
 #
 #   Target type
@@ -32,14 +29,14 @@ TARGET_TYPE	:=	SHARED
 #
 #   Compile sources
 #
-SRCS		:=
-
 SRCS_CPP	:= \
-	Dsmcc.cpp \
+	ThreadMgrIf.cpp \
+	ThreadMgrExternalIf.cpp \
+	ThreadMgrBase.cpp \
+	ThreadMgr.cpp \
 
 
 #
 #   Configurations
 #
 include $(BASEDIR)/Config.mak
-

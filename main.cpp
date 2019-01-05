@@ -3,87 +3,55 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
-#include "Defs.h"
-#include "TsParser.h"
-#include "Utils.h"
+#include "threadmgr_if.h"
+#include "threadmgr_util.h"
+
+#include "ThreadMgrIf.h"
+#include "ThreadMgrExternalIf.h"
+
+#include "ThreadMgrBase.h"
+#include "ThreadMgr.h"
+
+#include "CommandServer.h"
+#include "CommandServerIf.h"
+
+#include "modules.h"
 
 
-char g_optFile [PATH_MAX] = {0};
+using namespace ThreadManager;
 
 
-uint32_t getOption (int argc, char* argv[])
+int main (void)
 {
-	uint32_t r_optFlag = 0x00000000;
-	int opt = 0;
-    
-	// disable getopt err msg
-	opterr = 0;
-    
-	while ((opt = getopt(argc, argv, "f:")) != -1) {
-		switch (opt) {
-		case 'f':
-printf("optarg %s\n", optarg);
-			r_optFlag |= 0x00000001;
-			memset (g_optFile, 0x00, PATH_MAX);
-			strncpy (g_optFile, optarg, PATH_MAX -1);
-			break;
-
-		default:
-			break;
-		}
-	}
-    
-    return r_optFlag;
-}
-
-int main (int argc, char *argv[])
-{
-	int fd = 0;
-	int readSize = 0;
-	int readTotal = 0;
-	uint8_t buff [65536] = {0};
+	initLogStdout();
 
 
-	CTsParser tp;
+	CThreadMgr *p_thread_mgr = CThreadMgr::getInstance();
 
-
-	uint32_t optFlag = getOption (argc, argv);
-	if (optFlag & 0x00000001) {
-		fd = open (g_optFile, O_RDONLY);
-		if (fd < 0) {
-			perror ("open");
-			exit (EXIT_FAILURE);
-		}
-	} else {
-		fd = STDIN_FILENO;
+	if (!p_thread_mgr->setup (gp_modules, EN_MODULE_NUM)) {
+		exit (EXIT_FAILURE);
 	}
 
-
-	while (1) {
-
-		memset (buff, 0x00, sizeof(buff));
-		readSize = CUtils::readFile (fd, buff, sizeof(buff));
-		if (readSize < 0) {
-			fprintf (stdout, "CUtils::readFile() is failure.\n");
-		} else if (readSize == 0) {
-			break;
-		}
-
-		readTotal += readSize;
-
-printf ("%d\n", readSize);
-
-		tp.run (buff, readSize);
-	}
+	CCommandServerIf *p_command_server_if = new CCommandServerIf (p_thread_mgr->getExternalIf());
 
 
-	printf ("readTotal %d\n", readTotal);
+	p_thread_mgr->getExternalIf()->createExternalCp();
 
-	close (fd);
+
+	p_command_server_if-> reqStartup ();
+
+
+
+	pause ();
+
+
+
+
+	p_thread_mgr->teardown();
+	delete p_thread_mgr;
+	p_thread_mgr = NULL;
+
+
 	exit (EXIT_SUCCESS);
 }

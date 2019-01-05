@@ -1,15 +1,19 @@
 #
 #   Defines
 #
-BASEDIR		:=	../../
+BASEDIR		:=	../../../
 CFLAGS		:=	-std=c++11 -fPIC
 INCLUDES	:= \
-	-I./ \
 	-I$(BASEDIR) \
-	-I$(BASEDIR)/aribstr \
+	-I$(BASEDIR)/common \
+	-I./ \
+	-I../ \
+	-I../../ \
+	-I../../aribstr \
 
 LIBS		:= \
-	-L$(BASEDIR)/aribstr -laribstr \
+	-L$(BASEDIR)/common -lcommon \
+	-L./aribstr -laribstr \
 
 
 #

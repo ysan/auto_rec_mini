@@ -1,17 +1,20 @@
 #
 #   Defines
 #
-BASEDIR		:=	../
+BASEDIR		:=	../../
 
 CFLAGS		:=	-std=c++11
 
 INCLUDES	:= \
+	-I$(BASEDIR) \
+	-I$(BASEDIR)/common \
 	-I./ \
 	-I./descriptor \
-	-I$(BASEDIR) \
+	-I../ \
 
 LIBS		:= \
-	-L$(BASEDIR)/aribstr -laribstr \
+	-L$(BASEDIR)/common -lcommon \
+	-L../aribstr -laribstr \
 
 
 APPEND_OBJS := ./descriptor/descriptor.o

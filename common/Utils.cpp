@@ -246,7 +246,7 @@ void CUtils::getTimeOfDay (struct timeval *p)
 }
 
 // default stdout
-FILE *CUtils::mfpLog = stdout;
+FILE *CUtils::mpfpLog = stdout;
 
 /**
  * ファイル出力用
@@ -289,7 +289,7 @@ bool CUtils::initLog (void)
 		rename (LOG_PATH "/" LOG_NAME "." LOG_EXT, ne);
 	}
 	
-	if ((mfpLog = fopen (LOG_PATH "/" LOG_NAME "." LOG_EXT, "a")) == NULL) {
+	if ((mpfpLog = fopen (LOG_PATH "/" LOG_NAME "." LOG_EXT, "a")) == NULL) {
 		perror ("fopen");
 		return false;
 	}
@@ -303,9 +303,27 @@ bool CUtils::initLog (void)
  */
 void CUtils::finalizLog (void)
 {
-	if (mfpLog) {
-		fclose (mfpLog);
+	if (mpfpLog) {
+		fclose (mpfpLog);
 	}
+}
+
+/**
+ * ログ出力用 FP切り替え
+ */
+void CUtils::setLogFileptr (FILE *p)
+{
+	if (p) {
+		mpfpLog = p;
+	}
+}
+
+/**
+ * ログ出力用 FP取得
+ */
+FILE* CUtils::getLogFileptr (void)
+{
+	return mpfpLog;
 }
 
 /**
@@ -461,6 +479,7 @@ void CUtils::putsLog (
 		);
 
 		s = NULL;
+		++ n;
 	}
 #endif
 

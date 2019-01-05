@@ -2,14 +2,22 @@
 #   Defines
 #
 BASEDIR		:=	../
-CFLAGS		:=
-INCLUDES	:=
-LIBS		:=
+
+CFLAGS		:=	-std=c++11
+
+INCLUDES	:= \
+	-I$(BASEDIR)/ \
+	-I./ \
+
+LIBS		:= \
+	-lpthread \
+
+SUBDIRS		:= \
 
 #
 #   Target object
 #
-TARGET_NAME	:=	aribstr
+TARGET_NAME	:=	common
 
 #
 #   Target type
@@ -20,7 +28,10 @@ TARGET_TYPE	:=	SHARED
 #
 #   Compile sources
 #
-SRCS		:=	aribstr.c
+SRCS		:=
+
+SRCS_CPP	:= \
+	Utils.cpp \
 
 
 #

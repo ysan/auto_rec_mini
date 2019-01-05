@@ -1,7 +1,7 @@
 #
 #   Defines
 #
-BASEDIR		:=	../
+BASEDIR		:=	../../
 
 CFLAGS		:=	-DDEBUG -O2 -Wall -DSTD_B25
 ifeq ($(shell getconf LONG_BIT),32)
@@ -10,9 +10,13 @@ endif
 
 INCLUDES	:= \
 	-I./ \
-	-I$(BASEDIR) \
+	-I../ \
+	-I../it9175 \
 
-LIBS		:=	-lpthread -larib25
+LIBS		:= \
+	-lpthread \
+	-larib25 \
+	-L../it9175 -lit9175 \
 
 APPEND_OBJS :=
 
@@ -21,27 +25,18 @@ SUBDIRS		:=
 #
 #   Target object
 #
-TARGET_NAME	:=	it9175
+TARGET_NAME	:=	recfsusb2i
 
 #
 #   Target type
 #     (EXEC/SHARED/STATIC/OBJECT)
 #
-TARGET_TYPE	:=	STATIC
+TARGET_TYPE	:=	EXEC
 
 #
 #   Compile sources
 #
-SRCS		:= \
-	it9175.c \
-	it9175_extern.c \
-	it9175_usb.c \
-	message.c \
-	osdepend.c \
-	tsthread.c \
-	usbdevfile.c \
-	usbops.c \
-	utils.c \
+SRCS		:=	main.c
 
 SRCS_CPP	:=
 
