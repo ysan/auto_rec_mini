@@ -22,9 +22,9 @@
 CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 {
-	mSeqs [EN_SEQ_STARTUP] = {(PFN_SEQ_BASE)&CCommandServer::startup, (char*)"startup"};
-	mSeqs [EN_SEQ_RECV_LOOP] = {(PFN_SEQ_BASE)&CCommandServer::recvLoop, (char*)"recvLoop"};
-	setSeqs (mSeqs, EN_SEQ_NUM);
+	mSeqs [EN_SEQ_COMMAND_SERVER_STARTUP] = {(PFN_SEQ_BASE)&CCommandServer::startup, (char*)"startup"};
+	mSeqs [EN_SEQ_COMMAND_SERVER_RECV_LOOP] = {(PFN_SEQ_BASE)&CCommandServer::recvLoop, (char*)"recvLoop"};
+	setSeqs (mSeqs, EN_SEQ_COMMAND_SERVER_NUM);
 }
 
 CCommandServer::~CCommandServer (void)
@@ -47,7 +47,7 @@ void CCommandServer::startup (CThreadMgrIf *pIf)
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 
-	getExternalIf()->requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_RECV_LOOP);
+	getExternalIf()->requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_RECV_LOOP);
 
 
 	nSectId = THM_SECT_ID_INIT;

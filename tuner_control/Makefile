@@ -6,40 +6,45 @@ BASEDIR		:=	../
 CFLAGS		:=	-std=c++11
 
 INCLUDES	:= \
-	-I$(BASEDIR)/ \
+	-I$(BASEDIR)/threadmgr \
+	-I$(BASEDIR)/threadmgrpp \
 	-I$(BASEDIR)/common \
 	-I./ \
+	-I./it9175 \
+	-I../ \
 
 LIBS		:= \
+	-L$(BASEDIR)/threadmgr -lthreadmgr \
+	-L$(BASEDIR)/threadmgrpp -lthreadmgrpp \
 	-L$(BASEDIR)/common -lcommon \
 	-lpthread \
-	-lpcsclite \
+
+USERDEFS	:= \
 
 SUBDIRS		:= \
 	it9175 \
 	it9175_test \
 
+
 #
 #   Target object
 #
-TARGET_NAME	:=
+TARGET_NAME	:=	tuner_control
 
 #
 #   Target type
 #     (EXEC/SHARED/STATIC/OBJECT)
 #
-TARGET_TYPE	:=
+TARGET_TYPE	:=	SHARED
 
 #
 #   Compile sources
 #
-SRCS		:=
-
-SRCS_CPP	:=
+SRCS_CPP	:= \
+	TunerControl.cpp \
 
 
 #
 #   Configurations
 #
 include $(BASEDIR)/Config.mak
-

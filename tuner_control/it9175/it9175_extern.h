@@ -20,10 +20,10 @@ typedef enum {
 } EN_IT9175_STATE;
 
 typedef struct {
-	bool (*pcb_pre_receive) (void);
-	void (*pcb_post_receive) (void);
-	bool (*pcb_check_receive_loop) (void);
-	bool (*pcb_receive_from_tuner) (void *p_recv_data, int length);
+	bool (*pcb_pre_receive) (void *p_shared_data);
+	void (*pcb_post_receive) (void *p_shared_data);
+	bool (*pcb_check_receive_loop) (void *p_shared_data);
+	bool (*pcb_receive_from_tuner) (void *p_shared_data, void *p_recv_data, int length);
 	void *p_shared_data;
 } ST_IT9175_SETUP_INFO;
 
@@ -41,6 +41,7 @@ extern void it9175_set_log_verbose (bool is_log_verbose);
 extern bool it9175_open (void);
 extern void it9175_close (void);
 extern int it9175_tune (unsigned int freq);
+extern void it9175_force_tune_end (void);
 
 #ifdef __cplusplus
 };

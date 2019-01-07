@@ -37,7 +37,7 @@ public:
 private:
 	void recvLoop (void);
 
-	ST_SEQ_BASE mSeqs [EN_SEQ_NUM]; // entity
+	ST_SEQ_BASE mSeqs [EN_SEQ_COMMAND_SERVER_NUM]; // entity
 
 };
 

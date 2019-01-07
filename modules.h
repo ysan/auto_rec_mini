@@ -9,6 +9,7 @@ using namespace ThreadManager;
 
 enum {
 	EN_MODULE_COMMAND_SERVER = 0,
+	EN_MODULE_TUNER_CONTROL = 0,
 
 	EN_MODULE_NUM
 };

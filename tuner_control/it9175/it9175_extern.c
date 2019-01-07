@@ -32,6 +32,7 @@ static ST_IT9175_SETUP_INFO g_setup_info = {
 };
 
 static bool g_is_log_verbose = false;
+static bool g_is_force_tune_end = false;
 
 
 //
@@ -43,6 +44,7 @@ void it9175_set_log_verbose (bool is_log_verbose); // extern
 bool it9175_open (void ); // extern
 void it9175_close (void); // extern
 int it9175_tune (unsigned int freq); // extern
+void it9175_force_tune_end (void); // extern
 static void printTMCC(const it9175_state state);
 static int check_usbdevId(const unsigned int* desc);
 
@@ -230,7 +232,7 @@ int it9175_tune (unsigned int freq)
 	g_en_state = EN_IT9175_STATE__TUNED;
 
 	if (g_setup_info.pcb_pre_receive) {
-		if (!g_setup_info.pcb_pre_receive ()) {
+		if (!g_setup_info.pcb_pre_receive (g_setup_info.p_shared_data)) {
 			goto _END_THREAD_STOP;
 		}
 	}
@@ -238,8 +240,12 @@ int it9175_tune (unsigned int freq)
 	//# main loop
 	msg("# Start!\n");
 	while (1) {
+		if (g_is_force_tune_end) {
+			g_is_force_tune_end = false;
+			break;
+		}
 		if (g_setup_info.pcb_check_receive_loop) {
-			if (!g_setup_info.pcb_check_receive_loop ()) {
+			if (!g_setup_info.pcb_check_receive_loop (g_setup_info.p_shared_data)) {
 				break;
 			}
 		}
@@ -248,7 +254,7 @@ int it9175_tune (unsigned int freq)
 		int rlen;
 		if((rlen = tsthread_read(tsthr, &pBuffer)) > 0) {
 			if (g_setup_info.pcb_receive_from_tuner) {
-				if (!g_setup_info.pcb_receive_from_tuner (pBuffer, rlen)) {
+				if (!g_setup_info.pcb_receive_from_tuner (g_setup_info.p_shared_data, pBuffer, rlen)) {
 					break;
 				}
 			}
@@ -278,9 +284,8 @@ int it9175_tune (unsigned int freq)
 	ret = 0;
 
 	if (g_setup_info.pcb_post_receive) {
-		g_setup_info.pcb_post_receive ();
+		g_setup_info.pcb_post_receive (g_setup_info.p_shared_data);
 	}
-
 
 _END_THREAD_STOP:
 	tsthread_stop(tsthr);
@@ -292,6 +297,13 @@ _END:
 	g_en_state = EN_IT9175_STATE__TUNE_ENDED;
 
 	return ret;
+}
+
+void it9175_force_tune_end (void)
+{
+	if (g_en_state == EN_IT9175_STATE__TUNED) {
+		g_is_force_tune_end = true;
+	}
 }
 
 static void printTMCC(const it9175_state state)
@@ -315,4 +327,3 @@ static int check_usbdevId(const unsigned int* desc)
 	if(0x0511 == desc[0] && 0x0046 == desc[1])  return 0;
 	return 1;   //# not match
 }
-

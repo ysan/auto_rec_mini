@@ -1,5 +1,5 @@
-#ifndef _MODULEA_EXTERN_H_
-#define _MODULEA_EXTERN_H_
+#ifndef _COMMAND_SERVER_IF_H_
+#define _COMMAND_SERVER_IF_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,9 +14,9 @@
 using namespace ThreadManager;
 
 enum {
-	EN_SEQ_STARTUP = 0,
-	EN_SEQ_RECV_LOOP,
-	EN_SEQ_NUM,
+	EN_SEQ_COMMAND_SERVER_STARTUP = 0,
+	EN_SEQ_COMMAND_SERVER_RECV_LOOP,
+	EN_SEQ_COMMAND_SERVER_NUM,
 };
 
 
@@ -31,7 +31,7 @@ public:
 
 
 	bool reqStartup (void) {
-		return requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_STARTUP);
+		return requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_STARTUP);
 	};
 };
 

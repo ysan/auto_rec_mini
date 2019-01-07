@@ -10,6 +10,8 @@ INCLUDES	:= \
 	-I$(BASEDIR)/threadmgr \
 	-I$(BASEDIR)/threadmgrpp \
 	-I$(BASEDIR)/common \
+	-I$(BASEDIR)/tuner_control \
+	-I$(BASEDIR)/tuner_control/it9175 \
 	-I$(BASEDIR)/command_server \
 	-I./ \
 
@@ -17,6 +19,7 @@ LIBS		:= \
 	-L$(BASEDIR)/threadmgr -lthreadmgr \
 	-L$(BASEDIR)/threadmgrpp -lthreadmgrpp \
 	-L$(BASEDIR)/common -lcommon \
+	-L$(BASEDIR)/tuner_control -ltuner_control \
 	-L$(BASEDIR)/command_server -lcommand_server \
 	-lpthread \
 	-lpcsclite \
@@ -27,7 +30,7 @@ SUBDIRS		:= \
 	common \
 	ts_parser \
 	ts_parser_test \
-	tuner \
+	tuner_control \
 	command_server \
 
 #

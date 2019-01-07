@@ -14,9 +14,9 @@ INCLUDES	:= \
 	-I../it9175 \
 
 LIBS		:= \
+	-L../it9175 -lit9175 \
 	-lpthread \
 	-larib25 \
-	-L../it9175 -lit9175 \
 
 APPEND_OBJS :=
 
@@ -36,9 +36,9 @@ TARGET_TYPE	:=	EXEC
 #
 #   Compile sources
 #
-SRCS		:=	main.c
+#SRCS		:=	main.c
 
-SRCS_CPP	:=
+SRCS_CPP	:=	main.cpp
 
 
 #
