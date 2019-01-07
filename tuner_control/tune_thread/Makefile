@@ -1,7 +1,7 @@
 #
 #   Defines
 #
-BASEDIR		:=	../
+BASEDIR		:=	../../
 
 CFLAGS		:=	-std=c++11
 
@@ -11,29 +11,25 @@ INCLUDES	:= \
 	-I$(BASEDIR)/threadmgrpp \
 	-I$(BASEDIR)/common \
 	-I./ \
-	-I./it9175 \
-	-I./tune_thread \
+	-I../ \
+	-I../it9175 \
 
 LIBS		:= \
 	-L$(BASEDIR)/threadmgr -lthreadmgr \
 	-L$(BASEDIR)/threadmgrpp -lthreadmgrpp \
 	-L$(BASEDIR)/common -lcommon \
-	-L./it9175 -lit9175 \
-	-L./tune_thread -ltune_thread \
+	-L../it9175 -lit9175 \
 	-lpthread \
 
 USERDEFS	:= \
 
 SUBDIRS		:= \
-	it9175 \
-	it9175_test \
-	tune_thread \
 
 
 #
 #   Target object
 #
-TARGET_NAME	:=	tuner_control
+TARGET_NAME	:=	tune_thread
 
 #
 #   Target type
@@ -45,7 +41,7 @@ TARGET_TYPE	:=	SHARED
 #   Compile sources
 #
 SRCS_CPP	:= \
-	TunerControl.cpp \
+	TuneThread.cpp \
 
 
 #

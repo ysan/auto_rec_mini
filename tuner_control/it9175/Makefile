@@ -3,7 +3,7 @@
 #
 BASEDIR		:=	../../
 
-CFLAGS		:=	-DDEBUG -O2 -Wall -DSTD_B25
+CFLAGS		:=	-DDEBUG -O2 -Wall -DSTD_B25 -fPIC
 ifeq ($(shell getconf LONG_BIT),32)
 CFLAGS		+=	-D_FILE_OFFSET_BITS=64
 endif

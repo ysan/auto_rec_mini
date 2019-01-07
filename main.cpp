@@ -13,7 +13,6 @@
 #include "ThreadMgrBase.h"
 #include "ThreadMgr.h"
 
-#include "CommandServer.h"
 #include "CommandServerIf.h"
 
 #include "modules.h"
@@ -39,7 +38,7 @@ int main (void)
 	p_thread_mgr->getExternalIf()->createExternalCp();
 
 
-	p_command_server_if-> reqStartup ();
+	p_command_server_if-> reqStart ();
 
 
 

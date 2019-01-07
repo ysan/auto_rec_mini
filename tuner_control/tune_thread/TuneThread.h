@@ -1,5 +1,5 @@
-#ifndef _COMMAND_SERVER_H_
-#define _COMMAND_SERVER_H_
+#ifndef _TUNE_THREAD_H_
+#define _TUNE_THREAD_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,28 +17,29 @@
 #include "ThreadMgr.h"
 
 #include "Utils.h"
-#include "CommandServerIf.h"
+#include "it9175_extern.h"
 
 
 using namespace ThreadManager;
 
+enum {
+	EN_SEQ_TUNE_THREAD_START = 0,
+	EN_SEQ_TUNE_THREAD_TUNE,
+	EN_SEQ_TUNE_THREAD_NUM,
+};
 
-class CCommandServer : public CThreadMgrBase
+class CTuneThread : public CThreadMgrBase
 {
 public:
-	CCommandServer (char *pszName, uint8_t nQueNum);
-	virtual ~CCommandServer (void);
+	CTuneThread (char *pszName, uint8_t nQueNum);
+	virtual ~CTuneThread (void);
 
 
 	void start (CThreadMgrIf *pIf);
-	void recvLoop (CThreadMgrIf *pIf);
-
+	void tune (CThreadMgrIf *pIf);
 
 private:
-	void recvLoop (void);
-
-	ST_SEQ_BASE mSeqs [EN_SEQ_COMMAND_SERVER_NUM]; // entity
-
+	ST_SEQ_BASE mSeqs [EN_SEQ_TUNE_THREAD_NUM]; // entity
 };
 
 #endif

@@ -22,7 +22,7 @@
 CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 {
-	mSeqs [EN_SEQ_COMMAND_SERVER_STARTUP] = {(PFN_SEQ_BASE)&CCommandServer::startup, (char*)"startup"};
+	mSeqs [EN_SEQ_COMMAND_SERVER_START] = {(PFN_SEQ_BASE)&CCommandServer::start, (char*)"start"};
 	mSeqs [EN_SEQ_COMMAND_SERVER_RECV_LOOP] = {(PFN_SEQ_BASE)&CCommandServer::recvLoop, (char*)"recvLoop"};
 	setSeqs (mSeqs, EN_SEQ_COMMAND_SERVER_NUM);
 }
@@ -32,7 +32,7 @@ CCommandServer::~CCommandServer (void)
 }
 
 
-void CCommandServer::startup (CThreadMgrIf *pIf)
+void CCommandServer::start (CThreadMgrIf *pIf)
 {
 	uint8_t nSectId;
 	EN_THM_ACT enAct;

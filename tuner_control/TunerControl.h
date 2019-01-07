@@ -47,22 +47,19 @@ public:
 	void tuneEnd (CThreadMgrIf *pIf);
 
 
+	uint32_t mFreq;
+
+private:
 	static bool open (void);
 	static void close (void);
 	static int tune (uint32_t freq);
 	static void forceTuneEnd (void);
-	static void *tuneThread (void *args);
 
-	uint32_t mFreq;
-	pthread_t mTuneThreadId;
-
-private:
 	// it9175 callbacks
 	static bool onPreReceive (void *p_shared_data);
 	static void onPostReceive (void *p_shared_data);
 	static bool onCheckReceiveLoop (void *p_shared_data);
 	static bool onReceiveFromTuner (void *p_shared_data, void *p_recv_data, int length);
-	static void * mpSharedData;
 	ST_IT9175_SETUP_INFO m_it9175_setupInfo;
 
 	ITunerCallbacks *mpCallbacks [TUNER_CALLBACK_NUM];
