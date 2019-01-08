@@ -11,6 +11,8 @@ ${BASE_DIR}/ts_parser/dsmcc:\
 ${BASE_DIR}/ts_parser:\
 ${BASE_DIR}/common:\
 ${BASE_DIR}/command_server:\
+${BASE_DIR}/tuner_control:\
+${BASE_DIR}/tuner_control/tune_thread:\
 
 
 

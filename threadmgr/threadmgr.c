@@ -3785,7 +3785,7 @@ static const char* getSeqName (void)
 {
 	ST_CONTEXT stContext = getContext();
 	if (stContext.isValid) {
-		ST_THM_SEQ *p = gpstThmRegTbl [stContext.nThreadIdx]->pstSeqArray;
+		const ST_THM_SEQ *p = gpstThmRegTbl [stContext.nThreadIdx]->pstSeqArray;
 		return (p + stContext.nSeqIdx)->pszName;
 	} else {
 		return NULL;

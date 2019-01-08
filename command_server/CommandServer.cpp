@@ -34,15 +34,15 @@ CCommandServer::~CCommandServer (void)
 
 void CCommandServer::start (CThreadMgrIf *pIf)
 {
-	uint8_t nSectId;
+	uint8_t sectId;
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_END,
 	};
 
-	nSectId = pIf->getSectId();
-	_UTL_LOG_I ("nSectId %d\n", nSectId);
+	sectId = pIf->getSectId();
+	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -50,22 +50,22 @@ void CCommandServer::start (CThreadMgrIf *pIf)
 	getExternalIf()->requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_RECV_LOOP);
 
 
-	nSectId = THM_SECT_ID_INIT;
+	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (nSectId, enAct);
+	pIf->setSectId (sectId, enAct);
 }
 
 void CCommandServer::recvLoop (CThreadMgrIf *pIf)
 {
-	uint8_t nSectId;
+	uint8_t sectId;
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_END,
 	};
 
-	nSectId = pIf->getSectId();
-	_UTL_LOG_I ("nSectId %d\n", nSectId);
+	sectId = pIf->getSectId();
+	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -73,9 +73,9 @@ void CCommandServer::recvLoop (CThreadMgrIf *pIf)
 	recvLoop ();
 
 
-	nSectId = THM_SECT_ID_INIT;
+	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (nSectId, enAct);
+	pIf->setSectId (sectId, enAct);
 }
 
 void CCommandServer::recvLoop (void)
