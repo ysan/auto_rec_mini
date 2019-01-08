@@ -14,7 +14,11 @@ CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
 	,mFreq (0)
 {
 	mSeqs [EN_SEQ_TUNER_CONTROL_START] = {(PFN_SEQ_BASE)&CTunerControl::start, (char*)"start"};
+	mSeqs [EN_SEQ_TUNER_CONTROL_TUNE] = {(PFN_SEQ_BASE)&CTunerControl::tune, (char*)"tune"};
+	mSeqs [EN_SEQ_TUNER_CONTROL_TUNE_START] = {(PFN_SEQ_BASE)&CTunerControl::tuneStart, (char*)"tuneStart"};
+	mSeqs [EN_SEQ_TUNER_CONTROL_TUNE_STOP] = {(PFN_SEQ_BASE)&CTunerControl::tuneStop, (char*)"tuneStop"};
 	setSeqs (mSeqs, EN_SEQ_TUNER_CONTROL_NUM);
+
 
 	// it9175 callbacks
 	memset (&m_it9175_setupInfo, 0x00, sizeof(m_it9175_setupInfo));
@@ -37,15 +41,15 @@ CTunerControl::~CTunerControl (void)
 
 void CTunerControl::start (CThreadMgrIf *pIf)
 {
-	uint8_t nSectId;
+	uint8_t sectId;
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_END,
 	};
 
-	nSectId = pIf->getSectId();
-	_UTL_LOG_I ("nSectId %d\n", nSectId);
+	sectId = pIf->getSectId();
+	_UTL_LOG_I ("sectId %d\n", sectId);
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -53,9 +57,88 @@ void CTunerControl::start (CThreadMgrIf *pIf)
 // do nothing
 //
 
-	nSectId = THM_SECT_ID_INIT;
+	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (nSectId, enAct);
+	pIf->setSectId (sectId, enAct);
+}
+
+void CTunerControl::tune (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_WAIT_TUNE_STOP,
+		SECTID_WAIT_TUNE_START,
+		SECTID_END_SUCCESS,
+		SECTID_END_ERROR,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_I ("sectId %d\n", sectId);
+
+	uint32_t freq = 0;
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+		freq = *(pIf->getSrcInfo()->msg.pMsg);
+		if (mFreq == freq) {
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			getExternalIf()->requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_STOP);
+			sectId = SECTID_WAIT_TUNE_STOP;
+			enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_TUNE_STOP:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			getExternalIf()->requestAsync (
+				EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_START, (uint8_t*)&freq, sizeof(freq));
+			sectId = SECTID_WAIT_TUNE_START;
+			enAct = EN_THM_ACT_WAIT;
+
+		} else {
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_WAIT_TUNE_START:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_END_SUCCESS:
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+		break;
+
+	case SECTID_END_ERROR:
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		pIf->reply (EN_THM_RSLT_ERROR);
+		break;
+
+	default:
+		break;
+	}
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
 }
 
 void CTunerControl::tuneStart (CThreadMgrIf *pIf)
@@ -64,6 +147,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_WAIT_TUNE_THREAD_TUNE,
 		SECTID_CHECK_COMPLETE,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
@@ -74,6 +158,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 
 	uint32_t freq = 0;
 	static int chkcnt = 0;
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
 	switch (sectId) {
 	case SECTID_ENTRY:
@@ -87,8 +172,20 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
+	case SECTID_WAIT_TUNE_THREAD_TUNE:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			sectId = SECTID_CHECK_COMPLETE;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
 	case SECTID_CHECK_COMPLETE:
-		if (chkcnt > 10) {
+		if (chkcnt > 20) {
 			pIf->clearTimeout ();
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -96,7 +193,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 
 		if (it9175_get_state() != EN_IT9175_STATE__TUNED) {
 			++ chkcnt ;
-			pIf->setTimeout (500);
+			pIf->setTimeout (200);
 			sectId = SECTID_CHECK_COMPLETE;
 			enAct = EN_THM_ACT_WAIT;
 		} else {
@@ -108,10 +205,14 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_END_SUCCESS:
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		break;
 
 	case SECTID_END_ERROR:
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
 		pIf->reply (EN_THM_RSLT_ERROR);
 		break;
 
@@ -122,46 +223,50 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CTunerControl::tuneEnd (CThreadMgrIf *pIf)
+void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 {
-	uint8_t nSectId;
+	uint8_t sectId;
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_END,
 	};
 
-	nSectId = pIf->getSectId();
-	_UTL_LOG_I ("nSectId %d\n", nSectId);
+	sectId = pIf->getSectId();
+	_UTL_LOG_I ("sectId %d\n", sectId);
 
+	static int chkcnt = 0;
 
+	if (it9175_get_state() == EN_IT9175_STATE__TUNED) {
+		it9175_force_tune_end ();
 
+		while (chkcnt < 20) {
+			if (it9175_get_state() == EN_IT9175_STATE__TUNE_ENDED) {
+				break;
+			}
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+			usleep (200000);
+			++ chkcnt;
+		}
 
-	nSectId = THM_SECT_ID_INIT;
+		if (chkcnt < 20) {
+			it9175_close ();
+			pIf->reply (EN_THM_RSLT_SUCCESS);
+		} else {
+			_UTL_LOG_E ("transition failure. (EN_IT9175_STATE__TUNED -> EN_IT9175_STATE__TUNE_ENDED)");
+			pIf->reply (EN_THM_RSLT_ERROR);
+		}
+
+	} else {
+		it9175_close ();
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+	}
+
+	chkcnt = 0;
+
+	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (nSectId, enAct);
-}
-
-bool CTunerControl::open (void)
-{
-	return it9175_open ();
-}
-
-void CTunerControl::close (void)
-{
-	it9175_close ();
-}
-
-int CTunerControl::tune (uint32_t freq)
-{
-	return it9175_tune (freq);
-}
-
-void forceTuneEnd (void)
-{
-	it9175_force_tune_end ();
+	pIf->setSectId (sectId, enAct);
 }
 
 bool CTunerControl::onPreReceive (void *p_shared_data)

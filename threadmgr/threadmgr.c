@@ -430,6 +430,8 @@ static void setSectId (uint8_t nSectId, EN_THM_ACT enAct);
 static void setSectIdInner (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t nSectId, EN_THM_ACT enAct);
 static void clearSectId (uint8_t nThreadIdx, uint8_t nSeqIdx);
 static uint8_t getSectId (void);
+static uint8_t getSeqIdx (void);
+static const char* getSeqName (void);
 static void setTimeout (uint32_t nTimeoutMsec);
 static void setSeqTimeout (uint32_t nTimeoutMsec);
 static void enableSeqTimeout (uint8_t nThreadIdx, uint8_t nSeqIdx);
@@ -442,10 +444,10 @@ static void checkSeqTimeoutFromNotCondTimedwait (uint8_t nThreadIdx);
 static void clearTimeout (void);
 static void clearSeqTimeout (uint8_t nThreadIdx, uint8_t nSeqIdx);
 static ST_SEQ_INFO *getSeqInfo (uint8_t nThreadIdx, uint8_t nSeqIdx);
+static void clearSeqInfo (ST_SEQ_INFO *p);
 static void enableOverwrite (void);
 static void disableOverwrite (void);
 static void setOverwrite (uint8_t nThreadIdx, uint8_t nSeqIdx, bool isOverwrite);
-static void clearSeqInfo (ST_SEQ_INFO *p);
 static EN_NEAREST_TIMEOUT searchNearestTimeout (
 	uint8_t nThreadIdx,
 	ST_REQUEST_ID_INFO **pstRequestIdInfo,	// out
@@ -2016,7 +2018,10 @@ static void *workerThread (void *pArg)
 						);
 					}
 
-					/* 色々と使うから キューまるまる保存 */
+					/*
+					 * 色々と使うから キューまるまる保存
+					 * これ以降 stNowExecQueWorkerをクリアするまでgetContextが有効
+					 */
 					memcpy (&(pstInnerInfo->stNowExecQueWorker), &stRtnQue, sizeof(ST_QUE_WORKER));
 
 					/* 引数gstThmSrcInfoセット */
@@ -2043,6 +2048,8 @@ static void *workerThread (void *pArg)
 					stThmIf.pfnClearTimeout = clearTimeout;
 					stThmIf.pfnEnableOverwrite = enableOverwrite;
 					stThmIf.pfnDisableOverwrite = disableOverwrite;
+					stThmIf.pfnGetSeqIdx = getSeqIdx;
+					stThmIf.pfnGetSeqName = getSeqName;
 
 
 					while (1) { // EN_THM_ACT_CONTINUE の為のloopです
@@ -2172,6 +2179,8 @@ static void *workerThread (void *pArg)
 					stThmIf.pfnClearTimeout = NULL;
 					stThmIf.pfnEnableOverwrite = NULL;
 					stThmIf.pfnDisableOverwrite = NULL;
+					stThmIf.pfnGetSeqIdx = getSeqIdx;
+					stThmIf.pfnGetSeqName = getSeqName;
 
 					/*
 					 * 主処理
@@ -2266,6 +2275,8 @@ static void clearThmIf (ST_THM_IF *pIf)
 	pIf->pfnClearTimeout = NULL;
 	pIf->pfnEnableOverwrite = NULL;
 	pIf->pfnDisableOverwrite = NULL;
+	pIf->pfnGetSeqIdx = NULL;
+	pIf->pfnGetSeqName = NULL;
 }
 
 /**
@@ -3753,6 +3764,35 @@ static uint8_t getSectId (void)
 }
 
 /**
+ * getSeqIdx
+ * 公開用
+ */
+static uint8_t getSeqIdx (void)
+{
+	ST_CONTEXT stContext = getContext();
+	if (stContext.isValid) {
+		return stContext.nSeqIdx;
+	} else {
+		return SEQ_IDX_BLANK;
+	}
+}
+
+/**
+ * getSeqName
+ * 公開用
+ */
+static const char* getSeqName (void)
+{
+	ST_CONTEXT stContext = getContext();
+	if (stContext.isValid) {
+		ST_THM_SEQ *p = gpstThmRegTbl [stContext.nThreadIdx]->pstSeqArray;
+		return (p + stContext.nSeqIdx)->pszName;
+	} else {
+		return NULL;
+	}
+}
+
+/**
  * setTimeout
  * 公開用
  * 登録シーケンスがreturn してから時間計測開始します
@@ -4050,6 +4090,30 @@ static ST_SEQ_INFO *getSeqInfo (uint8_t nThreadIdx, uint8_t nSeqIdx)
 }
 
 /**
+ * clearSeqInfo
+ */
+static void clearSeqInfo (ST_SEQ_INFO *p)
+{
+	if (!p) {
+		return;
+	}
+
+	p->nSeqIdx = SEQ_IDX_BLANK;
+
+	p->nSectId = SECT_ID_INIT;
+	p->enAct = EN_THM_ACT_INIT;
+#ifndef _MULTI_REQUESTING
+	p->nReqId = REQUEST_ID_BLANK;
+#endif
+	clearQueWorker (&(p->stSeqInitQueWorker));
+	p->isOverwrite = false;
+
+	p->timeout.enState = EN_TIMEOUT_STATE_INIT;
+	p->timeout.nVal = SEQ_TIMEOUT_BLANK;
+	memset (&(p->timeout.stTime), 0x00, sizeof(struct timespec));
+}
+
+/**
  * enableOverwrite
  * 公開用
  */
@@ -4084,30 +4148,6 @@ static void setOverwrite (uint8_t nThreadIdx, uint8_t nSeqIdx, bool isOverwrite)
 	}
 
 	pstSeqInfo->isOverwrite = isOverwrite;
-}
-
-/**
- * clearSeqInfo
- */
-static void clearSeqInfo (ST_SEQ_INFO *p)
-{
-	if (!p) {
-		return;
-	}
-
-	p->nSeqIdx = SEQ_IDX_BLANK;
-
-	p->nSectId = SECT_ID_INIT;
-	p->enAct = EN_THM_ACT_INIT;
-#ifndef _MULTI_REQUESTING
-	p->nReqId = REQUEST_ID_BLANK;
-#endif
-	clearQueWorker (&(p->stSeqInitQueWorker));
-	p->isOverwrite = false;
-
-	p->timeout.enState = EN_TIMEOUT_STATE_INIT;
-	p->timeout.nVal = SEQ_TIMEOUT_BLANK;
-	memset (&(p->timeout.stTime), 0x00, sizeof(struct timespec));
 }
 
 /**

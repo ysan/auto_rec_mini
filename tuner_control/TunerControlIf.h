@@ -15,6 +15,7 @@ using namespace ThreadManager;
 
 enum {
 	EN_SEQ_TUNER_CONTROL_START = 0,
+	EN_SEQ_TUNER_CONTROL_TUNE,
 	EN_SEQ_TUNER_CONTROL_TUNE_START,
 	EN_SEQ_TUNER_CONTROL_TUNE_STOP,
 	EN_SEQ_TUNER_CONTROL_NUM,
@@ -35,9 +36,14 @@ public:
 		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_START);
 	};
 
-	bool reqTuneStart (uint32_t freq) {
-		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_START, (uint8_t*)&freq, sizeof(freq));
+	bool reqTune (uint32_t freq) {
+		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE, (uint8_t*)&freq, sizeof(freq));
 	};
+
+	bool reqTuneStop (void) {
+		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_STOP);
+	};
+
 };
 
 #endif

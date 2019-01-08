@@ -32,15 +32,15 @@ CTuneThread::~CTuneThread (void)
 
 void CTuneThread::start (CThreadMgrIf *pIf)
 {
-	uint8_t nSectId;
+	uint8_t sectId;
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_END,
 	};
 
-	nSectId = pIf->getSectId();
-	_UTL_LOG_I ("nSectId %d\n", nSectId);
+	sectId = pIf->getSectId();
+	_UTL_LOG_I ("sectId %d\n", sectId);
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -48,9 +48,9 @@ void CTuneThread::start (CThreadMgrIf *pIf)
 // do nothing
 //
 
-	nSectId = THM_SECT_ID_INIT;
+	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (nSectId, enAct);
+	pIf->setSectId (sectId, enAct);
 }
 
 void CTuneThread::tune (CThreadMgrIf *pIf)

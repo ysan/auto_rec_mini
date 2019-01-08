@@ -104,9 +104,9 @@ uint8_t CThreadMgrIf::getSectId (void) const
 {
 	if (mpIf) {
 		return mpIf->pfnGetSectId ();
+	} else {
+		return THM_SECT_ID_INIT;
 	}
-
-	return THM_SECT_ID_INIT;
 }
 
 void CThreadMgrIf::setTimeout (uint32_t nTimeoutMsec)
@@ -134,6 +134,25 @@ void CThreadMgrIf::disableOverwrite (void)
 {
 	if (mpIf) {
 		mpIf->pfnDisableOverwrite ();
+	}
+}
+
+uint8_t CThreadMgrIf::getSeqIdx (void) const
+{
+	if (mpIf) {
+		return mpIf->pfnGetSeqIdx ();
+	} else {
+//TODO SEQ_IDX_BLANK
+		return 0x80;
+	}
+}
+
+const char* CThreadMgrIf::getSeqName (void) const
+{
+	if (mpIf) {
+		return mpIf->pfnGetSeqName ();
+	} else {
+		return NULL;
 	}
 }
 

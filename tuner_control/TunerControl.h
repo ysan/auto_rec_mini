@@ -43,18 +43,14 @@ public:
 
 
 	void start (CThreadMgrIf *pIf);
+	void tune (CThreadMgrIf *pIf);
 	void tuneStart (CThreadMgrIf *pIf);
-	void tuneEnd (CThreadMgrIf *pIf);
+	void tuneStop (CThreadMgrIf *pIf);
 
 
 	uint32_t mFreq;
 
 private:
-	static bool open (void);
-	static void close (void);
-	static int tune (uint32_t freq);
-	static void forceTuneEnd (void);
-
 	// it9175 callbacks
 	static bool onPreReceive (void *p_shared_data);
 	static void onPostReceive (void *p_shared_data);
