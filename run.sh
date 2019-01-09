@@ -17,6 +17,6 @@ ${BASE_DIR}/lib:\
 #	exit 1
 #fi
 
-${BASE_DIR}/atpp
+${BASE_DIR}/bin/atpp
 #gdb ${BASE_DIR}/atpp
 

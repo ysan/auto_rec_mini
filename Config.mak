@@ -53,9 +53,11 @@ endif
 endif
 
 
-INSTALLDIR		=	$(BASEDIR)
+INSTALLDIR		?=	$(BASEDIR)
+ifneq ($(INSTALLDIR),)
 INSTALLDIR_BIN	:=	$(INSTALLDIR)/bin
 INSTALLDIR_LIB	:=	$(INSTALLDIR)/lib
+endif
 
 
 #
