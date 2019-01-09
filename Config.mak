@@ -205,7 +205,7 @@ ifneq ($(DEPENDS),)
 	$(RM) -f $(DEPENDS)
 endif
 
-install:
+install: all
 	$(MAKE) install-subdirs
 ifeq ($(TARGET_TYPE), EXEC)
 ifneq ($(TARGET_OBJ),)
