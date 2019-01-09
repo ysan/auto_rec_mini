@@ -8,6 +8,10 @@
  */
 #define THM_SECT_ID_INIT	(0)
 
+//TODO
+#define _NO_TYPEDEF_uint64_t
+
+
 /*
  * Type define
  */

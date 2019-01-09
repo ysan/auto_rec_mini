@@ -4,16 +4,7 @@ BASE_DIR=${HOME}/prog/atpp
 
 
 export LD_LIBRARY_PATH=\
-${BASE_DIR}/threadmgr:\
-${BASE_DIR}/threadmgrpp:\
-${BASE_DIR}/ts_parser/psisi:\
-${BASE_DIR}/ts_parser/dsmcc:\
-${BASE_DIR}/ts_parser:\
-${BASE_DIR}/common:\
-${BASE_DIR}/command_server:\
-${BASE_DIR}/tuner_control:\
-${BASE_DIR}/tuner_control/tune_thread:\
-
+${BASE_DIR}/lib:\
 
 
 #if [ $# -ne 1 ]; then

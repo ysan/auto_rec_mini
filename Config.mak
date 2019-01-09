@@ -9,6 +9,8 @@ AR			:=	/usr/bin/ar
 RANLIB		:=	/usr/bin/ranlib
 MKDIR		:=	/bin/mkdir
 RM			:=	/bin/rm
+INSTALL		:=	/usr/bin/install
+
 
 CFLAGS		+=	-Wall -MD -g
 ifeq ($(TARGET_TYPE), SHARED)
@@ -49,6 +51,11 @@ else
 TARGET_OBJ	:=	invalid
 endif
 endif
+
+
+INSTALLDIR		=	$(BASEDIR)
+INSTALLDIR_BIN	:=	$(INSTALLDIR)/bin
+INSTALLDIR_LIB	:=	$(INSTALLDIR)/lib
 
 
 #
@@ -178,6 +185,15 @@ post_proc:
 
 
 clean:
+	$(MAKE) clean-r
+ifneq ($(INSTALLDIR_BIN),)
+	$(RM) -rf $(INSTALLDIR_BIN)
+endif
+ifneq ($(INSTALLDIR_LIB),)
+	$(RM) -rf $(INSTALLDIR_LIB)
+endif
+
+clean-r:
 	$(MAKE) clean-subdirs
 ifneq ($(TARGET_OBJ),)
 	$(RM) -f $(TARGET_OBJ)
@@ -187,6 +203,24 @@ ifneq ($(OBJS),)
 endif
 ifneq ($(DEPENDS),)
 	$(RM) -f $(DEPENDS)
+endif
+
+install:
+	$(MAKE) install-subdirs
+ifeq ($(TARGET_TYPE), EXEC)
+ifneq ($(TARGET_OBJ),)
+ifneq ($(INSTALLDIR_BIN),)
+	$(INSTALL) -v -d $(INSTALLDIR_BIN)
+	$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_BIN)
+endif
+endif
+else ifeq ($(TARGET_TYPE), SHARED)
+ifneq ($(TARGET_OBJ),)
+ifneq ($(INSTALLDIR_LIB),)
+	$(INSTALL) -v -d $(INSTALLDIR_LIB)
+	$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_LIB)
+endif
+endif
 endif
 
 
@@ -204,12 +238,19 @@ ifneq ($(SUBDIRS),)
 	done
 endif
 
+install-subdirs:
+ifneq ($(SUBDIRS),)
+	@for d in $(SUBDIRS) ; do \
+		(cd $$d && $(MAKE) install) || exit 1 ;\
+	done
+endif
+
 
 
 #
 #   Phony defines
 #
-.PHONY: all clean subdirs clean-subdirs pre_proc post_proc
+.PHONY: all clean clean-r install subdirs clean-subdirs install-subdirs pre_proc post_proc
 
 
 #
