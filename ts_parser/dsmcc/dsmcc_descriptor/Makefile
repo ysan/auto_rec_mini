@@ -2,7 +2,7 @@
 #   Defines
 #
 BASEDIR		:=	../../../
-CFLAGS		:=	-std=c++11 -fPIC
+CFLAGS		:=	-std=c++11
 INCLUDES	:= \
 	-I$(BASEDIR) \
 	-I$(BASEDIR)/common \

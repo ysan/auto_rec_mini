@@ -2,7 +2,7 @@
 #   Defines
 #
 BASEDIR		:=	../../
-CFLAGS		:=	-fPIC
+CFLAGS		:=
 INCLUDES	:=
 LIBS		:=
 

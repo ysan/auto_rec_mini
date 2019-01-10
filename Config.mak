@@ -2,6 +2,7 @@
 #   Defines
 #
 
+MAKE		:=	/usr/bin/make --no-print-directory
 #CC			:=	/bin/gcc
 CC			:=	/usr/bin/gcc
 CPP			:=	/usr/bin/g++
@@ -10,12 +11,18 @@ RANLIB		:=	/usr/bin/ranlib
 MKDIR		:=	/bin/mkdir
 RM			:=	/bin/rm
 INSTALL		:=	/usr/bin/install
+CKSUM		:=	/usr/bin/cksum
 
 
-CFLAGS		+=	-Wall -MD -g
+CFLAGS		+=	-Wall -MD
 ifeq ($(TARGET_TYPE), SHARED)
 CFLAGS		+=	-shared -fPIC
+else ifeq ($(TARGET_TYPE), STATIC)
+CFLAGS		+=	-fPIC
+else ifeq ($(TARGET_TYPE), OBJECT)
+CFLAGS		+=	-fPIC
 endif
+
 ifneq ($(USERDEFS),)
 CFLAGS		+=	$(USERDEFS)
 endif
@@ -48,7 +55,7 @@ else ifeq ($(TARGET_TYPE), OBJECT)
 TARGET_OBJ	:=	$(addsuffix .o, $(TARGET_NAME))
 
 else
-TARGET_OBJ	:=	invalid
+TARGET_OBJ	:=	dummy
 endif
 endif
 
@@ -60,6 +67,10 @@ INSTALLDIR_LIB	:=	$(INSTALLDIR)/lib
 endif
 
 
+# assign upon reference
+#RET			=	$(shell $(CKSUM) $(TARGET_OBJ))
+
+
 #
 #   Recipes
 #
@@ -67,11 +78,12 @@ ifneq ($(TARGET_OBJ),)
 
 # TARGET_TYPE = EXEC -------------------------------------
 ifeq ($(TARGET_TYPE), EXEC)
-all: pre_proc subdirs target post_proc
-#	$(MAKE) pre_proc
-#	$(MAKE) subdirs
-#	$(MAKE) target
-#	$(MAKE) post_proc
+#all: pre_proc subdirs target post_proc
+all:
+	$(MAKE) pre_proc
+	$(MAKE) subdirs
+	$(MAKE) target
+	$(MAKE) post_proc
 
 target: $(TARGET_OBJ)
 
@@ -94,11 +106,12 @@ $(OBJDIR)/%.o: %.cpp
 
 # TARGET_TYPE = SHARED -----------------------------------
 else ifeq ($(TARGET_TYPE), SHARED)
-all: pre_proc subdirs target post_proc
-#	$(MAKE) pre_proc
-#	$(MAKE) subdirs
-#	$(MAKE) target
-#	$(MAKE) post_proc
+#all: pre_proc subdirs target post_proc
+all:
+	$(MAKE) pre_proc
+	$(MAKE) subdirs
+	$(MAKE) target
+	$(MAKE) post_proc
 
 target: $(TARGET_OBJ)
 
@@ -121,11 +134,12 @@ $(OBJDIR)/%.o: %.cpp
 
 # TARGET_TYPE = STATIC -----------------------------------
 else ifeq ($(TARGET_TYPE), STATIC)
-all: pre_proc subdirs target post_proc
-#	$(MAKE) pre_proc
-#	$(MAKE) subdirs
-#	$(MAKE) target
-#	$(MAKE) post_proc
+#all: pre_proc subdirs target post_proc
+all:
+	$(MAKE) pre_proc
+	$(MAKE) subdirs
+	$(MAKE) target
+	$(MAKE) post_proc
 
 target: $(TARGET_OBJ)
 
@@ -145,11 +159,12 @@ $(OBJDIR)/%.o: %.cpp
 
 # TARGET_TYPE = OBJECT -----------------------------------
 else ifeq ($(TARGET_TYPE), OBJECT)
-all: pre_proc subdirs target post_proc
-#	$(MAKE) pre_proc
-#	$(MAKE) subdirs
-#	$(MAKE) target
-#	$(MAKE) post_proc
+#all: pre_proc subdirs target post_proc
+all:
+	$(MAKE) pre_proc
+	$(MAKE) subdirs
+	$(MAKE) target
+	$(MAKE) post_proc
 
 target: $(TARGET_OBJ)
 
@@ -170,20 +185,26 @@ $(OBJDIR)/%.o: %.cpp
 else
 all:
 	@echo "TARGET_TYPE is invalid."
-	@echo "  current directory => [$(PWD)]"
+	@echo "  dir:[$(PWD)]"
 	exit 1
 endif
 
 else # not define TARGET_OBJ
 all:
-#	@echo "TARGET_OBJ is not defined."
 	$(MAKE) subdirs
 endif
 
 
 pre_proc:
+	@echo -n "" # dummy
 
 post_proc:
+#	@echo "==========  dir:[$(PWD)] end."
+	@echo "==========  dir:[$(PWD)]"
+ifneq ($(TARGET_OBJ),)
+	@$(CKSUM) $(TARGET_OBJ)
+	@echo
+endif
 
 
 clean:
@@ -206,6 +227,7 @@ endif
 ifneq ($(DEPENDS),)
 	$(RM) -f $(DEPENDS)
 endif
+
 
 install: all
 	$(MAKE) install-subdirs
@@ -231,6 +253,8 @@ ifneq ($(SUBDIRS),)
 	@for d in $(SUBDIRS) ; do \
 		(cd $$d && $(MAKE)) || exit 1 ;\
 	done
+else
+	@echo -n "" # dummy
 endif
 
 clean-subdirs:
@@ -238,6 +262,8 @@ ifneq ($(SUBDIRS),)
 	@for d in $(SUBDIRS) ; do \
 		(cd $$d && $(MAKE) clean) || exit 1 ;\
 	done
+else
+	@echo -n "" # dummy
 endif
 
 install-subdirs:
@@ -245,6 +271,8 @@ ifneq ($(SUBDIRS),)
 	@for d in $(SUBDIRS) ; do \
 		(cd $$d && $(MAKE) install) || exit 1 ;\
 	done
+else
+	@echo -n "" # dummy
 endif
 
 
@@ -252,7 +280,7 @@ endif
 #
 #   Phony defines
 #
-.PHONY: all clean clean-r install subdirs clean-subdirs install-subdirs pre_proc post_proc
+.PHONY: all target clean clean-r install subdirs clean-subdirs install-subdirs pre_proc post_proc
 
 
 #
