@@ -3,6 +3,7 @@
 #
 
 MAKE		:=	/usr/bin/make --no-print-directory
+ECHO		:=	/usr/bin/echo
 #CC			:=	/bin/gcc
 CC			:=	/usr/bin/gcc
 CPP			:=	/usr/bin/g++
@@ -11,7 +12,9 @@ RANLIB		:=	/usr/bin/ranlib
 MKDIR		:=	/bin/mkdir
 RM			:=	/bin/rm
 INSTALL		:=	/usr/bin/install
+LDD			:=	/usr/bin/ldd
 SIZE		:=	/usr/bin/size
+OBJDUMP		:=	/usr/bin/objdump
 
 
 CFLAGS		+=	-Wall -MD
@@ -89,9 +92,7 @@ ifneq ($(SRCS_CPP),)
 else
 	$(CC) -o $@ $^ $(CFLAGS) $(INCLUDES) $(LIBS) $(LDFLAGS)
 endif
-	@echo
-	@$(SIZE) $(TARGET_OBJ)
-	@echo
+	@$(MAKE) post_proc_target
 
 $(OBJDIR)/%.o: %.c
 #	@$(MKDIR) -p -m 775 $(OBJDIR)
@@ -120,9 +121,7 @@ ifneq ($(SRCS_CPP),)
 else
 	$(CC) -o $@ $^ $(CFLAGS) $(INCLUDES) $(LIBS) $(LDFLAGS)
 endif
-	@echo
-	@$(SIZE) $(TARGET_OBJ)
-	@echo
+	@$(MAKE) post_proc_target
 
 $(OBJDIR)/%.o: %.c
 #	@$(MKDIR) -p -m 775 $(OBJDIR)
@@ -148,9 +147,7 @@ target: $(TARGET_OBJ)
 $(TARGET_OBJ): $(OBJS) $(APPEND_OBJS)
 	$(AR) rv $@ $^
 	$(RANLIB) $@
-	@echo
-	@$(SIZE) $(TARGET_OBJ)
-	@echo
+	@$(MAKE) post_proc_target
 
 $(OBJDIR)/%.o: %.c
 #	@$(MKDIR) -p -m 775 $(OBJDIR)
@@ -175,9 +172,7 @@ target: $(TARGET_OBJ)
 
 $(TARGET_OBJ): $(OBJS) $(APPEND_OBJS)
 	$(AR) rvs $@ $^
-	@echo
-	@$(SIZE) $(TARGET_OBJ)
-	@echo
+	@$(MAKE) post_proc_target
 
 $(OBJDIR)/%.o: %.c
 #	@$(MKDIR) -p -m 775 $(OBJDIR)
@@ -192,8 +187,8 @@ $(OBJDIR)/%.o: %.cpp
 #---------------------------------------------------------
 else
 all:
-	@echo "TARGET_TYPE is invalid."
-	@echo "  dir:[$(PWD)]"
+	@$(ECHO) "TARGET_TYPE is invalid."
+	@$(ECHO) "  dir:[$(PWD)]"
 	exit 1
 endif
 
@@ -204,22 +199,37 @@ endif
 
 
 pre_proc:
-	@echo "======="
-	@echo "=======  dir:[$(PWD)]"
-	@echo "======="
+	@$(ECHO) "========================================"
+	@$(ECHO) "  [$(PWD)]"
+	@$(ECHO) "========================================"
 
 post_proc:
-	@echo
+	@$(ECHO)
+
+post_proc_target:
+	@$(ECHO)
+	@$(ECHO) "  ## $(TARGET_OBJ) ## created."
+ifeq ($(TARGET_TYPE), EXEC)
+	@$(OBJDUMP) -f $(TARGET_OBJ)
+else ifeq ($(TARGET_TYPE), SHARED)
+	@$(LDD) $(TARGET_OBJ)
+else ifeq ($(TARGET_TYPE), STATIC)
+	@$(AR) -t $(TARGET_OBJ)
+else ifeq ($(TARGET_TYPE), OBJECT)
+	@$(AR) -t $(TARGET_OBJ)
+endif
+#	@$(SIZE) $(TARGET_OBJ)
+	@$(ECHO)
 
 
 clean:
 	@$(MAKE) clean-r
-ifneq ($(INSTALLDIR_BIN),)
-	$(RM) -rf $(INSTALLDIR_BIN)
-endif
-ifneq ($(INSTALLDIR_LIB),)
-	$(RM) -rf $(INSTALLDIR_LIB)
-endif
+#ifneq ($(INSTALLDIR_BIN),)
+#	$(RM) -rf $(INSTALLDIR_BIN)
+#endif
+#ifneq ($(INSTALLDIR_LIB),)
+#	$(RM) -rf $(INSTALLDIR_LIB)
+#endif
 
 clean-r:
 	@$(MAKE) clean-subdirs
@@ -232,6 +242,13 @@ ifneq ($(OBJS),)
 endif
 ifneq ($(DEPENDS),)
 	$(RM) -f $(DEPENDS)
+endif
+ifneq ($(TARGET_OBJ),)
+ifeq ($(TARGET_TYPE), EXEC)
+	$(RM) -f $(INSTALLDIR_BIN)/$(TARGET_OBJ)
+else ifeq ($(TARGET_TYPE), SHARED)
+	$(RM) -f $(INSTALLDIR_LIB)/$(TARGET_OBJ)
+endif
 endif
 	@$(MAKE) post_proc
 
@@ -254,7 +271,7 @@ else ifeq ($(TARGET_TYPE), SHARED)
 ifneq ($(TARGET_OBJ),)
 ifneq ($(INSTALLDIR_LIB),)
 	@$(INSTALL) -v -d $(INSTALLDIR_LIB)
-	@$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_LIB)
+	@$(INSTALL) -v --strip $(TARGET_OBJ) $(INSTALLDIR_LIB)
 endif
 endif
 endif
@@ -267,7 +284,7 @@ ifneq ($(SUBDIRS),)
 		(cd $$d && $(MAKE)) || exit 1 ;\
 	done
 else
-	@echo -n "" # dummy
+	@$(ECHO) -n "" # dummy
 endif
 
 clean-subdirs:
@@ -276,7 +293,7 @@ ifneq ($(SUBDIRS),)
 		(cd $$d && $(MAKE) clean-r) || exit 1 ;\
 	done
 else
-	@echo -n "" # dummy
+	@$(ECHO) -n "" # dummy
 endif
 
 install-subdirs:
@@ -285,7 +302,7 @@ ifneq ($(SUBDIRS),)
 		(cd $$d && $(MAKE) install-r) || exit 1 ;\
 	done
 else
-	@echo -n "" # dummy
+	@$(ECHO) -n "" # dummy
 endif
 
 
@@ -293,7 +310,7 @@ endif
 #
 #   Phony defines
 #
-.PHONY: all target clean clean-r install install-r subdirs clean-subdirs install-subdirs pre_proc post_proc
+.PHONY: all target clean clean-r install install-r subdirs clean-subdirs install-subdirs pre_proc post_proc post_proc_target
 
 
 #

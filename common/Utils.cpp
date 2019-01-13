@@ -92,7 +92,7 @@ char **bionic_backtrace_symbols (void *const *array, int size)
 #endif
 
 
-char * strtok_r_impl (char *str, const char *delim, char **saveptr)
+char * strtok_r_impl (char *str, const char *delim, char **saveptr, bool *is_tail_delim)
 {
 	if ((!delim) || (strlen(delim) == 0)) {
 		return NULL;
@@ -107,6 +107,12 @@ char * strtok_r_impl (char *str, const char *delim, char **saveptr)
 		char *f = strstr (str, delim);
 		if (!f) {
 			return NULL;
+		}
+
+		if (is_tail_delim) {
+			if ((int)strlen(f) == (int)strlen(delim)) {
+				*is_tail_delim = true;
+			}
 		}
 
 		int i = 0;
@@ -129,6 +135,12 @@ char * strtok_r_impl (char *str, const char *delim, char **saveptr)
 				return r;
 			} else {
 				return NULL;
+			}
+		}
+
+		if (is_tail_delim) {
+			if ((int)strlen(f) == (int)strlen(delim)) {
+				*is_tail_delim = true;
 			}
 		}
 
@@ -446,7 +458,7 @@ void CUtils::putsLog (
 	char *s = szBufVa;
 	int n = 0;
 	while (1) {
-		token = strtok_r_impl (s, "\n", &saveptr);
+		token = strtok_r_impl (s, "\n", &saveptr, NULL);
 		if (token == NULL) {
 			if (n == 0 && (int)strlen(szBufVa) > 0) {
 				putsLogFprintf (
@@ -704,7 +716,7 @@ void CUtils::putsLogLW (
 	char *s = szBufVa;
 	int n = 0;
 	while (1) {
-		token = strtok_r_impl (s, "\n", &saveptr);
+		token = strtok_r_impl (s, "\n", &saveptr, NULL);
 		if (token == NULL) {
 			if (n == 0 && (int)strlen(szBufVa) > 0) {
 				putsLogFprintf (
@@ -834,6 +846,109 @@ void CUtils::putsLogLW (
 }
 
 /**
+ * readFile
+ * fdを読みnSize byteのデータをpBuffに返す
+ */
+int CUtils::readFile (int fd, uint8_t *pBuff, size_t nSize)
+{
+	if ((!pBuff) || (nSize == 0)) {
+		return -1;
+	}
+
+	int nReadSize = 0;
+	int nDone = 0;
+
+	while (1) {
+		nReadSize = read (fd, pBuff, nSize);
+		if (nReadSize < 0) {
+			perror ("read()");
+			return -1;
+
+		} else if (nReadSize == 0) {
+			// file end
+			break;
+
+		} else {
+			// read done
+			pBuff += nReadSize;
+			nSize -= nReadSize;
+			nDone += nReadSize;
+
+			if (nSize == 0) {
+				break;
+			}
+		}
+	}
+
+	return nDone;
+}
+
+/**
+ * recvData
+ * fdを読みnSize byteのデータをpBuffに返す
+ */
+int CUtils::recvData (int fd, uint8_t *pBuff, int buffSize, bool *p_isDisconnect)
+{
+	if (!pBuff || buffSize <= 0) {
+		return -1;
+	}
+
+	int rSize = 0;
+	int rSizeTotal = 0;
+	struct timeval tv;
+	fd_set fds;
+
+	while (1) {
+		if (buffSize == 0) {
+			// check buffer size
+			printf ("buffer over.\n");
+			return -2;
+		}
+
+		rSize = recv (fd, pBuff, buffSize, 0);
+		if (rSize < 0) {
+			perror ("recv()");
+			return -1;
+
+		} else if (rSize == 0) {
+			// disconnect
+			if (p_isDisconnect) {
+				*p_isDisconnect = true;
+			}
+			break;
+
+		} else {
+			// recv ok
+			pBuff += rSize;
+			buffSize -= rSize;
+			rSizeTotal += rSize;
+//CUtils::dumper (pBuff-rSize, rSize);
+
+			//------------ 接続先からの受信が終了したか ------------
+			FD_ZERO (&fds);
+			FD_SET (fd, &fds);
+			tv.tv_sec = 0;
+			tv.tv_usec = 0; // timeout not use
+			int r = select (fd+1, &fds, NULL, NULL, &tv);
+			if (r < 0) {
+				perror ("select()");
+				return -3;
+			} else if (r == 0) {
+				// timeout not use
+			}
+
+			// レディではなくなったらループから抜ける
+			if (!FD_ISSET (fd, &fds)) {
+				break;
+			}
+			//------------------------------------------------------
+		}
+	}
+
+	return rSizeTotal;
+}
+
+/**
  * deleteLF
  * 改行コードLFを削除  (文字列末尾についてるものだけです)
  * CRLFの場合 CRも削除する
@@ -854,6 +969,63 @@ void CUtils::deleteLF (char *p)
 		}
 
 		-- len;
+	}
+}
+
+/**
+ * deleteHeadSp
+ * 文字列先頭のスペース削除
+ */
+void CUtils::deleteHeadSp (char *p)
+{
+	if ((!p) || ((int)strlen(p) == 0)) {
+		return;
+	}
+
+	int i = 0;
+
+	while (1) {
+		if (*p == ' ') {
+			if ((int)strlen(p) > 1) {
+				i = 0;
+				while (*(p+i)) {
+					*(p+i) = *(p+i+1);
+					++ i;
+				}
+
+			} else {
+				// 全文字スペースだった
+				*p = 0x00;
+			}
+		} else {
+			break;
+		}
+	}
+}
+
+/**
+ * deleteTailSp
+ * 文字列末尾のスペース削除
+ */
+void CUtils::deleteTailSp (char *p)
+{
+	if (!p) {
+		return;
+	}
+
+	int nLen = (int)strlen(p);
+	if (nLen == 0) {
+		return;
+	}
+
+	-- nLen;
+	while (nLen >= 0) {
+		if (*(p+nLen) == ' ') {
+			*(p+nLen) = 0x00;
+		} else {
+			break;
+		}
+		-- nLen;
 	}
 }
 
@@ -895,40 +1067,6 @@ void CUtils::putsBackTrace (void)
 	}
 	_UTL_LOG_W ("============================================================\n");
 	free (pRtn);
-}
-
-int CUtils::readFile (int fd, uint8_t *pBuff, size_t nSize)
-{
-	if ((!pBuff) || (nSize == 0)) {
-		return -1;
-	}
-
-	int nReadSize = 0;
-	int nDone = 0;
-
-	while (1) {
-		nReadSize = read (fd, pBuff, nSize);
-		if (nReadSize < 0) {
-			perror ("read()");
-			return -1;
-
-		} else if (nReadSize == 0) {
-			// file end
-			break;
-
-		} else {
-			// read done
-			pBuff += nReadSize;
-			nSize -= nReadSize;
-			nDone += nReadSize;
-
-			if (nSize == 0) {
-				break;
-			}
-		}
-	}
-
-	return nDone;
 }
 
 #define DUMP_PUTS_OFFSET	"  "

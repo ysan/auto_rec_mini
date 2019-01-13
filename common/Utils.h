@@ -18,6 +18,7 @@
 #include <stdarg.h>
 #include <sys/syscall.h>
 #include <sys/prctl.h>
+#include <sys/socket.h>
 
 #ifndef _ANDROID_BUILD
 #include <execinfo.h>
@@ -158,6 +159,8 @@ extern int bionic_backtrace (void **array, int size);
 extern char **bionic_backtrace_symbols (void *const *array, int size);
 #endif
 
+extern char * strtok_r_impl (char *str, const char *delim, char **saveptr, bool *is_tail_delim);
+
 
 class CUtils
 {
@@ -211,8 +214,14 @@ public:
 
 
 	static int readFile (int fd, uint8_t *pBuff, size_t nSize);
+	static int recvData (int fd, uint8_t *pBuff, int buffSize, bool *p_isDisconnect);
+
 	static void deleteLF (char *p);
+	static void deleteHeadSp (char *p);
+	static void deleteTailSp (char *p);
+
 	static void putsBackTrace (void);
+
 	static void dumper (const uint8_t *pSrc, int nSrcLen, bool isAddAscii=true);
 
 

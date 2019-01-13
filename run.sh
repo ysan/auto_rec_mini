@@ -3,8 +3,7 @@
 BASE_DIR=${HOME}/prog/atpp
 
 
-export LD_LIBRARY_PATH=\
-${BASE_DIR}/lib:\
+export LD_LIBRARY_PATH=${BASE_DIR}/lib:
 
 
 #if [ $# -ne 1 ]; then

@@ -23,19 +23,39 @@
 using namespace ThreadManager;
 
 
+typedef struct command_info {
+	char *pszCommand;
+	char *pszDesc;
+	void (*pcbCommand) (int argc, char* argv[]);
+	struct command_info *pNext;
+
+} ST_COMMAND_INFO;
+
+
 class CCommandServer : public CThreadMgrBase
 {
+public:
+	static const uint16_t SERVER_PORT;
+
 public:
 	CCommandServer (char *pszName, uint8_t nQueNum);
 	virtual ~CCommandServer (void);
 
 
 	void start (CThreadMgrIf *pIf);
-	void recvLoop (CThreadMgrIf *pIf);
+	void serverLoop (CThreadMgrIf *pIf);
 
 
 private:
-	void recvLoop (void);
+	void serverLoop (void);
+	int recvParseDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim, char **pszCarryover);
+	int recvCheckDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim);
+	int recvData (int fd, uint8_t *pBuff, int buffSize, bool *p_isDisconnect);
+	void showList (const ST_COMMAND_INFO *pTable, const char *pszDesc);
+	void parseCommandLoop (const ST_COMMAND_INFO *pTable, const char *pszConsole, const char *pszDesc);
+
+	int mClientfd;
+
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_COMMAND_SERVER_NUM]; // entity
 
