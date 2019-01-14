@@ -3,7 +3,7 @@
 #
 
 MAKE		:=	/usr/bin/make --no-print-directory
-ECHO		:=	/usr/bin/echo
+ECHO		:=	echo
 #CC			:=	/bin/gcc
 CC			:=	/usr/bin/gcc
 CPP			:=	/usr/bin/g++

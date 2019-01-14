@@ -316,7 +316,7 @@ int CCommandServer::recvParseDelimiter (int fd, char *pszBuff, int buffSize, cha
 			rSizeTotal += rSize;
 
 
-			is_parse_remain = parseDelimiter (pszBuff, buffSize, pszDelim);
+			is_parse_remain = parseDelimiter (pszBuff, buffSize, pszDelim, NULL);
 
 
 			if (isDisconnect) {
@@ -328,7 +328,12 @@ int CCommandServer::recvParseDelimiter (int fd, char *pszBuff, int buffSize, cha
 	return rSizeTotal;
 }
 
-bool CCommandServer::parseDelimiter (char *pszBuff, int buffSize, char *pszDelim)
+bool CCommandServer::parseDelimiter (
+	char *pszBuff,
+	int buffSize,
+	char *pszDelim,
+	void (*inner_parser)(char *pszBuff)
+)
 {
 	if (!pszBuff || (int)strlen(pszBuff) == 0 || buffSize <= 0) {
 		return NULL;
@@ -450,8 +455,68 @@ int CCommandServer::recvCheckDelimiter (int fd, char *pszBuff, int buffSize, cha
 }
 **/
 
-void CCommandServer::parseCommand (char *pszBuff)
+void CCommandServer::parseCommand (
+	char *pszBuff,
+	void (*on_command_available)(char* pszCommand, int argc, char *argv[])
+)
 {
+	if (!pszBuff || ((int)strlen(pszBuff) == 0)) {
+		return ;
+	}
+	if (!on_command_available) {
+		return;
+	}
+
+	char szTmp [(int)strlen(pszBuff) + 1] = {0};
+	strncpy (szTmp, pszBuff, sizeof(szTmp));
+
+	// count args
+	char *str = szTmp;
+	char *token = NULL;
+	char *saveptr = NULL;
+	int n_arg = 0;
+	while (1) {
+		token = strtok_r(str, " ", &saveptr);
+		if (token == NULL) {
+			break;
+		}
+		++ n_arg;
+	}
+
+	if (n_arg == 0) {
+		return;
+
+	} else if (n_arg == 1) {
+
+		on_command_available (pszBuff, 0, NULL);
+
+	} else {
+		// n_arg >= 2
+		char *p_command = NULL;
+		int argc = n_arg -1;
+		char *argv[n_arg -1];
+
+		// parse args
+		char *str = pszBuff;
+		char *token = NULL;
+		char *saveptr = NULL;
+		int n = 0;
+		while (1) {
+			token = strtok_r(str, " ", &saveptr);
+			if (token == NULL) {
+				break;
+			}
+
+			if (n == 0) {
+				p_command = token;
+			} else {
+				argv[n] = token;
+			}
+			++ n;
+		}
+
+		on_command_available (p_command, argc, argv);
+	}
 }
 
 void CCommandServer::showList (const ST_COMMAND_INFO *pTable, const char *pszDesc)
