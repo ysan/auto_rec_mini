@@ -48,9 +48,11 @@ public:
 
 private:
 	void serverLoop (void);
-	int recvParseDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim, char **pszCarryover);
-	int recvCheckDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim);
-	int recvData (int fd, uint8_t *pBuff, int buffSize, bool *p_isDisconnect);
+//	int recvParseDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim, bool *p_isCarryover, int offset);
+	int recvParseDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim);
+	bool parseDelimiter (char *pszBuff, int buffSize, char *pszDelim);
+//	int recvCheckDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim);
+	void parseCommand (char *pszBuff);
 	void showList (const ST_COMMAND_INFO *pTable, const char *pszDesc);
 	void parseCommandLoop (const ST_COMMAND_INFO *pTable, const char *pszConsole, const char *pszDesc);
 

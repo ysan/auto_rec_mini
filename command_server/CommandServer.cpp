@@ -90,7 +90,7 @@ void CCommandServer::serverLoop (void)
 	struct sockaddr_in stAddrCl;
 	socklen_t addrLenCl = sizeof(struct sockaddr_in);
 
-
+	memset (szBuff, 0x00, sizeof(szBuff));
 	memset (&stAddrSv, 0x00, sizeof(struct sockaddr_in));
 	memset (&stAddrCl, 0x00, sizeof(struct sockaddr_in));
 
@@ -138,25 +138,33 @@ void CCommandServer::serverLoop (void)
 		CUtils::setLogFileptr (fp);
 		setLogFileptr (fp);
 
-		char *pCarry = NULL;
-		int off = 0;
+/**
+		bool isCarry = false;
+		int offset = 0;
 		while (1) {
-			memset (szBuff, 0x00, sizeof(szBuff));
 
-			if (pCarry) {
-				off = (int)strlen(pCarry);
-				strncpy (szBuff, pCarry, off);
+			if (isCarry) {
+				offset = (int)strlen(szBuff);
 			} else {
-				off = 0;
+				memset (szBuff, 0x00, sizeof(szBuff));
+				offset = 0;
 			}
 
 			r = recvParseDelimiter (
 					mClientfd,
-					szBuff + off,
-					sizeof(szBuff) - off,
+					szBuff,
+					sizeof(szBuff),
 					(char*)"\r\n",
-					&pCarry
+					&isCarry,
+					offset
 				);
+			if (r <= 0) {
+				break;
+			}
+		}
+**/
+		while (1) {
+			r = recvParseDelimiter (mClientfd, szBuff, sizeof(szBuff), (char*)"\r\n");
 			if (r <= 0) {
 				break;
 			}
@@ -177,7 +185,15 @@ void CCommandServer::serverLoop (void)
 	}
 }
 
-int CCommandServer::recvParseDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim, char **pszCarryover)
+/**
+int CCommandServer::recvParseDelimiter (
+	int fd,
+	char *pszBuff,
+	int buffSize,
+	char* pszDelim,
+	bool *p_isCarryover,
+	int offset
+)
 {
 	if (!pszBuff || buffSize <= 0) {
 		return -1;
@@ -186,7 +202,7 @@ int CCommandServer::recvParseDelimiter (int fd, char *pszBuff, int buffSize, cha
 		return -1;
 	}
 
-	int r = recvCheckDelimiter (fd, pszBuff, buffSize, pszDelim);
+	int r = recvCheckDelimiter (fd, pszBuff + offset, buffSize - offset, pszDelim);
 	if (r < 0) {
 		return -1;
 
@@ -205,9 +221,10 @@ int CCommandServer::recvParseDelimiter (int fd, char *pszBuff, int buffSize, cha
 				if (n == 0) {
 					// not yet recv delimiter
 					// carryover
-					if (*pszCarryover) {
-						*pszCarryover = s;
+					if (p_isCarryover) {
+						*p_isCarryover = true;
 					}
+printf ("=> carryover  pszBuff[%s]\n", pszBuff);
 
 				} else {
 					// end
@@ -225,7 +242,8 @@ printf ("[%s]\n", token);
 					// next
 					CUtils::deleteHeadSp (token);
 					CUtils::deleteTailSp (token);
-printf ("got next [%s]\n", token);
+printf ("=> GOT - exist next [%s]\n", token);
+					////////////////////////////
 
 				} else {
 					// got
@@ -235,17 +253,20 @@ printf ("got next [%s]\n", token);
 						// tail delimiter
 						CUtils::deleteHeadSp (token);
 						CUtils::deleteTailSp (token);
-printf ("got last tail delimiter [%s]\n", token);
-						if (*pszCarryover) {
-							*pszCarryover = NULL;
+						if (p_isCarryover) {
+							*p_isCarryover = false;
 						}
+printf ("-> GOT - last tail delimiter [%s]\n", token);
+						////////////////////////////
 
 					} else {
 						// not yet recv delimiter
 						// carryover
-						if (*pszCarryover) {
-							*pszCarryover = token;
+						if (p_isCarryover) {
+							*p_isCarryover = true;
 						}
+						strncpy (pszBuff, token, buffSize);
+printf ("=> carryover  pszBuff[%s]\n", pszBuff);
 					}
 				}
 			} 
@@ -257,7 +278,129 @@ printf ("got last tail delimiter [%s]\n", token);
 
 	return r;
 }
+**/
 
+int CCommandServer::recvParseDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim)
+{
+	if (!pszBuff || buffSize <= 0) {
+		return -1;
+	}
+	if (!pszDelim || (int)strlen(pszDelim) == 0) {
+		return -1;
+	}
+
+	int rSize = 0;
+	int rSizeTotal = 0;
+	bool isDisconnect = false;
+
+	bool is_parse_remain = false;
+	int offset = 0;
+
+	while (1) {
+		if (is_parse_remain) {
+			offset = (int)strlen(pszBuff);
+		} else {
+			memset (pszBuff, 0x00, buffSize);
+			offset = 0;
+		}
+
+		rSize = CUtils::recvData (fd, (uint8_t*)pszBuff + offset, buffSize - offset, &isDisconnect);
+		if (rSize < 0) {
+			return -1;
+
+		} else if (rSize == 0) {
+			return 0;
+
+		} else {
+			// recv ok
+			rSizeTotal += rSize;
+
+
+			is_parse_remain = parseDelimiter (pszBuff, buffSize, pszDelim);
+
+
+			if (isDisconnect) {
+				break;
+			}
+		}
+	}
+
+	return rSizeTotal;
+}
+
+bool CCommandServer::parseDelimiter (char *pszBuff, int buffSize, char *pszDelim)
+{
+	if (!pszBuff || (int)strlen(pszBuff) == 0 || buffSize <= 0) {
+		return NULL;
+	}
+	if (!pszDelim || (int)strlen(pszDelim) == 0) {
+		return NULL;
+	}
+
+	bool is_remain = false;
+	char *token = NULL;
+	char *saveptr = NULL;
+	char *s = pszBuff;
+	bool is_tail_delim = false;
+	int n = 0;
+
+	while (1) {
+		token = strtok_r_impl (s, pszDelim, &saveptr, &is_tail_delim);
+		if (token == NULL) {
+			if (n == 0) {
+				// not yet recv delimiter
+				// carryover remain
+printf ("=> carryover  pszBuff[%s]\n", pszBuff);
+				is_remain = true;
+
+			} else {
+				// end
+			}
+			break;
+		}
+
+printf ("[%s]\n", token);
+		if ((int)strlen(token) == 0) {
+			// through
+
+		} else {
+			if ((int)strlen(saveptr) > 0) {
+				// got
+				// next
+				CUtils::deleteHeadSp (token);
+				CUtils::deleteTailSp (token);
+printf ("=> GOT - exist next [%s]\n", token);
+				////////////////////////////
+
+			} else {
+				// got
+				// last
+
+				if (is_tail_delim) {
+					// tail delimiter
+					CUtils::deleteHeadSp (token);
+					CUtils::deleteTailSp (token);
+printf ("-> GOT - last tail delimiter [%s]\n", token);
+					////////////////////////////
+
+				} else {
+					// not yet recv delimiter
+					// carryover remain
+					strncpy (pszBuff, token, buffSize);
+printf ("=> carryover  pszBuff[%s]\n", pszBuff);
+					is_remain = true;
+				}
+			}
+		} 
+
+		s = NULL;
+		++ n;
+	}
+
+	return is_remain;
+}
+
+/**
 int CCommandServer::recvCheckDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim)
 {
 	if (!pszBuff || buffSize <= 0) {
@@ -304,6 +447,11 @@ int CCommandServer::recvCheckDelimiter (int fd, char *pszBuff, int buffSize, cha
 	}
 
 	return rSizeTotal;
+}
+**/
+
+void CCommandServer::parseCommand (char *pszBuff)
+{
 }
 
 void CCommandServer::showList (const ST_COMMAND_INFO *pTable, const char *pszDesc)
