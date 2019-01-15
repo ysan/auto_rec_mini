@@ -24,12 +24,21 @@ using namespace ThreadManager;
 
 
 typedef struct command_info {
-	char *pszCommand;
-	char *pszDesc;
+	const char *pszCommand;
+	const char *pszDesc;
 	void (*pcbCommand) (int argc, char* argv[]);
 	struct command_info *pNext;
 
 } ST_COMMAND_INFO;
+
+
+// callbacks
+void (*on_command_wait_begin) (void);
+void (*on_command_line_through) (void);
+void (*on_command_line_available)(const char* pszCommand, int argc, char *argv[]);
+void (*on_command_wait_end) (void);
+static ST_COMMAND_INFO *gp_current_command_table;
+static ST_COMMAND_INFO *gp_before_command_table;
 
 
 class CCommandServer : public CThreadMgrBase
@@ -48,33 +57,25 @@ public:
 
 private:
 	void serverLoop (void);
-//	int recvParseDelimiter (
-//		int fd,
-//		char *pszBuff,
-//		int buffSize,
-//		char* pszDelim,
-//		bool *p_isCarryover,
-//		int offset
-//);
-	int recvParseDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim);
-	bool parseDelimiter (
-		char *pszBuff,
-		int buffSize,
-		char *pszDelim, 
-		void (*inner_parser)(char *pszBuff)
-	);
-//	int recvCheckDelimiter (int fd, char *pszBuff, int buffSize, char* pszDelim);
-	void parseCommand (
-		char *pszBuff,
-		void (*on_command_available)(char* pszCommand, int argc, char *argv[])
-	);
-	void showList (const ST_COMMAND_INFO *pTable, const char *pszDesc);
-	void parseCommandLoop (const ST_COMMAND_INFO *pTable, const char *pszConsole, const char *pszDesc);
+	int recvParseDelimiter (int fd, char *pszBuff, int buffSize, const char* pszDelim);
+	bool parseDelimiter (char *pszBuff, int buffSize, const char *pszDelim);
+	void parseCommand (char *pszBuff);
 
-	int mClientfd;
+	static void showList (const char *pszDesc);
+	static void findCommand (const char* pszCommand, int argc, char *argv[]);
+
 
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_COMMAND_SERVER_NUM]; // entity
+
+	int mClientfd;
+
+	// callbacks
+	static void onCommandWaitBegin (void);
+	static void onCommandLineAvailable (const char* pszCommand, int argc, char *argv[]);
+	static void onCommandLineThrough (void);
+	static void onCommandWaitEnd (void);
+
 
 };
 
