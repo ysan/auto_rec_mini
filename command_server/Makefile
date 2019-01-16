@@ -9,6 +9,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/threadmgr \
 	-I$(BASEDIR)/threadmgrpp \
 	-I$(BASEDIR)/common \
+	-I$(BASEDIR)/tuner_control \
 	-I./ \
 	-I../ \
 
@@ -37,6 +38,7 @@ TARGET_TYPE	:=	SHARED
 #
 SRCS_CPP	:= \
 	CommandServer.cpp \
+	CommandTables.cpp \
 
 
 #

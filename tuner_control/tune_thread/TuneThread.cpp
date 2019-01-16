@@ -40,7 +40,7 @@ void CTuneThread::start (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("sectId %d\n", sectId);
+	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -59,11 +59,11 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("sectId %d\n", sectId);
+	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
 	////////////////////////////////////////
-	uint32_t freq = *(pIf->getSrcInfo()->msg.pMsg);
+	uint32_t freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
 
 	if (it9175_open ()) {
 		it9175_tune (freq);

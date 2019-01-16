@@ -18,6 +18,15 @@
 #include "modules.h"
 
 
+// callbacks
+static void (*on_command_wait_begin) (void);
+static void (*on_command_line_through) (void);
+static void (*on_command_line_available)(const char* pszCommand, int argc, char *argv[], CThreadMgrExternalIf *pIf);
+static void (*on_command_wait_end) (void);
+static ST_COMMAND_INFO *gp_current_command_table = NULL;
+static FILE *gp_fptr_inner = NULL;
+
+
 const uint16_t CCommandServer::SERVER_PORT = 20001;
 
 CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
@@ -33,9 +42,8 @@ CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
 	on_command_line_through = onCommandLineThrough;
 	on_command_line_available = onCommandLineAvailable;
 	on_command_wait_end = onCommandWaitEnd;
-
 	gp_current_command_table = NULL;
-	gp_before_command_table = NULL;
+	gp_fptr_inner = stdout;
 }
 
 CCommandServer::~CCommandServer (void)
@@ -154,6 +162,7 @@ void CCommandServer::serverLoop (void)
 		FILE *fp = fdopen (fd_copy, "w");
 		CUtils::setLogFileptr (fp);
 		setLogFileptr (fp);
+		gp_fptr_inner = fp;
 
 
 		// begin
@@ -176,7 +185,9 @@ void CCommandServer::serverLoop (void)
 
 		CUtils::setLogFileptr (stdout);
 		setLogFileptr (stdout);
+		gp_fptr_inner = stdout;
 
+		fclose (fp);
 		close (mClientfd);
 
 		_UTL_LOG_I (
@@ -342,7 +353,7 @@ void CCommandServer::parseCommand (char *pszBuff)
 
 	} else if (n_arg == 1) {
 		if (on_command_line_available) {
-			on_command_line_available (pszBuff, 0, NULL);
+			on_command_line_available (pszBuff, 0, NULL, getExternalIf());
 		}
 
 	} else {
@@ -372,194 +383,180 @@ void CCommandServer::parseCommand (char *pszBuff)
 		}
 
 		if (on_command_line_available) {
-			on_command_line_available (p_command, argc, argv);
+			on_command_line_available (p_command, argc, argv, getExternalIf());
 		}
 	}
 }
 
 
-static void GetPath (int argc, char* argv[])
-{
-//TODO
-	fprintf (stdout, "%s done.\n", __func__);
-}
-static void GetTargetName (int argc, char* argv[])
-{
-//TODO
-	fprintf (stdout, "%s done.\n", __func__);
-}
-static void GetLIBS (int argc, char* argv[])
-{
-//TODO
-	fprintf (stdout, "%s done.\n", __func__);
-}
 
-static void test (int argc, char* argv[])
+#define N (16)
+static ST_COMMAND_INFO *stack [N];
+static int sp = 0;
+static void push (ST_COMMAND_INFO *p)
 {
-//TODO
-	fprintf (stdout, "%s done.\n", __func__);
+	if (sp == N) {
+		return;
+	}
+
+	stack [sp] = p;
+	//printf ("push %d %p\n", sp, stack [sp]);
+	++ sp;
 }
 
+static ST_COMMAND_INFO *pop (void)
+{
+	if (sp == 0) {
+		return NULL;
+	}
 
-ST_COMMAND_INFO g_stAribInvestigateTable [] = {
-	{
-		"GetPath",
-		"get path",
-		GetPath,
-		NULL,
-	},
-	{
-		"GetTargetName",
-		"get target name",
-		GetTargetName,
-		NULL,
-	},
-	{
-		"GetLIBS",
-		"get libs",
-		GetLIBS,
-		NULL,
-	},
-	{
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-	},
-};
+	ST_COMMAND_INFO *r = stack [sp -1];
+	//printf ("pop %d %p\n", sp -1, stack [sp -1]);
+	stack [sp -1] = NULL;
+	-- sp; 
+	return r;
+}
 
-ST_COMMAND_INFO g_stTestTable [] = {
-	{
-		"test",
-		"do test",
-		test,
-		NULL,
-	},
-	{
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-	},
-};
+static ST_COMMAND_INFO *peep (void)
+{
+	if (sp == 0) {
+		return NULL;
+	}
+	return stack [sp -1];
+}
 
-ST_COMMAND_INFO g_stRootTable[] = {
-	{
-		"A",
-		"arib investigate",
-		NULL,
-		g_stAribInvestigateTable,
-	},
-	{
-		"T",
-		"test test test",
-		NULL,
-		g_stTestTable,
-	},
-	{
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-	},
-};
+static ST_COMMAND_INFO *stack_sub [N];
+static int sp_sub = 0;
+static void push_sub (ST_COMMAND_INFO *p)
+{
+	if (sp_sub == N) {
+		return;
+	}
 
+	stack_sub [sp_sub] = p;
+	++ sp_sub;
+}
+
+static ST_COMMAND_INFO *pop_sub (void)
+{
+	if (sp_sub == 0) {
+		return NULL;
+	}
+
+	ST_COMMAND_INFO *r = stack_sub [sp_sub -1];
+	stack_sub [sp_sub -1] = NULL;
+	-- sp_sub; 
+	return r;
+}
+
+static ST_COMMAND_INFO *peep_sub (void)
+{
+	if (sp_sub == 0) {
+		return NULL;
+	}
+	return stack_sub [sp_sub -1];
+}
 
 void CCommandServer::showList (const char *pszDesc)
 {
 	const ST_COMMAND_INFO *pWorkTable = gp_current_command_table;
 
-	fprintf (stdout, "\n  ------ %s ------\n", pszDesc ? pszDesc: "???");
+	fprintf (gp_fptr_inner, "\n  ------ %s ------\n", pszDesc ? pszDesc: "???");
 
 	int i = 0;
 	for (i = 0; pWorkTable->pszCommand; i ++) {
-		fprintf (stdout, "  %-20s -- %-30s\n", pWorkTable->pszCommand, pWorkTable->pszDesc);
-		pWorkTable ++;
+		fprintf (gp_fptr_inner, "  %-20s -- %-30s\n", pWorkTable->pszCommand, pWorkTable->pszDesc);
+		++ pWorkTable;
 	}
-	fprintf (stdout, "\n");
-	printf ("> ");
-	fflush (stdout);
+	fprintf (gp_fptr_inner, "\n");
+	fprintf (gp_fptr_inner, "> ");
+	fflush (gp_fptr_inner);
 }
 
-void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[])
+void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[], CThreadMgrExternalIf *pIf)
 {
-	const ST_COMMAND_INFO *pWorkTable = gp_current_command_table;
-	bool isMatch = false;
-	bool isBack = false;
+	if (((int)strlen("..") == (int)strlen(pszCommand)) && strncmp ("..", pszCommand, (int)strlen(pszCommand)) == 0) {
+
+		ST_COMMAND_INFO *p = pop ();
+		pop_sub();
+		if (p) {
+			gp_current_command_table = p;
+
+			if (gp_current_command_table == g_rootCommandTable) {
+				showList ("root table");
+			} else{
+				showList (peep_sub()->pszDesc);
+			}
+		}
+
+	} else if ((int)strlen(".") == (int)strlen(pszCommand) && strncmp (".", pszCommand, (int)strlen(pszCommand)) == 0) {
+
+		if (gp_current_command_table == g_rootCommandTable) {
+			showList ("root table");
+		} else{
+			showList (peep_sub()->pszDesc);
+		}
+
+	} else {
+		ST_COMMAND_INFO *pWorkTable = gp_current_command_table;
+		bool isMatch = false;
 
 		while (pWorkTable->pszCommand) {
 			if (
-				(strlen(pWorkTable->pszCommand) == strlen(pszCommand)) &&
-				(strncmp (pWorkTable->pszCommand, pszCommand, strlen(pszCommand)) == 0)
+				((int)strlen(pWorkTable->pszCommand) == (int)strlen(pszCommand)) &&
+				(strncmp (pWorkTable->pszCommand, pszCommand, (int)strlen(pszCommand)) == 0)
 			) {
 				// コマンドが一致した
 				isMatch = true;
 
 				if (pWorkTable->pcbCommand) {
-					(void) (pWorkTable->pcbCommand) (argc, argv);
+
+					// コマンド実行
+					(void) (pWorkTable->pcbCommand) (argc, argv, pIf);
 
 				} else {
+					// 下位テーブル
 					if (pWorkTable->pNext) {
-						gp_before_command_table = gp_current_command_table;
+						push (gp_current_command_table);
+						push_sub (pWorkTable);
 						gp_current_command_table = pWorkTable->pNext;
-						showList (gp_current_command_table->pszDesc);
+						showList (pWorkTable->pszDesc);
 					}
 				}
-
-			} else if ((strlen("..") == strlen(pszCommand)) && (!strncmp ("..", pszCommand, strlen(pszCommand)))) {
-				isBack = true;
 				break;
 			}
 
 			++ pWorkTable ;
 		}
 
-		if (isBack) {
-			if (gp_current_command_table != gp_before_command_table) {
-				gp_current_command_table = gp_before_command_table;
-				showList (gp_current_command_table->pszDesc);
-			}
-			return;
-		}
-
 		if (!isMatch) {
-			fprintf (stdout, "invalid command...\n");
+			fprintf (gp_fptr_inner, "invalid command...\n");
+			fflush (gp_fptr_inner);
 		}
+	}
 }
-
 
 void CCommandServer::onCommandWaitBegin (void)
 {
-	printf ("###  command line  begin. ###\n");
+	fprintf (gp_fptr_inner, "###  command line  begin. ###\n");
 
-	gp_current_command_table = g_stRootTable;
-	gp_before_command_table = g_stRootTable;
-
-	showList ("root tables");
+	gp_current_command_table = g_rootCommandTable ;
+	showList ("root table");
 }
 
 void CCommandServer::onCommandLineThrough (void)
 {
-	printf ("\n");
-	printf ("> ");
-	fflush (stdout);
+//	fprintf (gp_fptr_inner, "\n");
+	fprintf (gp_fptr_inner, "> ");
+	fflush (gp_fptr_inner);
 }
 
-void CCommandServer::onCommandLineAvailable (const char* pszCommand, int argc, char *argv[])
+void CCommandServer::onCommandLineAvailable (const char* pszCommand, int argc, char *argv[], CThreadMgrExternalIf *pIf)
 {
-	printf ("### %s ###\n", pszCommand);
-	printf ("argc %d\n", argc);
-	for (int i = 0; i < argc; ++ i) {
-		printf ("argv %s\n", argv[i]);
-	}
-
-
-	findCommand (pszCommand, argc, argv);
-
+	findCommand (pszCommand, argc, argv, pIf);
 }
 
 void CCommandServer::onCommandWaitEnd (void)
 {
-	printf ("\n###  command line  exit. ###\n");
+	fprintf (gp_fptr_inner, "\n###  command line  exit. ###\n");
 }
-

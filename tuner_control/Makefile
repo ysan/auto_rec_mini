@@ -10,6 +10,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/threadmgr \
 	-I$(BASEDIR)/threadmgrpp \
 	-I$(BASEDIR)/common \
+	-I$(BASEDIR)/command_server \
 	-I./ \
 	-I./it9175 \
 	-I./tune_thread \
@@ -46,6 +47,7 @@ TARGET_TYPE	:=	SHARED
 #
 SRCS_CPP	:= \
 	TunerControl.cpp \
+	TunerControlCommands.cpp \
 
 
 #
