@@ -37,13 +37,22 @@ public:
 	};
 
 	bool reqTune (uint32_t freq) {
-		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE, (uint8_t*)&freq, sizeof(freq));
+		uint32_t f = freq;
+		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE, (uint8_t*)&f, sizeof(f));
+	};
+
+	bool reqTuneSync (uint32_t freq) {
+		uint32_t f = freq;
+		return requestSync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE, (uint8_t*)&f, sizeof(f));
 	};
 
 	bool reqTuneStop (void) {
 		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_STOP);
 	};
 
+	bool reqTuneStopSync (void) {
+		return requestSync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_STOP);
+	};
 };
 
 #endif

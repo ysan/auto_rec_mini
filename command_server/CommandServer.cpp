@@ -21,7 +21,7 @@
 // callbacks
 static void (*on_command_wait_begin) (void);
 static void (*on_command_line_through) (void);
-static void (*on_command_line_available)(const char* pszCommand, int argc, char *argv[], CThreadMgrExternalIf *pIf);
+static void (*on_command_line_available)(const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase);
 static void (*on_command_wait_end) (void);
 static ST_COMMAND_INFO *gp_current_command_table = NULL;
 static FILE *gp_fptr_inner = NULL;
@@ -66,7 +66,7 @@ void CCommandServer::start (CThreadMgrIf *pIf)
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 
-	getExternalIf()->requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_SERVER_LOOP);
+	requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_SERVER_LOOP);
 
 
 	sectId = THM_SECT_ID_INIT;
@@ -353,7 +353,7 @@ void CCommandServer::parseCommand (char *pszBuff)
 
 	} else if (n_arg == 1) {
 		if (on_command_line_available) {
-			on_command_line_available (pszBuff, 0, NULL, getExternalIf());
+			on_command_line_available (pszBuff, 0, NULL, this);
 		}
 
 	} else {
@@ -383,7 +383,7 @@ void CCommandServer::parseCommand (char *pszBuff)
 		}
 
 		if (on_command_line_available) {
-			on_command_line_available (p_command, argc, argv, getExternalIf());
+			on_command_line_available (p_command, argc, argv, this);
 		}
 	}
 }
@@ -473,7 +473,7 @@ void CCommandServer::showList (const char *pszDesc)
 	fflush (gp_fptr_inner);
 }
 
-void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[], CThreadMgrExternalIf *pIf)
+void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase)
 {
 	if (((int)strlen("..") == (int)strlen(pszCommand)) && strncmp ("..", pszCommand, (int)strlen(pszCommand)) == 0) {
 
@@ -512,7 +512,7 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 				if (pWorkTable->pcbCommand) {
 
 					// コマンド実行
-					(void) (pWorkTable->pcbCommand) (argc, argv, pIf);
+					(void) (pWorkTable->pcbCommand) (argc, argv, pBase);
 
 				} else {
 					// 下位テーブル
@@ -551,9 +551,9 @@ void CCommandServer::onCommandLineThrough (void)
 	fflush (gp_fptr_inner);
 }
 
-void CCommandServer::onCommandLineAvailable (const char* pszCommand, int argc, char *argv[], CThreadMgrExternalIf *pIf)
+void CCommandServer::onCommandLineAvailable (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase)
 {
-	findCommand (pszCommand, argc, argv, pIf);
+	findCommand (pszCommand, argc, argv, pBase);
 }
 
 void CCommandServer::onCommandWaitEnd (void)

@@ -10,10 +10,11 @@
 namespace ThreadManager {
 
 CThreadMgrBase::CThreadMgrBase (const char *pszName, uint8_t nQueNum)
-//	:mpfnSeqsBase (NULL)
 	:mpSeqsBase (NULL)
 	,mQueNum (0)
 	,mSeqNum (0)
+	,mpExtIf (NULL)
+	,mpThmIf (NULL)
 {
 	if (pszName && (strlen(pszName) > 0)) {
 		memset (mName, 0x00, sizeof(mName));
@@ -35,25 +36,36 @@ void CThreadMgrBase:: exec (EN_THM_DISPATCH_TYPE enType, uint8_t nSeqIdx, ST_THM
 
 	switch (enType) {
 	case EN_THM_DISPATCH_TYPE_CREATE:
+
 		onCreate ();
+
 		break;
 
 	case EN_THM_DISPATCH_TYPE_DESTROY:
+
 		onDestroy ();
+
 		break;
 
 	case EN_THM_DISPATCH_TYPE_REQ_REPLY:
 		{
 		CThreadMgrIf thmIf (pIf);
-//		(void) (this->*mpfnSeqsBase [nSeqIdx]) (&thmIf);
+		mpThmIf = &thmIf;
+
 		(void) (this->*((mpSeqsBase + nSeqIdx)->pfnSeqBase)) (&thmIf);
+
+		mpThmIf = NULL;
 		break;
 		}
 
 	case EN_THM_DISPATCH_TYPE_NOTIFY:
 		{
 		CThreadMgrIf thmIf (pIf);
+		mpThmIf = &thmIf;
+
 		onReceiveNotify (&thmIf);
+
+		mpThmIf = NULL;
 		break;
 		}
 
@@ -62,14 +74,6 @@ void CThreadMgrBase:: exec (EN_THM_DISPATCH_TYPE enType, uint8_t nSeqIdx, ST_THM
 		break;
 	}
 }
-
-//void CThreadMgrBase::setSeqs (PFN_SEQ_BASE pfnSeqs [], uint8_t seqNum)
-//{
-//	if (pfnSeqs && seqNum > 0) {
-//		mpfnSeqsBase = pfnSeqs;
-//		mSeqNum = seqNum;
-//	}
-//}
 
 void CThreadMgrBase::setSeqs (ST_SEQ_BASE pstSeqs [], uint8_t seqNum)
 {
@@ -91,10 +95,45 @@ void CThreadMgrBase::onReceiveNotify (CThreadMgrIf *pIf)
 {
 }
 
+
+bool CThreadMgrBase::requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx)
+{
+	return (*mpExtIf)->requestSync (nThreadIdx, nSeqIdx);
+}
+
+bool CThreadMgrBase::requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize)
+{
+	return (*mpExtIf)->requestSync (nThreadIdx, nSeqIdx, pMsg, msgSize);
+}
+
+bool CThreadMgrBase::requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx)
+{
+	return (*mpExtIf)->requestAsync (nThreadIdx, nSeqIdx);
+}
+
+bool CThreadMgrBase::requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint32_t *pOutReqId)
+{
+	return (*mpExtIf)->requestAsync (nThreadIdx, nSeqIdx, pOutReqId);
+}
+
+bool CThreadMgrBase::requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize)
+{
+	return (*mpExtIf)->requestAsync (nThreadIdx, nSeqIdx, pMsg, msgSize);
+}
+
+bool CThreadMgrBase::requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize, uint32_t *pOutReqId)
+{
+	return (*mpExtIf)->requestAsync (nThreadIdx, nSeqIdx, pMsg, msgSize, pOutReqId);
+}
+
 CThreadMgrExternalIf * CThreadMgrBase::getExternalIf (void)
 {
 	return (*mpExtIf);
 }
 
+CThreadMgrIf * CThreadMgrBase::getIf (void)
+{
+	return mpThmIf;
+}
 
 } // namespace ThreadManager

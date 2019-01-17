@@ -11,12 +11,12 @@
 
 
 
-static void __echo (int argc, char* argv[], CThreadMgrExternalIf *pIf)
+static void __echo (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	_UTL_LOG_I ("%s echo.\n", __func__);
 }
 
-static void moni (int argc, char* argv[], CThreadMgrExternalIf *pIf)
+static void moni (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_UTL_LOG_E ("invalid arg.");

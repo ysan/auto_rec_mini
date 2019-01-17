@@ -90,7 +90,7 @@ void CTunerControl::tune (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			getExternalIf()->requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_STOP);
+			requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_STOP);
 			sectId = SECTID_WAIT_TUNE_STOP;
 			enAct = EN_THM_ACT_WAIT;
 		}
@@ -99,8 +99,7 @@ void CTunerControl::tune (CThreadMgrIf *pIf)
 	case SECTID_WAIT_TUNE_STOP:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			getExternalIf()->requestAsync (
-				EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_START, (uint8_t*)&freq, sizeof(freq));
+			requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_START, (uint8_t*)&freq, sizeof(freq));
 			sectId = SECTID_WAIT_TUNE_START;
 			enAct = EN_THM_ACT_WAIT;
 
@@ -164,8 +163,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 	case SECTID_ENTRY:
 		freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
 
-		getExternalIf()->requestAsync (
-			EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_TUNE, (uint8_t*)&freq, sizeof(freq));
+		requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_TUNE, (uint8_t*)&freq, sizeof(freq));
 
 		sectId = SECTID_CHECK_TUNED;
 		enAct = EN_THM_ACT_CONTINUE;

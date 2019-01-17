@@ -2383,7 +2383,6 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		return false;
 	}
 	if ((nSeqIdx < 0) || (nSeqIdx >= SEQ_IDX_MAX)) {
-//TODO ???
 		/*
 		 * 外部のスレッドから呼ぶこともできるから SEQ_IDX_MAX 未満にする
 		 * (内部からのみだったら gstInnerInfo [nThreadIdx].nSeqNum未満でいい)
@@ -2441,7 +2440,6 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		return false;
 	}
 
-
 	if (!setRequestIdSyncReply (stContext.nThreadIdx, reqId)) {
 		/* まだ使われてる.. ありえないけど一応 */
 		releaseRequestId (stContext.nThreadIdx, reqId);
@@ -2465,7 +2463,10 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		/* gMutexSyncReply unlock */
 		pthread_mutex_unlock (&gMutexSyncReply[stContext.nThreadIdx]);
 
+		clearSyncReplyInfo (&gstSyncReplyInfo [stContext.nThreadIdx]);
 		releaseRequestId (stContext.nThreadIdx, reqId);
+		setState (stContext.nThreadIdx, EN_STATE_BUSY);
+
 		return false;
 	}
 
@@ -2484,7 +2485,10 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		/* gMutexSyncReply unlock */
 		pthread_mutex_unlock (&gMutexSyncReply[stContext.nThreadIdx]);
 
+		clearSyncReplyInfo (&gstSyncReplyInfo [stContext.nThreadIdx]);
 		releaseRequestId (stContext.nThreadIdx, reqId);
+		setState (stContext.nThreadIdx, EN_STATE_BUSY);
+
 		return false;
 	}
 
@@ -2546,9 +2550,13 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 	pthread_mutex_unlock (&gMutexSyncReply[stContext.nThreadIdx]);
 
 
-	releaseRequestId (stContext.nThreadIdx, reqId);
+	/*
+	 * main loop側でセクション終わりにクリアしているけど先にここでもクリアします
+	 * セクション内で複数回requestSyncした場合などに対応
+	 */
+	clearSyncReplyInfo (&gstSyncReplyInfo [stContext.nThreadIdx]);
 
-	/* 再びbusyに */
+	releaseRequestId (stContext.nThreadIdx, reqId);
 	setState (stContext.nThreadIdx, EN_STATE_BUSY);
 
 

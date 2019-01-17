@@ -45,10 +45,10 @@ private:
 	void parseCommand (char *pszBuff);
 
 	static void showList (const char *pszDesc);
-	static void findCommand (const char* pszCommand, int argc, char *argv[], CThreadMgrExternalIf *pIf);
+	static void findCommand (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase);
 	// callbacks
 	static void onCommandWaitBegin (void);
-	static void onCommandLineAvailable (const char* pszCommand, int argc, char *argv[], CThreadMgrExternalIf *pIf);
+	static void onCommandLineAvailable (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase);
 	static void onCommandLineThrough (void);
 	static void onCommandWaitEnd (void);
 

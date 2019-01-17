@@ -38,9 +38,10 @@ public:
 
 	void exec (EN_THM_DISPATCH_TYPE enType, uint8_t nSeqIdx, ST_THM_IF *pIf);
 
+	CThreadMgrExternalIf *getExternalIf (void);
+	CThreadMgrIf *getIf (void);
 
 protected:
-//	void setSeqs (PFN_SEQ_BASE pfnSeqs [], uint8_t seqNum);
 	void setSeqs (ST_SEQ_BASE pstSeqs [], uint8_t seqNum);
 
 	virtual void onCreate (void);
@@ -48,10 +49,16 @@ protected:
 	virtual void onReceiveNotify (CThreadMgrIf *pIf);
 
 
-	CThreadMgrExternalIf *getExternalIf (void);
+	bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx);
+	bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize);
+
+	bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx);
+	bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint32_t *pOutReqId);
+	bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize);
+	bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize, uint32_t *pOutReqId);
+
 
 private:
-//	PFN_SEQ_BASE *mpfnSeqsBase ; // double pointer
 	ST_SEQ_BASE *mpSeqsBase ;
 
 	char mName [16];
@@ -59,6 +66,7 @@ private:
 	uint8_t mSeqNum;
 	
 	CThreadMgrExternalIf **mpExtIf;
+	CThreadMgrIf *mpThmIf;
 };
 
 } // namespace ThreadManager

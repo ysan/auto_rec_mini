@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "ThreadMgrExternalIf.h"
+#include "ThreadMgrBase.h"
 
 #include "Utils.h"
 
@@ -19,7 +19,7 @@ using namespace ThreadManager;
 typedef struct command_info {
 	const char *pszCommand;
 	const char *pszDesc;
-	void (*pcbCommand) (int argc, char* argv[], CThreadMgrExternalIf *pIf);
+	void (*pcbCommand) (int argc, char* argv[], CThreadMgrBase *pBase);
 	struct command_info *pNext;
 } ST_COMMAND_INFO;
 
