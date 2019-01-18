@@ -20,6 +20,9 @@
 #include "Dsmcc.h"
 
 
+#define INNER_BUFF_SIZE		(65535*5)
+
+
 class CDsmccControl {
 public:
 	CDsmccControl (void)
@@ -48,6 +51,7 @@ public:
 	void run (uint8_t *pBuff, size_t nSize);
 
 private:
+	bool allocInnerBuffer (uint8_t *pBuff, size_t nSize);
 	bool copyInnerBuffer (uint8_t *pBuff, size_t nSize);
 	bool checkUnitSize (void);
 	uint8_t *getSyncTopAddr (uint8_t *pTop, uint8_t *pBtm, size_t nUnitSize) const;
@@ -64,6 +68,8 @@ private:
 
 	int mUnitSize;
 	int mParseRemainSize;
+
+	uint8_t mInnerBuff [INNER_BUFF_SIZE];
 
 
 	CProgramAssociationTable mPAT;

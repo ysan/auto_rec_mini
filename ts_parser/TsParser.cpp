@@ -20,6 +20,7 @@ CTsParser::CTsParser (void)
 	,mEIT_M (65535)
 	,mEIT_L (65535)
 {
+	memset (mInnerBuff, 0x00, INNER_BUFF_SIZE);
 }
 
 CTsParser::~CTsParser (void)
@@ -32,14 +33,40 @@ void CTsParser::run (uint8_t *pBuff, size_t size)
 		return ;
 	}
 
-	copyInnerBuffer (pBuff, size);
-	checkUnitSize ();
 
+#if 0
+	allocInnerBuffer (pBuff, size);
+	checkUnitSize ();
 	parse ();
+
+#else
+	mpTop = &mInnerBuff[0];
+	if (copyInnerBuffer (pBuff, size)) {
+
+		mpCurrent = mpTop;
+		checkUnitSize ();
+		parse ();
+
+		if (mParseRemainSize > 0) {
+			memcpy (mInnerBuff, mpBottom - mParseRemainSize, mParseRemainSize);
+			mpBottom = &mInnerBuff[0] + mParseRemainSize;
+		} else {
+			memset (mInnerBuff, 0x00, INNER_BUFF_SIZE);
+			mpBottom = &mInnerBuff[0];
+		}
+
+		if (copyInnerBuffer (pBuff, size)) {
+			_UTL_LOG_E ("invalid copyInnerBuffer");
+			return;
+		}
+
+	}
+#endif
+
 }
 
-//TODO 全部ため込むかたち
-bool CTsParser::copyInnerBuffer (uint8_t *pBuff, size_t size)
+//TODO 足らなくなったら拡張 全部貯めるかたち
+bool CTsParser::allocInnerBuffer (uint8_t *pBuff, size_t size)
 {
 	if ((!pBuff) || (size == 0)) {
 		return false;
@@ -91,6 +118,43 @@ bool CTsParser::copyInnerBuffer (uint8_t *pBuff, size_t size)
 	mpBottom += size;
 
 	_UTL_LOG_I ("copyInnerBuffer(malloc) top=%p bottom=%p size=%lu remain=%lu\n", mpTop, mpBottom, mBuffSize, mBuffSize-totalDataSize);
+	return true;
+}
+
+// 静的領域にコピー
+bool CTsParser::copyInnerBuffer (uint8_t *pBuff, size_t size)
+{
+	if ((!pBuff) || (size == 0)) {
+		return false;
+	}
+
+	if (size > INNER_BUFF_SIZE) {
+		_UTL_LOG_E ("copyInnerBuffer: size > INNER_BUFF_SIZE\n");
+		return false;
+	}
+
+	int remain = 0;
+	if (mpBottom) {
+		remain = INNER_BUFF_SIZE - (mpBottom - mpTop);
+
+		if (remain >= (int)size) {
+			memcpy (mInnerBuff + (mpBottom - mpTop), pBuff, size);
+			mpBottom = mpBottom + size;
+			return false;
+
+		} else {
+			// do parse
+			return true;
+		}
+
+	} else {
+		remain = INNER_BUFF_SIZE;
+
+		memcpy (mInnerBuff , pBuff, size);
+		mpBottom = mpTop + size;
+		return false;
+	}
+
 	return true;
 }
 

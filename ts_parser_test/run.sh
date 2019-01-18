@@ -1,6 +1,7 @@
 #!/bin/bash
 
-BASE_DIR=${HOME}/prog/atpp/ts_parser_test
+#BASE_DIR=${HOME}/prog/atpp/ts_parser_test
+BASE_DIR=./
 
 
 export LD_LIBRARY_PATH=\

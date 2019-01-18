@@ -62,6 +62,10 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
+	// このスレッドでit9175_tune のループが回るので先にリプライしときます
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+
 	////////////////////////////////////////
 	uint32_t freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
 
@@ -71,7 +75,6 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	////////////////////////////////////////
 
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
