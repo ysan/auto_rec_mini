@@ -28,7 +28,7 @@ int main (void)
 
 	CThreadMgr *p_thread_mgr = CThreadMgr::getInstance();
 
-	if (!p_thread_mgr->setup (gp_modules, EN_MODULE_NUM)) {
+	if (!p_thread_mgr->setup (getModules(), EN_MODULE_NUM)) {
 		exit (EXIT_FAILURE);
 	}
 

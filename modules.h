@@ -7,17 +7,18 @@
 
 using namespace ThreadManager;
 
-enum {
+typedef enum {
 	EN_MODULE_COMMAND_SERVER = 0,
 	EN_MODULE_TUNE_THREAD,
 	EN_MODULE_TUNER_CONTROL,
 
 
 	EN_MODULE_NUM,
-};
+
+} EN_MODULE;
 
 
-extern CThreadMgrBase *gp_modules [];
-
+extern CThreadMgrBase **getModules (void);
+extern CThreadMgrBase *getModule (EN_MODULE enModule);
 
 #endif

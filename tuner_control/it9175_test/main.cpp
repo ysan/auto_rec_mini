@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 	memset (&shared_data.time_begin, 0x00, sizeof(shared_data.time_begin));
 	shared_data.pOutputBuffer = NULL;
 
-	ST_IT9175_SETUP_INFO setup_info = {
+	ST_IT9175_TS_RECEIVE_CALLBACKS ts_callbacks = {
 		pre_receive,
 		post_receive,
 		check_receive_loop,
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
 		&shared_data,
 	};
 
-	it9175_extern_setup (&setup_info);
+	it9175_extern_setup_ts_callbacks (&ts_callbacks);
 	it9175_set_log_verbose (is_log_verbose);
 
 

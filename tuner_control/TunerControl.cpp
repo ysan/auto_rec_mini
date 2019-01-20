@@ -20,17 +20,17 @@ CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
 	setSeqs (mSeqs, EN_SEQ_TUNER_CONTROL_NUM);
 
 
-	// it9175 callbacks
-	memset (&m_it9175_setupInfo, 0x00, sizeof(m_it9175_setupInfo));
-	m_it9175_setupInfo.pcb_pre_receive = this->onPreReceive;
-	m_it9175_setupInfo.pcb_post_receive = this->onPostReceive;
-	m_it9175_setupInfo.pcb_check_receive_loop = this->onCheckReceiveLoop;
-	m_it9175_setupInfo.pcb_receive_from_tuner = this->onReceiveFromTuner;
-	m_it9175_setupInfo.p_shared_data = NULL;
-	it9175_extern_setup (&m_it9175_setupInfo);
+	// it9175 ts callbacks
+	memset (&m_it9175_ts_callbacks, 0x00, sizeof(m_it9175_ts_callbacks));
+	m_it9175_ts_callbacks.pcb_pre_ts_receive = this->onPreTsReceive;
+	m_it9175_ts_callbacks.pcb_post_ts_receive = this->onPostTsReceive;
+	m_it9175_ts_callbacks.pcb_check_ts_receive_loop = this->onCheckTsReceiveLoop;
+	m_it9175_ts_callbacks.pcb_ts_received = this->onTsReceived;
+	m_it9175_ts_callbacks.p_shared_data = NULL;
+	it9175_extern_setup_ts_callbacks (&m_it9175_ts_callbacks);
 
-	for (int i = 0; i < TUNER_CALLBACK_NUM; ++ i) {
-		mpCallbacks [i] = NULL;
+	for (int i = 0; i < TS_CALLBACKS_REGISTER_NUM_MAX; ++ i) {
+		mpRegTsCallbacks [i] = NULL;
 	}
 }
 
@@ -273,24 +273,39 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 }
 
 
-bool CTunerControl::onPreReceive (void *p_shared_data)
+int CTunerControl::registerTsCallbacks (ITsCallbacks *pCallbacks)
+{
+	if (!pCallbacks) {
+		return -1;
+	}
+
+
+
+	return 0;
+}
+
+void CTunerControl::unregisterTsCallbacks (int id)
+{
+}
+
+bool CTunerControl::onPreTsReceive (void *p_shared_data)
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 	return true;
 }
 
-void CTunerControl::onPostReceive (void *p_shared_data)
+void CTunerControl::onPostTsReceive (void *p_shared_data)
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 	return;
 }
 
-bool CTunerControl::onCheckReceiveLoop (void *p_shared_data)
+bool CTunerControl::onCheckTsReceiveLoop (void *p_shared_data)
 {
 	return true;
 }
 
-bool CTunerControl::onReceiveFromTuner (void *p_shared_data, void *p_recv_data, int length)
+bool CTunerControl::onTsReceived (void *p_shared_data, void *p_ts_data, int length)
 {
 	return true;
 }

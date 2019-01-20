@@ -23,18 +23,18 @@
 
 using namespace ThreadManager;
 
-#define TUNER_CALLBACK_NUM		(10)
+#define TS_CALLBACKS_REGISTER_NUM_MAX		(10)
 
 class CTunerControl : public CThreadMgrBase
 {
 public:
-	class ITunerCallbacks {
+	class ITsCallbacks {
 	public:
-		virtual ~ITunerCallbacks (void) {};
-		virtual bool onPreReceive (void *p_shared_data) = 0;
-		virtual void onPostReceive (void *p_shared_data) = 0;
-		virtual bool onCheckReceiveLoop (void *p_shared_data) = 0;
-		virtual bool onReceiveFromTuner (void *p_shared_data, void *p_recv_data, int length) = 0;
+		virtual ~ITsCallbacks (void) {};
+		virtual bool onPreTsReceive (void *p_shared_data) = 0;
+		virtual void onPostTsReceive (void *p_shared_data) = 0;
+		virtual bool onCheckTsReceiveLoop (void *p_shared_data) = 0;
+		virtual bool onTsReceived (void *p_shared_data, void *p_ts_data, int length) = 0;
 	};
 
 public:
@@ -48,17 +48,22 @@ public:
 	void tuneStop (CThreadMgrIf *pIf);
 
 
-	uint32_t mFreq;
+	int registerTsCallbacks (ITsCallbacks *pCallbacks);
+	void unregisterTsCallbacks (int id);
+
 
 private:
-	// it9175 callbacks
-	static bool onPreReceive (void *p_shared_data);
-	static void onPostReceive (void *p_shared_data);
-	static bool onCheckReceiveLoop (void *p_shared_data);
-	static bool onReceiveFromTuner (void *p_shared_data, void *p_recv_data, int length);
-	ST_IT9175_SETUP_INFO m_it9175_setupInfo;
+	// it9175 ts callbacks
+	static bool onPreTsReceive (void *p_shared_data);
+	static void onPostTsReceive (void *p_shared_data);
+	static bool onCheckTsReceiveLoop (void *p_shared_data);
+	static bool onTsReceived (void *p_shared_data, void *p_ts_data, int length);
+	ST_IT9175_TS_RECEIVE_CALLBACKS m_it9175_ts_callbacks;
 
-	ITunerCallbacks *mpCallbacks [TUNER_CALLBACK_NUM];
+	uint32_t mFreq;
+
+	ITsCallbacks *mpRegTsCallbacks [TS_CALLBACKS_REGISTER_NUM_MAX];
+
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_TUNER_CONTROL_NUM]; // entity
 };

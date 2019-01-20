@@ -23,7 +23,7 @@ static EN_IT9175_STATE g_en_state = EN_IT9175_STATE__CLOSED;
 static struct usb_endpoint_st g_usbep;
 static it9175_state g_devst = NULL;
 
-static ST_IT9175_SETUP_INFO g_setup_info = {
+static ST_IT9175_TS_RECEIVE_CALLBACKS g_ts_callbacks = {
 	NULL,
 	NULL,
 	NULL,
@@ -38,7 +38,7 @@ static bool g_is_force_tune_end = false;
 //
 // prototypes
 //
-void it9175_extern_setup (ST_IT9175_SETUP_INFO *p_info); // extern
+void it9175_extern_setup_ts_callbacks (const ST_IT9175_TS_RECEIVE_CALLBACKS *p_callbacks); // extern
 EN_IT9175_STATE it9175_get_state (void); // extern
 void it9175_set_log_verbose (bool is_log_verbose); // extern
 bool it9175_open (void ); // extern
@@ -49,10 +49,10 @@ static void printTMCC(const it9175_state state);
 static int check_usbdevId(const unsigned int* desc);
 
 
-void it9175_extern_setup (ST_IT9175_SETUP_INFO *p_info)
+void it9175_extern_setup_ts_callbacks (const ST_IT9175_TS_RECEIVE_CALLBACKS *p_callbacks)
 {
-	if (p_info) {
-		g_setup_info = *p_info;
+	if (p_callbacks) {
+		g_ts_callbacks = *p_callbacks;
 	}
 }
 
@@ -231,8 +231,8 @@ int it9175_tune (unsigned int freq)
 
 	g_en_state = EN_IT9175_STATE__TUNED;
 
-	if (g_setup_info.pcb_pre_receive) {
-		if (!g_setup_info.pcb_pre_receive (g_setup_info.p_shared_data)) {
+	if (g_ts_callbacks.pcb_pre_ts_receive) {
+		if (!g_ts_callbacks.pcb_pre_ts_receive (g_ts_callbacks.p_shared_data)) {
 			goto _END_THREAD_STOP;
 		}
 	}
@@ -244,8 +244,8 @@ int it9175_tune (unsigned int freq)
 			g_is_force_tune_end = false;
 			break;
 		}
-		if (g_setup_info.pcb_check_receive_loop) {
-			if (!g_setup_info.pcb_check_receive_loop (g_setup_info.p_shared_data)) {
+		if (g_ts_callbacks.pcb_check_ts_receive_loop) {
+			if (!g_ts_callbacks.pcb_check_ts_receive_loop (g_ts_callbacks.p_shared_data)) {
 				break;
 			}
 		}
@@ -253,8 +253,8 @@ int it9175_tune (unsigned int freq)
 		void* pBuffer;
 		int rlen;
 		if((rlen = tsthread_read(tsthr, &pBuffer)) > 0) {
-			if (g_setup_info.pcb_receive_from_tuner) {
-				if (!g_setup_info.pcb_receive_from_tuner (g_setup_info.p_shared_data, pBuffer, rlen)) {
+			if (g_ts_callbacks.pcb_ts_received) {
+				if (!g_ts_callbacks.pcb_ts_received (g_ts_callbacks.p_shared_data, pBuffer, rlen)) {
 					break;
 				}
 			}
@@ -283,8 +283,8 @@ int it9175_tune (unsigned int freq)
 	}
 	ret = 0;
 
-	if (g_setup_info.pcb_post_receive) {
-		g_setup_info.pcb_post_receive (g_setup_info.p_shared_data);
+	if (g_ts_callbacks.pcb_post_ts_receive) {
+		g_ts_callbacks.pcb_post_ts_receive (g_ts_callbacks.p_shared_data);
 	}
 
 _END_THREAD_STOP:
