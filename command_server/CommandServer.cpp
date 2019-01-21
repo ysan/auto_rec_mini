@@ -33,7 +33,8 @@ CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,mClientfd (0)
 {
-	mSeqs [EN_SEQ_COMMAND_SERVER_START] = {(PFN_SEQ_BASE)&CCommandServer::start, (char*)"start"};
+	mSeqs [EN_SEQ_COMMAND_SERVER_MODULE_UP]   = {(PFN_SEQ_BASE)&CCommandServer::moduleUp, (char*)"moduleUp"};
+	mSeqs [EN_SEQ_COMMAND_SERVER_MODULE_DOWN] = {(PFN_SEQ_BASE)&CCommandServer::moduleDown, (char*)"moduleDown"};
 	mSeqs [EN_SEQ_COMMAND_SERVER_SERVER_LOOP] = {(PFN_SEQ_BASE)&CCommandServer::serverLoop, (char*)"serverLoop"};
 	setSeqs (mSeqs, EN_SEQ_COMMAND_SERVER_NUM);
 
@@ -51,7 +52,7 @@ CCommandServer::~CCommandServer (void)
 }
 
 
-void CCommandServer::start (CThreadMgrIf *pIf)
+void CCommandServer::moduleUp (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -68,6 +69,29 @@ void CCommandServer::start (CThreadMgrIf *pIf)
 
 	requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_SERVER_LOOP);
 
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CCommandServer::moduleDown (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+//
+// do nothing
+//
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
@@ -457,6 +481,18 @@ static ST_COMMAND_INFO *peep_sub (void)
 	return stack_sub [sp_sub -1];
 }
 
+static void peep_sub_tables_print (void)
+{
+	if (sp_sub < 1) {
+		fprintf (gp_fptr_inner, "/");
+		return;
+	}
+
+	for (int i = 0; i < sp_sub; ++ i) {
+		fprintf (gp_fptr_inner, "/%s", stack_sub[i]->pszDesc);
+	}
+}
+
 void CCommandServer::showList (const char *pszDesc)
 {
 	const ST_COMMAND_INFO *pWorkTable = gp_current_command_table;
@@ -469,7 +505,11 @@ void CCommandServer::showList (const char *pszDesc)
 		++ pWorkTable;
 	}
 	fprintf (gp_fptr_inner, "\n");
-	fprintf (gp_fptr_inner, "> ");
+
+	peep_sub_tables_print();
+	fprintf (gp_fptr_inner, " > ");
+	fflush (gp_fptr_inner);
+
 	fflush (gp_fptr_inner);
 }
 
@@ -546,8 +586,8 @@ void CCommandServer::onCommandWaitBegin (void)
 
 void CCommandServer::onCommandLineThrough (void)
 {
-//	fprintf (gp_fptr_inner, "\n");
-	fprintf (gp_fptr_inner, "> ");
+	peep_sub_tables_print();
+	fprintf (gp_fptr_inner, " > ");
 	fflush (gp_fptr_inner);
 }
 

@@ -14,7 +14,8 @@
 using namespace ThreadManager;
 
 enum {
-	EN_SEQ_COMMAND_SERVER_START = 0,
+	EN_SEQ_COMMAND_SERVER_MODULE_UP = 0,
+	EN_SEQ_COMMAND_SERVER_MODULE_DOWN,
 	EN_SEQ_COMMAND_SERVER_SERVER_LOOP,
 	EN_SEQ_COMMAND_SERVER_NUM,
 };
@@ -30,8 +31,12 @@ public:
 	};
 
 
-	bool reqStart (void) {
-		return requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_START);
+	bool reqModuleUp (void) {
+		return requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_MODULE_UP);
+	};
+
+	bool reqModuleDown (void) {
+		return requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_MODULE_DOWN);
 	};
 };
 

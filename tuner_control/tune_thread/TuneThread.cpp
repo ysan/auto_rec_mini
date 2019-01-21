@@ -20,8 +20,9 @@
 CTuneThread::CTuneThread (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 {
-	mSeqs [EN_SEQ_TUNE_THREAD_START] = {(PFN_SEQ_BASE)&CTuneThread::start, (char*)"start"};
-	mSeqs [EN_SEQ_TUNE_THREAD_TUNE] = {(PFN_SEQ_BASE)&CTuneThread::tune, (char*)"tune"};
+	mSeqs [EN_SEQ_TUNE_THREAD_MODULE_UP]   = {(PFN_SEQ_BASE)&CTuneThread::moduleUp, (char*)"moduleUp"};
+	mSeqs [EN_SEQ_TUNE_THREAD_MODULE_DOWN] = {(PFN_SEQ_BASE)&CTuneThread::moduleDown, (char*)"moduleDown"};
+	mSeqs [EN_SEQ_TUNE_THREAD_TUNE]        = {(PFN_SEQ_BASE)&CTuneThread::tune, (char*)"tune"};
 	setSeqs (mSeqs, EN_SEQ_TUNE_THREAD_NUM);
 }
 
@@ -30,7 +31,7 @@ CTuneThread::~CTuneThread (void)
 }
 
 
-void CTuneThread::start (CThreadMgrIf *pIf)
+void CTuneThread::moduleUp (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -42,11 +43,34 @@ void CTuneThread::start (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
+//
+// do nothing
+//
+
 	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CTuneThread::moduleDown (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 //
 // do nothing
 //
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;

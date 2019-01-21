@@ -23,8 +23,10 @@
 using namespace ThreadManager;
 
 enum {
-	EN_SEQ_TUNE_THREAD_START = 0,
+	EN_SEQ_TUNE_THREAD_MODULE_UP = 0,
+	EN_SEQ_TUNE_THREAD_MODULE_DOWN,
 	EN_SEQ_TUNE_THREAD_TUNE,
+
 	EN_SEQ_TUNE_THREAD_NUM,
 };
 
@@ -35,7 +37,8 @@ public:
 	virtual ~CTuneThread (void);
 
 
-	void start (CThreadMgrIf *pIf);
+	void moduleUp (CThreadMgrIf *pIf);
+	void moduleDown (CThreadMgrIf *pIf);
 	void tune (CThreadMgrIf *pIf);
 
 private:

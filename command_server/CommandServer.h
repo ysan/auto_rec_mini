@@ -34,7 +34,8 @@ public:
 	virtual ~CCommandServer (void);
 
 
-	void start (CThreadMgrIf *pIf);
+	void moduleUp (CThreadMgrIf *pIf);
+	void moduleDown (CThreadMgrIf *pIf);
 	void serverLoop (CThreadMgrIf *pIf);
 
 

@@ -264,6 +264,7 @@ ifeq ($(TARGET_TYPE), EXEC)
 ifneq ($(TARGET_OBJ),)
 ifneq ($(INSTALLDIR_BIN),)
 	@$(INSTALL) -v -d $(INSTALLDIR_BIN)
+#	@$(INSTALL) -v --strip $(TARGET_OBJ) $(INSTALLDIR_BIN)
 	@$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_BIN)
 endif
 endif
@@ -271,7 +272,8 @@ else ifeq ($(TARGET_TYPE), SHARED)
 ifneq ($(TARGET_OBJ),)
 ifneq ($(INSTALLDIR_LIB),)
 	@$(INSTALL) -v -d $(INSTALLDIR_LIB)
-	@$(INSTALL) -v --strip $(TARGET_OBJ) $(INSTALLDIR_LIB)
+#	@$(INSTALL) -v --strip $(TARGET_OBJ) $(INSTALLDIR_LIB)
+	@$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_LIB)
 endif
 endif
 endif
