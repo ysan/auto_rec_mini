@@ -10,6 +10,7 @@
 #include <sys/time.h>
 
 #include "Defs.h"
+#include "Utils.h"
 
 
 #define TS_PACKET_LEN					(188)
@@ -173,17 +174,35 @@ typedef enum
 } EN_SERVICE_TYPE;
 
 
-typedef enum {
-	EN_PSI_SI_TYPE__PAT = 0,
-	EN_PSI_SI_TYPE__PMT,
-	EN_PSI_SI_TYPE__TOT,
+typedef struct _ts_header {
+	void parse (const uint8_t* p_src) {
+		if (!p_src) {
+			return;
+		}
+		sync                         =   *(p_src+0);
+		transport_error_indicator    =  (*(p_src+1) >> 7) & 0x01;
+		payload_unit_start_indicator =  (*(p_src+1) >> 6) & 0x01;
+		transport_priority           =  (*(p_src+1) >> 5) & 0x01;
+		pid                          = ((*(p_src+1) & 0x1f) << 8) | *(p_src+2);
+		transport_scrambling_control =  (*(p_src+3) >> 6) & 0x03;
+		adaptation_field_control     =  (*(p_src+3) >> 4) & 0x03;
+		continuity_counter           =   *(p_src+3)       & 0x0f;
+	}
 
-	EN_PSI_SI_TYPE__NUM,
-	EN_PSI_SI_TYPE__BLANK,
-} EN_PSI_SI_TYPE;
+	void dump (void) const {
+		_UTL_LOG_I (
+			"TsHeader: sync:[0x%02x] trans_err:[0x%02x] start_ind:[0x%02x] prio:[0x%02x] pid:[0x%04x] scram:[0x%02x] adap:[0x%02x] cont:[0x%02x]\n",
+			sync,
+			transport_error_indicator,
+			payload_unit_start_indicator,
+			transport_priority,
+			pid,
+			transport_scrambling_control,
+			adaptation_field_control,
+			continuity_counter
+		);
+	}
 
-
-typedef struct {
 	uint8_t sync;							//  0- 7 :  8 bits
 	uint8_t transport_error_indicator;		//  8- 8 :  1 bit
 	uint8_t payload_unit_start_indicator;	//  9- 9 :  1 bit
@@ -192,22 +211,7 @@ typedef struct {
 	uint8_t transport_scrambling_control;	// 24-25 :  2 bits
 	uint8_t adaptation_field_control;		// 26-27 :  2 bits
 	uint8_t continuity_counter;				// 28-31 :  4 bits
-} ST_TS_HEADER;
-
-
-typedef struct {
-	uint8_t table_id;						//  0- 7 :  8 bits
-	uint8_t section_syntax_indicator;		//  8- 8 :  1 bit
-	uint8_t private_indicator;				//  9- 9 :  1 bit
-	uint8_t reserved_1;						// 10-11 :  2 bits
-	uint16_t section_length;				// 12-23 : 12 bits
-	uint16_t table_id_extension;			// 24-39 : 16 bits
-	uint8_t reserved_2;						// 40-41 :  2 bits
-	uint8_t version_number;					// 42-46 :  5 bits
-	uint8_t current_next_indicator;			// 47-47 :  1 bit
-	uint8_t section_number;					// 48-55 :  8 bits
-	uint8_t last_section_number;			// 56-63 :  8 bits
-} ST_SECTION_HEADER;
+} TS_HEADER;
 
 
 class CTsCommon {

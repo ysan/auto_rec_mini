@@ -14,7 +14,7 @@ CTsParser::CTsParser (void)
 	,mpBottom (NULL)
 	,mBuffSize (0)
 	,mUnitSize (0)
-	,mParseRemainSize (0)
+	,mParseRemainLen (0)
 	,mTOT (5)
 	,mEIT_H (65535)
 	,mEIT_M (65535)
@@ -47,9 +47,9 @@ void CTsParser::run (uint8_t *pBuff, size_t size)
 		checkUnitSize ();
 		parse ();
 
-		if (mParseRemainSize > 0) {
-			memcpy (mInnerBuff, mpBottom - mParseRemainSize, mParseRemainSize);
-			mpBottom = &mInnerBuff[0] + mParseRemainSize;
+		if (mParseRemainLen > 0) {
+			memcpy (mInnerBuff, mpBottom - mParseRemainLen, mParseRemainLen);
+			mpBottom = &mInnerBuff[0] + mParseRemainLen;
 		} else {
 			memset (mInnerBuff, 0x00, INNER_BUFF_SIZE);
 			mpBottom = &mInnerBuff[0];
@@ -77,7 +77,7 @@ bool CTsParser::allocInnerBuffer (uint8_t *pBuff, size_t size)
 	if (mBuffSize >= totalDataSize) {
 		// 	実コピー
 		memcpy (mpBottom, pBuff, size);
-		mpCurrent = mpBottom - mParseRemainSize;  // current update
+		mpCurrent = mpBottom - mParseRemainLen;  // current update
 		mpBottom += size;
 		_UTL_LOG_I ("copyInnerBuffer size=%lu remain=%lu\n", mBuffSize, mBuffSize-totalDataSize);
 		return true;
@@ -114,7 +114,7 @@ bool CTsParser::allocInnerBuffer (uint8_t *pBuff, size_t size)
 
 	// 	実コピー
 	memcpy (mpBottom, pBuff, size);
-	mpCurrent = mpBottom - mParseRemainSize;  // current update
+	mpCurrent = mpBottom - mParseRemainLen;  // current update
 	mpBottom += size;
 
 	_UTL_LOG_I ("copyInnerBuffer(malloc) top=%p bottom=%p size=%lu remain=%lu\n", mpTop, mpBottom, mBuffSize, mBuffSize-totalDataSize);
@@ -253,7 +253,8 @@ uint8_t * CTsParser::getSyncTopAddr (uint8_t *pTop, uint8_t *pBtm, size_t unitSi
 	return NULL;
 }
 
-void CTsParser::getTsHeader (ST_TS_HEADER *pDst, uint8_t* pSrc) const
+/*
+void CTsParser::getTsHeader (TS_HEADER *pDst, uint8_t* pSrc) const
 {
 	if ((!pSrc) || (!pDst)) {
 		return;
@@ -269,7 +270,7 @@ void CTsParser::getTsHeader (ST_TS_HEADER *pDst, uint8_t* pSrc) const
 	pDst->continuity_counter           =   *(pSrc+3)       & 0x0f;
 }
 
-void CTsParser::dumpTsHeader (const ST_TS_HEADER *p) const
+void CTsParser::dumpTsHeader (const TS_HEADER *p) const
 {
 	if (!p) {
 		return ;
@@ -286,10 +287,11 @@ void CTsParser::dumpTsHeader (const ST_TS_HEADER *p) const
 		p->continuity_counter
 	);
 }
+*/
 
 bool CTsParser::parse (void)
 {
-	ST_TS_HEADER stTsHdr = {0};
+	TS_HEADER stTsHdr = {0};
 	uint8_t *p = NULL; //work
 	uint8_t *pPayload = NULL;
 	uint8_t *pCur = mpCurrent;
@@ -301,33 +303,35 @@ bool CTsParser::parse (void)
 	CDsmccControl *pCurDsmccCtl = NULL;
 
 
-
 	while ((pCur+unitSize) < pBtm) {
 		if ((*pCur != SYNC_BYTE) && (*(pCur+unitSize) != SYNC_BYTE)) {
 //printf ("getSyncTopAddr\n");
 			p = getSyncTopAddr (pCur, pBtm, unitSize);
 			if (!p) {
-				return false;
+				continue;
 			}
 
 			// sync update
 			pCur = p;
 		}
 
-		getTsHeader (&stTsHdr, pCur);
+//		getTsHeader (&stTsHdr, pCur);
+		stTsHdr.parse (pCur);
 
 		switch (stTsHdr.pid) {
 		case PID_PAT:
 			_UTL_LOG_I ("###############  PAT  ###############");
 			CUtils::dumper (pCur, 188);
-			dumpTsHeader (&stTsHdr);
+//			dumpTsHeader (&stTsHdr);
+			stTsHdr.dump();
 			isCheck = true;
 			break;
 
 		case PID_TOT:
 			_UTL_LOG_I ("###############  TOT  ###############");
 			CUtils::dumper (pCur, 188);
-			dumpTsHeader (&stTsHdr);
+//			dumpTsHeader (&stTsHdr);
+			stTsHdr.dump();
 
 			isCheck = true;
 			break;
@@ -335,49 +339,56 @@ bool CTsParser::parse (void)
 		case PID_EIT_H:
 			_UTL_LOG_I ("###############  EIT_H  ###############");
 			CUtils::dumper (pCur, 188);
-			dumpTsHeader (&stTsHdr);
+//			dumpTsHeader (&stTsHdr);
+			stTsHdr.dump();
 			isCheck = true;
 			break;
 
 		case PID_EIT_M:
 			_UTL_LOG_I ("###############  EIT_M  ###############");
 			CUtils::dumper (pCur, 188);
-			dumpTsHeader (&stTsHdr);
+//			dumpTsHeader (&stTsHdr);
+			stTsHdr.dump();
 			isCheck = true;
 			break;
 
 		case PID_EIT_L:
 			_UTL_LOG_I ("###############  EIT_L  ###############");
 			CUtils::dumper (pCur, 188);
-			dumpTsHeader (&stTsHdr);
+//			dumpTsHeader (&stTsHdr);
+			stTsHdr.dump();
 			isCheck = true;
 			break;
 
 		case PID_NIT:
 			_UTL_LOG_I ("###############  NIT  ###############");
 			CUtils::dumper (pCur, 188);
-			dumpTsHeader (&stTsHdr);
+//			dumpTsHeader (&stTsHdr);
+			stTsHdr.dump();
 			isCheck = true;
 			break;
 
 		case PID_SDT:
 			_UTL_LOG_I ("###############  SDT  ###############");
 			CUtils::dumper (pCur, 188);
-			dumpTsHeader (&stTsHdr);
+//			dumpTsHeader (&stTsHdr);
+			stTsHdr.dump();
 			isCheck = true;
 			break;
 
 		case PID_RST:
 			_UTL_LOG_I ("###############  RST  ###############");
 			CUtils::dumper (pCur, 188);
-			dumpTsHeader (&stTsHdr);
+//			dumpTsHeader (&stTsHdr);
+			stTsHdr.dump();
 			isCheck = true;
 			break;
 
 		case PID_BIT:
 			_UTL_LOG_I ("###############  BIT  ###############");
 			CUtils::dumper (pCur, 188);
-			dumpTsHeader (&stTsHdr);
+//			dumpTsHeader (&stTsHdr);
+			stTsHdr.dump();
 			isCheck = true;
 			break;
 
@@ -392,7 +403,8 @@ bool CTsParser::parse (void)
 					if (stTsHdr.pid == pCurPatTable->program_map_PID) {
 						_UTL_LOG_I ("###############  PMT  ###############");
 						CUtils::dumper (pCur, 188);
-						dumpTsHeader (&stTsHdr);
+//						dumpTsHeader (&stTsHdr);
+						stTsHdr.dump();
 						isCheck = true;
 						break;
 					}
@@ -409,7 +421,8 @@ bool CTsParser::parse (void)
 				if (stTsHdr.pid == pCurDsmccCtl->pid) {
 					_UTL_LOG_I ("###############  DSMCC  ###############");
 //					CUtils::dumper (pCur, 188);
-					dumpTsHeader (&stTsHdr);
+//					dumpTsHeader (&stTsHdr);
+					stTsHdr.dump();
 					isCheck = true;
 					break;
 				}
@@ -547,8 +560,8 @@ bool CTsParser::parse (void)
 		pCur += unitSize;
 	}
 
-	mParseRemainSize = pBtm - pCur;
-	_UTL_LOG_I ("mParseRemainSize=[%d]\n", mParseRemainSize);
+	mParseRemainLen = pBtm - pCur;
+	_UTL_LOG_I ("mParseRemainLen=[%d]\n", mParseRemainLen);
 
 
 	return true;

@@ -27,6 +27,20 @@ typedef enum {
 	EN_SECTION_TYPE_NUM,
 } EN_SECTION_TYPE;
 
+typedef struct {
+	uint8_t table_id;						//  0- 7 :  8 bits
+	uint8_t section_syntax_indicator;		//  8- 8 :  1 bit
+	uint8_t private_indicator;				//  9- 9 :  1 bit
+	uint8_t reserved_1;						// 10-11 :  2 bits
+	uint16_t section_length;				// 12-23 : 12 bits
+	uint16_t table_id_extension;			// 24-39 : 16 bits
+	uint8_t reserved_2;						// 40-41 :  2 bits
+	uint8_t version_number;					// 42-46 :  5 bits
+	uint8_t current_next_indicator;			// 47-47 :  1 bit
+	uint8_t section_number;					// 48-55 :  8 bits
+	uint8_t last_section_number;			// 56-63 :  8 bits
+} ST_SECTION_HEADER;
+
 
 class CSectionInfo {
 public:
@@ -109,7 +123,7 @@ public:
 	virtual ~CSectionParser (void);
 
 
-	EN_CHECK_SECTION checkSection (const ST_TS_HEADER *pstTsHdr, uint8_t *pPayload, size_t payloadSize);
+	EN_CHECK_SECTION checkSection (const TS_HEADER *pstTsHdr, uint8_t *pPayload, size_t payloadSize);
 
 protected:
 	CSectionInfo *getLatestCompleteSection (void) const;
