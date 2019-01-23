@@ -74,18 +74,18 @@ bool it9175_open (void)
 
 #if 0
 // callback test
-	if (g_ts_callbacks.pcb_pre_ts_receive) {
-		g_ts_callbacks.pcb_pre_ts_receive (g_ts_callbacks.p_shared_data);
-	}
-	if (g_ts_callbacks.pcb_check_ts_receive_loop) {
-		g_ts_callbacks.pcb_check_ts_receive_loop (g_ts_callbacks.p_shared_data);
-	}
-	if (g_ts_callbacks.pcb_ts_received) {
-		g_ts_callbacks.pcb_ts_received (g_ts_callbacks.p_shared_data, NULL, 0);
-	}
-	if (g_ts_callbacks.pcb_post_ts_receive) {
-		g_ts_callbacks.pcb_post_ts_receive (g_ts_callbacks.p_shared_data);
-	}
+if (g_ts_callbacks.pcb_pre_ts_receive) {
+	g_ts_callbacks.pcb_pre_ts_receive (g_ts_callbacks.p_shared_data);
+}
+if (g_ts_callbacks.pcb_check_ts_receive_loop) {
+	g_ts_callbacks.pcb_check_ts_receive_loop (g_ts_callbacks.p_shared_data);
+}
+if (g_ts_callbacks.pcb_ts_received) {
+	g_ts_callbacks.pcb_ts_received (g_ts_callbacks.p_shared_data, NULL, 0);
+}
+if (g_ts_callbacks.pcb_post_ts_receive) {
+	g_ts_callbacks.pcb_post_ts_receive (g_ts_callbacks.p_shared_data);
+}
 #endif
 
 	if (g_en_state == EN_IT9175_STATE__OPENED) {

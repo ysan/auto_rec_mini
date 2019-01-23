@@ -23,15 +23,27 @@
 #define INNER_BUFF_SIZE		(65535*5)
 
 
+class CDsmccControl {
+public:
+	CDsmccControl (void)
+		:pid (0)
+		,mpDsmcc (NULL)
+		,isUsed (false)
+	{}
+	virtual ~CDsmccControl (void) {
+		if (mpDsmcc) {
+			delete mpDsmcc;
+			mpDsmcc = NULL;
+		}
+	}
+
+	uint16_t pid;
+	CDsmcc *mpDsmcc;
+	bool isUsed;
+};
+
 class CTsParser
 {
-public:
-	class IParserListener {
-	public:
-		virtual ~IParserListener (void) {};
-		virtual bool onTsAvailable (TS_HEADER *p_hdr, uint8_t *p_payload, size_t payload_size) = 0;
-	};
-
 public:
 	CTsParser (void);
 	CTsParser (IParserListener *p_Listener);
@@ -48,7 +60,6 @@ private:
 //	void dumpTsHeader (const TS_HEADER *p) const;
 
 	bool parse (void);
-	bool parse2 (void);
 
 
 	uint8_t *mp_top ;
@@ -58,10 +69,22 @@ private:
 	int m_unit_size;
 	int m_parse_remain_len;
 
-	IParserListener *mp_listener;
-
 	uint8_t m_inner_buff [INNER_BUFF_SIZE];
 
+
+
+	CProgramAssociationTable mPAT;
+	CProgramAssociationTable::CTable mPatTables [4 * 8];
+	CTimeOffsetTable mTOT;
+	CEventInformationTable mEIT_H;
+	CEventInformationTable mEIT_M;
+	CEventInformationTable mEIT_L;
+	CNetworkInformationTable mNIT;
+	CServiceDescriptionTable mSDT;
+	CRunningStatusTable mRST;
+	CBroadcasterInformationTable mBIT;
+
+	CDsmccControl mDsmccCtls [256];
 };
 
 #endif

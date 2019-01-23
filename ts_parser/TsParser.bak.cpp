@@ -15,24 +15,11 @@ CTsParser::CTsParser (void)
 	,m_buff_size (0)
 	,m_unit_size (0)
 	,m_parse_remain_len (0)
-	,mp_listener (NULL)
+	,mTOT (5)
+	,mEIT_H (65535)
+	,mEIT_M (65535)
+	,mEIT_L (65535)
 {
-	memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
-}
-
-CTsParser::CTsParser (IParserListener *p_listener)
-	:mp_top (NULL)
-	,mp_current (NULL)
-	,mp_bottom (NULL)
-	,m_buff_size (0)
-	,m_unit_size (0)
-	,m_parse_remain_len (0)
-	,mp_listener (NULL)
-{
-	if (p_listener) {
-		mp_listener = p_listener;
-	}
-
 	memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
 }
 
@@ -311,10 +298,14 @@ bool CTsParser::parse (void)
 	uint8_t *p_btm = mp_bottom;
 	size_t unit_size = m_unit_size;
 	size_t payload_size = 0;
+	bool isCheck = false;
+	CProgramAssociationTable::CTable *p_curPatTable = NULL;
+	CDsmccControl *p_curDsmccCtl = NULL;
 
 
 	while ((p_cur+unit_size) < p_btm) {
 		if ((*p_cur != SYNC_BYTE) && (*(p_cur+unit_size) != SYNC_BYTE)) {
+//printf ("getSyncTopAddr\n");
 			p = getSyncTopAddr (p_cur, p_btm, unit_size);
 			if (!p) {
 				continue;
@@ -324,7 +315,123 @@ bool CTsParser::parse (void)
 			p_cur = p;
 		}
 
+//		getTsHeader (&ts_header, p_cur);
 		ts_header.parse (p_cur);
+
+		switch (ts_header.pid) {
+		case PID_PAT:
+			_UTL_LOG_I ("###############  PAT  ###############");
+			CUtils::dumper (p_cur, 188);
+//			dumpTsHeader (&ts_header);
+			ts_header.dump();
+			isCheck = true;
+			break;
+
+		case PID_TOT:
+			_UTL_LOG_I ("###############  TOT  ###############");
+			CUtils::dumper (p_cur, 188);
+//			dumpTsHeader (&ts_header);
+			ts_header.dump();
+
+			isCheck = true;
+			break;
+
+		case PID_EIT_H:
+			_UTL_LOG_I ("###############  EIT_H  ###############");
+			CUtils::dumper (p_cur, 188);
+//			dumpTsHeader (&ts_header);
+			ts_header.dump();
+			isCheck = true;
+			break;
+
+		case PID_EIT_M:
+			_UTL_LOG_I ("###############  EIT_M  ###############");
+			CUtils::dumper (p_cur, 188);
+//			dumpTsHeader (&ts_header);
+			ts_header.dump();
+			isCheck = true;
+			break;
+
+		case PID_EIT_L:
+			_UTL_LOG_I ("###############  EIT_L  ###############");
+			CUtils::dumper (p_cur, 188);
+//			dumpTsHeader (&ts_header);
+			ts_header.dump();
+			isCheck = true;
+			break;
+
+		case PID_NIT:
+			_UTL_LOG_I ("###############  NIT  ###############");
+			CUtils::dumper (p_cur, 188);
+//			dumpTsHeader (&ts_header);
+			ts_header.dump();
+			isCheck = true;
+			break;
+
+		case PID_SDT:
+			_UTL_LOG_I ("###############  SDT  ###############");
+			CUtils::dumper (p_cur, 188);
+//			dumpTsHeader (&ts_header);
+			ts_header.dump();
+			isCheck = true;
+			break;
+
+		case PID_RST:
+			_UTL_LOG_I ("###############  RST  ###############");
+			CUtils::dumper (p_cur, 188);
+//			dumpTsHeader (&ts_header);
+			ts_header.dump();
+			isCheck = true;
+			break;
+
+		case PID_BIT:
+			_UTL_LOG_I ("###############  BIT  ###############");
+			CUtils::dumper (p_cur, 188);
+//			dumpTsHeader (&ts_header);
+			ts_header.dump();
+			isCheck = true;
+			break;
+
+		default:
+			// check PMT
+			p_curPatTable = &mPatTables [0];
+			for (int i = 0; i < 32; ++ i) {
+				if (!p_curPatTable->isUsed) {
+					continue;
+				}
+				if (p_curPatTable->program_number != 0) {
+					if (ts_header.pid == p_curPatTable->program_map_PID) {
+						_UTL_LOG_I ("###############  PMT  ###############");
+						CUtils::dumper (p_cur, 188);
+//						dumpTsHeader (&ts_header);
+						ts_header.dump();
+						isCheck = true;
+						break;
+					}
+				}
+				++ p_curPatTable ;
+			}
+
+			// check DSMCC
+			p_curDsmccCtl = &mDsmccCtls [0];
+			for (int i = 0; i < 256; ++ i) {
+				if (!p_curDsmccCtl->isUsed) {
+					continue;
+				}
+				if (ts_header.pid == p_curDsmccCtl->pid) {
+					_UTL_LOG_I ("###############  DSMCC  ###############");
+//					CUtils::dumper (p_cur, 188);
+//					dumpTsHeader (&ts_header);
+					ts_header.dump();
+					isCheck = true;
+					break;
+				}
+				++ p_curDsmccCtl;
+			}
+
+
+			break;
+		}
 
 		p_payload = p_cur + TS_HEADER_LEN;
 
@@ -344,9 +451,110 @@ bool CTsParser::parse (void)
 		payload_size = TS_PACKET_LEN - (p_payload - p_cur);
 
 
-		if (mp_listener) {
-			mp_listener->onTsAvailable (&ts_header, p_payload, payload_size);
+// check table_id
+//if (ts_header.payload_unit_start_indicator == 1) {
+//	uint8_t table_id = *p_payload;
+//	_UTL_LOG_I ("dddddddddddddd   table_id 0x%02x   pid 0x%04x", table_id, ts_header.pid);
+//}
+
+
+		if (isCheck) {
+
+			if (ts_header.pid == PID_PAT) {
+
+				if (mPAT.checkSection (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
+
+					memset (mPatTables, 0x00, sizeof(mPatTables));
+
+					int n = mPAT.getTableNum ();
+					mPAT.getTable (mPatTables, 32);
+					mPAT.dumpTable (mPatTables, n);
+				}
+
+			} else if (ts_header.pid == PID_TOT) {
+
+				mTOT.checkSection (&ts_header, p_payload, payload_size);
+
+			} else if (ts_header.pid == PID_EIT_H) {
+
+				mEIT_H.checkSection (&ts_header, p_payload, payload_size);
+
+			} else if (ts_header.pid == PID_EIT_M) {
+
+				mEIT_M.checkSection (&ts_header, p_payload, payload_size);
+
+			} else if (ts_header.pid == PID_EIT_L) {
+
+				mEIT_L.checkSection (&ts_header, p_payload, payload_size);
+
+			} else if (ts_header.pid == PID_NIT) {
+
+				mNIT.checkSection (&ts_header, p_payload, payload_size);
+
+			} else if (ts_header.pid == PID_SDT) {
+
+				mSDT.checkSection (&ts_header, p_payload, payload_size);
+
+			} else if (ts_header.pid == PID_RST) {
+
+				mRST.checkSection (&ts_header, p_payload, payload_size);
+
+			} else if (ts_header.pid == PID_BIT) {
+
+				mBIT.checkSection (&ts_header, p_payload, payload_size);
+
+			} else if (ts_header.pid == p_curPatTable->program_map_PID) {
+
+				if (p_curPatTable->mpPMT) {
+					if (p_curPatTable->mpPMT->checkSection (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
+
+						// stream_typeからDSMCCのPIDを取得する //////////
+						const std::vector<CProgramMapTable::CTable*> *pTables = p_curPatTable->mpPMT->getTables();
+						std::vector<CProgramMapTable::CTable*>::const_iterator iter = pTables->begin();
+						for (; iter != pTables->end(); ++ iter) {
+							CProgramMapTable::CTable *pTable = *iter;
+							std::vector<CProgramMapTable::CTable::CStream>::const_iterator iter_strm = pTable->streams.begin();
+							for (; iter_strm != pTable->streams.end(); ++ iter_strm) {
+								if ((iter_strm->stream_type == 0x0b) || (iter_strm->stream_type == 0x0d)) {
+									bool isExisted = false;
+									for (int i = 0; i < 256; ++ i) {
+										if (mDsmccCtls[i].isUsed && (mDsmccCtls[i].pid == iter_strm->elementary_PID)) {
+											isExisted = true;
+											break;
+										}
+									}
+									if (!isExisted) {
+										int i = 0;
+										for (i = 0; i < 256; ++ i) {
+											if (!mDsmccCtls[i].isUsed) {
+												mDsmccCtls[i].pid = iter_strm->elementary_PID;
+												mDsmccCtls[i].mpDsmcc = new CDsmcc (65535);
+												mDsmccCtls[i].isUsed = true;
+												break;
+											}
+										}
+										if (i == 256) {
+											_UTL_LOG_W ("mDsmccCtls is full.");
+										}
+									}
+								}
+							}
+
+						}
+						//////////////////////////////////////////////////
+
+					}
+				}
+
+			} else if (ts_header.pid == p_curDsmccCtl->pid) {
+				if (p_curDsmccCtl->mpDsmcc) {
+					p_curDsmccCtl->mpDsmcc->checkSection (&ts_header, p_payload, payload_size);
+				}
+			}
+
+			isCheck = false;
 		}
+
 
 
 		p_cur += unit_size;

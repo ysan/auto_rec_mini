@@ -58,18 +58,18 @@ void CTunerControl::moduleUp (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-    switch (sectId) {
-    case SECTID_ENTRY:
+	switch (sectId) {
+	case SECTID_ENTRY:
 
-        requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_MODULE_UP);
+		requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_MODULE_UP);
 
-        sectId = SECTID_WAIT_TUNE_THREAD_MODULE_UP;
-        enAct = EN_THM_ACT_WAIT;
-        break;
+		sectId = SECTID_WAIT_TUNE_THREAD_MODULE_UP;
+		enAct = EN_THM_ACT_WAIT;
+		break;
 
-    case SECTID_WAIT_TUNE_THREAD_MODULE_UP:
-        sectId = SECTID_END;
-        enAct = EN_THM_ACT_CONTINUE;
+	case SECTID_WAIT_TUNE_THREAD_MODULE_UP:
+		sectId = SECTID_END;
+		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
 	case SECTID_END:

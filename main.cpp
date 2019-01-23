@@ -15,38 +15,13 @@
 
 #include "CommandServerIf.h"
 #include "TunerControlIf.h"
+#include "PsisiManagerIf.h"
 
 #include "Utils.h"
 #include "modules.h"
 
 
 using namespace ThreadManager;
-
-
-class CTsTest : public CTunerControlIf::ITsReceiveHandler {
-public:
-	CTsTest (void) {}
-	virtual ~CTsTest (void) {}
-
-	bool onPreTsReceive (void) {
-		_UTL_LOG_I (__PRETTY_FUNCTION__);
-		return true;
-	}
-
-	void onPostTsReceive (void) {
-		_UTL_LOG_I (__PRETTY_FUNCTION__);
-	}
-
-	bool onCheckTsReceiveLoop (void) {
-		_UTL_LOG_I (__PRETTY_FUNCTION__);
-		return true;
-	}
-
-	bool onTsReceived (void *p_ts_data, int length) {
-		_UTL_LOG_I (__PRETTY_FUNCTION__);
-		return true;
-	}
-};
 
 
 int main (void)
@@ -60,22 +35,17 @@ int main (void)
 		exit (EXIT_FAILURE);
 	}
 
+	p_threadmgr->getExternalIf()->createExternalCp();
+
+
 	CCommandServerIf *p_comSvrIf = new CCommandServerIf (p_threadmgr->getExternalIf());
 	CTunerControlIf *p_tunerCtlIf = new CTunerControlIf (p_threadmgr->getExternalIf());
-
-
-	p_threadmgr->getExternalIf()->createExternalCp();
+	CPsisiManagerIf *p_psisiMgrIf = new CPsisiManagerIf (p_threadmgr->getExternalIf());
 
 
 	p_comSvrIf-> reqModuleUp ();
 	p_tunerCtlIf-> reqModuleUp ();
-
-
-	CTsTest *p_test = new CTsTest();
-	_UTL_LOG_I ("p_test %p\n", p_test);
-	p_tunerCtlIf-> reqRegisterTsReceiveHandler ((CTunerControlIf::ITsReceiveHandler**)&p_test);
-	ST_THM_SRC_INFO* r = p_threadmgr->getExternalIf()-> receiveExternal();
-	_UTL_LOG_I (" rslt:[%d] id:[%d]", r->enRslt, *(int*)r->msg.pMsg);
+	p_psisiMgrIf->reqModuleUp();
 
 
 
