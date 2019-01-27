@@ -8,17 +8,8 @@
 #include <errno.h>
 
 #include "Defs.h"
-#include "TsCommon.h"
-#include "ProgramAssociationTable.h"
-#include "ProgramMapTable.h"
-#include "TimeOffsetTable.h"
-#include "EventInformationTable.h"
-#include "NetworkInformationTable.h"
-#include "ServiceDescriptionTable.h"
-#include "RunningStatusTable.h"
-#include "BroadcasterInformationTable.h"
-#include "Dsmcc.h"
 
+#include "TsCommon.h"
 
 #define INNER_BUFF_SIZE		(65535*5)
 
@@ -48,7 +39,6 @@ private:
 //	void dumpTsHeader (const TS_HEADER *p) const;
 
 	bool parse (void);
-	bool parse2 (void);
 
 
 	uint8_t *mp_top ;

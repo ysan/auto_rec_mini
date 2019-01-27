@@ -123,7 +123,7 @@ public:
 	virtual ~CSectionParser (void);
 
 
-	EN_CHECK_SECTION checkSection (const TS_HEADER *pstTsHdr, uint8_t *pPayload, size_t payloadSize);
+	EN_CHECK_SECTION checkSection (const TS_HEADER *pTsHdr, uint8_t *pPayload, size_t payloadSize);
 
 protected:
 	CSectionInfo *getLatestCompleteSection (void) const;

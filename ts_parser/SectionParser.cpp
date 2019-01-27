@@ -1108,15 +1108,15 @@ dumpSectionList ();
 /**
  *
  */
-EN_CHECK_SECTION CSectionParser::checkSection (const TS_HEADER *pstTsHdr, uint8_t *pPayload, size_t payloadSize)
+EN_CHECK_SECTION CSectionParser::checkSection (const TS_HEADER *pTsHdr, uint8_t *pPayload, size_t payloadSize)
 {
-	if (!pstTsHdr || !pPayload || (payloadSize == 0)) {
+	if (!pTsHdr || !pPayload || (payloadSize == 0)) {
 		return EN_CHECK_SECTION__INVALID;
 	}
 
-	mPid = pstTsHdr->pid;
+	mPid = pTsHdr->pid;
 
-	if (pstTsHdr->payload_unit_start_indicator == 0) {
+	if (pTsHdr->payload_unit_start_indicator == 0) {
 		_UTL_LOG_I("checkSectionFollow");
 		return checkSectionFollow (pPayload, payloadSize);
 	} else {

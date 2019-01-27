@@ -12,7 +12,7 @@
 
 CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
-	,m_parser (this)
+	,m_parser (&m_parser_listener)
 	,m_ts_receive_handler_id (-1)
 {
 	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_UP]   = {(PFN_SEQ_BASE)&CPsisiManager::moduleUp,   (char*)"moduleUp"};
@@ -132,28 +132,6 @@ bool CPsisiManager::onTsReceived (void *p_ts_data, int length)
 
 	// ts parser processing
 	m_parser.run ((uint8_t*)p_ts_data, length);
-
-	return true;
-}
-
-bool CPsisiManager::onTsAvailable (TS_HEADER *p_hdr, uint8_t *p_payload, size_t payload_size)
-{
-	if (!p_hdr || p_payload || payload_size == 0) {
-		// through
-		return true;
-	}
-
-
-	switch (p_hdr->pid) {
-	case PID_PAT:
-		p_hdr->dump();
-		break;
-	default:	
-		break;
-	}
-
-
-
 
 	return true;
 }

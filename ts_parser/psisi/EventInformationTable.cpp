@@ -14,6 +14,12 @@ CEventInformationTable::CEventInformationTable (size_t poolSize)
 	mTables.clear();
 }
 
+CEventInformationTable::CEventInformationTable (size_t poolSize, uint8_t fifoNum)
+	:CSectionParser (poolSize, fifoNum)
+{
+	mTables.clear();
+}
+
 CEventInformationTable::~CEventInformationTable (void)
 {
 	clear();

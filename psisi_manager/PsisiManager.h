@@ -19,6 +19,7 @@
 #include "Utils.h"
 #include "PsisiManagerIf.h"
 //#include "PsisiManagerTables.h"
+#include "TsParserListener.h"
 
 #include "TunerControlIf.h"
 #include "TsParser.h"
@@ -27,9 +28,7 @@
 using namespace ThreadManager;
 
 
-class CPsisiManager : public CThreadMgrBase,
-								CTunerControlIf::ITsReceiveHandler,
-								CTsParser::IParserListener
+class CPsisiManager : public CThreadMgrBase, CTunerControlIf::ITsReceiveHandler
 {
 public:
 	CPsisiManager (char *pszName, uint8_t nQueNum);
@@ -47,13 +46,12 @@ private:
 	bool onCheckTsReceiveLoop (void) override;
 	bool onTsReceived (void *p_ts_data, int length) override;
 
-	// CTsParser::IParserListener
-	bool onTsAvailable (TS_HEADER *p_hdr, uint8_t *p_payload, size_t payload_size) override;
-
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_PSISI_MANAGER_NUM]; // entity
 
 	CTsParser m_parser;
+	CTsParserListener m_parser_listener;
+
 	int m_ts_receive_handler_id;
 };
 

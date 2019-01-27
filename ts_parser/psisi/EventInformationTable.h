@@ -76,6 +76,7 @@ public:
 	};
 public:
 	explicit CEventInformationTable (size_t poolSize);
+	CEventInformationTable (size_t poolSize, uint8_t fifoNum);
 	virtual ~CEventInformationTable (void);
 
 	void onSectionCompleted (const CSectionInfo *pCompSection) override;
