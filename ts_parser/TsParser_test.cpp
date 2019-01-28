@@ -4,11 +4,11 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "TsParser.h"
+#include "TsParser_test.h"
 #include "Utils.h"
 
 
-CTsParser::CTsParser (void)
+CTsParser_test::CTsParser_test (void)
 	:mp_top (NULL)
 	,mp_current (NULL)
 	,mp_bottom (NULL)
@@ -23,11 +23,11 @@ CTsParser::CTsParser (void)
 	memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
 }
 
-CTsParser::~CTsParser (void)
+CTsParser_test::~CTsParser_test (void)
 {
 }
 
-void CTsParser::run (uint8_t *pBuff, size_t size)
+void CTsParser_test::run (uint8_t *pBuff, size_t size)
 {
 	if ((!pBuff) || (size == 0)) {
 		return ;
@@ -66,7 +66,7 @@ void CTsParser::run (uint8_t *pBuff, size_t size)
 }
 
 //TODO 足らなくなったら拡張 全部貯めるかたち
-bool CTsParser::allocInnerBuffer (uint8_t *pBuff, size_t size)
+bool CTsParser_test::allocInnerBuffer (uint8_t *pBuff, size_t size)
 {
 	if ((!pBuff) || (size == 0)) {
 		return false;
@@ -122,7 +122,7 @@ bool CTsParser::allocInnerBuffer (uint8_t *pBuff, size_t size)
 }
 
 // 静的領域にコピー
-bool CTsParser::copyInnerBuffer (uint8_t *pBuff, size_t size)
+bool CTsParser_test::copyInnerBuffer (uint8_t *pBuff, size_t size)
 {
 	if ((!pBuff) || (size == 0)) {
 		return false;
@@ -158,7 +158,7 @@ bool CTsParser::copyInnerBuffer (uint8_t *pBuff, size_t size)
 	return true;
 }
 
-bool CTsParser::checkUnitSize (void)
+bool CTsParser_test::checkUnitSize (void)
 {
 	int i;
 	int m;
@@ -223,7 +223,7 @@ bool CTsParser::checkUnitSize (void)
 	return true;
 }
 
-uint8_t * CTsParser::getSyncTopAddr (uint8_t *pTop, uint8_t *p_btm, size_t unit_size) const
+uint8_t * CTsParser_test::getSyncTopAddr (uint8_t *pTop, uint8_t *p_btm, size_t unit_size) const
 {
 	if ((!pTop) || (!p_btm) || (unit_size == 0)) {
 		return NULL;
@@ -254,7 +254,7 @@ uint8_t * CTsParser::getSyncTopAddr (uint8_t *pTop, uint8_t *p_btm, size_t unit_
 }
 
 /*
-void CTsParser::getTsHeader (TS_HEADER *pDst, uint8_t* pSrc) const
+void CTsParser_test::getTsHeader (TS_HEADER *pDst, uint8_t* pSrc) const
 {
 	if ((!pSrc) || (!pDst)) {
 		return;
@@ -270,7 +270,7 @@ void CTsParser::getTsHeader (TS_HEADER *pDst, uint8_t* pSrc) const
 	pDst->continuity_counter           =   *(pSrc+3)       & 0x0f;
 }
 
-void CTsParser::dumpTsHeader (const TS_HEADER *p) const
+void CTsParser_test::dumpTsHeader (const TS_HEADER *p) const
 {
 	if (!p) {
 		return ;
@@ -289,7 +289,7 @@ void CTsParser::dumpTsHeader (const TS_HEADER *p) const
 }
 */
 
-bool CTsParser::parse (void)
+bool CTsParser_test::parse (void)
 {
 	TS_HEADER ts_header = {0};
 	uint8_t *p = NULL; //work
@@ -412,6 +412,8 @@ bool CTsParser::parse (void)
 				++ p_curPatTable ;
 			}
 
+#if 0
+//DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			// check DSMCC
 			p_curDsmccCtl = &mDsmccCtls [0];
 			for (int i = 0; i < 256; ++ i) {
@@ -428,7 +430,7 @@ bool CTsParser::parse (void)
 				}
 				++ p_curDsmccCtl;
 			}
-
+#endif
 
 			break;
 		}

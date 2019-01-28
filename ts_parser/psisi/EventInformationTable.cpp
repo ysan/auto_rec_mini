@@ -31,6 +31,13 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 		return ;
 	}
 
+//DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDd
+if (pCompSection->getHeader()->table_id != 0x4e) {
+detachSectionList (pCompSection);
+return ;
+}
+//DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDd
+
 	CTable *pTable = new CTable ();
 	if (!parse (pCompSection, pTable)) {
 		delete pTable;

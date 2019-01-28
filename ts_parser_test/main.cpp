@@ -9,7 +9,7 @@
 #include <fcntl.h>
 
 #include "Defs.h"
-#include "TsParser.h"
+#include "TsParser_test.h"
 #include "Utils.h"
 
 
@@ -49,7 +49,7 @@ int main (int argc, char *argv[])
 	uint8_t buff [65536] = {0};
 
 
-	CTsParser tp;
+	CTsParser_test tp;
 
 
 	uint32_t optFlag = getOption (argc, argv);

@@ -927,88 +927,118 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 		size = size - pointer_field;
 	}
 
+
+	EN_CHECK_SECTION r = EN_CHECK_SECTION__COMPLETED;
+	while ((size > 0) && (*p != 0xff)) {
+
 //TODO mpWorkSectInfo check
-	if (mpWorkSectInfo) {
-		if (mpWorkSectInfo->mState <= EN_SECTION_STATE__RECEIVING) {
-			_UTL_LOG_W ("unexpected first packet came. start over...");
-			detachSectionList (mpWorkSectInfo);
-			mpWorkSectInfo = NULL;
+		if (mpWorkSectInfo) {
+			if (mpWorkSectInfo->mState <= EN_SECTION_STATE__RECEIVING) {
+				_UTL_LOG_W ("unexpected first packet came. start over...");
+				detachSectionList (mpWorkSectInfo);
+				mpWorkSectInfo = NULL;
+			}
 		}
-	}
 
 
-	CSectionInfo *pAttached = attachSectionList (p, size);
-	if (!pAttached) {
-		return EN_CHECK_SECTION__INVALID;
-	}
+		CSectionInfo *pAttached = attachSectionList (p, size);
+		if (!pAttached) {
+			return EN_CHECK_SECTION__INVALID;
+		}
 dumpSectionList ();
 
-	// set working addr
+			// set working addr
 	mpWorkSectInfo = pAttached;
 mpWorkSectInfo->dumpHeader ();
 
 
-	if (!onSectionStarted (mpWorkSectInfo)) {
-		return EN_CHECK_SECTION__CANCELED;
-	}
+		if (!onSectionStarted (mpWorkSectInfo)) {
+			r = EN_CHECK_SECTION__CANCELED;
+			size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
+			p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
 
-	if (mpWorkSectInfo->isReceiveAll()) {
-		mpWorkSectInfo->mState = EN_SECTION_STATE__RECEIVED;
+			detachSectionList (mpWorkSectInfo);
+			mpWorkSectInfo = NULL;
+//			return EN_CHECK_SECTION__CANCELED;
+			continue;
+		}
 
-	} else {
-		// パケットをまたいだ
-		mpWorkSectInfo->mState = EN_SECTION_STATE__RECEIVING;
-		return EN_CHECK_SECTION__RECEIVING;
-	}
+		if (mpWorkSectInfo->isReceiveAll()) {
+			mpWorkSectInfo->mState = EN_SECTION_STATE__RECEIVED;
+
+		} else {
+			// パケットをまたいだ
+			mpWorkSectInfo->mState = EN_SECTION_STATE__RECEIVING;
+			return EN_CHECK_SECTION__RECEIVING;
+		}
 
 
 //TODO
-//	if (mpWorkSectInfo->mSectHdr.section_syntax_indicator != 0) {
-//		detachSectionList (mpWorkSectInfo);
-//		mpWorkSectInfo = NULL;
-//		return false;
-//	}
+//		if (mpWorkSectInfo->mSectHdr.section_syntax_indicator != 0) {
+//			detachSectionList (mpWorkSectInfo);
+//			mpWorkSectInfo = NULL;
+//			return false;
+//		}
 
-	uint16_t nDataPartLen = mpWorkSectInfo->getDataPartLen ();
-	_UTL_LOG_I ("nDataPartLen %d\n", nDataPartLen);
+		uint16_t nDataPartLen = mpWorkSectInfo->getDataPartLen ();
+		_UTL_LOG_I ("nDataPartLen %d\n", nDataPartLen);
 
 
-//	if (mType == EN_SECTION_TYPE__PSISI) {
-		// check CRC
-		if (!mpWorkSectInfo->checkCRC32()) {
+//		if (mType == EN_SECTION_TYPE__PSISI) {
+			// check CRC
+			if (!mpWorkSectInfo->checkCRC32()) {
+				_UTL_LOG_E ("CRC32 fail");
+				r = EN_CHECK_SECTION__INVALID;
+				size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
+				p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
+
+				detachSectionList (mpWorkSectInfo);
+				mpWorkSectInfo = NULL;
+//				return EN_CHECK_SECTION__INVALID;
+				continue;
+			}
+			_UTL_LOG_I ("CRC32 ok");
+
+//		} else if (mType == EN_SECTION_TYPE__DSMCC) {
+//
+//		} else {
+//			_UTL_LOG_E ("EN_SECTION_TYPE is invalid.");
+//		}
+
+
+		// すでに持っているsectionかどうかチェック
+		CSectionInfo *pFound = searchSectionList (*mpWorkSectInfo);
+		if (pFound && pFound->mState == EN_SECTION_STATE__COMPLETE) {
+			_UTL_LOG_N ("already know section -> detach");
+			r = EN_CHECK_SECTION__CANCELED;
+			size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
+			p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
+
 			detachSectionList (mpWorkSectInfo);
 			mpWorkSectInfo = NULL;
-			_UTL_LOG_E ("CRC32 fail");
-			return EN_CHECK_SECTION__INVALID;
-		}
-		_UTL_LOG_I ("CRC32 ok");
+//			return EN_CHECK_SECTION__CANCELED;
+			continue;
 
-//	} else if (mType == EN_SECTION_TYPE__DSMCC) {
-//
-//	} else {
-//		_UTL_LOG_E ("EN_SECTION_TYPE is invalid.");
-//	}
+		} else {
+			// new section
+			_UTL_LOG_N ("new section");
+			r = EN_CHECK_SECTION__COMPLETED;
+			size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
+			p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
 
-
-	// すでに持っているsectionかどうかチェック
-	CSectionInfo *pFound = searchSectionList (*mpWorkSectInfo);
-	if (pFound && pFound->mState == EN_SECTION_STATE__COMPLETE) {
-		_UTL_LOG_N ("already know section -> detach");
-		detachSectionList (mpWorkSectInfo);
-		mpWorkSectInfo = NULL;
-		return EN_CHECK_SECTION__CANCELED;
-
-	} else {
-		// new section
-		_UTL_LOG_N ("new section");
-		mpWorkSectInfo->mState = EN_SECTION_STATE__COMPLETE;
-		checkDetachFifoSectionList ();
+			mpWorkSectInfo->mState = EN_SECTION_STATE__COMPLETE;
+			checkDetachFifoSectionList ();
 dumpSectionList ();
 
-		onSectionCompleted (mpWorkSectInfo);
+			onSectionCompleted (mpWorkSectInfo);
 
-		return EN_CHECK_SECTION__COMPLETED;
-	}
+			mpWorkSectInfo = NULL;
+//			return EN_CHECK_SECTION__COMPLETED;
+			continue;
+		}
+	} // while ((size > 0) && (*p != 0xff))
+
+	return r;
 }
 
 /**
@@ -1070,9 +1100,9 @@ mpWorkSectInfo->dumpHeader ();
 //	if (mType == EN_SECTION_TYPE__PSISI) {
 		// check CRC
 		if (!mpWorkSectInfo->checkCRC32()) {
+			_UTL_LOG_E ("CRC32 fail");
 			detachSectionList (mpWorkSectInfo);
 			mpWorkSectInfo = NULL;
-			_UTL_LOG_E ("CRC32 fail");
 			return EN_CHECK_SECTION__INVALID;
 		}
 		_UTL_LOG_I ("CRC32 ok");

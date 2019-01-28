@@ -49,6 +49,7 @@ SRCS_CPP	:= \
 	TsParser.cpp \
 	SectionParser.cpp \
 	TsCommon.cpp \
+	TsParser_test.cpp \
 
 
 #

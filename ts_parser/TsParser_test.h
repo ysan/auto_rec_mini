@@ -42,12 +42,19 @@ public:
 	bool isUsed;
 };
 
-class CTsParser
+class CTsParser_test
 {
 public:
-	CTsParser (void);
-	CTsParser (IParserListener *p_Listener);
-	virtual ~CTsParser (void);
+	class IParserListener {
+	public:
+		virtual ~IParserListener (void) {};
+		virtual bool onTsAvailable (TS_HEADER *p_hdr, uint8_t *p_payload, size_t payload_size) = 0;
+	};
+
+public:
+	CTsParser_test (void);
+	CTsParser_test (IParserListener *p_Listener);
+	virtual ~CTsParser_test (void);
 
 	void run (uint8_t *pBuff, size_t nSize);
 
