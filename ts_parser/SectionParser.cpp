@@ -1038,6 +1038,7 @@ mpWorkSectInfo->dumpHeader ();
 
 		size_t trunclen = mpWorkSectInfo->truncate ();
 		truncate (trunclen);
+dumpSectionList ();
 
 
 		// すでに持っているsectionかどうかチェック
@@ -1062,7 +1063,6 @@ mpWorkSectInfo->dumpHeader ();
 
 			mpWorkSectInfo->mState = EN_SECTION_STATE__COMPLETE;
 			checkDetachFifoSectionList ();
-dumpSectionList ();
 
 			onSectionCompleted (mpWorkSectInfo);
 
@@ -1152,6 +1152,7 @@ mpWorkSectInfo->dumpHeader ();
 
 	size_t trunclen = mpWorkSectInfo->truncate ();
 	truncate (trunclen);
+dumpSectionList ();
 
 
 	// すでに持っているsectionかどうかチェック
@@ -1167,7 +1168,6 @@ mpWorkSectInfo->dumpHeader ();
 		_UTL_LOG_N ("new section");
 		mpWorkSectInfo->mState = EN_SECTION_STATE__COMPLETE;
 		checkDetachFifoSectionList ();
-dumpSectionList ();
 
 		onSectionCompleted (mpWorkSectInfo);
 
