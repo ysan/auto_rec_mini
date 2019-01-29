@@ -16,9 +16,9 @@ CTsParser_test::CTsParser_test (void)
 	,m_unit_size (0)
 	,m_parse_remain_len (0)
 	,mTOT (5)
-	,mEIT_H (65535)
-	,mEIT_M (65535)
-	,mEIT_L (65535)
+	,mEIT_H (4096*20, 20)
+	,mEIT_M (4096*20, 20)
+	,mEIT_L (4096*20, 20)
 {
 	memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
 }

@@ -245,12 +245,41 @@ bool CSectionInfo::isReceiveAll (void) const
 		return false;
 	}
 
-	if ((mpTail - mpRaw) < (mSectHdr.section_length + SECTION_SHORT_HEADER_LEN)) { // 右辺はheader含めたsectionの合計
+	// 右辺はheader含めたsectionの合計
+	if ((mpTail - mpRaw) < (mSectHdr.section_length + SECTION_SHORT_HEADER_LEN)) {
 		_UTL_LOG_I ("section fragment\n");
 		return false;
 	}
 
 	return true;
+}
+
+/**
+ * truncate
+ */
+size_t CSectionInfo::truncate (void)
+{
+	if (!isReceiveAll()) {
+		_UTL_LOG_E ("can truncate only if isReceiveAll is true");
+		return 0;
+	}
+	size_t len = (mpTail - mpRaw) - (mSectHdr.section_length + SECTION_SHORT_HEADER_LEN);
+	mpTail -= len;
+	return len;
+}
+
+/**
+ * clear
+ */
+void CSectionInfo::clear (void)
+{
+	memset (&mSectHdr, 0x00, sizeof(ST_SECTION_HEADER));
+	mType = EN_SECTION_TYPE__PSISI;
+	mState = EN_SECTION_STATE__INIT;
+	mpRaw = NULL;
+	mpData = NULL;
+	mpTail = NULL;
+	mpNext = NULL;
 }
 
 /**
@@ -342,7 +371,9 @@ bool CSectionInfo::checkCRC32 (void) const
 	
 	uint32_t crc = 0xffffffff;
 	uint8_t *p = mpRaw;
-	while (p < (mpRaw + mSectHdr.section_length + SECTION_SHORT_HEADER_LEN)) { // 右辺はheader含めたsectionの合計
+
+	// 右辺はheader含めたsectionの合計
+	while (p < (mpRaw + mSectHdr.section_length + SECTION_SHORT_HEADER_LEN)) {
 		crc = (crc << 8) ^ table [((crc >> 24) ^ p[0]) & 0xff];
 		p += 1;
 	}
@@ -441,23 +472,6 @@ CSectionParser::~CSectionParser (void)
 	mpPool = NULL;
 }
 
-#if 0
-/**
- *
- */
-void CSectionParser::convertRaw2SectionInfo (CSectionInfo *pOut, uint8_t *pBuff, size_t size)
-{
-	if (!pOut || !pBuff || (size == 0)) {
-		return;
-	}
-
-	pOut->mpRaw = pBuff;
-	pOut->mpTail = pBuff + size;
-
-	pOut->parseHeader ();
-}
-#endif
-
 /**
  *
  */
@@ -484,16 +498,16 @@ CSectionInfo* CSectionParser::attachSectionList (uint8_t *pBuff, size_t size)
 	mPoolInd += size;
 
 
-	if ((mpWorkSectInfo) && (mpWorkSectInfo->mState == EN_SECTION_STATE__RECEIVING)) {
+	if (mpWorkSectInfo && (mpWorkSectInfo->mState == EN_SECTION_STATE__RECEIVING)) {
+		// follow
 		if (pCur != mpWorkSectInfo->mpTail) {
-		_UTL_LOG_E ("BUG");
+			_UTL_LOG_E ("BUG");
 		}
 		mpWorkSectInfo->mpTail = pCur + size;
 		pRtn = mpWorkSectInfo;
 
 	} else {
-
-//		convertRaw2SectionInfo (&tmpSect, pCur, size);
+		// first
 		CSectionInfo tmpSect (pCur, size, mType);
 
 		CSectionInfo* pList = addSectionList (&tmpSect);
@@ -558,7 +572,8 @@ void CSectionParser::detachSectionList (const CSectionInfo *pSectInfo)
 
 	// pool 消す時はセットで
 	if (pSectInfo == mpWorkSectInfo) {
-		clearWorkSectionInfo ();
+		mpWorkSectInfo->clear ();
+		mpWorkSectInfo = NULL;
 	}
 }
 
@@ -713,7 +728,8 @@ void CSectionParser::detachAllSectionList (void)
 	mPoolInd = 0;
 
 	// pool 消す時はセットで
-	clearWorkSectionInfo ();
+	mpWorkSectInfo->clear ();
+	mpWorkSectInfo = NULL;
 }
 
 /**
@@ -800,7 +816,8 @@ void CSectionParser::checkDetachFifoSectionList (void)
 
 		// pool 消す時はセットで
 		if (pDelSect == mpWorkSectInfo) {
-			clearWorkSectionInfo ();
+			mpWorkSectInfo->clear ();
+			mpWorkSectInfo = NULL;
 		}
 
 //TODO 関数化
@@ -877,18 +894,28 @@ int CSectionParser::getSectionListNum (void) const
  */
 void CSectionParser::dumpSectionList (void) const
 {
+	_UTL_LOG_I ("- section list ----------");
 	CSectionInfo *pTmp = NULL;
 	int n = 0;
 
 	pTmp = mpSectListTop;
 	while (pTmp) {
 
-		_UTL_LOG_I (" %d: state:[%s] tail-raw:[%d] (%p -> %p)\n", n, s_szSectState[pTmp->mState], int(pTmp->mpTail - pTmp->mpRaw), pTmp, pTmp->mpNext);
+		_UTL_LOG_I (
+			" %d: table_id:[0x%02x] state:[%s] tail-raw:[%d] (%p -> %p)\n",
+			n,
+			pTmp->mSectHdr.table_id,
+			s_szSectState[pTmp->mState],
+			int(pTmp->mpTail - pTmp->mpRaw),
+			pTmp,
+			pTmp->mpNext
+		);
 
 		// next set
 		pTmp = pTmp->mpNext;
 		++ n ;
 	}
+	_UTL_LOG_I ("-------------------------");
 }
 
 /**
@@ -915,7 +942,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 	}
 
 	if (pointer_field > 0) {
-		_UTL_LOG_I("(pointer_field > 0)");
+		_UTL_LOG_I("pointer_field=[%d]", pointer_field);
 		EN_CHECK_SECTION chk = checkSectionFollow (p, pointer_field);
 		switch ((int)chk) {
 		case EN_CHECK_SECTION__RECEIVING:
@@ -929,6 +956,9 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 
 
 	EN_CHECK_SECTION r = EN_CHECK_SECTION__COMPLETED;
+
+	// payload_unit_start_indicator == 1 のパケット内に
+	// 複数のts含まれるためのループ
 	while ((size > 0) && (*p != 0xff)) {
 
 //TODO mpWorkSectInfo check
@@ -947,8 +977,8 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 		}
 dumpSectionList ();
 
-			// set working addr
-	mpWorkSectInfo = pAttached;
+		// set working addr
+		mpWorkSectInfo = pAttached;
 mpWorkSectInfo->dumpHeader ();
 
 
@@ -988,7 +1018,7 @@ mpWorkSectInfo->dumpHeader ();
 			// check CRC
 			if (!mpWorkSectInfo->checkCRC32()) {
 				_UTL_LOG_E ("CRC32 fail");
-				r = EN_CHECK_SECTION__INVALID;
+				r = EN_CHECK_SECTION__CRC32_ERR;
 				size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
 				p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
 
@@ -1004,6 +1034,10 @@ mpWorkSectInfo->dumpHeader ();
 //		} else {
 //			_UTL_LOG_E ("EN_SECTION_TYPE is invalid.");
 //		}
+
+
+		size_t trunclen = mpWorkSectInfo->truncate ();
+		truncate (trunclen);
 
 
 		// すでに持っているsectionかどうかチェック
@@ -1036,7 +1070,9 @@ dumpSectionList ();
 //			return EN_CHECK_SECTION__COMPLETED;
 			continue;
 		}
+
 	} // while ((size > 0) && (*p != 0xff))
+
 
 	return r;
 }
@@ -1056,7 +1092,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFollow (uint8_t *pPayload, size_t p
 	}
 
 	if (mpWorkSectInfo->mState != EN_SECTION_STATE__RECEIVING) {
-		_UTL_LOG_W ("head packet has not arrived yet 2");
+		_UTL_LOG_W ("head packet has not arrived yet (not EN_SECTION_STATE__RECEIVING)");
 		return EN_CHECK_SECTION__INVALID;
 	}
 
@@ -1103,7 +1139,7 @@ mpWorkSectInfo->dumpHeader ();
 			_UTL_LOG_E ("CRC32 fail");
 			detachSectionList (mpWorkSectInfo);
 			mpWorkSectInfo = NULL;
-			return EN_CHECK_SECTION__INVALID;
+			return EN_CHECK_SECTION__CRC32_ERR;
 		}
 		_UTL_LOG_I ("CRC32 ok");
 
@@ -1112,6 +1148,10 @@ mpWorkSectInfo->dumpHeader ();
 //	} else {
 //		_UTL_LOG_E ("EN_SECTION_TYPE is invalid.");
 //	}
+
+
+	size_t trunclen = mpWorkSectInfo->truncate ();
+	truncate (trunclen);
 
 
 	// すでに持っているsectionかどうかチェック
@@ -1178,20 +1218,16 @@ CSectionInfo *CSectionParser::getLatestCompleteSection (void) const
 }
 
 /**
- *
+ * truncate
  */
-void CSectionParser::clearWorkSectionInfo (void)
+void CSectionParser::truncate (size_t truncateLen)
 {
-	memset (&(mpWorkSectInfo->mSectHdr), 0x00, sizeof(ST_SECTION_HEADER));
-	mpWorkSectInfo->mState = EN_SECTION_STATE__INIT;
-	mpWorkSectInfo->mpRaw = NULL;
-	mpWorkSectInfo->mpData = NULL;
-	mpWorkSectInfo->mpTail = NULL;
-	mpWorkSectInfo = NULL;
+	memset (mpPool + mPoolInd - truncateLen, 0x00, truncateLen);
+	mPoolInd -= truncateLen;
 }
 
 /**
- *
+ * onSectionStarted
  */
 bool CSectionParser::onSectionStarted (const CSectionInfo *pCompSection)
 {
@@ -1199,7 +1235,7 @@ bool CSectionParser::onSectionStarted (const CSectionInfo *pCompSection)
 }
 
 /**
- *
+ * onSectionCompleted
  */
 void CSectionParser::onSectionCompleted (const CSectionInfo *pCompSection)
 {

@@ -1,0 +1,11 @@
+threadmgr lock機構
+log エスケープシーケンス 色つけ方
+loglevel Debug追加
+chennel scan
+event rec
+event chenge notify
+section parser を table_idごと分けたい EIT用
+ts_parser_test main.cpp に TsParser_test.cppを統合
+各psisiのtable vectorのadd はpsisiMgrに依頼したほうがいい (psisiMgrで各psisiのtable vectorを持つ)
+
+

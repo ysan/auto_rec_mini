@@ -8,7 +8,7 @@
 
 
 CTsParserListener::CTsParserListener (void)
-	:mEIT_H (65535, 16)
+	:mEIT_H (4096*20, 20)
 {
 }
 

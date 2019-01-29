@@ -33,8 +33,8 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 
 //DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDd
 if (pCompSection->getHeader()->table_id != 0x4e) {
-detachSectionList (pCompSection);
-return ;
+  detachSectionList (pCompSection);
+  return ;
 }
 //DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDd
 
@@ -51,7 +51,7 @@ return ;
 	dumpTable (pTable);
 
 //TODO
-detachSectionList (pCompSection);
+//detachSectionList (pCompSection);
 
 }
 
@@ -76,7 +76,7 @@ bool CEventInformationTable::parse (const CSectionInfo *pCompSection, CTable* pO
 
 	int eventLen = (int) (pTable->header.section_length - SECTION_HEADER_FIX_LEN - SECTION_CRC32_LEN - EIT_FIX_LEN);
 	if (eventLen <= EIT_EVENT_FIX_LEN) {
-		_UTL_LOG_W ("invalid EIT event");
+		_UTL_LOG_W ("invalid EIT event (eventLen=%d)", eventLen);
 		return false;
 	}
 
@@ -219,7 +219,7 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 	}
 
 	_UTL_LOG_I (
-		"table_id:[0x%02x][%s] transport_stream_id:[0x%04x] original_network_id:[0x%04x] %s\n",
+		"table_id:[0x%02x][%s] ts_id:[0x%04x] org_network_id:[0x%04x] %s\n",
 		pTable->header.table_id,
 		pTable->header.table_id == 0x4e ? "PF,A " :
 			pTable->header.table_id == 0x4f ? "PF,O " :

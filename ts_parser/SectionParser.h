@@ -82,10 +82,13 @@ public:
 	static uint8_t * parseHeader (ST_SECTION_HEADER *pHdrOut, uint8_t *pStart, uint8_t *pEnd, EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI) ;
 	static void dumpHeader (const ST_SECTION_HEADER *pHdr, bool isShortFormat) ;
 
+
 private:
 	void parseHeader (void);
 	void dumpHeader (void) const;
 	bool isReceiveAll (void) const;
+	size_t truncate (void);
+	void clear (void);
 	bool checkCRC32 (void) const;
 
 
@@ -107,6 +110,7 @@ typedef enum {
 	EN_CHECK_SECTION__COMPLETED = 0,
 	EN_CHECK_SECTION__RECEIVING,
 	EN_CHECK_SECTION__CANCELED,
+	EN_CHECK_SECTION__CRC32_ERR,
 	EN_CHECK_SECTION__INVALID,
 } EN_CHECK_SECTION;
 
@@ -154,8 +158,7 @@ private:
 	EN_CHECK_SECTION checkSectionFirst (uint8_t *pPayload, size_t payloadSize);
 	EN_CHECK_SECTION checkSectionFollow (uint8_t *pPayload, size_t payloadSize);
 
-	void clearWorkSectionInfo (void);
-
+	void truncate (size_t truncateLen);
 
 
 	uint16_t mPid;

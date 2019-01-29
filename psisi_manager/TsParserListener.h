@@ -27,7 +27,7 @@ public:
 	CTsParserListener (void);
 	virtual ~CTsParserListener (void);
 
-CEventInformationTable mEIT_H;
+	CEventInformationTable mEIT_H;
 
 
 private:
