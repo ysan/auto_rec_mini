@@ -42,7 +42,10 @@ public:
 			{
 				descriptors.clear();
 			}
-			virtual ~CStream (void) {}
+			virtual ~CStream (void)
+			{
+				descriptors.clear();
+			}
 
 			uint16_t transport_stream_id;
 			uint16_t original_network_id;
@@ -61,7 +64,11 @@ public:
 			descriptors.clear();
 			streams.clear();
 		}
-		virtual ~CTable (void) {}
+		virtual ~CTable (void)
+		{
+			descriptors.clear();
+			streams.clear();
+		}
 
 		ST_SECTION_HEADER header;
 		uint8_t reserved_future_use_2;

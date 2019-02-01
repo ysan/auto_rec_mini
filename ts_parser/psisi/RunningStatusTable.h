@@ -50,7 +50,10 @@ public:
 		{
 			statuses.clear();
 		}
-		virtual ~CTable (void) {}
+		virtual ~CTable (void)
+		{
+			statuses.clear();
+		}
 
 		ST_SECTION_HEADER header;
 		std::vector <CStatus> statuses;

@@ -24,6 +24,7 @@ CPartialReceptionDescriptor::CPartialReceptionDescriptor (const CDescriptor &obj
 
 CPartialReceptionDescriptor::~CPartialReceptionDescriptor (void)
 {
+	services.clear();
 }
 
 bool CPartialReceptionDescriptor::parse (void)

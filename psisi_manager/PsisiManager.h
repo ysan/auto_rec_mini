@@ -53,6 +53,15 @@ private:
 	CTsParserListener m_parser_listener;
 
 	int m_ts_receive_handler_id;
+
+
+	 std::vector <CProgramAssociationTable::CTable*>      m_tables_PAT;
+	 std::vector <CNetworkInformationTable::CTable*>      m_tables_NIT;
+	 std::vector <CEventInformationTable::CTable*>        m_tables_EIT;
+	 std::vector <CServiceDescriptionTable::CTable*>      m_tables_SDT;
+	 std::vector <CRunningStatusTable::CTable*>           m_tables_RST;
+	 std::vector <CBroadcasterInformationTable::CTable*>  m_tables_BIT;
+
 };
 
 #endif

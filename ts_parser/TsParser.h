@@ -20,7 +20,7 @@ public:
 	class IParserListener {
 	public:
 		virtual ~IParserListener (void) {};
-		virtual bool onTsAvailable (TS_HEADER *p_hdr, uint8_t *p_payload, size_t payload_size) = 0;
+		virtual bool onTsPacketAvailable (TS_HEADER *p_hdr, uint8_t *p_payload, size_t payload_size) = 0;
 	};
 
 public:

@@ -25,6 +25,7 @@ CContentDescriptor::CContentDescriptor (const CDescriptor &obj)
 
 CContentDescriptor::~CContentDescriptor (void)
 {
+	contents.clear();
 }
 
 bool CContentDescriptor::parse (void)

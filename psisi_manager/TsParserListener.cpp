@@ -17,7 +17,7 @@ CTsParserListener::~CTsParserListener (void)
 }
 
 
-bool CTsParserListener::onTsAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size)
+bool CTsParserListener::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size)
 {
 	if (!p_ts_header || !p_payload || payload_size == 0) {
 		// through

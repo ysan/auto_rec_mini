@@ -47,7 +47,10 @@ public:
 			{
 				descriptors.clear();
 			}
-			virtual ~CService (void) {}
+			virtual ~CService (void)
+			{
+				descriptors.clear();
+			}
 
 			uint16_t service_id;
 			uint8_t reserved_future_use;
@@ -67,7 +70,10 @@ public:
 		{
 			services.clear();
 		}
-		virtual ~CTable (void) {}
+		virtual ~CTable (void)
+		{
+			services.clear();
+		}
 
 		ST_SECTION_HEADER header;
 		uint16_t original_network_id;

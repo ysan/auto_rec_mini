@@ -38,7 +38,10 @@ public:
 			{
 				descriptors.clear();
 			}
-			virtual ~CBroadcaster (void) {}
+			virtual ~CBroadcaster (void)
+			{
+				descriptors.clear();
+			}
 
 			uint8_t broadcaster_id;
 			uint8_t reserved_future_use;
@@ -55,7 +58,11 @@ public:
 			descriptors.clear();
 			broadcasters.clear();
 		}
-		virtual ~CTable (void) {}
+		virtual ~CTable (void)
+		{
+			descriptors.clear();
+			broadcasters.clear();
+		}
 
 		ST_SECTION_HEADER header;
 		uint8_t reserved_future_use_2;

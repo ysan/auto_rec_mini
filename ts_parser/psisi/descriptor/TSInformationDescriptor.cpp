@@ -29,6 +29,7 @@ CTSInformationDescriptor::CTSInformationDescriptor (const CDescriptor &obj)
 
 CTSInformationDescriptor::~CTSInformationDescriptor (void)
 {
+	transmissions.clear();
 }
 
 bool CTSInformationDescriptor::parse (void)

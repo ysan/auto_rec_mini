@@ -35,7 +35,10 @@ public:
 		{
 			services.clear();
 		}
-		virtual ~CTransmission (void) {}
+		virtual ~CTransmission (void)
+		{
+			services.clear();
+		}
 
 		uint8_t transmission_type_info;
 		uint8_t num_of_service;

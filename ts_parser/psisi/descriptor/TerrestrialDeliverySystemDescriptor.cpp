@@ -27,6 +27,7 @@ CTerrestrialDeliverySystemDescriptor::CTerrestrialDeliverySystemDescriptor (cons
 
 CTerrestrialDeliverySystemDescriptor::~CTerrestrialDeliverySystemDescriptor (void)
 {
+	freqs.clear();
 }
 
 bool CTerrestrialDeliverySystemDescriptor::parse (void)

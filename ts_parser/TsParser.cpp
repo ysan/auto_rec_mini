@@ -345,7 +345,7 @@ bool CTsParser::parse (void)
 
 
 		if (mp_listener) {
-			mp_listener->onTsAvailable (&ts_header, p_payload, payload_size);
+			mp_listener->onTsPacketAvailable (&ts_header, p_payload, payload_size);
 		}
 
 

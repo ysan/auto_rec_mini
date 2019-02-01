@@ -25,6 +25,7 @@ CServiceListDescriptor::CServiceListDescriptor (const CDescriptor &obj)
 
 CServiceListDescriptor::~CServiceListDescriptor (void)
 {
+	services.clear();
 }
 
 bool CServiceListDescriptor::parse (void)

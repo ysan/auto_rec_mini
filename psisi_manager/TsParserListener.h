@@ -27,13 +27,14 @@ public:
 	CTsParserListener (void);
 	virtual ~CTsParserListener (void);
 
-	CEventInformationTable mEIT_H;
 
 
 private:
 	// CTsParser::IParserListener
-	bool onTsAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size) override;
+	bool onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size) override;
 
+
+	CEventInformationTable mEIT_H;
 
 };
 

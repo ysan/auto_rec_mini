@@ -26,6 +26,7 @@ CSIParameterDescriptor::CSIParameterDescriptor (const CDescriptor &obj)
 
 CSIParameterDescriptor::~CSIParameterDescriptor (void)
 {
+	tables.clear();
 }
 
 bool CSIParameterDescriptor::parse (void)

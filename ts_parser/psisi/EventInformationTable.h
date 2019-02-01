@@ -45,7 +45,10 @@ public:
 				memset (duration, 0x00, sizeof(duration));
 				descriptors.clear();
 			}
-			virtual ~CEvent (void) {}
+			virtual ~CEvent (void)
+			{
+				descriptors.clear();
+			}
 
 			uint16_t event_id;
 			uint8_t start_time [8];
@@ -65,7 +68,10 @@ public:
 		{
 			events.clear();
 		}
-		virtual ~CTable (void) {}
+		virtual ~CTable (void)
+		{
+			events.clear();
+		}
 
 		ST_SECTION_HEADER header;
 		uint16_t transport_stream_id;

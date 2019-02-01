@@ -43,7 +43,10 @@ public:
 			{
 				descriptors.clear();
 			}
-			virtual ~CStream (void) {}
+			virtual ~CStream (void)
+			{
+				descriptors.clear();
+			}
 
 			uint8_t stream_type;
 			uint8_t reserved_1;
@@ -63,7 +66,11 @@ public:
 			descriptors.clear();
 			streams.clear();
 		}
-		virtual ~CTable (void) {}
+		virtual ~CTable (void)
+		{
+			descriptors.clear();
+			streams.clear();
+		}
 
 		ST_SECTION_HEADER header;
 		uint8_t reserved_3;
