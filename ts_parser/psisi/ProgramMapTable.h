@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include <vector>
+#include <mutex>
 
 #include "Defs.h"
 #include "TsCommon.h"
@@ -82,27 +83,41 @@ public:
 	};
 
 public:
+	class CTables {
+	public:
+		CTables (const std::vector <CTable*> *pTables, std::mutex *pMutex)
+			:mpTables (pTables)
+			,mpMutex (pMutex)
+		{}
+		virtual ~CTables (void) {}
+
+		const std::vector <CTable*> *mpTables;
+		std::mutex *mpMutex;
+	};
+
+public:
 	CProgramMapTable (void);
+	explicit CProgramMapTable (uint8_t fifioNum);
 	virtual ~CProgramMapTable (void);
 
 
+	// CSectionParser
 	void onSectionCompleted (const CSectionInfo *pCompSection) override;
 
-	void dumpTables (void) const;
+	void dumpTables (void);
 	void dumpTable (const CTable* pTable) const;
 	void clear (void);
 
-	const std::vector<CTable*> *getTables (void) const;
+	CTables getTables (void);
 
 private:
 	bool parse (const CSectionInfo *pCompSection, CTable* pOutTable);
+	void appendTables (CTable *pTable);
 	void releaseTables (void);
-
-//	void dump (void) const;
-//	void dump (const CSectionInfo *pCompSection) const;
 
 
 	std::vector <CTable*> mTables;
+	std::mutex mMutexTables;
 
 };
 

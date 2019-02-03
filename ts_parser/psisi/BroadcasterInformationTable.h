@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include <vector>
+#include <mutex>
 
 #include "Defs.h"
 #include "TsCommon.h"
@@ -71,21 +72,43 @@ public:
 		std::vector <CDescriptor> descriptors;
 		std::vector <CBroadcaster> broadcasters;
 	};
+
+public:
+	class CTables {
+	public:
+		CTables (const std::vector <CTable*> *pTables, std::mutex *pMutex)
+			:mpTables (pTables)
+			,mpMutex (pMutex)
+		{}
+		virtual ~CTables (void) {}
+
+		const std::vector <CTable*> *mpTables;
+		std::mutex *mpMutex;
+	};
+
 public:
 	CBroadcasterInformationTable (void);
+	explicit CBroadcasterInformationTable (uint8_t fifoNum);
 	virtual ~CBroadcasterInformationTable (void);
 
+
+	// CSectionParser
 	void onSectionCompleted (const CSectionInfo *pCompSection) override;
 
-	void dumpTables (void) const;
+	void dumpTables (void);
 	void dumpTable (const CTable* pTable) const;
 	void clear (void);
 
+	CTables getTables (void);
+
 private:
 	bool parse (const CSectionInfo *pCompSection, CTable* pOutTable);
+	void appendTables (CTable *pTable);
 	void releaseTables (void);
 
+
 	std::vector <CTable*> mTables;
+	std::mutex mMutexTables;
 
 };
 

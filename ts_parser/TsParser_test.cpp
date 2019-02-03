@@ -299,7 +299,8 @@ bool CTsParser_test::parse (void)
 	size_t unit_size = m_unit_size;
 	size_t payload_size = 0;
 	bool isCheck = false;
-	CProgramAssociationTable::CTable *p_curPatTable = NULL;
+//	CProgramAssociationTable::CTable *p_curPatTable = NULL;
+	CProgramCache *p_curProgramCache = NULL;
 	CDsmccControl *p_curDsmccCtl = NULL;
 
 
@@ -393,6 +394,7 @@ bool CTsParser_test::parse (void)
 			break;
 
 		default:
+#if 0
 			// check PMT
 			p_curPatTable = &mPatTables [0];
 			for (int i = 0; i < 32; ++ i) {
@@ -411,9 +413,24 @@ bool CTsParser_test::parse (void)
 				}
 				++ p_curPatTable ;
 			}
+#endif
+			// check PMT
+			p_curProgramCache = &mProgramCaches [0];
+			for (int i = 0; i < 16; ++ i) {
+				if (!p_curProgramCache->isUsed) {
+					continue;
+				}
+				if (ts_header.pid == p_curProgramCache->pid) {
+					_UTL_LOG_I ("###############  PMT  ###############");
+//					CUtils::dumper (p_cur, 188);
+//					dumpTsHeader (&ts_header);
+					ts_header.dump();
+					isCheck = true;
+					break;
+				}
+				++ p_curProgramCache;
+			}
 
-#if 0
-//DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			// check DSMCC
 			p_curDsmccCtl = &mDsmccCtls [0];
 			for (int i = 0; i < 256; ++ i) {
@@ -422,7 +439,7 @@ bool CTsParser_test::parse (void)
 				}
 				if (ts_header.pid == p_curDsmccCtl->pid) {
 					_UTL_LOG_I ("###############  DSMCC  ###############");
-//					CUtils::dumper (p_cur, 188);
+					CUtils::dumper (p_cur, 188);
 //					dumpTsHeader (&ts_header);
 					ts_header.dump();
 					isCheck = true;
@@ -430,7 +447,6 @@ bool CTsParser_test::parse (void)
 				}
 				++ p_curDsmccCtl;
 			}
-#endif
 
 			break;
 		}
@@ -453,24 +469,50 @@ bool CTsParser_test::parse (void)
 		payload_size = TS_PACKET_LEN - (p_payload - p_cur);
 
 
-// check table_id
-//if (ts_header.payload_unit_start_indicator == 1) {
-//	uint8_t table_id = *p_payload;
-//	_UTL_LOG_I ("dddddddddddddd   table_id 0x%02x   pid 0x%04x", table_id, ts_header.pid);
-//}
-
-
 		if (isCheck) {
 
 			if (ts_header.pid == PID_PAT) {
 
 				if (mPAT.checkSection (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
 
-					memset (mPatTables, 0x00, sizeof(mPatTables));
+//					memset (mPatTables, 0x00, sizeof(mPatTables));
+//					int n = mPAT.getTableNum ();
+//					mPAT.getTable (mPatTables, 32);
+//					mPAT.dumpTable (mPatTables, n);
 
-					int n = mPAT.getTableNum ();
-					mPAT.getTable (mPatTables, 32);
-					mPAT.dumpTable (mPatTables, n);
+					CProgramAssociationTable::CTables pat_tables = mPAT.getTables();
+//TODO mutex
+					std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = pat_tables.mpTables->end();
+					CProgramAssociationTable::CTable* pLatestTable = *(-- iter);
+					std::vector<CProgramAssociationTable::CTable::CProgram>::const_iterator iter_prog = pLatestTable->programs.begin();
+					for (; iter_prog != pLatestTable->programs.end(); ++ iter_prog) {
+						if (iter_prog->program_number == 0) {
+							continue;
+						}
+
+						bool isExisted = false;
+						for (int i = 0; i < 16; ++ i) {
+							if (mProgramCaches[i].isUsed && (mProgramCaches[i].pid == iter_prog->program_map_PID)) {
+								isExisted = true;
+								break;
+							}
+						}
+						if (!isExisted) {
+							int i = 0;
+							for (i = 0; i < 16; ++ i) {
+								if (!mProgramCaches[i].isUsed) {
+									mProgramCaches[i].pid = iter_prog->program_map_PID;
+									mProgramCaches[i].mpPMT = new CProgramMapTable ();
+									mProgramCaches[i].isUsed = true;
+									break;
+								}
+							}
+							if (i == 16) {
+								_UTL_LOG_W ("mProgramCaches is full.");
+								break;
+							}
+						}
+					}
 				}
 
 			} else if (ts_header.pid == PID_TOT) {
@@ -505,15 +547,20 @@ bool CTsParser_test::parse (void)
 
 				mBIT.checkSection (&ts_header, p_payload, payload_size);
 
-			} else if (ts_header.pid == p_curPatTable->program_map_PID) {
+//			} else if (ts_header.pid == p_curPatTable->program_map_PID) {
+			} else if (ts_header.pid == p_curProgramCache->pid) {
 
-				if (p_curPatTable->mpPMT) {
-					if (p_curPatTable->mpPMT->checkSection (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
+//				if (p_curPatTable->mpPMT) {
+				if (p_curProgramCache->mpPMT) {
+//					if (p_curPatTable->mpPMT->checkSection (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
+					if (p_curProgramCache->mpPMT->checkSection (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
 
 						// stream_typeからDSMCCのPIDを取得する //////////
-						const std::vector<CProgramMapTable::CTable*> *pTables = p_curPatTable->mpPMT->getTables();
-						std::vector<CProgramMapTable::CTable*>::const_iterator iter = pTables->begin();
-						for (; iter != pTables->end(); ++ iter) {
+//						CProgramMapTable::CTables pmt_tables = p_curPatTable->mpPMT->getTables();
+						CProgramMapTable::CTables pmt_tables = p_curProgramCache->mpPMT->getTables();
+//TODO mutex
+						std::vector<CProgramMapTable::CTable*>::const_iterator iter = pmt_tables.mpTables->begin();
+						for (; iter != pmt_tables.mpTables->end(); ++ iter) {
 							CProgramMapTable::CTable *pTable = *iter;
 							std::vector<CProgramMapTable::CTable::CStream>::const_iterator iter_strm = pTable->streams.begin();
 							for (; iter_strm != pTable->streams.end(); ++ iter_strm) {
@@ -537,6 +584,7 @@ bool CTsParser_test::parse (void)
 										}
 										if (i == 256) {
 											_UTL_LOG_W ("mDsmccCtls is full.");
+											break;
 										}
 									}
 								}

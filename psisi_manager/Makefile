@@ -48,7 +48,6 @@ TARGET_TYPE	:=	SHARED
 #
 SRCS_CPP	:= \
 	PsisiManager.cpp \
-	TsParserListener.cpp \
 
 
 #

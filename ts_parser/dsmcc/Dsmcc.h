@@ -92,7 +92,10 @@ public:
 		modules.clear();
 		memset (privateDataByte, 0x00, sizeof(privateDataByte));
 	}
-	virtual ~CDownloadInfoIndication (void) {}
+	virtual ~CDownloadInfoIndication (void)
+	{
+		modules.clear();
+	}
 
 	
 	CDsmccMessageHeader dsmccMessageHeader;

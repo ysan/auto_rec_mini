@@ -13,6 +13,12 @@ CNetworkInformationTable::CNetworkInformationTable (void)
 	mTables.clear();
 }
 
+CNetworkInformationTable::CNetworkInformationTable (uint8_t fifoNum)
+	:CSectionParser (fifoNum)
+{
+	mTables.clear();
+}
+
 CNetworkInformationTable::~CNetworkInformationTable (void)
 {
 	clear();
@@ -32,7 +38,8 @@ void CNetworkInformationTable::onSectionCompleted (const CSectionInfo *pCompSect
 		return ;
 	}
 
-	mTables.push_back (pTable);
+	appendTables (pTable);
+
 	dumpTable (pTable);
 
 }
@@ -117,11 +124,24 @@ bool CNetworkInformationTable::parse (const CSectionInfo *pCompSection, CTable* 
 	return true;
 }
 
+void CNetworkInformationTable::appendTables (CTable *pTable)
+{
+	if (!pTable) {
+		return ;
+	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
+	mTables.push_back (pTable);
+}
+
 void CNetworkInformationTable::releaseTables (void)
 {
 	if (mTables.size() == 0) {
 		return;
 	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
@@ -132,11 +152,13 @@ void CNetworkInformationTable::releaseTables (void)
 	mTables.clear();
 }
 
-void CNetworkInformationTable::dumpTables (void) const
+void CNetworkInformationTable::dumpTables (void)
 {
 	if (mTables.size() == 0) {
 		return;
 	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
@@ -184,5 +206,12 @@ void CNetworkInformationTable::dumpTable (const CTable* pTable) const
 void CNetworkInformationTable::clear (void)
 {
 	releaseTables ();
-	detachAllSectionList ();
+//	detachAllSectionList ();
 }
+
+CNetworkInformationTable::CTables CNetworkInformationTable::getTables (void)
+{
+	CTables tables (&mTables, &mMutexTables);
+	return tables;
+}
+

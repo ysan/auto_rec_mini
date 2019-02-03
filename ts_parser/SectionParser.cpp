@@ -937,6 +937,8 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 
 	if((p + pointer_field) >= (pPayload + payloadSize)) {
 //TODO
+		_UTL_LOG_I("payloadSize=[%d]", payloadSize);
+		_UTL_LOG_I("pointer_field=[%d]", pointer_field);
 		_UTL_LOG_E ("input data is probably broken");
 		return EN_CHECK_SECTION__INVALID;
 	}

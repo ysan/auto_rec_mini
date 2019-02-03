@@ -13,6 +13,12 @@ CProgramMapTable::CProgramMapTable (void)
 	mTables.clear();
 }
 
+CProgramMapTable::CProgramMapTable (uint8_t fifoNum)
+	:CSectionParser (fifoNum)
+{
+	mTables.clear();
+}
+
 CProgramMapTable::~CProgramMapTable (void)
 {
 	clear();
@@ -111,11 +117,24 @@ bool CProgramMapTable::parse (const CSectionInfo *pCompSection, CTable* pOutTabl
 	return true;
 }
 
+void CProgramMapTable::appendTables (CTable *pTable)
+{
+	if (!pTable) {
+		return ;
+	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
+	mTables.push_back (pTable);
+}
+
 void CProgramMapTable::releaseTables (void)
 {
 	if (mTables.size() == 0) {
 		return;
 	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
@@ -126,11 +145,13 @@ void CProgramMapTable::releaseTables (void)
 	mTables.clear();
 }
 
-void CProgramMapTable::dumpTables (void) const
+void CProgramMapTable::dumpTables (void)
 {
 	if (mTables.size() == 0) {
 		return;
 	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
@@ -177,10 +198,11 @@ void CProgramMapTable::dumpTable (const CTable* pTable) const
 void CProgramMapTable:: clear (void)
 {
 	releaseTables ();
-	detachAllSectionList ();
+//	detachAllSectionList ();
 }
 
-const std::vector<CProgramMapTable::CTable*> *CProgramMapTable::getTables (void) const
+CProgramMapTable::CTables CProgramMapTable::getTables (void)
 {
-	return &mTables;
+	CTables tables (&mTables, &mMutexTables);
+	return tables;
 }

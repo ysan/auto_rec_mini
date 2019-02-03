@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include <vector>
+#include <mutex>
 
 #include "Defs.h"
 #include "TsCommon.h"
@@ -80,21 +81,43 @@ public:
 		uint8_t reserved_future_use_2;
 		std::vector <CService> services;
 	};
+
+public:
+	class CTables {
+	public:
+		CTables (const std::vector <CTable*> *pTables, std::mutex *pMutex)
+			:mpTables (pTables)
+			,mpMutex (pMutex)
+		{}
+		virtual ~CTables (void) {}
+
+		const std::vector <CTable*> *mpTables;
+		std::mutex *mpMutex;
+	};
+
 public:
 	CServiceDescriptionTable (void);
+	explicit CServiceDescriptionTable (uint8_t fifoNum);
 	virtual ~CServiceDescriptionTable (void);
 
+
+	// CSectionParser
 	void onSectionCompleted (const CSectionInfo *pCompSection) override;
 
-	void dumpTables (void) const;
+	void dumpTables (void);
 	void dumpTable (const CTable* pTable) const;
 	void clear (void);
 
+	CTables getTables (void);
+
 private:
 	bool parse (const CSectionInfo *pCompSection, CTable* pOutTable);
+	void appendTables (CTable *pTable);
 	void releaseTables (void);
 
+
 	std::vector <CTable*> mTables;
+	std::mutex mMutexTables;
 
 };
 

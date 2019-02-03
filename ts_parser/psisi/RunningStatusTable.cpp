@@ -13,6 +13,12 @@ CRunningStatusTable::CRunningStatusTable (void)
 	mTables.clear();
 }
 
+CRunningStatusTable::CRunningStatusTable (uint8_t fifoNum)
+	:CSectionParser (fifoNum)
+{
+	mTables.clear();
+}
+
 CRunningStatusTable::~CRunningStatusTable (void)
 {
 	clear();
@@ -32,7 +38,8 @@ void CRunningStatusTable::onSectionCompleted (const CSectionInfo *pCompSection)
 		return ;
 	}
 
-	mTables.push_back (pTable);
+	appendTables (pTable);
+
 	dumpTable (pTable);
 
 }
@@ -80,11 +87,24 @@ bool CRunningStatusTable::parse (const CSectionInfo *pCompSection, CTable* pOutT
 	return true;
 }
 
+void CRunningStatusTable::appendTables (CTable *pTable)
+{
+	if (!pTable) {
+		return ;
+	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
+	mTables.push_back (pTable);
+}
+
 void CRunningStatusTable::releaseTables (void)
 {
 	if (mTables.size() == 0) {
 		return;
 	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
@@ -95,11 +115,13 @@ void CRunningStatusTable::releaseTables (void)
 	mTables.clear();
 }
 
-void CRunningStatusTable::dumpTables (void) const
+void CRunningStatusTable::dumpTables (void)
 {
 	if (mTables.size() == 0) {
 		return;
 	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
@@ -133,5 +155,11 @@ void CRunningStatusTable::dumpTable (const CTable* pTable) const
 void CRunningStatusTable::clear (void)
 {
 	releaseTables ();
-	detachAllSectionList ();
+//	detachAllSectionList ();
+}
+
+CRunningStatusTable::CTables CRunningStatusTable::getTables (void)
+{
+	CTables tables (&mTables, &mMutexTables);
+	return tables;
 }

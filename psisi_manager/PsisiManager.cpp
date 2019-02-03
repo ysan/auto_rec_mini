@@ -12,8 +12,10 @@
 
 CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
-	,m_parser (&m_parser_listener)
+	,m_parser (this)
 	,m_ts_receive_handler_id (-1)
+	,mPAT (16)
+	,mEIT_H (4096*20, 20)
 {
 	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_UP]   = {(PFN_SEQ_BASE)&CPsisiManager::moduleUp,   (char*)"moduleUp"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_DOWN] = {(PFN_SEQ_BASE)&CPsisiManager::moduleDown, (char*)"moduleDown"};
@@ -128,10 +130,37 @@ bool CPsisiManager::onCheckTsReceiveLoop (void)
 
 bool CPsisiManager::onTsReceived (void *p_ts_data, int length)
 {
-//_UTL_LOG_I ("qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq");
 
 	// ts parser processing
 	m_parser.run ((uint8_t*)p_ts_data, length);
+
+	return true;
+}
+
+bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size)
+{
+	if (!p_ts_header || !p_payload || payload_size == 0) {
+		// through
+		return true;
+	}
+
+
+	switch (p_ts_header->pid) {
+	case PID_PAT:
+//		p_ts_header->dump();
+		mPAT.checkSection (p_ts_header, p_payload, payload_size);
+		break;
+
+	case PID_EIT_H:
+		mEIT_H.checkSection (p_ts_header, p_payload, payload_size);
+		break;
+
+	default:	
+		break;
+	}
+
+
+
 
 	return true;
 }

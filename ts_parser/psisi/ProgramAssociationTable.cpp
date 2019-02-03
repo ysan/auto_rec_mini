@@ -11,103 +11,160 @@
 
 CProgramAssociationTable::CProgramAssociationTable (void)
 {
+	mTables.clear();
+}
+
+CProgramAssociationTable::CProgramAssociationTable (uint8_t fifoNum)
+	:CSectionParser (fifoNum)
+{
+	mTables.clear();
 }
 
 CProgramAssociationTable::~CProgramAssociationTable (void)
 {
+	clear();
 }
 
-
-int CProgramAssociationTable::getTableNum (const CSectionInfo *pSectInfo) const
+void CProgramAssociationTable::onSectionCompleted (const CSectionInfo *pCompSection)
 {
-	if (!pSectInfo) {
-		return 0;
+	if (!pCompSection) {
+		return ;
 	}
 
-	int nDataPartLen = (int)pSectInfo->getDataPartLen ();
-	if (nDataPartLen < 4) {
-		_UTL_LOG_E ("invalid PAT data\n");
-		return 0;
+	CTable *pTable = new CTable ();
+	if (!parse (pCompSection, pTable)) {
+		delete pTable;
+		pTable = NULL;
+		detachSectionList (pCompSection);
+		return ;
 	}
 
-	if ((nDataPartLen % 4) != 0) {
+	appendTables (pTable);
+
+	dumpTable (pTable);
+
+}
+
+bool CProgramAssociationTable::parse (const CSectionInfo *pCompSection, CTable* pOutTable)
+{
+	if (!pCompSection || !pOutTable) {
+		return false;
+	}
+
+	uint8_t *p = NULL; // work
+	CTable* pTable = pOutTable;
+
+	pTable->header = *(const_cast<CSectionInfo*>(pCompSection)->getHeader());
+
+	p = pCompSection->getDataPartAddr();
+
+	int dataPartLen = (int)pCompSection->getDataPartLen ();
+	if (dataPartLen < 4) {
+		_UTL_LOG_E ("invalid PAT  dataPartLen=[%d]\n", dataPartLen);
+		return false;
+	}
+
+	if ((dataPartLen % 4) != 0) {
 		// 1ループの大きさは4の倍数
-		_UTL_LOG_E ("invalid PAT data (not multiples of 4)\n");
-		return 0;
-	}
-
-	return nDataPartLen / 4;
-}
-
-int CProgramAssociationTable::getTableNum (void) const
-{
-	CSectionInfo *pLatest = getLatestCompleteSection ();
-	if (!pLatest) {
-		return 0;
-	}
-
-	return getTableNum (pLatest);
-}
-
-bool CProgramAssociationTable::getTable (CTable outArr[], int outArrSize) const
-{
-	CSectionInfo *pLatest = getLatestCompleteSection ();
-	if (!pLatest) {
+		_UTL_LOG_E ("invalid PAT (not multiples of 4)\n");
 		return false;
 	}
 
-	if ((!outArr) || (outArrSize == 0)) {
-		return false;
-	}
+	while (dataPartLen > 0) {
 
-	uint8_t *p = pLatest->getDataPartAddr();
-	int n = (int) getTableNum (pLatest);
-	if (n <= 0) {
-		return false;
-	}
+		CTable::CProgram prog ;
 
-	int i = 0;
-	while (i != n && outArrSize != 0) {
-		outArr[i].program_number = ((*p << 8) | *(p+1)) & 0xffff;
-
-		if (outArr[i].program_number == 0) {
-			outArr[i].network_PID = (((*(p+2) & 0x01f) << 8) | *(p+3)) & 0xffff;
-		} else {
-			outArr[i].program_map_PID = (((*(p+2) & 0x01f) << 8) | *(p+3)) & 0xffff;
-			if (!outArr[i].mpPMT) {
-				outArr[i].mpPMT = new CProgramMapTable();
-			}
-		}
-
-		outArr[i].isUsed = true;
+		prog.program_number = ((*p << 8) | *(p+1)) & 0xffff;
+		prog.program_map_PID = (((*(p+2) & 0x01f) << 8) | *(p+3)) & 0xffff;
 
 		p += 4;
-		++ i;
-		-- outArrSize;
-	}
 
-	if (n > 0 && outArrSize == 0) {
-		_UTL_LOG_W ("warn:  ProgramAssociationTable is not get all.\n");
+		dataPartLen -= 4 ;
+		if (dataPartLen < 0) {
+			_UTL_LOG_W ("invalid PAT program");
+			return false;
+		}
+
+		pTable->programs.push_back (prog);
 	}
 
 	return true;
 }
 
-void CProgramAssociationTable::dumpTable (const CTable inArr[], int arrSize) const
+void CProgramAssociationTable::appendTables (CTable *pTable)
 {
-	if ((!inArr) || (arrSize == 0)) {
+	if (!pTable) {
 		return ;
 	}
 
-	for (int i = 0; i < arrSize; ++ i) {
-		_UTL_LOG_I ("program_number [0x%04x]  ", inArr[i].program_number);
-		if (inArr[i].program_number == 0) {
-			_UTL_LOG_I ("network_PID     [0x%04x]  ", inArr[i].network_PID);
-		} else {
-			_UTL_LOG_I ("program_map_PID [0x%04x]  ", inArr[i].program_map_PID);
-		}
-		_UTL_LOG_I ("PMTparser: [%p] ", inArr[i].mpPMT);
-		_UTL_LOG_I ("%s", inArr[i].isUsed ? "used " : "noused");
-		_UTL_LOG_I ("\n");
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
+	mTables.push_back (pTable);
+}
+
+void CProgramAssociationTable::releaseTables (void)
+{
+	if (mTables.size() == 0) {
+		return;
 	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
+	std::vector<CTable*>::iterator iter = mTables.begin(); 
+	for (; iter != mTables.end(); ++ iter) {
+		delete (*iter);
+		(*iter) = NULL;
+	}
+
+	mTables.clear();
+}
+
+void CProgramAssociationTable::dumpTables (void)
+{
+	if (mTables.size() == 0) {
+		return;
+	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
+	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
+	for (; iter != mTables.end(); ++ iter) {
+		CTable *pTable = *iter;
+		dumpTable (pTable);
+	}
+}
+
+void CProgramAssociationTable::dumpTable (const CTable* pTable) const
+{
+	if (!pTable) {
+		return;
+	
+	}
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+	_UTL_LOG_I ("========================================\n");
+
+	std::vector<CTable::CProgram>::const_iterator iter_prog = pTable->programs.begin();
+	for (; iter_prog != pTable->programs.end(); ++ iter_prog) {
+		_UTL_LOG_I ("\n--  programs  --\n");
+		_UTL_LOG_I ("program_number  [0x%04x]\n", iter_prog->program_number);
+		if (iter_prog->program_number == 0) {
+			_UTL_LOG_I ("network_PID     [0x%04x]\n", iter_prog->program_map_PID);
+		} else {
+			_UTL_LOG_I ("program_map_PID [0x%04x]\n", iter_prog->program_map_PID);
+		}
+	}
+
+	_UTL_LOG_I ("\n");
+}
+
+void CProgramAssociationTable::clear (void)
+{
+	releaseTables ();
+//	detachAllSectionList ();
+}
+
+CProgramAssociationTable::CTables CProgramAssociationTable::getTables (void)
+{
+	CTables tables (&mTables, &mMutexTables);
+	return tables;
 }

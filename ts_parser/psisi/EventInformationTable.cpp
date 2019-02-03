@@ -46,13 +46,12 @@ if (pCompSection->getHeader()->table_id != 0x4e) {
 		return ;
 	}
 
-	mTables.push_back (pTable);
+	appendTables (pTable);
+
 	dumpTables_simple ();
 	dumpTable (pTable);
 
-//TODO
 //detachSectionList (pCompSection);
-
 }
 
 bool CEventInformationTable::parse (const CSectionInfo *pCompSection, CTable* pOutTable)
@@ -117,11 +116,24 @@ bool CEventInformationTable::parse (const CSectionInfo *pCompSection, CTable* pO
 	return true;
 }
 
+void CEventInformationTable::appendTables (CTable *pTable)
+{
+	if (!pTable) {
+		return ;
+	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
+	mTables.push_back (pTable);
+}
+
 void CEventInformationTable::releaseTables (void)
 {
 	if (mTables.size() == 0) {
 		return;
 	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
@@ -132,16 +144,35 @@ void CEventInformationTable::releaseTables (void)
 	mTables.clear();
 }
 
-void CEventInformationTable::dumpTables (void) const
+void CEventInformationTable::dumpTables (void)
 {
 	if (mTables.size() == 0) {
 		return;
 	}
 
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
 	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
 		CTable *pTable = *iter;
 		dumpTable (pTable);
+	}
+}
+
+void CEventInformationTable::dumpTables_simple (void)
+{
+	if (mTables.size() == 0) {
+		return;
+	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+
+	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
+	for (; iter != mTables.end(); ++ iter) {
+		CTable *pTable = *iter;
+		dumpTable_simple (pTable);
 	}
 }
 
@@ -186,21 +217,6 @@ void CEventInformationTable::dumpTable (const CTable* pTable) const
 	_UTL_LOG_I ("\n");
 }
 
-void CEventInformationTable::dumpTables_simple (void) const
-{
-	if (mTables.size() == 0) {
-		return;
-	}
-
-	_UTL_LOG_I (__PRETTY_FUNCTION__);
-
-	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
-	for (; iter != mTables.end(); ++ iter) {
-		CTable *pTable = *iter;
-		dumpTable_simple (pTable);
-	}
-}
-
 void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 {
 	if (!pTable) {
@@ -237,5 +253,12 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 void CEventInformationTable::clear (void)
 {
 	releaseTables ();
-	detachAllSectionList ();
+//	detachAllSectionList ();
 }
+
+CEventInformationTable::CTables CEventInformationTable::getTables (void)
+{
+    CTables tables (&mTables, &mMutexTables);
+    return tables;
+}
+

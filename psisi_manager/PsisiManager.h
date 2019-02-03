@@ -19,16 +19,27 @@
 #include "Utils.h"
 #include "PsisiManagerIf.h"
 //#include "PsisiManagerTables.h"
-#include "TsParserListener.h"
 
 #include "TunerControlIf.h"
 #include "TsParser.h"
+
+#include "ProgramAssociationTable.h"
+#include "ProgramMapTable.h"
+#include "EventInformationTable.h"
+#include "NetworkInformationTable.h"
+#include "ServiceDescriptionTable.h"
+#include "RunningStatusTable.h"
+#include "BroadcasterInformationTable.h"
+#include "TimeOffsetTable.h"
 
 
 using namespace ThreadManager;
 
 
-class CPsisiManager : public CThreadMgrBase, CTunerControlIf::ITsReceiveHandler
+class CPsisiManager
+	:public CThreadMgrBase
+	,public CTunerControlIf::ITsReceiveHandler
+	,public CTsParser::IParserListener
 {
 public:
 	CPsisiManager (char *pszName, uint8_t nQueNum);
@@ -46,21 +57,20 @@ private:
 	bool onCheckTsReceiveLoop (void) override;
 	bool onTsReceived (void *p_ts_data, int length) override;
 
+	// CTsParser::IParserListener
+	bool onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size) override;
+
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_PSISI_MANAGER_NUM]; // entity
 
 	CTsParser m_parser;
-	CTsParserListener m_parser_listener;
 
 	int m_ts_receive_handler_id;
 
 
-	 std::vector <CProgramAssociationTable::CTable*>      m_tables_PAT;
-	 std::vector <CNetworkInformationTable::CTable*>      m_tables_NIT;
-	 std::vector <CEventInformationTable::CTable*>        m_tables_EIT;
-	 std::vector <CServiceDescriptionTable::CTable*>      m_tables_SDT;
-	 std::vector <CRunningStatusTable::CTable*>           m_tables_RST;
-	 std::vector <CBroadcasterInformationTable::CTable*>  m_tables_BIT;
+	CProgramAssociationTable mPAT;
+	CEventInformationTable mEIT_H;
+
 
 };
 

@@ -7,10 +7,12 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <vector>
+#include <mutex>
+
 #include "Defs.h"
 #include "TsCommon.h"
 #include "SectionParser.h"
-#include "ProgramMapTable.h"
 
 
 class CProgramAssociationTable : public CSectionParser
@@ -18,40 +20,68 @@ class CProgramAssociationTable : public CSectionParser
 public:
 	class CTable {
 	public:
+		class CProgram {
+		public:
+			CProgram (void)
+				:program_number (0)
+				,program_map_PID (0)
+			{}
+			virtual ~CProgram (void) {}
+
+			uint16_t program_number;
+			uint16_t program_map_PID; // if program_number == 0 then network_PID
+		};
+
+	public:
 		CTable (void)
-			:program_number (0)
-			,network_PID (0)
-			,program_map_PID (0)
-			,mpPMT (NULL)
-			,isUsed (false)
-		{}
-		virtual ~CTable (void) {
-			if (mpPMT) {
-				delete mpPMT;
-				mpPMT = NULL;
-			}
+		{
+			programs.clear();
+		}
+		virtual ~CTable (void)
+		{
+			programs.clear();
 		}
 
-		uint16_t program_number;
-		uint16_t network_PID; // if program_number == 0 then network_PID
-		uint16_t program_map_PID;
+		ST_SECTION_HEADER header;
+		std::vector <CProgram> programs;
+	};
 
-		CProgramMapTable *mpPMT; // section parser for PMT
-		bool isUsed;
+public:
+	class CTables {
+	public:
+		CTables (const std::vector <CTable*> *pTables, std::mutex *pMutex)
+			:mpTables (pTables)
+			,mpMutex (pMutex)
+		{}
+		virtual ~CTables (void) {}
+
+		const std::vector <CTable*> *mpTables;
+		std::mutex *mpMutex;
 	};
 
 public:
 	CProgramAssociationTable (void);
+	explicit CProgramAssociationTable (uint8_t fifoNum);
 	virtual ~CProgramAssociationTable (void);
 
 
-	int getTableNum (void) const;
-	bool getTable (CTable outArr[], int outArrSize) const;
-	void dumpTable (const CTable inArr[], int arrSize) const;
+	// CSectionParser
+	void onSectionCompleted (const CSectionInfo *pCompSection) override;
 
+	void dumpTables (void);
+	void dumpTable (const CTable* pTable) const;
+	void clear (void);
+
+	CTables getTables (void);
 
 private:
-	int getTableNum (const CSectionInfo *pSectInfo) const;
+	bool parse (const CSectionInfo *pCompSection, CTable* pOutTable);
+	void appendTables (CTable *pTable);
+	void releaseTables (void);
+
+
+	std::vector <CTable*> mTables;
+	std::mutex mMutexTables;
 
 };
 

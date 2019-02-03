@@ -23,6 +23,25 @@
 #define INNER_BUFF_SIZE		(65535*5)
 
 
+class CProgramCache {
+public:
+	CProgramCache (void)
+		:pid (0)
+		,mpPMT (NULL)
+		,isUsed (false)
+	{}
+	virtual ~CProgramCache (void) {
+		if (mpPMT) {
+			delete mpPMT;
+			mpPMT = NULL;
+		}
+	}
+
+	uint16_t pid;
+	CProgramMapTable *mpPMT;
+	bool isUsed;
+};
+
 class CDsmccControl {
 public:
 	CDsmccControl (void)
@@ -91,6 +110,7 @@ private:
 	CRunningStatusTable mRST;
 	CBroadcasterInformationTable mBIT;
 
+	CProgramCache mProgramCaches [16];
 	CDsmccControl mDsmccCtls [256];
 };
 

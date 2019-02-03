@@ -7,9 +7,7 @@ event chenge notify
 section parser を table_idごと分けたい EIT用
 ts_parser_test main.cpp に TsParser_test.cppを統合
 psisiMgrで各psisiのtable instanceポインタのvectorを持つほうがいい
-各psisiのtableクラスでdumpTable
-psisiMgrでdumpTables
 section parserのlistはfifoにして勝手にやらせる
-
+adaptation_fieldの処理
 
 
