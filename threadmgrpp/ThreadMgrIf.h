@@ -43,6 +43,9 @@ public:
 	void enableOverwrite (void);
 	void disableOverwrite (void);
 
+	void lock (void);
+	void unlock (void);
+
 	uint8_t getSeqIdx (void) const;
 	const char* getSeqName (void) const;
 

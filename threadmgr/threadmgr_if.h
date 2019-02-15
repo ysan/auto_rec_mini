@@ -97,6 +97,8 @@ typedef void (*PFN_SET_TIMEOUT) (uint32_t nTimeoutMsec);
 typedef void (*PFN_CLEAR_TIMEOUT) (void);
 typedef void (*PFN_ENABLE_OVERWRITE) (void);
 typedef void (*PFN_DISABLE_OVERWRITE) (void);
+typedef void (*PFN_LOCK) (void);
+typedef void (*PFN_UNLOCK) (void);
 typedef uint8_t (*PFN_GET_SEQ_IDX) (void);
 typedef const char* (*PFN_GET_SEQ_NAME) (void);
 
@@ -117,6 +119,9 @@ typedef struct threadmgr_if {
 
 	PFN_ENABLE_OVERWRITE pfnEnableOverwrite;
 	PFN_DISABLE_OVERWRITE pfnDisableOverwrite;
+
+	PFN_LOCK pfnLock;
+	PFN_UNLOCK pfnUnlock;
 
 	PFN_GET_SEQ_IDX pfnGetSeqIdx;
 	PFN_GET_SEQ_NAME pfnGetSeqName;

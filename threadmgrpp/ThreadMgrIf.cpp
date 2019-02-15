@@ -137,6 +137,20 @@ void CThreadMgrIf::disableOverwrite (void)
 	}
 }
 
+void CThreadMgrIf::lock (void)
+{
+	if (mpIf) {
+		mpIf->pfnLock ();
+	}
+}
+
+void CThreadMgrIf::unlock (void)
+{
+	if (mpIf) {
+		mpIf->pfnUnlock ();
+	}
+}
+
 uint8_t CThreadMgrIf::getSeqIdx (void) const
 {
 	if (mpIf) {

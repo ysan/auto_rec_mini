@@ -175,6 +175,7 @@ typedef struct seq_info {
 #endif
 	ST_QUE_WORKER stSeqInitQueWorker; // このシーケンスを開始させたrequestキューを保存します
 	bool isOverwrite;
+	bool isLock;
 
 	/* Seqタイムアウト情報 */
 	struct {
@@ -448,6 +449,11 @@ static void clearSeqInfo (ST_SEQ_INFO *p);
 static void enableOverwrite (void);
 static void disableOverwrite (void);
 static void setOverwrite (uint8_t nThreadIdx, uint8_t nSeqIdx, bool isOverwrite);
+static bool isLock (uint8_t nThreadIdx);
+static bool isLockSeq (uint8_t nThreadIdx, uint8_t nSeqIdx);
+static void lock (void);
+static void unlock (void);
+static void setLock (uint8_t nThreadIdx, uint8_t nSeqIdx, bool isLock);
 static EN_NEAREST_TIMEOUT searchNearestTimeout (
 	uint8_t nThreadIdx,
 	ST_REQUEST_ID_INFO **pstRequestIdInfo,	// out
@@ -1246,6 +1252,20 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 
 		if (pstQueWorker->isUsed) {
 
+			if (isLock (nThreadIdx)) {
+				/* 
+				 * だれかlockしている
+				 * (当該Threadのseqのどれかでlockしている)
+				 */
+				nSeqIdx = pstQueWorker->nDestSeqIdx;
+				if (!isLockSeq (nThreadIdx, nSeqIdx)) {
+					/* 対象のseq以外がlockしていたら 見送ります */
+					pstQueWorker ++;
+					continue;
+				}
+			}
+
+
 			if (pstQueWorker->enQueType == EN_QUE_TYPE_REQUEST) {
 				/* * -------------------- REQUEST_QUE -------------------- * */ 
 
@@ -1557,7 +1577,9 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 		}
 
 		pstQueWorker ++;
-	}
+
+	} // for (i = 0; i < nQueWorkerNum; i ++) {
+
 
 	if (i == nQueWorkerNum) {
 		/* not found */
@@ -1589,7 +1611,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 	/* isDropフラグ立っているものは消します  逆からみます */
 	/* isDropの削除はisGetOut関係なく処理する */
 	pstQueWorker = gstInnerInfo [nThreadIdx].pstQueWorker;
-	for (k = nQueWorkerNum -1; (k >= 0) && (k < nQueWorkerNum); k --) { // unsignedなので マイナス値にならず一周する...
+	for (k = nQueWorkerNum -1; (k >= 0) && (k < nQueWorkerNum); k --) { // unsigned minus value
 		if ((pstQueWorker +k)->isDrop) {
 			if (k < nQueWorkerNum -1) {
 				for (l = k; l < nQueWorkerNum -1; l ++) {
@@ -2048,6 +2070,8 @@ static void *workerThread (void *pArg)
 					stThmIf.pfnClearTimeout = clearTimeout;
 					stThmIf.pfnEnableOverwrite = enableOverwrite;
 					stThmIf.pfnDisableOverwrite = disableOverwrite;
+					stThmIf.pfnLock = lock;
+					stThmIf.pfnUnlock = unlock;
 					stThmIf.pfnGetSeqIdx = getSeqIdx;
 					stThmIf.pfnGetSeqName = getSeqName;
 
@@ -2179,6 +2203,8 @@ static void *workerThread (void *pArg)
 					stThmIf.pfnClearTimeout = NULL;
 					stThmIf.pfnEnableOverwrite = NULL;
 					stThmIf.pfnDisableOverwrite = NULL;
+					stThmIf.pfnLock = NULL;
+					stThmIf.pfnUnlock = NULL;
 					stThmIf.pfnGetSeqIdx = getSeqIdx;
 					stThmIf.pfnGetSeqName = getSeqName;
 
@@ -2275,6 +2301,8 @@ static void clearThmIf (ST_THM_IF *pIf)
 	pIf->pfnClearTimeout = NULL;
 	pIf->pfnEnableOverwrite = NULL;
 	pIf->pfnDisableOverwrite = NULL;
+	pIf->pfnLock = NULL;
+	pIf->pfnUnlock = NULL;
 	pIf->pfnGetSeqIdx = NULL;
 	pIf->pfnGetSeqName = NULL;
 }
@@ -3875,7 +3903,7 @@ static void checkSeqTimeout (uint8_t nThreadIdx)
 	uint8_t nSeqNum = gstInnerInfo [nThreadIdx].nSeqNum;
 	int i = 0;
 	for (i = 0; i < nSeqNum; i ++) {
-		/* EN_TIMEOUT_STATE_PASSEDの場合はすでにqueuing済されてるはず */
+		/* EN_TIMEOUT_STATE_PASSEDの場合はすでにqueuingされてるはず */
 		if (getSeqInfo (nThreadIdx, i)->timeout.enState == EN_TIMEOUT_STATE_MEAS) {
 			if (isSeqTimeoutFromSeqIdx (nThreadIdx, i)) {
 				/* 自スレッドにSeqタイムアウトのキューを入れる */
@@ -4115,6 +4143,7 @@ static void clearSeqInfo (ST_SEQ_INFO *p)
 #endif
 	clearQueWorker (&(p->stSeqInitQueWorker));
 	p->isOverwrite = false;
+	p->isLock = false;
 
 	p->timeout.enState = EN_TIMEOUT_STATE_INIT;
 	p->timeout.nVal = SEQ_TIMEOUT_BLANK;
@@ -4145,7 +4174,7 @@ static void disableOverwrite (void)
 	}
 }
 
-/*
+/**
  * setOverwrite
  */
 static void setOverwrite (uint8_t nThreadIdx, uint8_t nSeqIdx, bool isOverwrite)
@@ -4156,6 +4185,89 @@ static void setOverwrite (uint8_t nThreadIdx, uint8_t nSeqIdx, bool isOverwrite)
 	}
 
 	pstSeqInfo->isOverwrite = isOverwrite;
+}
+
+/**
+ * isLock
+ * 当該スレッドでlockしているseqが存在するかどうか
+ */
+static bool isLock (uint8_t nThreadIdx)
+{
+	bool r = false;
+	uint8_t nSeqNum = gstInnerInfo [nThreadIdx].nSeqNum;
+	int i = 0;
+	int n = 0;
+
+	for (i = 0; i < nSeqNum; ++ i) {
+		if (getSeqInfo (nThreadIdx, i)->isLock) {
+			r = true;
+			++ n;
+		}
+	}
+
+	if (n >= 2) {
+		THM_INNER_LOG_E ("BUG: Multiple seq locked.\n");
+	}
+
+	return r;
+}
+
+/**
+ * isLockSeq
+ * 引数nSeqIdxがlockしているかどうか
+ */
+static bool isLockSeq (uint8_t nThreadIdx, uint8_t nSeqIdx)
+{
+	bool r = false;
+	uint8_t nSeqNum = gstInnerInfo [nThreadIdx].nSeqNum;
+	int i = 0;
+
+	for (i = 0; i < nSeqNum; ++ i) {
+		if (getSeqInfo (nThreadIdx, i)->isLock) {
+			if (i == nSeqIdx) {
+				r = true;
+			}
+		}
+	}
+	
+	return r;
+}
+
+/**
+ * lock
+ * 公開用
+ */
+static void lock (void)
+{
+	ST_CONTEXT stContext = getContext();
+	if (stContext.isValid) {
+		setLock (stContext.nThreadIdx, stContext.nSeqIdx, true);
+	}
+}
+
+/**
+ * unlock
+ * 公開用
+ */
+static void unlock (void)
+{
+	ST_CONTEXT stContext = getContext();
+	if (stContext.isValid) {
+		setLock (stContext.nThreadIdx, stContext.nSeqIdx, false);
+	}
+}
+
+/**
+ * setLock
+ */
+static void setLock (uint8_t nThreadIdx, uint8_t nSeqIdx, bool isLock)
+{
+	ST_SEQ_INFO *pstSeqInfo = getSeqInfo (nThreadIdx, nSeqIdx);
+	if (!pstSeqInfo) {
+		return;
+	}
+
+	pstSeqInfo->isLock = isLock;
 }
 
 /**

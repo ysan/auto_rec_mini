@@ -207,6 +207,8 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 
 	switch (sectId) {
 	case SECTID_ENTRY:
+		pIf->lock();
+
 		freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
 
 		requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_TUNE, (uint8_t*)&freq, sizeof(freq));
@@ -250,6 +252,8 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_END_SUCCESS:
+		pIf->unlock();
+
 		mFreq = freq;
 		chkcnt = 0;
 		sectId = THM_SECT_ID_INIT;
@@ -258,6 +262,8 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_END_ERROR:
+		pIf->unlock();
+
 		chkcnt = 0;
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
