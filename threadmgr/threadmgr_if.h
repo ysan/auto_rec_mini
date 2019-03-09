@@ -72,6 +72,8 @@ typedef struct threadmgr_src_info {
 /*--- threadmgr_external_if ---*/
 typedef bool (*PFN_REQUEST_SYNC) (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize);
 typedef bool (*PFN_REQUEST_ASYNC) (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize, uint32_t *pOutReqId);
+typedef void (*PFN_SET_REQUEST_OPTION) (uint32_t option);
+typedef uint32_t (*PFN_GET_REQUEST_OPTION) (void);
 typedef bool (*PFN_CREATE_EXTERNAL_CP) (void);
 typedef void (*PFN_DESTROY_EXTERNAL_CP) (void);
 typedef ST_THM_SRC_INFO* (*PFN_RECEIVE_EXTERNAL) (void);
@@ -79,6 +81,8 @@ typedef ST_THM_SRC_INFO* (*PFN_RECEIVE_EXTERNAL) (void);
 typedef struct threadmgr_external_if {
 	PFN_REQUEST_SYNC pfnRequestSync;
 	PFN_REQUEST_ASYNC pfnRequestAsync;
+	PFN_SET_REQUEST_OPTION pfnSetRequestOption;
+	PFN_GET_REQUEST_OPTION pfnGetRequestOption;
 	PFN_CREATE_EXTERNAL_CP pfnCreateExternalCp;
 	PFN_DESTROY_EXTERNAL_CP pfnDestroyExternalCp;
 	PFN_RECEIVE_EXTERNAL pfnReceiveExternal;

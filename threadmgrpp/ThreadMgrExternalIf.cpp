@@ -84,6 +84,22 @@ bool CThreadMgrExternalIf::requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, ui
 	}
 }
 
+void CThreadMgrExternalIf::setRequestOption (uint32_t option)
+{
+	if (mpExtIf) {
+		mpExtIf->pfnSetRequestOption (option);
+	}
+}
+
+uint32_t CThreadMgrExternalIf::getRequestOption (void)
+{
+	if (mpExtIf) {
+		return mpExtIf->pfnGetRequestOption ();
+	} else {
+		return 0;
+	}
+}
+
 bool CThreadMgrExternalIf::createExternalCp (void)
 {
 	if (mpExtIf) {

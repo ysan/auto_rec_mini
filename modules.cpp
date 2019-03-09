@@ -32,7 +32,7 @@ CThreadMgrBase **getModules (void)
 	return gp_modules;
 }
 
-CThreadMgrBase *getModules (EN_MODULE enModule)
+CThreadMgrBase *getModule (EN_MODULE enModule)
 {
 	if (enModule < EN_MODULE_NUM) {
 		return gp_modules [enModule];

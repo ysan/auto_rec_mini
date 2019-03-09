@@ -36,6 +36,8 @@ void teardownThreadMgr (void); // extern
 static ST_THM_EXTERNAL_IF s_stThmExternalIf = {
 	requestSync,
 	requestAsync,
+	setRequestOption,
+	getRequestOption,
 	createExternalCp,
 	destroyExternalCp,
 	receiveExternal,

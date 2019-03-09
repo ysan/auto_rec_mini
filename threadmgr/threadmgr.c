@@ -5,7 +5,6 @@
 //		ついでに終了前に全threadのbacktrace
 //TODO 1requestごとにtimeoutあり/なし
 //TODO segv でbacktrace  thread毎sighandler
-//TODO commander
 //TODO reqId類の配列は THREAD_IDX_MAX +1でもつのがわかりにくい
 //TODO baseThreadで workerキューの状態check
 //TODO receiveExternalで reqtimeout考慮 ->baseThreadでのチェック廃止
@@ -53,6 +52,7 @@
 
 #define REQUEST_ID_MAX					(0x40) // REQUEST_ID_BLANK 以下の値で 2のべき乗の値
 #define REQUEST_ID_BLANK				(0x80)
+#define REQUEST_ID_UNNECESSARY			(0x81)
 
 #define REQUEST_TIMEOUT_MAX				(0x05265C00) // 24時間 msec
 // for debug
@@ -73,6 +73,12 @@
 #define SEQ_TIMEOUT_MAX					(0x05265C00) // 24時間 msec
 
 #define BASE_THREAD_LOOP_TIMEOUT_SEC	(5)
+
+// REQUEST_OPTION 16bit
+#define REQUEST_OPTION__WITHOUT_REPLY		(0x00000001)
+#define REQUEST_OPTION__WITH_TIMEOUT_MSEC	(0x00000002)
+#define REQUEST_OPTION__WITH_TIMEOUT_SEC	(0x00000004)
+#define REQUEST_OPTION__WITH_TIMEOUT_HOUR	(0x00000008)
 
 
 
@@ -117,6 +123,7 @@ typedef enum {
 	EN_NEAREST_TIMEOUT_REQ,
 	EN_NEAREST_TIMEOUT_SEQ,
 } EN_NEAREST_TIMEOUT;
+
 
 
 typedef struct que_base {
@@ -201,6 +208,9 @@ typedef struct inner_info {
 	EN_STATE enState;
 	ST_QUE_WORKER stNowExecQueWorker;
 
+	uint32_t requestOption;
+	uint32_t requestTimeoutMsec;
+
 } ST_INNER_INFO;
 
 typedef struct sync_reply_info {
@@ -254,6 +264,10 @@ typedef struct external_control_info {
 	ST_THM_SRC_INFO stThmSrcInfo;
 
 	bool isReplyAlready;
+
+	uint32_t requestOption;
+	uint32_t requestTimeoutMsec;
+
 
 	struct external_control_info *pNext;
 
@@ -332,7 +346,9 @@ static void waitSem (void);
 static uint8_t getTotalWorkerThreadNum (void);
 static void setTotalWorkerThreadNum (uint8_t n);
 static bool registerThreadMgrTbl (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax);
-static void setAllState (EN_STATE enState);
+static void dumpInnerInfo (uint8_t nThreadIdx);
+static void dumpInnerInfoAllThread (void);
+static void clearInnerInfo (ST_INNER_INFO *p);
 static EN_STATE getState (uint8_t nThreadIdx);
 static void setState (uint8_t nThreadIdx, EN_STATE enState);
 static void setThreadName (char *p);
@@ -376,6 +392,8 @@ static bool requestInner (
 );
 bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize); // extern
 bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize, uint32_t *pnReqId); // extern
+void setRequestOption (uint32_t option); // extern
+uint32_t getRequestOption (void); // extern
 static bool replyInner (
 	uint8_t nThreadIdx,
 	uint8_t nSeqIdx,
@@ -560,39 +578,39 @@ static void init (void)
 	int i = 0;
 	int j = 0;
 
-	for (i = 0; i < THREAD_IDX_MAX; i ++) {
+	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
 		gpstThmRegTbl [i] = NULL;
 	}
 
 	/* init innerInfo */
-//TODO gstInnerInfo詳細に初期化すべき
-	memset (gstInnerInfo, 0x00, sizeof(gstInnerInfo));
-	setAllState (EN_STATE_INIT);
+	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
+		clearInnerInfo (&gstInnerInfo[i]);
+	}
 
 	setTotalWorkerThreadNum (0);
 
 
 	/* init requestIdInfo */
-	for (i = 0; i < THREAD_IDX_MAX +1; i ++) { // 添え字 +1 は外部のスレッドからのリクエスト用
+	for (i = 0; i < THREAD_IDX_MAX +1; ++ i) { // 添え字 +1 は外部のスレッドからのリクエスト用
 		gnRequestIdInd [i] = 0;
-		for (j = 0; j < REQUEST_ID_MAX; j ++) {
+		for (j = 0; j < REQUEST_ID_MAX; ++ j) {
 			clearRequestIdInfo (&gstRequestIdInfo [i][j]);
 		}
 	}
 
 	/* init syncReplyInfo  */
-	for (i = 0; i < THREAD_IDX_MAX; i ++) {
+	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
 		clearSyncReplyInfo (&gstSyncReplyInfo [i]);
 	}
 
 	/* init thmSrcInfo */
-	for (i = 0; i < THREAD_IDX_MAX; i ++) {
+	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
 		clearThmSrcInfo (&gstThmSrcInfo [i]);
 	}
 
 	/* init notifyInfo */
-	for (i = 0; i < THREAD_IDX_MAX; i ++) {
-		for (j = 0; j < NOTIFY_CLIENT_ID_MAX; j ++) {
+	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
+		for (j = 0; j < NOTIFY_CLIENT_ID_MAX; ++ j) {
 			clearNotifyClientInfo (&gstNotifyClientInfo [i][j]);
 		}
 	}
@@ -613,7 +631,7 @@ static void initQue (void)
 {
 	int i = 0;
 
-	for (i = 0; i < QUE_BASE_NUM; i ++) {
+	for (i = 0; i < QUE_BASE_NUM; ++ i) {
 		clearQueBase (&gstQueBase [i]);
 	}
 }
@@ -633,18 +651,18 @@ static void initCondMutex (void)
 	pthread_mutexattr_t attrMutexWorker;
 	pthread_mutexattr_init (&attrMutexWorker);
 	pthread_mutexattr_settype (&attrMutexWorker, PTHREAD_MUTEX_RECURSIVE_NP);
-	for (i = 0; i < THREAD_IDX_MAX; i ++) {
+	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
 		pthread_mutex_init (&gMutexWorker [i], &attrMutexWorker);
 		pthread_cond_init (&gCondWorker [i], NULL);
 	}
 
-	for (i = 0; i < THREAD_IDX_MAX; i ++) {
+	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
 		pthread_mutex_init (&gMutexSyncReply [i], NULL);
 		pthread_cond_init (&gCondSyncReply [i], NULL);
 	}
 
 	pthread_mutex_init (&gMutexOpeQueBase, NULL);
-	for (i = 0; i < THREAD_IDX_MAX; i ++) {
+	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
 		pthread_mutex_init (&gMutexOpeQueWorker [i], NULL);
 	}
 
@@ -652,11 +670,11 @@ static void initCondMutex (void)
 	pthread_mutexattr_t attrMutexOpeRequestId;
 	pthread_mutexattr_init (&attrMutexOpeRequestId);
 	pthread_mutexattr_settype (&attrMutexOpeRequestId, PTHREAD_MUTEX_RECURSIVE_NP);
-	for (i = 0; i < THREAD_IDX_MAX +1; i ++) { // 添え字 +1 は外部のスレッドからのリクエスト用
+	for (i = 0; i < THREAD_IDX_MAX +1; ++ i) { // 添え字 +1 は外部のスレッドからのリクエスト用
 		pthread_mutex_init (&gMutexOpeRequestId [i], &attrMutexOpeRequestId);
 	}
 
-	for (i = 0; i < THREAD_IDX_MAX; i ++) {
+	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
 		pthread_mutex_init (&gMutexNotifyClientInfo [i], NULL);
 	}
 
@@ -699,7 +717,7 @@ static void waitSem (void)
 {
 	uint8_t i = 0;
 
-	for (i = 0; i < getTotalWorkerThreadNum(); i ++) {
+	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
 		sem_wait (&gSem);
 		THM_INNER_LOG_I ("sem_wait return\n");
 	}
@@ -759,7 +777,7 @@ static bool registerThreadMgrTbl (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax)
 
 		gpstThmRegTbl [i] = (ST_THM_REG_TBL*)pTbl;
 		pTbl ++;
-		i ++;
+		++ i;
 	}
 
 	// set inner total
@@ -770,14 +788,42 @@ static bool registerThreadMgrTbl (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax)
 }
 
 /**
- * setAllState
+ * dumpInnerInfo
  */
-static void setAllState (EN_STATE enState)
+static void dumpInnerInfo (uint8_t nThreadIdx)
+{
+}
+
+/**
+ * dumpInnerInfoAllThread
+ */
+static void dumpInnerInfoAllThread (void)
 {
 	uint8_t i = 0;
+	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
+		dumpInnerInfo (i);
+	}
+}
 
-	for (i = 0; i < THREAD_IDX_MAX; i ++) {
-		setState (i, enState);
+/**
+ * clearInnerInfo
+ */
+static void clearInnerInfo (ST_INNER_INFO *p)
+{
+	if (p) {
+		p->nThreadIdx = THREAD_IDX_BLANK;
+		p->pszName = NULL;
+		p->nPthreadId = 0L;
+		p->nQueWorkerNum = 0;
+		p->pstQueWorker = NULL;
+		p->nSeqNum = 0;
+		p->pstSeqInfo = NULL;
+
+		p->enState = EN_STATE_INIT;
+		clearQueWorker (&(p->stNowExecQueWorker));
+
+		p->requestOption = 0;
+		p->requestTimeoutMsec = 0;
 	}
 }
 
@@ -822,7 +868,7 @@ static void checkWorkerThread (void)
 	uint8_t i = 0;
 	int nRtn = 0;
 
-	for (i = 0; i < getTotalWorkerThreadNum(); i ++) {
+	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
 
 		/* フラグ値を確認 */
 		if ((getState (i) != EN_STATE_READY) && (getState (i) != EN_STATE_BUSY) && (getState (i) != EN_STATE_WAIT_REPLY)) {
@@ -941,7 +987,7 @@ static bool createAllThread (void)
 		return false;
 	}
 
-	for (i = 0; i < getTotalWorkerThreadNum(); i ++) {
+	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
 		if (!createWorkerThread (i)) {
 			return false;
 		}
@@ -960,7 +1006,7 @@ static bool enQueBase (EN_MONI_TYPE enType)
 
 	pthread_mutex_lock (&gMutexOpeQueBase);
 
-	for (i = 0; i < QUE_BASE_NUM; i ++) {
+	for (i = 0; i < QUE_BASE_NUM; ++ i) {
 
 		/* 空きを探す */
 		if (gstQueBase [i].isUsed == false) {
@@ -995,7 +1041,7 @@ static ST_QUE_BASE deQueBase (bool isGetOut)
 	rtn = gstQueBase [0];
 
 	if (isGetOut) {
-		for (i = 0; i < QUE_BASE_NUM; i ++) {
+		for (i = 0; i < QUE_BASE_NUM; ++ i) {
 			if (i < QUE_BASE_NUM-1) {
 				memcpy (&gstQueBase [i], &gstQueBase [i+1], sizeof(ST_QUE_BASE));
 
@@ -1048,7 +1094,7 @@ static bool enQueWorker (
 	/* 複数の人が同じthreadIdxのキューを操作するのをガード */
 	pthread_mutex_lock (&gMutexOpeQueWorker [nThreadIdx]);
 
-	for (i = 0; i < nQueWorkerNum; i ++) {
+	for (i = 0; i < nQueWorkerNum; ++ i) {
 
 		/* 空きを探す */
 		if (pstQueWorker->isUsed == false) {
@@ -1082,7 +1128,7 @@ static bool enQueWorker (
 	if (i < nQueWorkerNum) {
 		pstQueWorker = gstInnerInfo [nThreadIdx].pstQueWorker;
 		uint8_t j = 0;
-		for (j = 0; j <= i; j ++) {
+		for (j = 0; j <= i; ++ j) {
 			THM_INNER_LOG_I (
 				" %d: %s (%s %d-%d) -> %d-%d 0x%x %s 0x%x %s\n",
 				j,
@@ -1105,7 +1151,7 @@ static bool enQueWorker (
 	pstQueWorker = gstInnerInfo [nThreadIdx].pstQueWorker;
 	THM_INNER_LOG_I( "####  enQue dest[%s]  ####\n", gstInnerInfo [nThreadIdx].pszName );
 	uint8_t j = 0;
-	for (j = 0; j < nQueWorkerNum; j ++) {
+	for (j = 0; j < nQueWorkerNum; ++ j) {
 		THM_INNER_LOG_I (
 			" %d: %s (%s %d-%d) -> %d-%d 0x%x %s 0x%x %s\n",
 			j,
@@ -1149,7 +1195,7 @@ static void dumpQueWorker (uint8_t nThreadIdx)
 	pthread_mutex_lock (&gMutexOpeQueWorker [nThreadIdx]);
 
 	THM_LOG_N ("####  dumpQue [%s]  ####\n", gstInnerInfo [nThreadIdx].pszName);
-	for (i = 0; i < nQueWorkerNum; i ++) {
+	for (i = 0; i < nQueWorkerNum; ++ i) {
 		THM_LOG_N (
 			" %d: %s (%s %d-%d) -> %d-%d 0x%x %s 0x%x %s\n",
 			i,
@@ -1177,7 +1223,7 @@ static void dumpQueWorker (uint8_t nThreadIdx)
 static void dumpQueAllThread (void)
 {
 	uint8_t i = 0;
-	for (i = 0; i < getTotalWorkerThreadNum(); i ++) {
+	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
 		dumpQueWorker (i);
 	}
 }
@@ -1201,7 +1247,7 @@ static ST_QUE_WORKER deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 	memcpy (&rtn, pstQueWorker, sizeof (ST_QUE_WORKER));
 
 	if (isGetOut) {
-		for (i = 0; i < nQueWorkerNum; i ++) {
+		for (i = 0; i < nQueWorkerNum; ++ i) {
 			if (i < nQueWorkerNum-1) {
 				memcpy (
 					pstQueWorker,
@@ -1248,7 +1294,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 	pthread_mutex_lock (&gMutexOpeQueWorker [nThreadIdx]);
 
 	/* 新しいほうからキューを探す */
-	for (i = 0; i < nQueWorkerNum; i ++) {
+	for (i = 0; i < nQueWorkerNum; ++ i) {
 
 		if (pstQueWorker->isUsed) {
 
@@ -1578,7 +1624,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 
 		pstQueWorker ++;
 
-	} // for (i = 0; i < nQueWorkerNum; i ++) {
+	} // for (i = 0; i < nQueWorkerNum; ++ i) {
 
 
 	if (i == nQueWorkerNum) {
@@ -1589,7 +1635,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 		if (isGetOut) {
 			/* 見つかったので並び換える */
 			pstQueWorker = gstInnerInfo [nThreadIdx].pstQueWorker;
-			for (j = 0; j < nQueWorkerNum; j ++) {
+			for (j = 0; j < nQueWorkerNum; ++ j) {
 				if (j >= i) {
 					if (j < nQueWorkerNum -1) {
 						memcpy (
@@ -1670,8 +1716,6 @@ static void *baseThread (void *pArg)
 	struct timespec stTimeout = {0};
 	struct timeval stNowTimeval = {0};
 
-//TODO test
-createExternalCp();
 
 	/* set thread name */
 	setThreadName (BASE_THREAD_NAME);
@@ -1762,8 +1806,6 @@ static void *sigwaitThread (void *pArg)
 {
 	int nSig = 0;
 
-//TODO test
-createExternalCp();
 
 	/* set thread name */
 	setThreadName (SIGWAIT_THREAD_NAME);
@@ -1950,7 +1992,7 @@ static void *workerThread (void *pArg)
 	/* --- init queWorker --- */
 	uint8_t nQueWorkerNum = gpstThmRegTbl [pstInnerInfo->nThreadIdx]->nQueNum;
 	ST_QUE_WORKER stQueWorker [nQueWorkerNum]; // このスレッドのque実体
-	for (i = 0; i < nQueWorkerNum; i ++) {
+	for (i = 0; i < nQueWorkerNum; ++ i) {
 		clearQueWorker (&stQueWorker [i]);
 	}
 	pstInnerInfo->nQueWorkerNum = nQueWorkerNum;
@@ -1959,7 +2001,7 @@ static void *workerThread (void *pArg)
 	/* --- init seqInfo --- */
 	uint8_t nSeqNum = gpstThmRegTbl [pstInnerInfo->nThreadIdx]->nSeqNum;
 	ST_SEQ_INFO stSeqInfo [nSeqNum]; // seqInfo実体
-	for (i = 0; i < nSeqNum; i ++) {
+	for (i = 0; i < nSeqNum; ++ i) {
 		clearSeqInfo (&stSeqInfo [i]);
 		stSeqInfo[i].nSeqIdx = i;
 	}
@@ -2437,6 +2479,15 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 			return false;
 		}
 
+
+		if (pstExtInfo->requestOption & REQUEST_OPTION__WITHOUT_REPLY) {
+			/* 
+			 * 同期待ちするのにreply不要になってる...
+			 * 無視して続行 ログだけ出しておく
+			 */
+			THM_INNER_LOG_W ("REQUEST_OPTION__WITHOUT_REPLY is set to wait for synchronization...\n");
+		}
+
 		/* requestId */
 		reqId = getRequestId (THREAD_IDX_EXTERNAL, SEQ_IDX_BLANK);
 		if (reqId == REQUEST_ID_BLANK) {
@@ -2461,6 +2512,14 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		return true;
 	}
 
+
+	if (gstInnerInfo[stContext.nThreadIdx].requestOption & REQUEST_OPTION__WITHOUT_REPLY) {
+		/* 
+		 * 同期待ちするのにreply不要になってる...
+		 * 無視して続行 ログだけ出しておく
+		 */
+		THM_INNER_LOG_W ("REQUEST_OPTION__WITHOUT_REPLY is set to wait for synchronization...\n");
+	}
 
 	/* requestId */
 	reqId = getRequestId (stContext.nThreadIdx, stContext.nSeqIdx);
@@ -2606,7 +2665,7 @@ bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t ms
 		return false;
 	}
 	if ((nSeqIdx < 0) || (nSeqIdx >= SEQ_IDX_MAX)) {
-//TODO ???
+//TODO ?? SEQ_IDX_MAX 未満になってない 以下になってる??
 		/*
 		 * 外部のスレッドから呼ぶこともできるから SEQ_IDX_MAX 未満にする
 		 * (内部からのみだったら gstInnerInfo [nThreadIdx].nSeqNum未満でいい)
@@ -2630,13 +2689,20 @@ bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t ms
 			return false;
 		}
 
-		/* requestId */
-		reqId = getRequestId (THREAD_IDX_EXTERNAL, SEQ_IDX_BLANK);
-		if (reqId == REQUEST_ID_BLANK) {
-			return false;
+
+		if (pstExtInfo->requestOption & REQUEST_OPTION__WITHOUT_REPLY) {
+			/* reply不要 reqIdは取得しない */
+			reqId = REQUEST_ID_UNNECESSARY;
+
+		} else {
+			/* requestId */
+			reqId = getRequestId (THREAD_IDX_EXTERNAL, SEQ_IDX_BLANK);
+			if (reqId == REQUEST_ID_BLANK) {
+				return false;
+			}
 		}
 
-		/* 引数pReqIdに返却 */
+		/* 引数pOutReqIdに返却 */
 		if (pOutReqId) {
 			*pOutReqId = reqId;
 		}
@@ -2661,10 +2727,16 @@ bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t ms
 	}
 
 
-	/* requestId */
-	reqId = getRequestId (stContext.nThreadIdx, stContext.nSeqIdx);
-	if (reqId == REQUEST_ID_BLANK) {
-		return false;
+	if (gstInnerInfo[stContext.nThreadIdx].requestOption & REQUEST_OPTION__WITHOUT_REPLY) {
+		/* reply不要 reqIdは取得しない */
+		reqId = REQUEST_ID_UNNECESSARY;
+
+	} else {
+		/* requestId */
+		reqId = getRequestId (stContext.nThreadIdx, stContext.nSeqIdx);
+		if (reqId == REQUEST_ID_BLANK) {
+			return false;
+		}
 	}
 
 	/* 引数pReqIdに返却 */
@@ -2694,6 +2766,56 @@ bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t ms
 #endif
 
 	return true;
+}
+
+/**
+ * setRequestOption
+ *
+ * 公開用 external_if
+ */
+void setRequestOption (uint32_t option)
+{
+	ST_CONTEXT stContext = getContext();
+	if (!stContext.isValid) {
+		/* --- 外部のスレッドの場合 --- */
+
+		ST_EXTERNAL_CONTROL_INFO *pstExtInfo = searchExtInfoList (pthread_self());
+		if (!pstExtInfo) {
+			/* 事前にcreateExternalCpしてない */
+			THM_INNER_LOG_E ("extInfo is not found.  not request... (exec createExternalCp() in advance.)\n");
+			return ;
+		}
+
+		pstExtInfo->requestOption = option;
+
+	} else {
+		gstInnerInfo [stContext.nThreadIdx].requestOption = option;
+	}
+}
+
+/**
+ * getRequestOption
+ *
+ * 公開用 external_if
+ */
+uint32_t getRequestOption (void)
+{
+	ST_CONTEXT stContext = getContext();
+	if (!stContext.isValid) {
+		/* --- 外部のスレッドの場合 --- */
+
+		ST_EXTERNAL_CONTROL_INFO *pstExtInfo = searchExtInfoList (pthread_self());
+		if (!pstExtInfo) {
+			/* 事前にcreateExternalCpしてない */
+			THM_INNER_LOG_E ("extInfo is not found.  not request... (exec createExternalCp() in advance.)\n");
+			return 0;
+		}
+
+		return pstExtInfo->requestOption;
+
+	} else {
+		return gstInnerInfo [stContext.nThreadIdx].requestOption;
+	}
 }
 
 /**
@@ -2849,9 +2971,15 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 
 	bool isValid = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.isValidSrcInfo;
 	if (!isValid) {
-		/* 返送先がわからない --> 外部のスレッドに返します */
+		/* 返送先がわからない --> ということは外部のスレッドからのリクエストです */
 
 		nReqId = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.nReqId;
+		if (nReqId == REQUEST_ID_UNNECESSARY) {
+			/* replyする必要なければ とくに何もしない */
+			THM_INNER_LOG_E ("REQUEST_ID_UNNECESSARY\n");
+			return true;
+		}
+
 		if (!isActiveRequestId (THREAD_IDX_EXTERNAL, nReqId)) {
 			THM_INNER_LOG_E ("reqId is inActive. maybe timeout occured. not reply...\n");
 			return false;
@@ -2868,6 +2996,12 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 		nThreadIdx = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.nSrcThreadIdx;
 		nSeqIdx = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.nSrcSeqIdx;
 		nReqId = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.nReqId;
+		if (nReqId == REQUEST_ID_UNNECESSARY) {
+			/* replyする必要なければ とくに何もしない */
+			THM_INNER_LOG_E ("REQUEST_ID_UNNECESSARY\n");
+			return true;
+		}
+
 		if (!isActiveRequestId (nThreadIdx, nReqId)) {
 			THM_INNER_LOG_E ("reqId is inActive. maybe timeout occured. not reply...\n");
 			return false;
@@ -2886,7 +3020,7 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 
 /**
  * getContext
- * これを実行したコンテキがどのスレッドなのか把握する
+ * これを実行したコンテキストがどのスレッドなのか把握する
  */
 static ST_CONTEXT getContext (void)
 {
@@ -2899,7 +3033,7 @@ static ST_CONTEXT getContext (void)
 	/* init clear */
 	clearContext (&stContext);
 
-	for (i = 0; i < getTotalWorkerThreadNum(); i ++) {
+	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
 		if (pthread_equal (gstInnerInfo [i].nPthreadId, nCurrentPthreadId)) {
 			break;
 		}
@@ -2972,7 +3106,7 @@ static uint32_t getRequestId (uint8_t nThreadIdx, uint8_t nSeqIdx)
 		} else {
 			break;
 		}
-		n ++;
+		++ n;
 	}
 
 	if (n == REQUEST_ID_MAX) {
@@ -3011,13 +3145,13 @@ static void dumpRequestIdInfo (void)
 	int i = 0;
 	int j = 0;
 
-//TODO 参照だけだからmutexしない
+//TODO 参照だけ ログだけだからmutexしない
 
 	THM_LOG_N ("####  dump requestIdInfo  ####\n");
 
-	for (i = 0; i < getTotalWorkerThreadNum(); i ++) {
+	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
 		THM_LOG_N (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
-		for (j = 0; j < REQUEST_ID_MAX; j ++) {
+		for (j = 0; j < REQUEST_ID_MAX; ++ j) {
 			if (gstRequestIdInfo [i][j].nId != REQUEST_ID_BLANK) {
 				THM_LOG_N ("  0x%x\n", gstRequestIdInfo [i][j].nId);
 			}
@@ -3026,7 +3160,7 @@ static void dumpRequestIdInfo (void)
 
 	/* 外部スレッド */
 	THM_LOG_N (" --- external\n");
-	for (j = 0; j < REQUEST_ID_MAX; j ++) {
+	for (j = 0; j < REQUEST_ID_MAX; ++ j) {
 		if (gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nId != REQUEST_ID_BLANK) {
 			THM_LOG_N ("  0x%x\n", gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nId);
 		}
@@ -3054,8 +3188,8 @@ static ST_REQUEST_ID_INFO *getRequestIdInfo (uint8_t nThreadIdx, uint32_t nReqId
 
 /**
  * isActiveRequestId
- * reqIdが生きているか
- * ここは参照のみだが他スレッドからも呼ばれるところなのでmutex reply時のチェック
+ * reqIdが生きているか reply時のチェック
+ * ここは参照のみだが他スレッドからも呼ばれるところなのでmutex
  */
 static bool isActiveRequestId (uint8_t nThreadIdx, uint32_t nReqId)
 {
@@ -3145,7 +3279,7 @@ static void checkReqTimeout (uint8_t nThreadIdx)
 	pthread_mutex_lock (&gMutexOpeRequestId [nThreadIdx]);
 
 	uint32_t i = 0; //reqId
-	for (i = 0; i < REQUEST_ID_MAX; i ++) {
+	for (i = 0; i < REQUEST_ID_MAX; ++ i) {
 		if (gstRequestIdInfo [nThreadIdx][i].timeout.enState == EN_TIMEOUT_STATE_MEAS) {
 			if (isReqTimeoutFromRequestId (nThreadIdx, i)) {
 				if (nThreadIdx == THREAD_IDX_EXTERNAL) {
@@ -3297,7 +3431,7 @@ static ST_REQUEST_ID_INFO *searchNearestReqTimeout (uint8_t nThreadIdx)
 	pthread_mutex_lock (&gMutexOpeRequestId [nThreadIdx]);
 
 	int i = 0;
-	for (i = 0; i < REQUEST_ID_MAX; i ++) {
+	for (i = 0; i < REQUEST_ID_MAX; ++ i) {
 		if (gstRequestIdInfo [nThreadIdx][i].timeout.enState == EN_TIMEOUT_STATE_MEAS) {
 
 			if ((timeout_sec_min == 0) && (timeout_nsec_min == 0)) {
@@ -3902,7 +4036,7 @@ static void checkSeqTimeout (uint8_t nThreadIdx)
 {
 	uint8_t nSeqNum = gstInnerInfo [nThreadIdx].nSeqNum;
 	int i = 0;
-	for (i = 0; i < nSeqNum; i ++) {
+	for (i = 0; i < nSeqNum; ++ i) {
 		/* EN_TIMEOUT_STATE_PASSEDの場合はすでにqueuingされてるはず */
 		if (getSeqInfo (nThreadIdx, i)->timeout.enState == EN_TIMEOUT_STATE_MEAS) {
 			if (isSeqTimeoutFromSeqIdx (nThreadIdx, i)) {
@@ -4000,7 +4134,7 @@ static ST_SEQ_INFO *searchNearestSeqTimeout (uint8_t nThreadIdx)
 
 	uint8_t nSeqNum = gstInnerInfo [nThreadIdx].nSeqNum;
 	int i = 0;
-	for (i = 0; i < nSeqNum; i ++) {
+	for (i = 0; i < nSeqNum; ++ i) {
 		if (getSeqInfo (nThreadIdx, i)->timeout.enState == EN_TIMEOUT_STATE_MEAS) {
 
 			if ((timeout_sec_min == 0) && (timeout_nsec_min == 0)) {
@@ -4048,9 +4182,9 @@ static void checkSeqTimeoutFromCondTimedwait (uint8_t nThreadIdx)
 	uint8_t nSeqNum = gstInnerInfo [nThreadIdx].nSeqNum;
 	int i = 0;
 	int n = 0;
-	for (i = 0; i < nSeqNum; i ++) {
+	for (i = 0; i < nSeqNum; ++ i) {
 		if (getSeqInfo (nThreadIdx, i)->timeout.enState == EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT) {
-			n ++;
+			++ n;
 		}
 	}
 
@@ -4074,10 +4208,10 @@ static void checkSeqTimeoutFromNotCondTimedwait (uint8_t nThreadIdx)
 	uint8_t nSeqNum = gstInnerInfo [nThreadIdx].nSeqNum;
 	int i = 0;
 	int n = 0;
-	for (i = 0; i < nSeqNum; i ++) {
+	for (i = 0; i < nSeqNum; ++ i) {
 		if (getSeqInfo (nThreadIdx, i)->timeout.enState == EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT) {
 			getSeqInfo (nThreadIdx, i)->timeout.enState = EN_TIMEOUT_STATE_MEAS;
-			n ++;
+			++ n;
 		}
 	}
 
@@ -4534,7 +4668,7 @@ static void dumpExtInfoList (void)
 
 		// next set
 		pstExtInfoTmp = pstExtInfoTmp->pNext;
-		n ++;
+		++ n;
 	}
 
 
