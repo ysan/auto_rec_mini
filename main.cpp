@@ -29,19 +29,26 @@ int main (void)
 	initLogStdout();
 
 
-	CThreadMgr *p_threadmgr = CThreadMgr::getInstance();
+	CThreadMgr *p_mgr = CThreadMgr::getInstance();
 
-	if (!p_threadmgr->setup (getModules(), EN_MODULE_NUM)) {
+	if (!p_mgr->setup (getModules(), EN_MODULE_NUM)) {
 		exit (EXIT_FAILURE);
 	}
 
-	p_threadmgr->getExternalIf()->createExternalCp();
+	p_mgr->getExternalIf()->createExternalCp();
 
 
-	CCommandServerIf *p_comSvrIf = new CCommandServerIf (p_threadmgr->getExternalIf());
-	CTunerControlIf *p_tunerCtlIf = new CTunerControlIf (p_threadmgr->getExternalIf());
-	CPsisiManagerIf *p_psisiMgrIf = new CPsisiManagerIf (p_threadmgr->getExternalIf());
+	CCommandServerIf *p_comSvrIf = new CCommandServerIf (p_mgr->getExternalIf());
+	CTunerControlIf *p_tunerCtlIf = new CTunerControlIf (p_mgr->getExternalIf());
+	CPsisiManagerIf *p_psisiMgrIf = new CPsisiManagerIf (p_mgr->getExternalIf());
 
+
+	// timeout 1sec
+	uint32_t opt = p_mgr->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITH_TIMEOUT_MSEC;
+	opt &= 0x0000ffff; // clear timeout val
+	opt |= 1000 << 16; // set timeout val
+	p_mgr->getExternalIf()->setRequestOption (opt);
 
 	p_comSvrIf-> reqModuleUp ();
 	p_tunerCtlIf-> reqModuleUp ();
@@ -52,9 +59,9 @@ int main (void)
 	pause ();
 
 
-	p_threadmgr->teardown();
-	delete p_threadmgr;
-	p_threadmgr = NULL;
+	p_mgr->teardown();
+	delete p_mgr;
+	p_mgr = NULL;
 
 
 	exit (EXIT_SUCCESS);

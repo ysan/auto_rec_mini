@@ -33,8 +33,7 @@ static void tune (int argc, char* argv[], CThreadMgrBase *pBase)
 static void tuneStop (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_E ("argument is not required.\n");
-		return;
+		_UTL_LOG_W ("ignore arguments.\n");
 	}
 
 	CTunerControlIf ctl(pBase->getExternalIf());

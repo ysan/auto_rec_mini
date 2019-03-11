@@ -133,7 +133,7 @@ bool CThreadMgr::setup (CThreadMgrBase *pThreads[], int threadNum)
 
 
 		// threadMgrExternalIf
-		gpThreads[i]->mpExtIf = &mpExtIf;
+		gpThreads[i]->setExternalIf (&mpExtIf);
 	}
 
 

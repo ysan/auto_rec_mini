@@ -8,6 +8,28 @@
  */
 #define THM_SECT_ID_INIT	(0)
 
+// REQUEST_OPTION 16bit
+// upper 16 bits are timeout value.
+#define REQUEST_OPTION__WITHOUT_REPLY		(0x00000001)
+#define REQUEST_OPTION__WITH_TIMEOUT_MSEC	(0x00000002)
+#define REQUEST_OPTION__WITH_TIMEOUT_MIN	(0x00000004)
+//#define REQUEST_OPTION__xxx			(0x00000008)
+//#define REQUEST_OPTION__xxx			(0x00000010)
+//#define REQUEST_OPTION__xxx			(0x00000020)
+//#define REQUEST_OPTION__xxx			(0x00000040)
+//#define REQUEST_OPTION__xxx			(0x00000080)
+//#define REQUEST_OPTION__xxx			(0x00000100)
+//#define REQUEST_OPTION__xxx			(0x00000200)
+//#define REQUEST_OPTION__xxx			(0x00000400)
+//#define REQUEST_OPTION__xxx			(0x00000800)
+//#define REQUEST_OPTION__xxx			(0x00001000)
+//#define REQUEST_OPTION__xxx			(0x00002000)
+//#define REQUEST_OPTION__xxx			(0x00004000)
+//#define REQUEST_OPTION__xxx			(0x00008000)
+
+
+
+
 //TODO
 #define _NO_TYPEDEF_uint64_t
 

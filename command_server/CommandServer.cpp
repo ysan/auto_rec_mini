@@ -67,7 +67,14 @@ void CCommandServer::moduleUp (CThreadMgrIf *pIf)
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 
+	uint32_t opt = getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;	
+	setRequestOption (opt);
+
 	requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_SERVER_LOOP);
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	setRequestOption (opt);
 
 
 	sectId = THM_SECT_ID_INIT;

@@ -38,8 +38,8 @@ public:
 
 	void exec (EN_THM_DISPATCH_TYPE enType, uint8_t nSeqIdx, ST_THM_IF *pIf);
 
-	CThreadMgrExternalIf *getExternalIf (void);
-	CThreadMgrIf *getIf (void);
+	CThreadMgrExternalIf *getExternalIf (void) const;
+	CThreadMgrIf *getIf (void) const;
 
 protected:
 	void setSeqs (ST_SEQ_BASE pstSeqs [], uint8_t seqNum);
@@ -57,8 +57,15 @@ protected:
 	bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize);
 	bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize, uint32_t *pOutReqId);
 
+	void setRequestOption (uint32_t option);
+	uint32_t getRequestOption (void);
+
 
 private:
+	void setExternalIf (CThreadMgrExternalIf **pExtIf);
+	void setIf (CThreadMgrIf *pIf);
+
+
 	ST_SEQ_BASE *mpSeqsBase ;
 
 	char mName [16];

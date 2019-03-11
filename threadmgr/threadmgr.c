@@ -3,7 +3,6 @@
  */
 //TODO SIGTERMで終了 EN_QUE_TYPE_TERMがきたら今やってるsectionが終わったらthread return
 //		ついでに終了前に全threadのbacktrace
-//TODO 1requestごとにtimeoutあり/なし
 //TODO segv でbacktrace  thread毎sighandler
 //TODO reqId類の配列は THREAD_IDX_MAX +1でもつのがわかりにくい
 //TODO baseThreadで workerキューの状態check
@@ -73,12 +72,6 @@
 #define SEQ_TIMEOUT_MAX					(0x05265C00) // 24時間 msec
 
 #define BASE_THREAD_LOOP_TIMEOUT_SEC	(5)
-
-// REQUEST_OPTION 16bit
-#define REQUEST_OPTION__WITHOUT_REPLY		(0x00000001)
-#define REQUEST_OPTION__WITH_TIMEOUT_MSEC	(0x00000002)
-#define REQUEST_OPTION__WITH_TIMEOUT_SEC	(0x00000004)
-#define REQUEST_OPTION__WITH_TIMEOUT_HOUR	(0x00000008)
 
 
 
@@ -394,6 +387,7 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize, uint32_t *pnReqId); // extern
 void setRequestOption (uint32_t option); // extern
 uint32_t getRequestOption (void); // extern
+static uint32_t applyTimeoutMsecByRequestOption (uint32_t option);
 static bool replyInner (
 	uint8_t nThreadIdx,
 	uint8_t nSeqIdx,
@@ -491,6 +485,7 @@ static bool isEnableLog (void);
 static void enableLog (void);
 static void disableLog (void);
 void setDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper extention */ // extern
+
 
 /*
  * inner log macro
@@ -2506,7 +2501,8 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		}
 
 #ifdef _REQUEST_TIMEOUT
-		enableReqTimeout (THREAD_IDX_EXTERNAL, reqId, REQUEST_TIMEOUT_FIX);
+//		enableReqTimeout (THREAD_IDX_EXTERNAL, reqId, REQUEST_TIMEOUT_FIX);
+		enableReqTimeout (THREAD_IDX_EXTERNAL, reqId, pstExtInfo->requestTimeoutMsec);
 #endif
 
 		return true;
@@ -2566,7 +2562,9 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		&gMutexSyncReply [stContext.nThreadIdx]
 	);
 #else
-	enableReqTimeout (stContext.nThreadIdx, reqId, REQUEST_TIMEOUT_FIX);
+//	enableReqTimeout (stContext.nThreadIdx, reqId, REQUEST_TIMEOUT_FIX);
+	enableReqTimeout (stContext.nThreadIdx, reqId, gstInnerInfo[stContext.nThreadIdx].requestTimeoutMsec);
+
 	pstTmpReqIdInfo = getRequestIdInfo (stContext.nThreadIdx, reqId);
 	if (!pstTmpReqIdInfo) {
 		/* gMutexSyncReply unlock */
@@ -2720,7 +2718,8 @@ bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t ms
 		}
 
 #ifdef _REQUEST_TIMEOUT
-		enableReqTimeout (THREAD_IDX_EXTERNAL, reqId, REQUEST_TIMEOUT_FIX);
+//		enableReqTimeout (THREAD_IDX_EXTERNAL, reqId, REQUEST_TIMEOUT_FIX);
+		enableReqTimeout (THREAD_IDX_EXTERNAL, reqId, pstExtInfo->requestTimeoutMsec);
 #endif
 
 		return true;
@@ -2762,7 +2761,8 @@ bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t ms
 	}
 
 #ifdef _REQUEST_TIMEOUT
-	enableReqTimeout (stContext.nThreadIdx, reqId, REQUEST_TIMEOUT_FIX);
+//	enableReqTimeout (stContext.nThreadIdx, reqId, REQUEST_TIMEOUT_FIX);
+	enableReqTimeout (stContext.nThreadIdx, reqId, gstInnerInfo[stContext.nThreadIdx].requestTimeoutMsec);
 #endif
 
 	return true;
@@ -2775,6 +2775,12 @@ bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t ms
  */
 void setRequestOption (uint32_t option)
 {
+	if ((option & REQUEST_OPTION__WITH_TIMEOUT_MSEC) && (option & REQUEST_OPTION__WITH_TIMEOUT_MIN)) {
+		THM_INNER_FORCE_LOG_W ("REQUEST_OPTION__WITH_TIMEOUT_MSEC / MIN both set...\n");
+		THM_INNER_FORCE_LOG_W ("force set REQUEST_OPTION__WITH_TIMEOUT_MIN\n");
+		option &= ~REQUEST_OPTION__WITH_TIMEOUT_MSEC;
+	}
+
 	ST_CONTEXT stContext = getContext();
 	if (!stContext.isValid) {
 		/* --- 外部のスレッドの場合 --- */
@@ -2787,9 +2793,11 @@ void setRequestOption (uint32_t option)
 		}
 
 		pstExtInfo->requestOption = option;
+		pstExtInfo->requestTimeoutMsec = applyTimeoutMsecByRequestOption (option);
 
 	} else {
 		gstInnerInfo [stContext.nThreadIdx].requestOption = option;
+		gstInnerInfo [stContext.nThreadIdx].requestTimeoutMsec = applyTimeoutMsecByRequestOption (option);
 	}
 }
 
@@ -2815,6 +2823,24 @@ uint32_t getRequestOption (void)
 
 	} else {
 		return gstInnerInfo [stContext.nThreadIdx].requestOption;
+	}
+}
+
+/**
+ * applyTimeoutMsecByRequestOption
+ */
+uint32_t applyTimeoutMsecByRequestOption (uint32_t option)
+{
+	uint32_t _t_o = (option >> 16) & 0xffff;
+
+	if (option & REQUEST_OPTION__WITH_TIMEOUT_MSEC) {
+		return _t_o;
+
+	} else if (option & REQUEST_OPTION__WITH_TIMEOUT_MIN) {
+		return _t_o * 60 * 1000;
+
+	} else {
+		return 0;
 	}
 }
 
@@ -2976,7 +3002,7 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 		nReqId = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.nReqId;
 		if (nReqId == REQUEST_ID_UNNECESSARY) {
 			/* replyする必要なければ とくに何もしない */
-			THM_INNER_LOG_E ("REQUEST_ID_UNNECESSARY\n");
+			THM_INNER_FORCE_LOG_N ("REQUEST_ID_UNNECESSARY\n");
 			return true;
 		}
 
@@ -2998,7 +3024,7 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 		nReqId = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.nReqId;
 		if (nReqId == REQUEST_ID_UNNECESSARY) {
 			/* replyする必要なければ とくに何もしない */
-			THM_INNER_LOG_E ("REQUEST_ID_UNNECESSARY\n");
+			THM_INNER_FORCE_LOG_N ("REQUEST_ID_UNNECESSARY\n");
 			return true;
 		}
 
@@ -3220,10 +3246,15 @@ static void enableReqTimeout (uint8_t nThreadIdx, uint32_t nReqId, uint32_t nTim
 		THM_INNER_LOG_N ("external\n");
 		nThreadIdx = THREAD_IDX_EXTERNAL;
 	}
+
+	if (nReqId == REQUEST_ID_UNNECESSARY) {
+		return;
+	}
 	if ((nReqId < 0) || (nReqId >= REQUEST_ID_MAX)) {
 		THM_INNER_LOG_E ("invalid arg reqId.\n");
 		return;
 	}
+
 	if (nTimeoutMsec < 0) {
 		nTimeoutMsec = 0;
 	} else if (nTimeoutMsec > REQUEST_TIMEOUT_MAX) {
@@ -4664,7 +4695,7 @@ static void dumpExtInfoList (void)
 	pstExtInfoTmp = gpstExtInfoListTop;
 	while (pstExtInfoTmp) {
 
-		THM_LOG_N (" %d: %lu 0x%x  (%p -> %p)\n", n, pstExtInfoTmp->nPthreadId, pstExtInfoTmp->nReqId, pstExtInfoTmp, pstExtInfoTmp->pNext);
+		THM_LOG_N (" %d: %lu reqId:[0x%x]  (%p -> %p)\n", n, pstExtInfoTmp->nPthreadId, pstExtInfoTmp->nReqId, pstExtInfoTmp, pstExtInfoTmp->pNext);
 
 		// next set
 		pstExtInfoTmp = pstExtInfoTmp->pNext;
