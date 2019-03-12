@@ -43,11 +43,11 @@ int main (void)
 	CPsisiManagerIf *p_psisiMgrIf = new CPsisiManagerIf (p_mgr->getExternalIf());
 
 
-	// timeout 1sec
 	uint32_t opt = p_mgr->getExternalIf()->getRequestOption ();
-	opt |= REQUEST_OPTION__WITH_TIMEOUT_MSEC;
-	opt &= 0x0000ffff; // clear timeout val
-	opt |= 1000 << 16; // set timeout val
+//	opt |= REQUEST_OPTION__WITH_TIMEOUT_MSEC;
+//	opt &= 0x0000ffff; // clear timeout val
+//	opt |= 1000 << 16; // set timeout 1sec
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	p_mgr->getExternalIf()->setRequestOption (opt);
 
 	p_comSvrIf-> reqModuleUp ();

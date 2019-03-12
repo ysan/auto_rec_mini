@@ -17,7 +17,7 @@ static void tune (int argc, char* argv[], CThreadMgrBase *pBase)
 	}
 
 	uint32_t freq = atoi (argv[0]);
-	_UTL_LOG_I ("freq=[%d]\n", freq);
+	_UTL_LOG_I ("freq=[%d]kHz\n", freq);
 
 	CTunerControlIf ctl(pBase->getExternalIf());
 	ctl.reqTuneSync (freq);

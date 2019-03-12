@@ -53,13 +53,13 @@ public:
 		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_MODULE_DOWN);
 	};
 
-	bool reqTune (uint32_t freq) {
-		uint32_t f = freq;
+	bool reqTune (uint32_t freqKHz) {
+		uint32_t f = freqKHz;
 		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE, (uint8_t*)&f, sizeof(f));
 	};
 
-	bool reqTuneSync (uint32_t freq) {
-		uint32_t f = freq;
+	bool reqTuneSync (uint32_t freqKHz) {
+		uint32_t f = freqKHz;
 		return requestSync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE, (uint8_t*)&f, sizeof(f));
 	};
 
@@ -73,12 +73,12 @@ public:
 
 	bool reqRegisterTsReceiveHandler (ITsReceiveHandler **p_handler) {
 		ITsReceiveHandler **p = p_handler;
-		return requestSync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_REG_TS_RECEIVE_HANDLER, (uint8_t*)p, sizeof(p));
+		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_REG_TS_RECEIVE_HANDLER, (uint8_t*)p, sizeof(p));
 	};
 
 	bool reqUnregisterTsReceiveHandler (int client_id) {
 		int _id = client_id;
-		return requestSync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_REG_TS_RECEIVE_HANDLER, (uint8_t*)&_id, sizeof(_id));
+		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_REG_TS_RECEIVE_HANDLER, (uint8_t*)&_id, sizeof(_id));
 	};
 
 };

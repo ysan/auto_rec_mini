@@ -1,4 +1,3 @@
-threadmgr lock機構 (lockしたまま同threadの別seqをrequestした時どうするか)
 log エスケープシーケンス 色つけ方
 loglevel Debug追加
 chennel scan
@@ -10,4 +9,4 @@ psisiMgrで各psisiのtable instanceポインタのvectorを持つほうがい�
 section parserのlistはfifoにして勝手にやらせる
 adaptation_fieldの処理
 it9175のlog
-thread dumpにいろいろ追加する
+command serverのstack 切断したらクリアする

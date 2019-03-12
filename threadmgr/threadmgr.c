@@ -305,21 +305,44 @@ static sem_t gSem;
 
 static bool gIsEnableLog = false;
 
+static const char *gpszState [EN_STATE_MAX] = {
+	// for debug log
+	"STATE_INIT",
+	"STATE_READY",
+	"STATE_BUSY",
+	"STATE_WAIT_REPLY",
+};
 static const char *gpszQueType [EN_QUE_TYPE_MAX] = {
 	// for debug log
-	"INIT",
-	"REQ",
-	"REPLY",
-	"NOTIFY",
-	"SEQ_TIMEOUT",
-	"REQ_TIMEOUT",
+	"TYPE_INIT",
+	"TYPE_REQ",
+	"TYPE_REPLY",
+	"TYPE_NOTIFY",
+	"TYPE_SEQ_TIMEOUT",
+	"TYPE_REQ_TIMEOUT",
 };
 static const char *gpszRslt [EN_THM_RSLT_MAX] = {
 	// for debug log
-	"IGNORE",
-	"SUCCESS",
-	"ERROR",
-	"TIMEOUT",
+	"RSLT_IGNORE",
+	"RSLT_SUCCESS",
+	"RSLT_ERROR",
+	"RSLT_REQ_TIMEOUT",
+	"RSLT_SEQ_TIMEOUT",
+};
+static const char *gpszAct [EN_THM_ACT_MAX] = {
+	// for debug log
+	"ACT_INIT",
+	"ACT_CONTINUE",
+	"ACT_WAIT",
+	"ACT_DONE",
+};
+static const char *gpszTimeoutState [EN_TIMEOUT_STATE_MAX] = {
+	// for debug log
+	"TIMEOUT_STATE_INIT",
+	"TIMEOUT_STATE_MEAS",
+	"TIMEOUT_STATE_MEAS_COND_WAIT",
+	"TIMEOUT_STATE_PASSED",
+	"TIMEOUT_STATE_NOT_SET",
 };
 
 static PFN_DISPATCHER gpfnDispatcher = NULL; /* for c++ wrapper extention */
@@ -339,8 +362,7 @@ static void waitSem (void);
 static uint8_t getTotalWorkerThreadNum (void);
 static void setTotalWorkerThreadNum (uint8_t n);
 static bool registerThreadMgrTbl (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax);
-static void dumpInnerInfo (uint8_t nThreadIdx);
-static void dumpInnerInfoAllThread (void);
+static void dumpInnerInfo (void);
 static void clearInnerInfo (ST_INNER_INFO *p);
 static EN_STATE getState (uint8_t nThreadIdx);
 static void setState (uint8_t nThreadIdx, EN_STATE enState);
@@ -785,18 +807,51 @@ static bool registerThreadMgrTbl (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax)
 /**
  * dumpInnerInfo
  */
-static void dumpInnerInfo (uint8_t nThreadIdx)
-{
-}
-
-/**
- * dumpInnerInfoAllThread
- */
-static void dumpInnerInfoAllThread (void)
+static void dumpInnerInfo (void)
 {
 	uint8_t i = 0;
+	uint8_t j = 0;
+
+//TODO 参照だけ ログだけだからmutexしない
+
+	THM_LOG_N ("####  dumpInnerInfo  ####\n");
+	THM_LOG_N (" thread-idx thread-name       pthread_id      que-max seq-num req-opt    req-opt-timeout\n");
+
 	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
-		dumpInnerInfo (i);
+		THM_LOG_N (
+			" 0x%02x       [%-15s] %lu %d      %d       0x%08x %d\n",
+			gstInnerInfo [i].nThreadIdx,
+			gstInnerInfo [i].pszName,
+			gstInnerInfo [i].nPthreadId,
+			gstInnerInfo [i].nQueWorkerNum,
+			gstInnerInfo [i].nSeqNum,
+			gstInnerInfo [i].requestOption,
+			gstInnerInfo [i].requestTimeoutMsec
+		);
+	}
+
+	THM_LOG_N ("####  dumpSeqInfo  ####\n");
+	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
+		THM_LOG_N (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
+		int n = gstInnerInfo [i].nSeqNum;
+		ST_SEQ_INFO *pstSeqInfo = gstInnerInfo [i].pstSeqInfo;
+		for (j = 0; j < n; ++ j) {
+			const ST_THM_SEQ *p = gpstThmRegTbl [gstInnerInfo [i].nThreadIdx]->pstSeqArray;
+			const char *p_name = (p + pstSeqInfo->nSeqIdx)->pszName;
+
+			THM_LOG_N (
+				"   0x%02x [%-15.15s] %2d %s %s %s %s %d\n",
+				pstSeqInfo->nSeqIdx,
+				p_name,
+				pstSeqInfo->nSectId,
+				gpszAct [pstSeqInfo->enAct],
+				pstSeqInfo->isOverwrite ? "OW" : "--",
+				pstSeqInfo->isLock ? "lock" : "----",
+				gpszTimeoutState [pstSeqInfo->timeout.enState],
+				pstSeqInfo->timeout.nVal
+			);
+			++ pstSeqInfo;
+		}
 	}
 }
 
@@ -1195,7 +1250,7 @@ static void dumpQueWorker (uint8_t nThreadIdx)
 			" %d: %s (%s %d-%d) -> %d-%d 0x%x %s 0x%x %s\n",
 			i,
 			gpszQueType [pstQueWorker->enQueType],
-			pstQueWorker->isValidSrcInfo ? "T" : "F",
+			pstQueWorker->isValidSrcInfo ? "vaild  " : "invalid",
 			pstQueWorker->nSrcThreadIdx,
 			pstQueWorker->nSrcSeqIdx,
 			pstQueWorker->nDestThreadIdx,
@@ -1203,7 +1258,7 @@ static void dumpQueWorker (uint8_t nThreadIdx)
 			pstQueWorker->nReqId,
 			gpszRslt [pstQueWorker->enRslt],
 			pstQueWorker->nClientId,
-			pstQueWorker->isUsed ? "T" : "F"
+			pstQueWorker->isUsed ? "used  " : "unused"
 		);
 		pstQueWorker ++;
 	}
@@ -1778,6 +1833,7 @@ static void *baseThread (void *pArg)
 		if (stRtnQue.isUsed) {
 			switch (stRtnQue.enMoniType) {
 			case EN_MONI_TYPE_DEBUG:
+				dumpInnerInfo ();
 				dumpRequestIdInfo ();
 				dumpExtInfoList ();
 				dumpQueAllThread ();
@@ -2567,6 +2623,8 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 
 	pstTmpReqIdInfo = getRequestIdInfo (stContext.nThreadIdx, reqId);
 	if (!pstTmpReqIdInfo) {
+		/* NULLリターンは起こりえないはず */
+
 		/* gMutexSyncReply unlock */
 		pthread_mutex_unlock (&gMutexSyncReply[stContext.nThreadIdx]);
 
@@ -2577,14 +2635,25 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		return false;
 	}
 
-	THM_INNER_LOG_I ("requestSync... cond timedwait\n");
+	if (pstTmpReqIdInfo->timeout.enState == EN_TIMEOUT_STATE_INIT) {
+		THM_INNER_LOG_I ("requestSync... cond wait\n");
 
-	/* 自分はcond wait して固まる(Reply待ち) */
-	nRtn = pthread_cond_timedwait (
-		&gCondSyncReply [stContext.nThreadIdx],
-		&gMutexSyncReply [stContext.nThreadIdx],
-		&(pstTmpReqIdInfo->timeout.stTime)
-	);
+		/* 自分はcond wait して固まる(Reply待ち) */
+		nRtn = pthread_cond_wait (
+			&gCondSyncReply [stContext.nThreadIdx],
+			&gMutexSyncReply [stContext.nThreadIdx]
+		);
+		
+	} else {
+		THM_INNER_LOG_I ("requestSync... cond timedwait\n");
+
+		/* 自分はcond wait して固まる(Reply待ち) */
+		nRtn = pthread_cond_timedwait (
+			&gCondSyncReply [stContext.nThreadIdx],
+			&gMutexSyncReply [stContext.nThreadIdx],
+			&(pstTmpReqIdInfo->timeout.stTime)
+		);
+	}
 #endif
 
 	pstTmpSyncReplyInfo = getSyncReplyInfo (stContext.nThreadIdx);
@@ -3007,7 +3076,7 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 		}
 
 		if (!isActiveRequestId (THREAD_IDX_EXTERNAL, nReqId)) {
-			THM_INNER_LOG_E ("reqId is inActive. maybe timeout occured. not reply...\n");
+			THM_INNER_LOG_E ("reqId:[0x%x] is inActive. maybe timeout occured. not reply...\n", nReqId);
 			return false;
 		}
 
@@ -3029,7 +3098,7 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 		}
 
 		if (!isActiveRequestId (nThreadIdx, nReqId)) {
-			THM_INNER_LOG_E ("reqId is inActive. maybe timeout occured. not reply...\n");
+			THM_INNER_LOG_E ("reqId:[0x%x] is inActive. maybe timeout occured. not reply...\n", nReqId);
 			return false;
 		}
 
@@ -3170,6 +3239,7 @@ static void dumpRequestIdInfo (void)
 {
 	int i = 0;
 	int j = 0;
+	bool is_found = false;
 
 //TODO 参照だけ ログだけだからmutexしない
 
@@ -3179,17 +3249,37 @@ static void dumpRequestIdInfo (void)
 		THM_LOG_N (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
 		for (j = 0; j < REQUEST_ID_MAX; ++ j) {
 			if (gstRequestIdInfo [i][j].nId != REQUEST_ID_BLANK) {
-				THM_LOG_N ("  0x%x\n", gstRequestIdInfo [i][j].nId);
+				THM_LOG_N (
+					"  0x%02x - 0x%02x 0x%02x %s\n",
+					gstRequestIdInfo [i][j].nId,
+					gstRequestIdInfo [i][j].nSrcThreadIdx,
+					gstRequestIdInfo [i][j].nSrcSeqIdx,
+					gpszTimeoutState [gstRequestIdInfo [i][j].timeout.enState]
+				);
+				is_found = true;
 			}
+		}
+		if (!is_found) {
+			THM_LOG_N ("  none\n");
 		}
 	}
 
 	/* 外部スレッド */
-	THM_LOG_N (" --- external\n");
+	THM_LOG_N (" --- thread:external\n");
 	for (j = 0; j < REQUEST_ID_MAX; ++ j) {
 		if (gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nId != REQUEST_ID_BLANK) {
-			THM_LOG_N ("  0x%x\n", gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nId);
+			THM_LOG_N (
+				"  0x%02x - 0x%02x 0x%02x %s\n",
+				gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nId,
+				gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nSrcThreadIdx,
+				gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nSrcSeqIdx,
+				gpszTimeoutState [gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].timeout.enState]
+			);
+			is_found = true;
 		}
+	}
+	if (!is_found) {
+		THM_LOG_N ("  none\n");
 	}
 }
 

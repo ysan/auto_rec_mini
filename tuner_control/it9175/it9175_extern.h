@@ -40,7 +40,7 @@ extern EN_IT9175_STATE it9175_get_state (void);
 extern void it9175_set_log_verbose (bool is_log_verbose);
 extern bool it9175_open (void);
 extern void it9175_close (void);
-extern int it9175_tune (unsigned int freq);
+extern int it9175_tune (unsigned int freqKHz);
 extern void it9175_force_tune_end (void);
 
 #ifdef __cplusplus

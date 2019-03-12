@@ -43,7 +43,7 @@ EN_IT9175_STATE it9175_get_state (void); // extern
 void it9175_set_log_verbose (bool is_log_verbose); // extern
 bool it9175_open (void ); // extern
 void it9175_close (void); // extern
-int it9175_tune (unsigned int freq); // extern
+int it9175_tune (unsigned int freqKHz); // extern
 void it9175_force_tune_end (void); // extern
 static void printTMCC(const it9175_state state);
 static int check_usbdevId(const unsigned int* desc);
@@ -156,7 +156,7 @@ void it9175_close (void)
 	g_en_state = EN_IT9175_STATE__CLOSED;
 }
 
-int it9175_tune (unsigned int freq)
+int it9175_tune (unsigned int freqKHz)
 {
 	int i = 0;
 	int j = 0;
@@ -184,12 +184,12 @@ int it9175_tune (unsigned int freq)
 		return 10;
 	}
 
-	warn_info (0,"freq=%u kHz tuning...", freq);
+	warn_info (0,"freq=%u kHz tuning...", freqKHz);
 
 	g_en_state = EN_IT9175_STATE__TUNE_BEGINED;
 
 	for(i = 3; i > 0; i--) {  //# try 3 times
-		if(it9175_setFreq(g_devst, freq) != 0) {
+		if(it9175_setFreq(g_devst, freqKHz) != 0) {
 			ret = 42;
 			goto _END;
 		}
@@ -211,7 +211,7 @@ int it9175_tune (unsigned int freq)
 			//# channel detected
 			break;
 		}else{
-			warn_msg(0,"freq=%u kHz is empty.", freq);
+			warn_msg(0,"freq=%u kHz is empty.", freqKHz);
 		}
 	}
 
