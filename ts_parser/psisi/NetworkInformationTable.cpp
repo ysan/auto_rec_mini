@@ -38,7 +38,7 @@ void CNetworkInformationTable::onSectionCompleted (const CSectionInfo *pCompSect
 		return ;
 	}
 
-	appendTables (pTable);
+	appendTable (pTable);
 
 	dumpTable (pTable);
 
@@ -124,7 +124,7 @@ bool CNetworkInformationTable::parse (const CSectionInfo *pCompSection, CTable* 
 	return true;
 }
 
-void CNetworkInformationTable::appendTables (CTable *pTable)
+void CNetworkInformationTable::appendTable (CTable *pTable)
 {
 	if (!pTable) {
 		return ;
@@ -209,9 +209,9 @@ void CNetworkInformationTable::clear (void)
 //	detachAllSectionList ();
 }
 
-CNetworkInformationTable::CTables CNetworkInformationTable::getTables (void)
+CNetworkInformationTable::CReference CNetworkInformationTable::reference (void)
 {
-	CTables tables (&mTables, &mMutexTables);
-	return tables;
+	CReference ref (&mTables, &mMutexTables);
+	return ref;
 }
 

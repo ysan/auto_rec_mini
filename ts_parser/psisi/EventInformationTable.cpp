@@ -46,7 +46,7 @@ if (pCompSection->getHeader()->table_id != 0x4e) {
 		return ;
 	}
 
-	appendTables (pTable);
+	appendTable (pTable);
 
 	dumpTables_simple ();
 	dumpTable (pTable);
@@ -116,7 +116,7 @@ bool CEventInformationTable::parse (const CSectionInfo *pCompSection, CTable* pO
 	return true;
 }
 
-void CEventInformationTable::appendTables (CTable *pTable)
+void CEventInformationTable::appendTable (CTable *pTable)
 {
 	if (!pTable) {
 		return ;
@@ -256,9 +256,9 @@ void CEventInformationTable::clear (void)
 //	detachAllSectionList ();
 }
 
-CEventInformationTable::CTables CEventInformationTable::getTables (void)
+CEventInformationTable::CReference CEventInformationTable::reference (void)
 {
-    CTables tables (&mTables, &mMutexTables);
-    return tables;
+    CReference ref (&mTables, &mMutexTables);
+    return ref;
 }
 

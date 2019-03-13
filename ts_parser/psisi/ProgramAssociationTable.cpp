@@ -39,7 +39,7 @@ void CProgramAssociationTable::onSectionCompleted (const CSectionInfo *pCompSect
 		return ;
 	}
 
-	appendTables (pTable);
+	appendTable (pTable);
 
 	dumpTable (pTable);
 
@@ -91,7 +91,7 @@ bool CProgramAssociationTable::parse (const CSectionInfo *pCompSection, CTable* 
 	return true;
 }
 
-void CProgramAssociationTable::appendTables (CTable *pTable)
+void CProgramAssociationTable::appendTable (CTable *pTable)
 {
 	if (!pTable) {
 		return ;
@@ -163,8 +163,8 @@ void CProgramAssociationTable::clear (void)
 //	detachAllSectionList ();
 }
 
-CProgramAssociationTable::CTables CProgramAssociationTable::getTables (void)
+CProgramAssociationTable::CReference CProgramAssociationTable::reference (void)
 {
-	CTables tables (&mTables, &mMutexTables);
-	return tables;
+	CReference ref (&mTables, &mMutexTables);
+	return ref;
 }

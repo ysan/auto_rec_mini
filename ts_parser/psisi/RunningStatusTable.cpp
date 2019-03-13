@@ -38,7 +38,7 @@ void CRunningStatusTable::onSectionCompleted (const CSectionInfo *pCompSection)
 		return ;
 	}
 
-	appendTables (pTable);
+	appendTable (pTable);
 
 	dumpTable (pTable);
 
@@ -87,7 +87,7 @@ bool CRunningStatusTable::parse (const CSectionInfo *pCompSection, CTable* pOutT
 	return true;
 }
 
-void CRunningStatusTable::appendTables (CTable *pTable)
+void CRunningStatusTable::appendTable (CTable *pTable)
 {
 	if (!pTable) {
 		return ;
@@ -158,8 +158,8 @@ void CRunningStatusTable::clear (void)
 //	detachAllSectionList ();
 }
 
-CRunningStatusTable::CTables CRunningStatusTable::getTables (void)
+CRunningStatusTable::CReference CRunningStatusTable::reference (void)
 {
-	CTables tables (&mTables, &mMutexTables);
-	return tables;
+	CReference ref (&mTables, &mMutexTables);
+	return ref;
 }

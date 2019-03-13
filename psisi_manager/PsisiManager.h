@@ -48,6 +48,8 @@ public:
 
 	void moduleUp (CThreadMgrIf *pIf);
 	void moduleDown (CThreadMgrIf *pIf);
+	void checkLoop (CThreadMgrIf *pIf);
+	void checkPAT (CThreadMgrIf *pIf);
 
 
 private:
@@ -71,6 +73,8 @@ private:
 	CProgramAssociationTable mPAT;
 	CEventInformationTable mEIT_H;
 
+	CProgramAssociationTable::CReference mPAT_ref;
+	CEventInformationTable::CReference mEIT_H_ref;
 
 };
 

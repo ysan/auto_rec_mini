@@ -991,7 +991,6 @@ mpWorkSectInfo->dumpHeader ();
 
 			detachSectionList (mpWorkSectInfo);
 			mpWorkSectInfo = NULL;
-//			return EN_CHECK_SECTION__CANCELED;
 			continue;
 		}
 
@@ -1026,7 +1025,6 @@ mpWorkSectInfo->dumpHeader ();
 
 				detachSectionList (mpWorkSectInfo);
 				mpWorkSectInfo = NULL;
-//				return EN_CHECK_SECTION__INVALID;
 				continue;
 			}
 			_UTL_LOG_I ("CRC32 ok");
@@ -1047,13 +1045,12 @@ dumpSectionList ();
 		CSectionInfo *pFound = searchSectionList (*mpWorkSectInfo);
 		if (pFound && pFound->mState == EN_SECTION_STATE__COMPLETE) {
 			_UTL_LOG_N ("already know section -> detach");
-			r = EN_CHECK_SECTION__CANCELED;
+			r = EN_CHECK_SECTION__COMPLETED_ALREADY;
 			size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
 			p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
 
 			detachSectionList (mpWorkSectInfo);
 			mpWorkSectInfo = NULL;
-//			return EN_CHECK_SECTION__CANCELED;
 			continue;
 
 		} else {
@@ -1069,7 +1066,6 @@ dumpSectionList ();
 			onSectionCompleted (mpWorkSectInfo);
 
 			mpWorkSectInfo = NULL;
-//			return EN_CHECK_SECTION__COMPLETED;
 			continue;
 		}
 
@@ -1163,7 +1159,7 @@ dumpSectionList ();
 		_UTL_LOG_N ("already know section -> detach");
 		detachSectionList (mpWorkSectInfo);
 		mpWorkSectInfo = NULL;
-		return EN_CHECK_SECTION__CANCELED;
+		return EN_CHECK_SECTION__COMPLETED_ALREADY;
 
 	} else {
 		// new section

@@ -38,7 +38,7 @@ void CBroadcasterInformationTable::onSectionCompleted (const CSectionInfo *pComp
 		return ;
 	}
 
-	appendTables (pTable);
+	appendTable (pTable);
 
 	dumpTable (pTable);
 
@@ -114,7 +114,7 @@ bool CBroadcasterInformationTable::parse (const CSectionInfo *pCompSection, CTab
 	return true;
 }
 
-void CBroadcasterInformationTable::appendTables (CTable *pTable)
+void CBroadcasterInformationTable::appendTable (CTable *pTable)
 {
 	if (!pTable) {
 		return ;
@@ -198,9 +198,9 @@ void CBroadcasterInformationTable::clear (void)
 //	detachAllSectionList ();
 }
 
-CBroadcasterInformationTable::CTables CBroadcasterInformationTable::getTables (void)
+CBroadcasterInformationTable::CReference CBroadcasterInformationTable::reference (void)
 {
-    CTables tables (&mTables, &mMutexTables);
-    return tables;
+    CReference ref (&mTables, &mMutexTables);
+    return ref;
 }
 

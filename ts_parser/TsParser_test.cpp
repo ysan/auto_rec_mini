@@ -299,7 +299,6 @@ bool CTsParser_test::parse (void)
 	size_t unit_size = m_unit_size;
 	size_t payload_size = 0;
 	bool isCheck = false;
-//	CProgramAssociationTable::CTable *p_curPatTable = NULL;
 	CProgramCache *p_curProgramCache = NULL;
 	CDsmccControl *p_curDsmccCtl = NULL;
 
@@ -394,26 +393,6 @@ bool CTsParser_test::parse (void)
 			break;
 
 		default:
-#if 0
-			// check PMT
-			p_curPatTable = &mPatTables [0];
-			for (int i = 0; i < 32; ++ i) {
-				if (!p_curPatTable->isUsed) {
-					continue;
-				}
-				if (p_curPatTable->program_number != 0) {
-					if (ts_header.pid == p_curPatTable->program_map_PID) {
-						_UTL_LOG_I ("###############  PMT  ###############");
-						CUtils::dumper (p_cur, 188);
-//						dumpTsHeader (&ts_header);
-						ts_header.dump();
-						isCheck = true;
-						break;
-					}
-				}
-				++ p_curPatTable ;
-			}
-#endif
 			// check PMT
 			p_curProgramCache = &mProgramCaches [0];
 			for (int i = 0; i < 16; ++ i) {
@@ -480,7 +459,7 @@ bool CTsParser_test::parse (void)
 //					mPAT.getTable (mPatTables, 32);
 //					mPAT.dumpTable (mPatTables, n);
 
-					CProgramAssociationTable::CTables pat_tables = mPAT.getTables();
+					CProgramAssociationTable::CReference pat_tables = mPAT.reference();
 //TODO mutex
 					std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = pat_tables.mpTables->end();
 					CProgramAssociationTable::CTable* pLatestTable = *(-- iter);
@@ -547,17 +526,13 @@ bool CTsParser_test::parse (void)
 
 				mBIT.checkSection (&ts_header, p_payload, payload_size);
 
-//			} else if (ts_header.pid == p_curPatTable->program_map_PID) {
 			} else if (ts_header.pid == p_curProgramCache->pid) {
 
-//				if (p_curPatTable->mpPMT) {
 				if (p_curProgramCache->mpPMT) {
-//					if (p_curPatTable->mpPMT->checkSection (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
 					if (p_curProgramCache->mpPMT->checkSection (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
 
 						// stream_typeからDSMCCのPIDを取得する //////////
-//						CProgramMapTable::CTables pmt_tables = p_curPatTable->mpPMT->getTables();
-						CProgramMapTable::CTables pmt_tables = p_curProgramCache->mpPMT->getTables();
+						CProgramMapTable::CReference pmt_tables = p_curProgramCache->mpPMT->reference();
 //TODO mutex
 						std::vector<CProgramMapTable::CTable*>::const_iterator iter = pmt_tables.mpTables->begin();
 						for (; iter != pmt_tables.mpTables->end(); ++ iter) {

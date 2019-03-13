@@ -117,7 +117,7 @@ bool CProgramMapTable::parse (const CSectionInfo *pCompSection, CTable* pOutTabl
 	return true;
 }
 
-void CProgramMapTable::appendTables (CTable *pTable)
+void CProgramMapTable::appendTable (CTable *pTable)
 {
 	if (!pTable) {
 		return ;
@@ -201,8 +201,8 @@ void CProgramMapTable:: clear (void)
 //	detachAllSectionList ();
 }
 
-CProgramMapTable::CTables CProgramMapTable::getTables (void)
+CProgramMapTable::CReference CProgramMapTable::reference (void)
 {
-	CTables tables (&mTables, &mMutexTables);
-	return tables;
+	CReference ref (&mTables, &mMutexTables);
+	return ref;
 }

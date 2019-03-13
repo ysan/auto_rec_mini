@@ -83,13 +83,14 @@ public:
 	};
 
 public:
-	class CTables {
+	class CReference {
 	public:
-		CTables (const std::vector <CTable*> *pTables, std::mutex *pMutex)
+		CReference (void) {}
+		CReference (const std::vector <CTable*> *pTables, std::mutex *pMutex)
 			:mpTables (pTables)
 			,mpMutex (pMutex)
 		{}
-		virtual ~CTables (void) {}
+		virtual ~CReference (void) {}
 
 		const std::vector <CTable*> *mpTables;
 		std::mutex *mpMutex;
@@ -112,11 +113,11 @@ public:
 
 	void clear (void);
 
-	CTables getTables (void);
+	CReference reference (void);
 
 private:
 	bool parse (const CSectionInfo *pCompSection, CTable* pOutTable);
-	void appendTables (CTable *pTable);
+	void appendTable (CTable *pTable);
 	void releaseTables (void);
 
 

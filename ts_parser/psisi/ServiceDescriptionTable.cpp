@@ -38,7 +38,7 @@ void CServiceDescriptionTable::onSectionCompleted (const CSectionInfo *pCompSect
 		return ;
 	}
 
-	appendTables (pTable);
+	appendTable (pTable);
 
 	dumpTable (pTable);
 
@@ -105,7 +105,7 @@ bool CServiceDescriptionTable::parse (const CSectionInfo *pCompSection, CTable* 
 	return true;
 }
 
-void CServiceDescriptionTable::appendTables (CTable *pTable)
+void CServiceDescriptionTable::appendTable (CTable *pTable)
 {
 	if (!pTable) {
 		return ;
@@ -187,8 +187,8 @@ void CServiceDescriptionTable::clear (void)
 //	detachAllSectionList ();
 }
 
-CServiceDescriptionTable::CTables CServiceDescriptionTable::getTables (void)
+CServiceDescriptionTable::CReference CServiceDescriptionTable::reference (void)
 {
-	CTables tables (&mTables, &mMutexTables);
-	return tables;
+	CReference ref (&mTables, &mMutexTables);
+	return ref;
 }
