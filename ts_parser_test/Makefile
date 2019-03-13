@@ -47,6 +47,7 @@ SRCS		:=
 
 SRCS_CPP	:= \
 	main.cpp \
+	TsParser_test.cpp \
 
 
 #
