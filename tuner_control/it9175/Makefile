@@ -27,23 +27,34 @@ TARGET_NAME	:=	it9175
 #   Target type
 #     (EXEC/SHARED/STATIC/OBJECT)
 #
-TARGET_TYPE	:=	STATIC
+TARGET_TYPE	:=	SHARED
 
 #
 #   Compile sources
 #
+ifdef DEBUG
 SRCS		:= \
+	it9175_extern_debug.c \
 	it9175.c \
-	it9175_extern.c \
 	it9175_usb.c \
 	message.c \
 	osdepend.c \
 	tsthread.c \
 	usbdevfile.c \
 	usbops.c \
-	utils.c \
-
-SRCS_CPP	:=
+	utils.c
+else
+SRCS		:= \
+	it9175_extern.c \
+	it9175.c \
+	it9175_usb.c \
+	message.c \
+	osdepend.c \
+	tsthread.c \
+	usbdevfile.c \
+	usbops.c \
+	utils.c
+endif
 
 
 #

@@ -50,7 +50,7 @@ void CPsisiManager::moduleUp (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
@@ -137,7 +137,7 @@ void CPsisiManager::moduleDown (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 //
 // do nothing
@@ -162,7 +162,7 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	switch (sectId) {
 	case SECTID_ENTRY:
@@ -174,7 +174,7 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_LOOP:
-		pIf->setTimeout (1000); // 1sec
+		pIf->setTimeout (5000); // 5sec
 		sectId = SECTID_WAIT;
 		enAct = EN_THM_ACT_WAIT;
 		break;
@@ -209,7 +209,7 @@ void CPsisiManager::checkPAT (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
 	bool *p_isCompAlready = (bool*)(pIf->getSrcInfo()->msg.pMsg);
@@ -274,11 +274,12 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		return true;
 	}
 
+//	p_ts_header->dump();
+
 	EN_CHECK_SECTION r = EN_CHECK_SECTION__COMPLETED;
 
 	switch (p_ts_header->pid) {
 	case PID_PAT:
-//		p_ts_header->dump();
 
 		r = mPAT.checkSection (p_ts_header, p_payload, payload_size);
 		if (r == EN_CHECK_SECTION__COMPLETED || r == EN_CHECK_SECTION__COMPLETED_ALREADY) {
@@ -289,7 +290,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		break;
 
 	case PID_EIT_H:
-		r = mEIT_H.checkSection (p_ts_header, p_payload, payload_size);
+//		r = mEIT_H.checkSection (p_ts_header, p_payload, payload_size);
 		break;
 
 	default:	

@@ -62,9 +62,12 @@ void CCommandServer::moduleUp (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	// mask SIGPIPE
+	ignoreSigPipe ();
 
 
 	uint32_t opt = getRequestOption ();
@@ -92,7 +95,7 @@ void CCommandServer::moduleDown (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 //
 // do nothing
@@ -115,7 +118,7 @@ void CCommandServer::serverLoop (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -606,4 +609,12 @@ void CCommandServer::onCommandLineAvailable (const char* pszCommand, int argc, c
 void CCommandServer::onCommandWaitEnd (void)
 {
 	fprintf (gp_fptr_inner, "\n###  command line  exit. ###\n");
+}
+
+void CCommandServer::ignoreSigPipe (void)
+{
+	sigset_t sigset;
+	sigemptyset (&sigset);
+	sigaddset (&sigset, SIGPIPE);
+	sigprocmask (SIG_BLOCK, &sigset, NULL);
 }

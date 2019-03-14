@@ -48,7 +48,7 @@ SRCS		:=
 SRCS_CPP	:= \
 	TsParser.cpp \
 	SectionParser.cpp \
-	TsCommon.cpp \
+	TsAribCommon.cpp \
 
 
 #

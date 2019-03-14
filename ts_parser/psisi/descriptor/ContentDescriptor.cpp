@@ -72,12 +72,12 @@ void CContentDescriptor::dump (void) const
 		_UTL_LOG_I (
 			"content_nibble_level_1 [0x%02x][%s]\n",
 			iter_con->content_nibble_level_1,
-			CTsCommon::getGenre_lvl1(iter_con->content_nibble_level_1)
+			CTsAribCommon::getGenre_lvl1(iter_con->content_nibble_level_1)
 		);
 		_UTL_LOG_I (
 			"content_nibble_level_2 [0x%02x][%s]\n",
 			iter_con->content_nibble_level_2,
-			CTsCommon::getGenre_lvl2((iter_con->content_nibble_level_1 << 4 | iter_con->content_nibble_level_2) & 0xff)
+			CTsAribCommon::getGenre_lvl2((iter_con->content_nibble_level_1 << 4 | iter_con->content_nibble_level_2) & 0xff)
 		);
 		_UTL_LOG_I ("user_nibble_1          [0x%02x]\n", iter_con->user_nibble_1);
 		_UTL_LOG_I ("user_nibble_2          [0x%02x]\n", iter_con->user_nibble_2);

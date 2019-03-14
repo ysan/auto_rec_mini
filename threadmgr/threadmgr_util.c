@@ -364,13 +364,12 @@ void putsLog (
 	memset (szPerror, 0x00, sizeof (szPerror));
 
 	switch (enLogType) {
-	case EN_LOG_TYPE_I:
-		type = 'I';
+	case EN_LOG_TYPE_D:
+		type = 'D';
 		break;
 
-	case EN_LOG_TYPE_N:
-		type = 'N';
-		fprintf (pFp, THM_TEXT_GREEN);
+	case EN_LOG_TYPE_I:
+		type = 'I';
 		break;
 
 	case EN_LOG_TYPE_W:
@@ -395,7 +394,7 @@ void putsLog (
 		break;
 
 	default:
-		type = 'I';
+		type = 'D';
 		break;
 	}
 
@@ -527,8 +526,8 @@ void putsLogFprintf (
 		);
 		break;
 
+	case EN_LOG_TYPE_D:
 	case EN_LOG_TYPE_I:
-	case EN_LOG_TYPE_N:
 	case EN_LOG_TYPE_W:
 	case EN_LOG_TYPE_E:
 	default:
@@ -578,13 +577,12 @@ void putsLogLW (
 	memset (szPerror, 0x00, sizeof (szPerror));
 
 	switch (enLogType) {
-	case EN_LOG_TYPE_I:
-		type = 'I';
+	case EN_LOG_TYPE_D:
+		type = 'D';
 		break;
 
-	case EN_LOG_TYPE_N:
-		type = 'N';
-		fprintf (pFp, THM_TEXT_GREEN);
+	case EN_LOG_TYPE_I:
+		type = 'I';
 		break;
 
 	case EN_LOG_TYPE_W:
@@ -609,7 +607,7 @@ void putsLogLW (
 		break;
 
 	default:
-		type = 'I';
+		type = 'D';
 		break;
 	}
 
@@ -723,8 +721,8 @@ void putsLogFprintfLW (
 		);
 		break;
 
+	case EN_LOG_TYPE_D:
 	case EN_LOG_TYPE_I:
-	case EN_LOG_TYPE_N:
 	case EN_LOG_TYPE_W:
 	case EN_LOG_TYPE_E:
 	default:

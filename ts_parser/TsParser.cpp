@@ -92,7 +92,7 @@ bool CTsParser::allocInnerBuffer (uint8_t *pBuff, size_t size)
 		memcpy (mp_bottom, pBuff, size);
 		mp_current = mp_bottom - m_parse_remain_len;  // current update
 		mp_bottom += size;
-		_UTL_LOG_I ("copyInnerBuffer size=%lu remain=%lu\n", m_buff_size, m_buff_size-totalDataSize);
+		_UTL_LOG_D ("copyInnerBuffer size=%lu remain=%lu\n", m_buff_size, m_buff_size-totalDataSize);
 		return true;
 	}
 
@@ -130,7 +130,7 @@ bool CTsParser::allocInnerBuffer (uint8_t *pBuff, size_t size)
 	mp_current = mp_bottom - m_parse_remain_len;  // current update
 	mp_bottom += size;
 
-	_UTL_LOG_I ("copyInnerBuffer(malloc) top=%p bottom=%p size=%lu remain=%lu\n", mp_top, mp_bottom, m_buff_size, m_buff_size-totalDataSize);
+	_UTL_LOG_D ("copyInnerBuffer(malloc) top=%p bottom=%p size=%lu remain=%lu\n", mp_top, mp_bottom, m_buff_size, m_buff_size-totalDataSize);
 	return true;
 }
 
@@ -222,7 +222,7 @@ bool CTsParser::checkUnitSize (void)
 			n = i;
 		}
 	}
-	_UTL_LOG_I ("max_interval count m=%d  max_interval n=%d\n", m, n);
+	_UTL_LOG_D ("max_interval count m=%d  max_interval n=%d\n", m, n);
 
 	//TODO
 //	w = m*n;
@@ -231,7 +231,7 @@ bool CTsParser::checkUnitSize (void)
 //	}
 
 	m_unit_size = n;
-	_UTL_LOG_I ("m_unit_size %d\n", n);
+	_UTL_LOG_D ("m_unit_size %d\n", n);
 
 	return true;
 }
@@ -353,7 +353,7 @@ bool CTsParser::parse (void)
 	}
 
 	m_parse_remain_len = p_btm - p_cur;
-	_UTL_LOG_I ("m_parse_remain_len=[%d]\n", m_parse_remain_len);
+	_UTL_LOG_D ("m_parse_remain_len=[%d]\n", m_parse_remain_len);
 
 
 	return true;

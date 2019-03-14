@@ -214,7 +214,7 @@ typedef struct _ts_header {
 } TS_HEADER;
 
 
-class CTsCommon {
+class CTsAribCommon {
 public:
 	static void getStrEpoch (time_t tx, const char *format, char *pszout, int outsize);
 	static void getStrSecond (int second, char *pszout, int outsize);

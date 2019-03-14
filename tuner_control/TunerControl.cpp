@@ -56,7 +56,7 @@ void CTunerControl::moduleUp (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	switch (sectId) {
 	case SECTID_ENTRY:
@@ -95,7 +95,7 @@ void CTunerControl::moduleDown (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 //
 // do nothing
@@ -121,7 +121,7 @@ void CTunerControl::tune (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	static uint32_t freq = 0;
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
@@ -129,9 +129,9 @@ void CTunerControl::tune (CThreadMgrIf *pIf)
 	switch (sectId) {
 	case SECTID_ENTRY:
 		freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
-		_UTL_LOG_I ("freq [%d]\n", freq);
+		_UTL_LOG_I ("freq [%d]kHz\n", freq);
 		if (mFreq == freq) {
-			_UTL_LOG_I ("already freq [%d]\n", freq);
+			_UTL_LOG_I ("already freq [%d]kHz\n", freq);
 			sectId = SECTID_END_SUCCESS;
 			enAct = EN_THM_ACT_CONTINUE;
 
@@ -199,7 +199,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	static uint32_t freq = 0;
 	static int chkcnt = 0;
@@ -287,7 +287,7 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	static int chkcnt = 0;
 
@@ -334,7 +334,7 @@ void CTunerControl::registerTsReceiveHandler (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
 	CTunerControlIf::ITsReceiveHandler *pHandler = *(CTunerControlIf::ITsReceiveHandler**)(pIf->getSrcInfo()->msg.pMsg);
@@ -363,7 +363,7 @@ void CTunerControl::unregisterTsReceiveHandler (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
 	int client_id = *(int*)(pIf->getSrcInfo()->msg.pMsg);

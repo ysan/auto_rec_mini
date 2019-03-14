@@ -71,7 +71,7 @@ void CComponentDescriptor::dump (void) const
 
 	_UTL_LOG_I ("stream_content        [0x%02x]\n", stream_content);
 	_UTL_LOG_I ("component_type        [0x%02x][%s][%s]\n",
-		component_type, CTsCommon::getVideoComponentType(component_type), CTsCommon::getVideoRatio(component_type));
+		component_type, CTsAribCommon::getVideoComponentType(component_type), CTsAribCommon::getVideoRatio(component_type));
 	_UTL_LOG_I ("component_tag         [0x%02x]\n", component_tag);
 
 	_UTL_LOG_I ("ISO_639_language_code [%s]\n", ISO_639_language_code);

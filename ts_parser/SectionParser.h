@@ -8,7 +8,7 @@
 #include <errno.h>
 
 #include "Defs.h"
-#include "TsCommon.h"
+#include "TsAribCommon.h"
 
 
 typedef enum {

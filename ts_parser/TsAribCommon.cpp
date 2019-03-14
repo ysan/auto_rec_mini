@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "TsCommon.h"
+#include "TsAribCommon.h"
 
 
 static const char *g_pszGenre_lvl1 [] = {
@@ -361,7 +361,7 @@ static const char *g_pszAudioQuality [] = {
 
 
 
-void CTsCommon::getStrEpoch (time_t tx, const char *format, char *pszout, int outsize)
+void CTsAribCommon::getStrEpoch (time_t tx, const char *format, char *pszout, int outsize)
 {
 	struct tm *tl;
 	struct tm stm;
@@ -369,7 +369,7 @@ void CTsCommon::getStrEpoch (time_t tx, const char *format, char *pszout, int ou
 	strftime(pszout, outsize - 1, format, tl);
 }
 
-void CTsCommon::getStrSecond (int second, char *pszout, int outsize)
+void CTsAribCommon::getStrSecond (int second, char *pszout, int outsize)
 {
 	int hh = second / 3600;
 	int mm = (second % 3600) / 60;
@@ -377,7 +377,7 @@ void CTsCommon::getStrSecond (int second, char *pszout, int outsize)
 	snprintf (pszout, outsize, "%02d:%02d:%02d", hh, mm, ss);
 }
 
-time_t CTsCommon::getEpochFromMJD (const uint8_t *mjd)
+time_t CTsAribCommon::getEpochFromMJD (const uint8_t *mjd)
 {
 	if (!mjd) {
 		return 0;
@@ -426,7 +426,7 @@ time_t CTsCommon::getEpochFromMJD (const uint8_t *mjd)
 	return l_time;
 }
 
-int CTsCommon::getSecFromBCD (const uint8_t *bcd)
+int CTsAribCommon::getSecFromBCD (const uint8_t *bcd)
 {
 	if (!bcd) {
 		return -1;
@@ -454,7 +454,7 @@ int CTsCommon::getSecFromBCD (const uint8_t *bcd)
 	return hh+mm+ss;
 }
 
-const char* CTsCommon::getGenre_lvl1 (uint8_t genre)
+const char* CTsAribCommon::getGenre_lvl1 (uint8_t genre)
 {
 	if (genre < 0x00 || genre > 0x0f) {
 		return "ジャンル指定なし";
@@ -463,7 +463,7 @@ const char* CTsCommon::getGenre_lvl1 (uint8_t genre)
 	}
 }
 
-const char* CTsCommon::getGenre_lvl2 (uint8_t genre)
+const char* CTsAribCommon::getGenre_lvl2 (uint8_t genre)
 {
 	// 0x00 - 0xff
 	const char *str = g_pszGenre_lvl2 [genre];
@@ -474,7 +474,7 @@ const char* CTsCommon::getGenre_lvl2 (uint8_t genre)
 	}
 }
 
-const char* CTsCommon::getVideoComponentType (uint8_t type)
+const char* CTsAribCommon::getVideoComponentType (uint8_t type)
 {
 	uint8_t t = (type >> 4) & 0x0f;
 	if (t < 0x00 || t > 0x0e) {
@@ -484,7 +484,7 @@ const char* CTsCommon::getVideoComponentType (uint8_t type)
 	}
 }
 
-const char* CTsCommon::getVideoRatio (uint8_t type)
+const char* CTsAribCommon::getVideoRatio (uint8_t type)
 {
 	uint8_t r = type & 0x0f;
 	if (r < 0x00 || r > 0x04) {
@@ -494,7 +494,7 @@ const char* CTsCommon::getVideoRatio (uint8_t type)
 	}
 }
 
-const char* CTsCommon::getAudioComponentType (uint8_t type)
+const char* CTsAribCommon::getAudioComponentType (uint8_t type)
 {
 	if (type < 0x00 || type > 0x09) {
 		return "未定義";
@@ -503,7 +503,7 @@ const char* CTsCommon::getAudioComponentType (uint8_t type)
 	}
 }
 
-const char* CTsCommon::getAudioSamplingRate (uint8_t samplingRate)
+const char* CTsAribCommon::getAudioSamplingRate (uint8_t samplingRate)
 {
 	if (samplingRate < 0x00 || samplingRate > 0x09) {
 		return "未定義";
@@ -512,7 +512,7 @@ const char* CTsCommon::getAudioSamplingRate (uint8_t samplingRate)
 	}
 }
 
-const char* CTsCommon::getAudioQuality (uint8_t quality)
+const char* CTsAribCommon::getAudioQuality (uint8_t quality)
 {
 	if (quality < 0x00 || quality > 0x03) {
 		return "未定義";
@@ -521,7 +521,7 @@ const char* CTsCommon::getAudioQuality (uint8_t quality)
 	}
 }
 
-uint16_t CTsCommon::freq2ch (uint16_t frequency)
+uint16_t CTsAribCommon::freq2ch (uint16_t frequency)
 {
 	return ((frequency/7) - 473) / 6 + 13;
 }

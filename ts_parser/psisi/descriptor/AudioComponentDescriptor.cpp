@@ -97,7 +97,7 @@ void CAudioComponentDescriptor::dump (void) const
 
 	_UTL_LOG_I ("stream_content              [0x%02x]\n", stream_content);
 	_UTL_LOG_I ("component_type              [0x%02x][%s]\n",
-		component_type, CTsCommon::getAudioComponentType(component_type));
+		component_type, CTsAribCommon::getAudioComponentType(component_type));
 	_UTL_LOG_I ("component_tag               [0x%02x]\n", component_tag);
 	_UTL_LOG_I ("stream_type                 [0x%02x]\n", stream_type);
 	_UTL_LOG_I ("simulcast_group_tag         [0x%02x]\n", simulcast_group_tag);
@@ -106,9 +106,9 @@ void CAudioComponentDescriptor::dump (void) const
 	_UTL_LOG_I ("main_component_flag         [0x%02x][%s]\n",
 		main_component_flag, main_component_flag ? "主" : "副");
 	_UTL_LOG_I ("quality_indicator           [0x%02x][%s]\n",
-		quality_indicator, CTsCommon::getAudioQuality(quality_indicator));
+		quality_indicator, CTsAribCommon::getAudioQuality(quality_indicator));
 	_UTL_LOG_I ("sampling_rate               [0x%02x][%s]\n",
-		sampling_rate, CTsCommon::getAudioSamplingRate(sampling_rate));
+		sampling_rate, CTsAribCommon::getAudioSamplingRate(sampling_rate));
 
 	_UTL_LOG_I ("ISO_639_language_code       [%s]\n", (char*)ISO_639_language_code);
 

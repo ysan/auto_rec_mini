@@ -51,8 +51,8 @@
 #define LOG_EXT		"log"
 
 typedef enum {
-	EN_LOG_LEVEL_I = 0,		// information
-	EN_LOG_LEVEL_N,			// notice
+	EN_LOG_LEVEL_D = 0,		// debug
+	EN_LOG_LEVEL_I,			// information
 	EN_LOG_LEVEL_W,			// warning
 	EN_LOG_LEVEL_E,			// error
 	EN_LOG_LEVEL_PE,		// perror
@@ -64,6 +64,17 @@ typedef enum {
  */
 #ifndef _ANDROID_BUILD
 
+// --- Debug ---
+#ifndef _LOG_ADD_FILE_INFO
+#define _UTL_LOG_D(fmt, ...) do {\
+	CUtils::putsLogLW (CUtils::mpfpLog, EN_LOG_LEVEL_D, fmt, ##__VA_ARGS__);\
+} while (0)
+#else
+#define _UTL_LOG_D(fmt, ...) do {\
+	CUtils::putsLog (CUtils::mpfpLog, EN_LOG_LEVEL_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+} while (0)
+#endif
+
 // --- Information ---
 #ifndef _LOG_ADD_FILE_INFO
 #define _UTL_LOG_I(fmt, ...) do {\
@@ -71,18 +82,7 @@ typedef enum {
 } while (0)
 #else
 #define _UTL_LOG_I(fmt, ...) do {\
-	CUtils::putsLog (CUtils::mpfpLog, EN_LOG_LEVEL_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
-} while (0)
-#endif
-
-// --- Notice ---
-#ifndef _LOG_ADD_FILE_INFO
-#define _UTL_LOG_N(fmt, ...) do {\
-	CUtils::putsLogLW (CUtils::mpfpLog, EN_LOG_LEVEL_N, fmt, ##__VA_ARGS__);\
-} while (0)
-#else
-#define _UTL_LOG_N(fmt, ...) do {\
-    CUtils::putsLog (CUtils::mpfpLog, EN_LOG_LEVEL_N, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+    CUtils::putsLog (CUtils::mpfpLog, EN_LOG_LEVEL_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
 
@@ -121,13 +121,13 @@ typedef enum {
 
 #else // _ANDROID_BUILD
 
-// --- Information ---
-#define _UTL_LOG_I(fmt, ...) do {\
+// --- Debug ---
+#define _UTL_LOG_D(fmt, ...) do {\
 	__android_log_print (ANDROID_LOG_DEBUG, __func__, fmt, ##__VA_ARGS__); \
 } while (0)
 
-// --- Notice ---
-#define _UTL_LOG_N(fmt, ...) do {\
+// --- Information ---
+#define _UTL_LOG_I(fmt, ...) do {\
 	__android_log_print (ANDROID_LOG_INFO, __func__, fmt, ##__VA_ARGS__); \
 } while (0)
 

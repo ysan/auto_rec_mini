@@ -369,13 +369,12 @@ void CUtils::putsLog (
 	memset (szPerror, 0x00, sizeof (szPerror));
 
 	switch (enLogLevel) {
-	case EN_LOG_LEVEL_I:
-		type = 'I';
+	case EN_LOG_LEVEL_D:
+		type = 'D';
 		break;
 
-	case EN_LOG_LEVEL_N:
-		type = 'N';
-		fprintf (pFp, _UTL_TEXT_CYAN);
+	case EN_LOG_LEVEL_I:
+		type = 'I';
 		break;
 
 	case EN_LOG_LEVEL_W:
@@ -405,7 +404,7 @@ void CUtils::putsLog (
 		break;
 
 	default:
-		type = 'I';
+		type = 'D';
 		break;
 	}
 
@@ -537,8 +536,8 @@ void CUtils::putsLogFprintf (
 		);
 		break;
 
+	case EN_LOG_LEVEL_D:
 	case EN_LOG_LEVEL_I:
-	case EN_LOG_LEVEL_N:
 	case EN_LOG_LEVEL_W:
 	case EN_LOG_LEVEL_E:
 	default:
@@ -634,13 +633,12 @@ void CUtils::putsLogLW (
 	memset (szPerror, 0x00, sizeof (szPerror));
 
 	switch (enLogLevel) {
-	case EN_LOG_LEVEL_I:
-		type = 'I';
+	case EN_LOG_LEVEL_D:
+		type = 'D';
 		break;
 
-	case EN_LOG_LEVEL_N:
-		type = 'N';
-		fprintf (pFp, _UTL_TEXT_CYAN);
+	case EN_LOG_LEVEL_I:
+		type = 'I';
 		break;
 
 	case EN_LOG_LEVEL_W:
@@ -670,7 +668,7 @@ void CUtils::putsLogLW (
 		break;
 
 	default:
-		type = 'I';
+		type = 'D';
 		break;
 	}
 
@@ -784,8 +782,8 @@ void CUtils::putsLogFprintf (
 		);
 		break;
 
+	case EN_LOG_LEVEL_D:
 	case EN_LOG_LEVEL_I:
-	case EN_LOG_LEVEL_N:
 	case EN_LOG_LEVEL_W:
 	case EN_LOG_LEVEL_E:
 	default:

@@ -197,11 +197,11 @@ void CEventInformationTable::dumpTable (const CTable* pTable) const
 		_UTL_LOG_I ("event_id                [0x%04x]\n", iter_event->event_id);
 		char szStime [32];
 		memset (szStime, 0x00, sizeof(szStime));
-		CTsCommon::getStrEpoch (CTsCommon::getEpochFromMJD (iter_event->start_time), "%Y/%m/%d %H:%M:%S", szStime, sizeof(szStime));
+		CTsAribCommon::getStrEpoch (CTsAribCommon::getEpochFromMJD (iter_event->start_time), "%Y/%m/%d %H:%M:%S", szStime, sizeof(szStime));
 		_UTL_LOG_I ("start_time              [%s]\n", szStime);
 		char szDuration [32];
 		memset (szDuration, 0x00, sizeof(szDuration));
-		CTsCommon::getStrSecond (CTsCommon::getSecFromBCD (iter_event->duration), szDuration, sizeof(szDuration));
+		CTsAribCommon::getStrSecond (CTsAribCommon::getSecFromBCD (iter_event->duration), szDuration, sizeof(szDuration));
 		_UTL_LOG_I ("duration                [%s]\n", szDuration);
 		_UTL_LOG_I ("running_status          [0x%02x]\n", iter_event->running_status);
 		_UTL_LOG_I ("free_CA_mode            [0x%02x]\n", iter_event->free_CA_mode);

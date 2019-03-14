@@ -41,7 +41,7 @@ void CTuneThread::moduleUp (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 //
 // do nothing
@@ -64,7 +64,7 @@ void CTuneThread::moduleDown (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 //
 // do nothing
@@ -83,7 +83,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
 	// このスレッドでit9175_tune のループが回るので先にリプライしときます

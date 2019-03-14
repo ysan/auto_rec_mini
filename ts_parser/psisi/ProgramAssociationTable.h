@@ -11,7 +11,7 @@
 #include <mutex>
 
 #include "Defs.h"
-#include "TsCommon.h"
+#include "TsAribCommon.h"
 #include "SectionParser.h"
 
 

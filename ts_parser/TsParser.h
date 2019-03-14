@@ -9,7 +9,7 @@
 
 #include "Defs.h"
 
-#include "TsCommon.h"
+#include "TsAribCommon.h"
 
 #define INNER_BUFF_SIZE		(65535*5)
 

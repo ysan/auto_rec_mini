@@ -512,37 +512,37 @@ void setDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper exte
 /*
  * inner log macro
  */
-#define THM_INNER_FORCE_LOG_I(fmt, ...) {\
+#define THM_INNER_FORCE_LOG_D(fmt, ...) do {\
+	putsLog (getLogFileptr(), EN_LOG_TYPE_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+} while (0)
+#define THM_INNER_FORCE_LOG_I(fmt, ...) do {\
 	putsLog (getLogFileptr(), EN_LOG_TYPE_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
-}
-#define THM_INNER_FORCE_LOG_N(fmt, ...) {\
-	putsLog (getLogFileptr(), EN_LOG_TYPE_N, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
-}
-#define THM_INNER_FORCE_LOG_W(fmt, ...) {\
+} while (0)
+#define THM_INNER_FORCE_LOG_W(fmt, ...) do {\
 	putsLog (getLogFileptr(), EN_LOG_TYPE_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
-}
+} while (0)
 
-#define THM_INNER_LOG_I(fmt, ...) {\
+#define THM_INNER_LOG_D(fmt, ...) do {\
+	if (isEnableLog()) {\
+		putsLog (getLogFileptr(), EN_LOG_TYPE_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	}\
+} while (0)
+#define THM_INNER_LOG_I(fmt, ...) do {\
 	if (isEnableLog()) {\
 		putsLog (getLogFileptr(), EN_LOG_TYPE_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 	}\
-}
-#define THM_INNER_LOG_N(fmt, ...) {\
-	if (isEnableLog()) {\
-		putsLog (getLogFileptr(), EN_LOG_TYPE_N, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
-	}\
-}
-#define THM_INNER_LOG_W(fmt, ...) {\
+} while (0)
+#define THM_INNER_LOG_W(fmt, ...) do {\
 	if (isEnableLog()) {\
 		putsLog (getLogFileptr(), EN_LOG_TYPE_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 	}\
-}
-#define THM_INNER_LOG_E(fmt, ...) {\
+} while (0)
+#define THM_INNER_LOG_E(fmt, ...) do {\
 	putsLog (getLogFileptr(), EN_LOG_TYPE_E, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
-}
-#define THM_INNER_PERROR(fmt, ...) {\
+} while (0)
+#define THM_INNER_PERROR(fmt, ...) do {\
 	putsLog (getLogFileptr(), EN_LOG_TYPE_PE, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
-}
+} while (0)
 
 
 /**
@@ -799,7 +799,7 @@ static bool registerThreadMgrTbl (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax)
 
 	// set inner total
 	setTotalWorkerThreadNum (i);
-	THM_INNER_LOG_I ("gnTotalWorkerThread=[%d]\n", getTotalWorkerThreadNum());
+	THM_INNER_FORCE_LOG_I ("gnTotalWorkerThread=[%d]\n", getTotalWorkerThreadNum());
 
 	return true;
 }
@@ -814,11 +814,11 @@ static void dumpInnerInfo (void)
 
 //TODO 参照だけ ログだけだからmutexしない
 
-	THM_LOG_N ("####  dumpInnerInfo  ####\n");
-	THM_LOG_N (" thread-idx thread-name       pthread_id      que-max seq-num req-opt    req-opt-timeout\n");
+	THM_INNER_FORCE_LOG_I ("####  dumpInnerInfo  ####\n");
+	THM_INNER_FORCE_LOG_I (" thread-idx thread-name       pthread_id      que-max seq-num req-opt    req-opt-timeout\n");
 
 	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
-		THM_LOG_N (
+		THM_INNER_FORCE_LOG_I (
 			" 0x%02x       [%-15s] %lu %d      %d       0x%08x %d\n",
 			gstInnerInfo [i].nThreadIdx,
 			gstInnerInfo [i].pszName,
@@ -830,16 +830,16 @@ static void dumpInnerInfo (void)
 		);
 	}
 
-	THM_LOG_N ("####  dumpSeqInfo  ####\n");
+	THM_INNER_FORCE_LOG_I ("####  dumpSeqInfo  ####\n");
 	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
-		THM_LOG_N (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
+		THM_INNER_FORCE_LOG_I (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
 		int n = gstInnerInfo [i].nSeqNum;
 		ST_SEQ_INFO *pstSeqInfo = gstInnerInfo [i].pstSeqInfo;
 		for (j = 0; j < n; ++ j) {
 			const ST_THM_SEQ *p = gpstThmRegTbl [gstInnerInfo [i].nThreadIdx]->pstSeqArray;
 			const char *p_name = (p + pstSeqInfo->nSeqIdx)->pszName;
 
-			THM_LOG_N (
+			THM_INNER_FORCE_LOG_I (
 				"   0x%02x [%-15.15s] %2d %s %s %s %s %d\n",
 				pstSeqInfo->nSeqIdx,
 				p_name,
@@ -1041,7 +1041,7 @@ static bool createAllThread (void)
 		if (!createWorkerThread (i)) {
 			return false;
 		}
-		THM_INNER_LOG_I ("create workerThread. thIdx:[%d]\n", i);
+		THM_INNER_FORCE_LOG_I ("create workerThread. thIdx:[%d]\n", i);
 	}
 
 	return true;
@@ -1244,9 +1244,9 @@ static void dumpQueWorker (uint8_t nThreadIdx)
 	/* lock */
 	pthread_mutex_lock (&gMutexOpeQueWorker [nThreadIdx]);
 
-	THM_LOG_N ("####  dumpQue [%s]  ####\n", gstInnerInfo [nThreadIdx].pszName);
+	THM_INNER_FORCE_LOG_I ("####  dumpQue [%s]  ####\n", gstInnerInfo [nThreadIdx].pszName);
 	for (i = 0; i < nQueWorkerNum; ++ i) {
-		THM_LOG_N (
+		THM_INNER_FORCE_LOG_I (
 			" %d: %s (%s %d-%d) -> %d-%d 0x%x %s 0x%x %s\n",
 			i,
 			gpszQueType [pstQueWorker->enQueType],
@@ -1400,7 +1400,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 						 * 対象のシーケンスがEN_THM_ACT_WAIT シーケンスの途中
 						 * 見送り
 						 */
-						THM_INNER_LOG_N (
+						THM_INNER_LOG_I (
 							"enAct is EN_THM_ACT_WAIT @REQUEST_QUE (from[%s:%s] to[%s:%s] reqId[0x%x]) ---> through\n",
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
@@ -1432,7 +1432,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 				if (getSeqInfo (nThreadIdx, nSeqIdx)->enAct == EN_THM_ACT_INIT) {
 					/* シーケンスによってはありえる */
 					/* リプライ待たずに進むようなシーケンスとか... */
-					THM_INNER_FORCE_LOG_N (
+					THM_INNER_FORCE_LOG_I (
 						"enAct is EN_THM_ACT_INIT @REPLY_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
 						gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
 						gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
@@ -1475,7 +1475,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 						/* シーケンスによってはありえる */
 						/* リプライ待たずに進むようなシーケンスとか... */
 #ifndef _MULTI_REQUESTING
-						THM_INNER_LOG_N (
+						THM_INNER_LOG_I (
 							"enAct is EN_THM_ACT_WAIT  reqId unmatch:[%d:%d] @REPLY_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
 							pstQueWorker->nReqId,
 							getSeqInfo (nThreadIdx, nSeqIdx)->nReqId,
@@ -1486,7 +1486,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 							pstQueWorker->nReqId
 						);
 #else
-						THM_INNER_LOG_N (
+						THM_INNER_LOG_I (
 							"enAct is EN_THM_ACT_WAIT  reqId unmatch @REPLY_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
@@ -1562,7 +1562,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 							/* シーケンスによってはありえる */
 							/* リプライ待たずに進むようなシーケンスとか... */
 #ifndef _MULTI_REQUESTING
-							THM_INNER_LOG_N (
+							THM_INNER_LOG_I (
 								"enAct is EN_THM_ACT_WAIT  reqId unmatch:[%d:%d] @REQ_TIMEOUT_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
 								pstQueWorker->nReqId,
 								getSeqInfo (nThreadIdx, nSeqIdx)->nReqId
@@ -1573,7 +1573,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 								pstQueWorker->nReqId
 							);
 #else
-							THM_INNER_LOG_N (
+							THM_INNER_LOG_I (
 								"enAct is EN_THM_ACT_WAIT  reqId unmatch:[%d:%d] @REQ_TIMEOUT_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
 								gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
 								gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
@@ -1591,7 +1591,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 					} else {
 						/* シーケンスによってはありえる */
 						/* リプライ待たずに進むようなシーケンスとか... */
-						THM_INNER_FORCE_LOG_N (
+						THM_INNER_FORCE_LOG_I (
 							"enAct is not EN_THM_ACT_WAIT  @REQ_TIMEOUT_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
@@ -1679,7 +1679,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 
 	if (i == nQueWorkerNum) {
 		/* not found */
-		THM_INNER_LOG_I ("not found. thIdx:[%d]\n", nThreadIdx);
+		THM_INNER_LOG_D ("not found. thIdx:[%d]\n", nThreadIdx);
 
 	} else {
 		if (isGetOut) {
@@ -1800,7 +1800,7 @@ static void *baseThread (void *pArg)
 				/*
 				 * タイムアウトした
 				 */
-				THM_INNER_LOG_I ("ETIMEDOUT baseThread\n");
+				THM_INNER_LOG_D ("ETIMEDOUT baseThread\n");
 
 				/* 外部スレッドのReqタイムアウトチェック */
 				checkReqTimeout (THREAD_IDX_EXTERNAL);
@@ -1911,7 +1911,7 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 
 		enTimeout = searchNearestTimeout (pstInnerInfo->nThreadIdx, &pstReqIdInfo, &pstSeqInfo);
 		if (enTimeout == EN_NEAREST_TIMEOUT_NONE) {
-			THM_INNER_LOG_I ("normal cond wait\n");
+			THM_INNER_LOG_D ("normal cond wait\n");
 
 			/*
 			 * 通常の cond wait
@@ -1926,7 +1926,7 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 			/* タイムアウト仕掛かり中です */
 
 			if (enTimeout == EN_NEAREST_TIMEOUT_REQ) {
-				THM_INNER_LOG_I ("timeout cond wait (reqTimeout)\n");
+				THM_INNER_LOG_D ("timeout cond wait (reqTimeout)\n");
 
 				if (!pstReqIdInfo) {
 					THM_INNER_LOG_E ("BUG: pstReqIdInfo is null !!!\n");
@@ -1936,7 +1936,7 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 				pstTimeout = &(pstReqIdInfo->timeout.stTime);
 
 			} else {
-				THM_INNER_LOG_I ("timeout cond wait (seqTimeout)\n");
+				THM_INNER_LOG_D ("timeout cond wait (seqTimeout)\n");
 
 				if (!pstSeqInfo) {
 					THM_INNER_LOG_E ("BUG: pstSeqInfo is null !!!\n");
@@ -2610,7 +2610,7 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 	}
 
 #ifndef _REQUEST_TIMEOUT
-	THM_INNER_LOG_I ("requestSync... cond wait\n");
+	THM_INNER_LOG_D ("requestSync... cond wait\n");
 
 	/* 自分はcond wait して固まる(Reply待ち) */
 	nRtn = pthread_cond_wait (
@@ -2636,7 +2636,7 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 	}
 
 	if (pstTmpReqIdInfo->timeout.enState == EN_TIMEOUT_STATE_INIT) {
-		THM_INNER_LOG_I ("requestSync... cond wait\n");
+		THM_INNER_LOG_D ("requestSync... cond wait\n");
 
 		/* 自分はcond wait して固まる(Reply待ち) */
 		nRtn = pthread_cond_wait (
@@ -2645,7 +2645,7 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		);
 		
 	} else {
-		THM_INNER_LOG_I ("requestSync... cond timedwait\n");
+		THM_INNER_LOG_D ("requestSync... cond timedwait\n");
 
 		/* 自分はcond wait して固まる(Reply待ち) */
 		nRtn = pthread_cond_timedwait (
@@ -2660,7 +2660,7 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 
 	switch (nRtn) {
 	case SYS_RETURN_NORMAL:
-		THM_INNER_LOG_I ("requestSync... reply come\n");
+		THM_INNER_LOG_D ("requestSync... reply come\n");
 
 		/*
 		 * リプライが来た
@@ -3071,7 +3071,7 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 		nReqId = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.nReqId;
 		if (nReqId == REQUEST_ID_UNNECESSARY) {
 			/* replyする必要なければ とくに何もしない */
-			THM_INNER_FORCE_LOG_N ("REQUEST_ID_UNNECESSARY\n");
+THM_INNER_FORCE_LOG_D ("REQUEST_ID_UNNECESSARY\n");
 			return true;
 		}
 
@@ -3093,7 +3093,7 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 		nReqId = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.nReqId;
 		if (nReqId == REQUEST_ID_UNNECESSARY) {
 			/* replyする必要なければ とくに何もしない */
-			THM_INNER_FORCE_LOG_N ("REQUEST_ID_UNNECESSARY\n");
+THM_INNER_FORCE_LOG_D ("REQUEST_ID_UNNECESSARY\n");
 			return true;
 		}
 
@@ -3175,7 +3175,7 @@ static uint32_t getRequestId (uint8_t nThreadIdx, uint8_t nSeqIdx)
 	if ((nThreadIdx < 0) || (nThreadIdx >= getTotalWorkerThreadNum())) {
 //TODO 引数チェックおかしい?
 		/* 外部スレッドを考慮 */
-		THM_INNER_LOG_N ("external request\n");
+		THM_INNER_LOG_D ("external request\n");
 		nThreadIdx = THREAD_IDX_EXTERNAL;
 	} else {
 		// 内部から呼ばれた
@@ -3243,13 +3243,13 @@ static void dumpRequestIdInfo (void)
 
 //TODO 参照だけ ログだけだからmutexしない
 
-	THM_LOG_N ("####  dump requestIdInfo  ####\n");
+	THM_INNER_FORCE_LOG_I ("####  dump requestIdInfo  ####\n");
 
 	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
-		THM_LOG_N (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
+		THM_INNER_FORCE_LOG_I (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
 		for (j = 0; j < REQUEST_ID_MAX; ++ j) {
 			if (gstRequestIdInfo [i][j].nId != REQUEST_ID_BLANK) {
-				THM_LOG_N (
+				THM_INNER_FORCE_LOG_I (
 					"  0x%02x - 0x%02x 0x%02x %s\n",
 					gstRequestIdInfo [i][j].nId,
 					gstRequestIdInfo [i][j].nSrcThreadIdx,
@@ -3260,15 +3260,15 @@ static void dumpRequestIdInfo (void)
 			}
 		}
 		if (!is_found) {
-			THM_LOG_N ("  none\n");
+			THM_INNER_FORCE_LOG_I ("  none\n");
 		}
 	}
 
 	/* 外部スレッド */
-	THM_LOG_N (" --- thread:external\n");
+	THM_INNER_FORCE_LOG_I (" --- thread:external\n");
 	for (j = 0; j < REQUEST_ID_MAX; ++ j) {
 		if (gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nId != REQUEST_ID_BLANK) {
-			THM_LOG_N (
+			THM_INNER_FORCE_LOG_I (
 				"  0x%02x - 0x%02x 0x%02x %s\n",
 				gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nId,
 				gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nSrcThreadIdx,
@@ -3279,7 +3279,7 @@ static void dumpRequestIdInfo (void)
 		}
 	}
 	if (!is_found) {
-		THM_LOG_N ("  none\n");
+		THM_INNER_FORCE_LOG_I ("  none\n");
 	}
 }
 
@@ -3333,7 +3333,7 @@ static void enableReqTimeout (uint8_t nThreadIdx, uint32_t nReqId, uint32_t nTim
 	if ((nThreadIdx < 0) || (nThreadIdx >= getTotalWorkerThreadNum())) {
 //TODO 引数チェックおかしい?
 		/* 外部スレッドを考慮 */
-		THM_INNER_LOG_N ("external\n");
+		THM_INNER_LOG_D ("external\n");
 		nThreadIdx = THREAD_IDX_EXTERNAL;
 	}
 
@@ -3408,7 +3408,7 @@ static void checkReqTimeout (uint8_t nThreadIdx)
 					 * 外部スレッドのReqタイムアウト
 					 * ここでreplyして reqId解放します
 					 */
-					THM_INNER_FORCE_LOG_N ("external thread -- reqTimeout reqId:[0x%x]\n", i);
+					THM_INNER_FORCE_LOG_I ("external thread -- reqTimeout reqId:[0x%x]\n", i);
 					replyOuter (i, &stContext, EN_THM_RSLT_REQ_TIMEOUT, NULL, 0);
 					releaseRequestId (THREAD_IDX_EXTERNAL, i);
 
@@ -3461,7 +3461,7 @@ static bool isReqTimeoutFromRequestId (uint8_t nThreadIdx, uint32_t nReqId)
 
 		} else if (diff_nsec == 0) {
 			/* ちょうどタイムアウト かなりレア... */
-			THM_INNER_LOG_N ("just timedout(ReqTimeout) threadIdx:[%d] reqId:[0x%x]\n", nThreadIdx, nReqId);
+			THM_INNER_LOG_I ("just timedout(ReqTimeout) threadIdx:[%d] reqId:[0x%x]\n", nThreadIdx, nReqId);
 			isTimeout = true;
 
 		} else {
@@ -3471,7 +3471,7 @@ static bool isReqTimeoutFromRequestId (uint8_t nThreadIdx, uint32_t nReqId)
 
 	} else {
 		/* 既にタイムアウトしてる... */
-		THM_INNER_LOG_N ("already timedout(ReqTimeout) threadIdx:[%d] reqId:[0x%x]\n", nThreadIdx, nReqId);
+		THM_INNER_LOG_I ("already timedout(ReqTimeout) threadIdx:[%d] reqId:[0x%x]\n", nThreadIdx, nReqId);
 		isTimeout = true;
 	}
 
@@ -3503,7 +3503,7 @@ static bool enQueReqTimeout (uint8_t nThreadIdx, uint32_t nReqId)
 		return false;
 	}
 
-	THM_INNER_LOG_N ("enQue REQ_TIMEOUT %s reqId:[0x%x]\n", gstInnerInfo [nThreadIdx].pszName, nReqId);
+	THM_INNER_LOG_I ("enQue REQ_TIMEOUT %s reqId:[0x%x]\n", gstInnerInfo [nThreadIdx].pszName, nReqId);
 
 	/* unlock */
 	pthread_mutex_unlock (&gMutexOpeRequestId [nThreadIdx]);
@@ -3604,12 +3604,12 @@ static void releaseRequestId (uint8_t nThreadIdx, uint32_t nReqId)
 	if ((nThreadIdx < 0) || (nThreadIdx >= getTotalWorkerThreadNum())) {
 //TODO 引数チェックおかしい?
 		/* 外部スレッドを考慮 */
-		THM_INNER_LOG_N ("external\n");
+		THM_INNER_LOG_D ("external\n");
 		nThreadIdx = THREAD_IDX_EXTERNAL;
 	}
 	if ((nReqId < 0) || (nReqId >= REQUEST_ID_MAX)) {
 		if (nReqId == REQUEST_ID_BLANK) {
-			THM_INNER_FORCE_LOG_N ("arg reqId is REQUEST_ID_BLANK.\n");
+			THM_INNER_FORCE_LOG_I ("arg reqId is REQUEST_ID_BLANK.\n");
 		} else {
 			THM_INNER_LOG_E ("invalid arg reqId. reqId:[0x%x]\n", nReqId);
 		}
@@ -3620,7 +3620,7 @@ static void releaseRequestId (uint8_t nThreadIdx, uint32_t nReqId)
 	pthread_mutex_lock (&gMutexOpeRequestId [nThreadIdx]);
 
 	if (gstRequestIdInfo [nThreadIdx][nReqId].nId == REQUEST_ID_BLANK) {
-		THM_INNER_FORCE_LOG_N ("reqId:[0x%x] is already released ???\n", nReqId);
+		THM_INNER_FORCE_LOG_I ("reqId:[0x%x] is already released ???\n", nReqId);
 	} else {
 		clearRequestIdInfo (&gstRequestIdInfo [nThreadIdx][nReqId]);
 //		THM_INNER_FORCE_LOG_W ("reqId:[0x%x] is released.\n", nReqId);
@@ -4130,7 +4130,7 @@ static void enableSeqTimeout (uint8_t nThreadIdx, uint8_t nSeqIdx)
 	uint32_t nTimeout = getSeqInfo (nThreadIdx, nSeqIdx)->timeout.nVal;
 	time_t add_sec = nTimeout / 1000;
 	long add_nsec  = (nTimeout % 1000) * 1000000;
-	THM_INNER_LOG_I ("add_sec:%ld  add_nsec:%ld\n", add_sec, add_nsec);
+	THM_INNER_LOG_D ("add_sec:%ld  add_nsec:%ld\n", add_sec, add_nsec);
 
 	struct timeval stNowTimeval = {0};
 	getTimeOfDay (&stNowTimeval);
@@ -4140,7 +4140,7 @@ static void enableSeqTimeout (uint8_t nThreadIdx, uint8_t nSeqIdx)
 	getSeqInfo (nThreadIdx, nSeqIdx)->timeout.stTime.tv_sec = now_sec + add_sec + ((now_nsec + add_nsec) / 1000000000);
 	getSeqInfo (nThreadIdx, nSeqIdx)->timeout.stTime.tv_nsec = (now_nsec + add_nsec) % 1000000000;
 	getSeqInfo (nThreadIdx, nSeqIdx)->timeout.enState = EN_TIMEOUT_STATE_MEAS;
-	THM_INNER_LOG_I (
+	THM_INNER_LOG_D (
 		"timeout.stTime.tv_sec:%ld  timeout.stTime.tv_nsec:%ld\n",
 		getSeqInfo (nThreadIdx, nSeqIdx)->timeout.stTime.tv_sec,
 		getSeqInfo (nThreadIdx, nSeqIdx)->timeout.stTime.tv_nsec
@@ -4203,7 +4203,7 @@ static bool isSeqTimeoutFromSeqIdx (uint8_t nThreadIdx, uint8_t nSeqIdx)
 
 		} else if (diff_nsec == 0) {
 			/* ちょうどタイムアウト かなりレア... */
-			THM_INNER_LOG_N ("just timedout(SeqTimeout) threadIdx:[%d] seqIdx:[%d]\n", nThreadIdx, nSeqIdx);
+			THM_INNER_LOG_I ("just timedout(SeqTimeout) threadIdx:[%d] seqIdx:[%d]\n", nThreadIdx, nSeqIdx);
 			isTimeout = true;
 
 		} else {
@@ -4213,7 +4213,7 @@ static bool isSeqTimeoutFromSeqIdx (uint8_t nThreadIdx, uint8_t nSeqIdx)
 
 	} else {
 		/* 既にタイムアウトしてる... */
-		THM_INNER_LOG_N ("already timedout(SeqTimeout) threadIdx:[%d] seqIdx:[%d]\n", nThreadIdx, nSeqIdx);
+		THM_INNER_LOG_I ("already timedout(SeqTimeout) threadIdx:[%d] seqIdx:[%d]\n", nThreadIdx, nSeqIdx);
 		isTimeout = true;
 	}
 
@@ -4551,16 +4551,16 @@ static EN_NEAREST_TIMEOUT searchNearestTimeout (
 	*pstSeqInfo = NULL;
 
 	if (!pstTmpReqIdInfo && !pstTmpSeqInfo) {
-		THM_INNER_LOG_I ("EN_NEAREST_TIMEOUT_NONE\n");
+		THM_INNER_LOG_D ("EN_NEAREST_TIMEOUT_NONE\n");
 		return EN_NEAREST_TIMEOUT_NONE;
 
 	} else if (pstTmpReqIdInfo && !pstTmpSeqInfo) {
-		THM_INNER_LOG_I ("EN_NEAREST_TIMEOUT_REQ\n");
+		THM_INNER_LOG_D ("EN_NEAREST_TIMEOUT_REQ\n");
 		*pstRequestIdInfo = pstTmpReqIdInfo;
 		return EN_NEAREST_TIMEOUT_REQ;
 
 	} else if (!pstTmpReqIdInfo && pstTmpSeqInfo) {
-		THM_INNER_LOG_I ("EN_NEAREST_TIMEOUT_SEQ\n");
+		THM_INNER_LOG_D ("EN_NEAREST_TIMEOUT_SEQ\n");
 		*pstSeqInfo = pstTmpSeqInfo;
 		return EN_NEAREST_TIMEOUT_SEQ;
 
@@ -4573,12 +4573,12 @@ static EN_NEAREST_TIMEOUT searchNearestTimeout (
 		seqTimeout_nsec = pstTmpSeqInfo->timeout.stTime.tv_nsec;
 
 		if (reqTimeout_sec < seqTimeout_sec) {
-			THM_INNER_LOG_I ("both timeout enabled. -> EN_NEAREST_TIMEOUT_REQ\n");
+			THM_INNER_LOG_D ("both timeout enabled. -> EN_NEAREST_TIMEOUT_REQ\n");
 			*pstRequestIdInfo = pstTmpReqIdInfo;
 			return EN_NEAREST_TIMEOUT_REQ;
 
 		} else if (reqTimeout_sec > seqTimeout_sec) {
-			THM_INNER_LOG_I ("both timeout enabled. -> EN_NEAREST_TIMEOUT_SEQ\n");
+			THM_INNER_LOG_D ("both timeout enabled. -> EN_NEAREST_TIMEOUT_SEQ\n");
 			*pstSeqInfo = pstTmpSeqInfo;
 			return EN_NEAREST_TIMEOUT_SEQ;
 
@@ -4586,18 +4586,18 @@ static EN_NEAREST_TIMEOUT searchNearestTimeout (
 			/* 整数値等しい場合 */
 
 			if (reqTimeout_nsec < seqTimeout_nsec) {
-				THM_INNER_LOG_I ("both timeout enabled. -> EN_NEAREST_TIMEOUT_REQ (integer value equal)\n");
+				THM_INNER_LOG_D ("both timeout enabled. -> EN_NEAREST_TIMEOUT_REQ (integer value equal)\n");
 				*pstRequestIdInfo = pstTmpReqIdInfo;
 				return EN_NEAREST_TIMEOUT_REQ;
 
 			} else if (reqTimeout_nsec > seqTimeout_nsec) {
-				THM_INNER_LOG_I ("both timeout enabled. -> EN_NEAREST_TIMEOUT_SEQ (integer value equal)\n");
+				THM_INNER_LOG_D ("both timeout enabled. -> EN_NEAREST_TIMEOUT_SEQ (integer value equal)\n");
 				*pstSeqInfo = pstTmpSeqInfo;
 				return EN_NEAREST_TIMEOUT_SEQ;
 
 			} else {
 				/* 小数点以下も同じ reqSeqTimeoutを返しておく */
-				THM_INNER_LOG_I ("both timeout enabled. -> equal !!!\n");
+				THM_INNER_LOG_D ("both timeout enabled. -> equal !!!\n");
 				*pstRequestIdInfo = pstTmpReqIdInfo;
 				return EN_NEAREST_TIMEOUT_REQ;
 			}
@@ -4780,12 +4780,12 @@ static void dumpExtInfoList (void)
 	/* lock */
 	pthread_mutex_lock (&gMutexOpeExtInfoList);
 
-	THM_LOG_N ("####  dump externalInfoList  ####\n");
+	THM_INNER_FORCE_LOG_I ("####  dump externalInfoList  ####\n");
 
 	pstExtInfoTmp = gpstExtInfoListTop;
 	while (pstExtInfoTmp) {
 
-		THM_LOG_N (" %d: %lu reqId:[0x%x]  (%p -> %p)\n", n, pstExtInfoTmp->nPthreadId, pstExtInfoTmp->nReqId, pstExtInfoTmp, pstExtInfoTmp->pNext);
+		THM_INNER_FORCE_LOG_I (" %d: %lu reqId:[0x%x]  (%p -> %p)\n", n, pstExtInfoTmp->nPthreadId, pstExtInfoTmp->nReqId, pstExtInfoTmp, pstExtInfoTmp->pNext);
 
 		// next set
 		pstExtInfoTmp = pstExtInfoTmp->pNext;

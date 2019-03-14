@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "threadmgr_if.h"
 #include "threadmgr_util.h"
@@ -53,6 +54,7 @@ private:
 	static void onCommandLineThrough (void);
 	static void onCommandWaitEnd (void);
 
+	void ignoreSigPipe (void);
 
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_COMMAND_SERVER_NUM]; // entity

@@ -247,7 +247,7 @@ bool CSectionInfo::isReceiveAll (void) const
 
 	// 右辺はheader含めたsectionの合計
 	if ((mpTail - mpRaw) < (mSectHdr.section_length + SECTION_SHORT_HEADER_LEN)) {
-		_UTL_LOG_I ("section fragment\n");
+		_UTL_LOG_D ("section fragment\n");
 		return false;
 	}
 
@@ -486,7 +486,7 @@ CSectionInfo* CSectionParser::attachSectionList (uint8_t *pBuff, size_t size)
 	size_t remain = mPoolSize - mPoolInd;
 	if (remain < size) {
 		// pool full
-		_UTL_LOG_I ("pool full\n");
+		_UTL_LOG_E ("pool full\n");
 		return NULL;
 	}
 
@@ -501,7 +501,7 @@ CSectionInfo* CSectionParser::attachSectionList (uint8_t *pBuff, size_t size)
 	if (mpWorkSectInfo && (mpWorkSectInfo->mState == EN_SECTION_STATE__RECEIVING)) {
 		// follow
 		if (pCur != mpWorkSectInfo->mpTail) {
-			_UTL_LOG_E ("BUG");
+			_UTL_LOG_E ("BUG: (pCur != mpWorkSectInfo->mpTail)");
 		}
 		mpWorkSectInfo->mpTail = pCur + size;
 		pRtn = mpWorkSectInfo;
@@ -629,7 +629,7 @@ void CSectionParser::deleteSectionList (const CSectionInfo &sectInfo)
 					pTmp->mpNext = NULL;
 				}
 
-				_UTL_LOG_I ("delete");
+				_UTL_LOG_D ("delete");
 				delete pDel;
 				pDel = NULL;
 				break;
@@ -701,7 +701,7 @@ void CSectionParser::deleteSectionList (const CSectionInfo *pSectInfo)
 					pTmp->mpNext = NULL;
 				}
 
-				_UTL_LOG_I ("delete");
+				_UTL_LOG_D ("delete");
 				delete pDel;
 				pDel = NULL;
 				break;
@@ -937,14 +937,14 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 
 	if((p + pointer_field) >= (pPayload + payloadSize)) {
 //TODO
-		_UTL_LOG_I("payloadSize=[%d]", payloadSize);
-		_UTL_LOG_I("pointer_field=[%d]", pointer_field);
-		_UTL_LOG_E ("input data is probably broken");
+		_UTL_LOG_W ("payloadSize=[%d]", payloadSize);
+		_UTL_LOG_W ("pointer_field=[%d]", pointer_field);
+		_UTL_LOG_W ("input data is probably broken");
 		return EN_CHECK_SECTION__INVALID;
 	}
 
 	if (pointer_field > 0) {
-		_UTL_LOG_I("pointer_field=[%d]", pointer_field);
+		_UTL_LOG_D ("pointer_field=[%d]", pointer_field);
 		EN_CHECK_SECTION chk = checkSectionFollow (p, pointer_field);
 		switch ((int)chk) {
 		case EN_CHECK_SECTION__RECEIVING:
@@ -1012,7 +1012,7 @@ mpWorkSectInfo->dumpHeader ();
 //		}
 
 		uint16_t nDataPartLen = mpWorkSectInfo->getDataPartLen ();
-		_UTL_LOG_I ("nDataPartLen %d\n", nDataPartLen);
+		_UTL_LOG_D ("nDataPartLen %d\n", nDataPartLen);
 
 
 //		if (mType == EN_SECTION_TYPE__PSISI) {
@@ -1027,7 +1027,7 @@ mpWorkSectInfo->dumpHeader ();
 				mpWorkSectInfo = NULL;
 				continue;
 			}
-			_UTL_LOG_I ("CRC32 ok");
+			_UTL_LOG_D ("CRC32 ok");
 
 //		} else if (mType == EN_SECTION_TYPE__DSMCC) {
 //
@@ -1044,7 +1044,7 @@ dumpSectionList ();
 		// すでに持っているsectionかどうかチェック
 		CSectionInfo *pFound = searchSectionList (*mpWorkSectInfo);
 		if (pFound && pFound->mState == EN_SECTION_STATE__COMPLETE) {
-			_UTL_LOG_N ("already know section -> detach");
+			_UTL_LOG_D ("already know section -> detach");
 			r = EN_CHECK_SECTION__COMPLETED_ALREADY;
 			size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
 			p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
@@ -1055,7 +1055,7 @@ dumpSectionList ();
 
 		} else {
 			// new section
-			_UTL_LOG_N ("new section");
+			_UTL_LOG_D ("new section");
 			r = EN_CHECK_SECTION__COMPLETED;
 			size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
 			p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
@@ -1102,7 +1102,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFollow (uint8_t *pPayload, size_t p
 	}
 
 	if (pAttached != mpWorkSectInfo) {
-		_UTL_LOG_E ("BUG");
+		_UTL_LOG_E ("BUG: (pAttached != mpWorkSectInfo)");
 		return EN_CHECK_SECTION__INVALID;
 	}
 
@@ -1128,7 +1128,7 @@ mpWorkSectInfo->dumpHeader ();
 //	}
 
 	uint16_t nDataPartLen = mpWorkSectInfo->getDataPartLen ();
-	_UTL_LOG_I ("nDataPartLen %d\n", nDataPartLen);
+	_UTL_LOG_D ("nDataPartLen %d\n", nDataPartLen);
 
 
 //	if (mType == EN_SECTION_TYPE__PSISI) {
@@ -1139,7 +1139,7 @@ mpWorkSectInfo->dumpHeader ();
 			mpWorkSectInfo = NULL;
 			return EN_CHECK_SECTION__CRC32_ERR;
 		}
-		_UTL_LOG_I ("CRC32 ok");
+		_UTL_LOG_D ("CRC32 ok");
 
 //	} else if (mType == EN_SECTION_TYPE__DSMCC) {
 //
@@ -1156,14 +1156,14 @@ dumpSectionList ();
 	// すでに持っているsectionかどうかチェック
 	CSectionInfo *pFound = searchSectionList (*mpWorkSectInfo);
 	if (pFound && pFound->mState == EN_SECTION_STATE__COMPLETE) {
-		_UTL_LOG_N ("already know section -> detach");
+		_UTL_LOG_D ("already know section -> detach");
 		detachSectionList (mpWorkSectInfo);
 		mpWorkSectInfo = NULL;
 		return EN_CHECK_SECTION__COMPLETED_ALREADY;
 
 	} else {
 		// new section
-		_UTL_LOG_N ("new section");
+		_UTL_LOG_D ("new section");
 		mpWorkSectInfo->mState = EN_SECTION_STATE__COMPLETE;
 		checkDetachFifoSectionList ();
 
@@ -1185,10 +1185,10 @@ EN_CHECK_SECTION CSectionParser::checkSection (const TS_HEADER *pTsHdr, uint8_t 
 	mPid = pTsHdr->pid;
 
 	if (pTsHdr->payload_unit_start_indicator == 0) {
-		_UTL_LOG_I("checkSectionFollow");
+		_UTL_LOG_D ("checkSectionFollow");
 		return checkSectionFollow (pPayload, payloadSize);
 	} else {
-		_UTL_LOG_I("checkSectionFirst");
+		_UTL_LOG_D ("checkSectionFirst");
 		return checkSectionFirst (pPayload, payloadSize);
 	}
 }
