@@ -21,6 +21,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_DOWN] = {(PFN_SEQ_BASE)&CPsisiManager::moduleDown, (char*)"moduleDown"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_CHECK_LOOP]  = {(PFN_SEQ_BASE)&CPsisiManager::checkLoop,  (char*)"checkLoop"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_CHECK_PAT]   = {(PFN_SEQ_BASE)&CPsisiManager::checkPAT,   (char*)"checkPAT"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_TABLES] = {(PFN_SEQ_BASE)&CPsisiManager::dumpTables, (char*)"dumpTables"};
 	setSeqs (mSeqs, EN_SEQ_PSISI_MANAGER_NUM);
 
 
@@ -212,8 +213,8 @@ void CPsisiManager::checkPAT (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	bool *p_isCompAlready = (bool*)(pIf->getSrcInfo()->msg.pMsg);
-	if (*p_isCompAlready) {
+	bool isCompAlready = *(bool*)(pIf->getSrcInfo()->msg.pMsg);
+	if (isCompAlready) {
 		mPAT.dumpTables();
 	}
 
@@ -226,9 +227,66 @@ void CPsisiManager::checkPAT (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CPsisiManager::dumpTables (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-// CTunerControlIf::ITsReceiveHandler
+	EN_PSISI_TYPE type = *(EN_PSISI_TYPE*)(pIf->getSrcInfo()->msg.pMsg);
+	switch (type) {
+	case EN_PSISI_TYPE_PAT:
+		mPAT.dumpTables();
+		break;
+
+	case EN_PSISI_TYPE_PMT:
+		break;
+
+	case EN_PSISI_TYPE_EIT_H:
+		mEIT_H.dumpTables_simple();
+		mEIT_H.dumpTables();
+		break;
+
+	case EN_PSISI_TYPE_NIT:
+		mNIT.dumpTables();
+		break;
+
+	case EN_PSISI_TYPE_SDT:
+		mSDT.dumpTables();
+		break;
+
+	case EN_PSISI_TYPE_RST:
+		mRST.dumpTables();
+		break;
+
+	case EN_PSISI_TYPE_BIT:
+		mBIT.dumpTables();
+		break;
+
+	default:
+		break;
+	}
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+
+
+
+//////////  CTunerControlIf::ITsReceiveHandler  //////////
+
 bool CPsisiManager::onPreTsReceive (void)
 {
 	getExternalIf()->createExternalCp();
@@ -240,7 +298,6 @@ bool CPsisiManager::onPreTsReceive (void)
 	return true;
 }
 
-// CTunerControlIf::ITsReceiveHandler
 void CPsisiManager::onPostTsReceive (void)
 {
 	uint32_t opt = getExternalIf()->getRequestOption ();
@@ -250,13 +307,11 @@ void CPsisiManager::onPostTsReceive (void)
 	getExternalIf()->destroyExternalCp();
 }
 
-// CTunerControlIf::ITsReceiveHandler
 bool CPsisiManager::onCheckTsReceiveLoop (void)
 {
 	return true;
 }
 
-// CTunerControlIf::ITsReceiveHandler
 bool CPsisiManager::onTsReceived (void *p_ts_data, int length)
 {
 
@@ -266,7 +321,10 @@ bool CPsisiManager::onTsReceived (void *p_ts_data, int length)
 	return true;
 }
 
-// CTsParser::IParserListener
+
+
+//////////  CTsParser::IParserListener  //////////
+
 bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size)
 {
 	if (!p_ts_header || !p_payload || payload_size == 0) {
@@ -290,8 +348,30 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		break;
 
 	case PID_EIT_H:
-//		r = mEIT_H.checkSection (p_ts_header, p_payload, payload_size);
+
+		r = mEIT_H.checkSection (p_ts_header, p_payload, payload_size);
 		break;
+
+	case PID_NIT:
+
+		r = mNIT.checkSection (p_ts_header, p_payload, payload_size);
+		break;
+
+	case PID_SDT:
+
+		r = mSDT.checkSection (p_ts_header, p_payload, payload_size);
+		break;
+
+	case PID_RST:
+
+		r = mRST.checkSection (p_ts_header, p_payload, payload_size);
+		break;
+
+	case PID_BIT:
+
+		r = mBIT.checkSection (p_ts_header, p_payload, payload_size);
+		break;
+
 
 	default:	
 		break;

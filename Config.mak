@@ -2,7 +2,7 @@
 #   Defines
 #
 
-MAKE		:=	/usr/bin/make --no-print-directory
+MAKE		:=	/usr/bin/make
 ECHO		:=	echo
 #CC			:=	/bin/gcc
 CC			:=	/usr/bin/gcc
@@ -17,6 +17,14 @@ SIZE		:=	/usr/bin/size
 OBJDUMP		:=	/usr/bin/objdump
 
 
+# redefine MAKE command
+MAKE		+=	--no-print-directory
+ifeq ($(DEBUG_BUILD), 1)
+MAKE		+=	DEBUG_BUILD=1
+endif
+
+
+# CFLAGS
 CFLAGS		+=	-Wall -MD
 ifeq ($(TARGET_TYPE), SHARED)
 CFLAGS		+=	-shared -fPIC
@@ -29,6 +37,11 @@ endif
 ifneq ($(USERDEFS),)
 CFLAGS		+=	$(USERDEFS)
 endif
+
+ifeq ($(DEBUG_BUILD), 1)
+CFLAGS		+=	-g -D_DEBUG_BUILD
+endif
+
 
 EXIST_SRCS		:=	FALSE
 ifneq ($(SRCS),)
@@ -264,16 +277,16 @@ ifeq ($(TARGET_TYPE), EXEC)
 ifneq ($(TARGET_OBJ),)
 ifneq ($(INSTALLDIR_BIN),)
 	@$(INSTALL) -v -d $(INSTALLDIR_BIN)
-#	@$(INSTALL) -v --strip $(TARGET_OBJ) $(INSTALLDIR_BIN)
-	@$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_BIN)
+	@$(INSTALL) -v --strip $(TARGET_OBJ) $(INSTALLDIR_BIN)
+#	@$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_BIN)
 endif
 endif
 else ifeq ($(TARGET_TYPE), SHARED)
 ifneq ($(TARGET_OBJ),)
 ifneq ($(INSTALLDIR_LIB),)
 	@$(INSTALL) -v -d $(INSTALLDIR_LIB)
-#	@$(INSTALL) -v --strip $(TARGET_OBJ) $(INSTALLDIR_LIB)
-	@$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_LIB)
+	@$(INSTALL) -v --strip $(TARGET_OBJ) $(INSTALLDIR_LIB)
+#	@$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_LIB)
 endif
 endif
 endif

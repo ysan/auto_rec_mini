@@ -10,6 +10,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/threadmgrpp \
 	-I$(BASEDIR)/common \
 	-I$(BASEDIR)/tuner_control \
+	-I$(BASEDIR)/psisi_manager \
 	-I./ \
 	-I../ \
 

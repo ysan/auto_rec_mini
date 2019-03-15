@@ -32,7 +32,7 @@ TARGET_TYPE	:=	SHARED
 #
 #   Compile sources
 #
-ifdef DEBUG
+ifeq ($(DEBUG_BUILD), 1)
 SRCS		:= \
 	it9175_extern_debug.c \
 	it9175.c \

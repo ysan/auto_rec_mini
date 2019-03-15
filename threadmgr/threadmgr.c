@@ -814,11 +814,11 @@ static void dumpInnerInfo (void)
 
 //TODO 参照だけ ログだけだからmutexしない
 
-	THM_INNER_FORCE_LOG_I ("####  dumpInnerInfo  ####\n");
-	THM_INNER_FORCE_LOG_I (" thread-idx thread-name       pthread_id      que-max seq-num req-opt    req-opt-timeout\n");
+	THM_LOG_I ("####  dumpInnerInfo  ####\n");
+	THM_LOG_I (" thread-idx thread-name       pthread_id      que-max seq-num req-opt    req-opt-timeout\n");
 
 	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
-		THM_INNER_FORCE_LOG_I (
+		THM_LOG_I (
 			" 0x%02x       [%-15s] %lu %d      %d       0x%08x %d\n",
 			gstInnerInfo [i].nThreadIdx,
 			gstInnerInfo [i].pszName,
@@ -830,16 +830,16 @@ static void dumpInnerInfo (void)
 		);
 	}
 
-	THM_INNER_FORCE_LOG_I ("####  dumpSeqInfo  ####\n");
+	THM_LOG_I ("####  dumpSeqInfo  ####\n");
 	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
-		THM_INNER_FORCE_LOG_I (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
+		THM_LOG_I (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
 		int n = gstInnerInfo [i].nSeqNum;
 		ST_SEQ_INFO *pstSeqInfo = gstInnerInfo [i].pstSeqInfo;
 		for (j = 0; j < n; ++ j) {
 			const ST_THM_SEQ *p = gpstThmRegTbl [gstInnerInfo [i].nThreadIdx]->pstSeqArray;
 			const char *p_name = (p + pstSeqInfo->nSeqIdx)->pszName;
 
-			THM_INNER_FORCE_LOG_I (
+			THM_LOG_I (
 				"   0x%02x [%-15.15s] %2d %s %s %s %s %d\n",
 				pstSeqInfo->nSeqIdx,
 				p_name,
@@ -1244,9 +1244,9 @@ static void dumpQueWorker (uint8_t nThreadIdx)
 	/* lock */
 	pthread_mutex_lock (&gMutexOpeQueWorker [nThreadIdx]);
 
-	THM_INNER_FORCE_LOG_I ("####  dumpQue [%s]  ####\n", gstInnerInfo [nThreadIdx].pszName);
+	THM_LOG_I ("####  dumpQue [%s]  ####\n", gstInnerInfo [nThreadIdx].pszName);
 	for (i = 0; i < nQueWorkerNum; ++ i) {
-		THM_INNER_FORCE_LOG_I (
+		THM_LOG_I (
 			" %d: %s (%s %d-%d) -> %d-%d 0x%x %s 0x%x %s\n",
 			i,
 			gpszQueType [pstQueWorker->enQueType],
@@ -3243,13 +3243,13 @@ static void dumpRequestIdInfo (void)
 
 //TODO 参照だけ ログだけだからmutexしない
 
-	THM_INNER_FORCE_LOG_I ("####  dump requestIdInfo  ####\n");
+	THM_LOG_I ("####  dump requestIdInfo  ####\n");
 
 	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
-		THM_INNER_FORCE_LOG_I (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
+		THM_LOG_I (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
 		for (j = 0; j < REQUEST_ID_MAX; ++ j) {
 			if (gstRequestIdInfo [i][j].nId != REQUEST_ID_BLANK) {
-				THM_INNER_FORCE_LOG_I (
+				THM_LOG_I (
 					"  0x%02x - 0x%02x 0x%02x %s\n",
 					gstRequestIdInfo [i][j].nId,
 					gstRequestIdInfo [i][j].nSrcThreadIdx,
@@ -3260,7 +3260,7 @@ static void dumpRequestIdInfo (void)
 			}
 		}
 		if (!is_found) {
-			THM_INNER_FORCE_LOG_I ("  none\n");
+			THM_LOG_I ("  none\n");
 		}
 	}
 
@@ -4780,7 +4780,7 @@ static void dumpExtInfoList (void)
 	/* lock */
 	pthread_mutex_lock (&gMutexOpeExtInfoList);
 
-	THM_INNER_FORCE_LOG_I ("####  dump externalInfoList  ####\n");
+	THM_LOG_I ("####  dump externalInfoList  ####\n");
 
 	pstExtInfoTmp = gpstExtInfoListTop;
 	while (pstExtInfoTmp) {

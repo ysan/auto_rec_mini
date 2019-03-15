@@ -18,7 +18,6 @@
 
 #include "Utils.h"
 #include "PsisiManagerIf.h"
-//#include "PsisiManagerTables.h"
 
 #include "TunerControlIf.h"
 #include "TsParser.h"
@@ -50,6 +49,7 @@ public:
 	void moduleDown (CThreadMgrIf *pIf);
 	void checkLoop (CThreadMgrIf *pIf);
 	void checkPAT (CThreadMgrIf *pIf);
+	void dumpTables (CThreadMgrIf *pIf);
 
 
 private:
@@ -72,6 +72,10 @@ private:
 
 	CProgramAssociationTable mPAT;
 	CEventInformationTable mEIT_H;
+	CNetworkInformationTable mNIT;
+	CServiceDescriptionTable mSDT;
+	CRunningStatusTable mRST;
+	CBroadcasterInformationTable mBIT;
 
 	CProgramAssociationTable::CReference mPAT_ref;
 	CEventInformationTable::CReference mEIT_H_ref;

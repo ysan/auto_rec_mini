@@ -8,6 +8,7 @@
 #include "CommandTables.h"
 
 #include "TunerControlCommands.h"
+#include "PsisiManagerCommands.h"
 
 
 
@@ -25,27 +26,6 @@ static void moni (int argc, char* argv[], CThreadMgrBase *pBase)
 	kill (0, SIGQUIT);
 }
 
-static ST_COMMAND_INFO g_commandServer2 [] = {
-	{
-		"echo",
-		"echo from commandServer2",
-		__echo,
-		NULL,
-	},
-	{
-		"moni",
-		"debug monitor2",
-		moni,
-		NULL,
-	},
-	//-- term --//
-	{
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-	},
-};
 
 static ST_COMMAND_INFO g_commandServer [] = {
 	{
@@ -60,12 +40,6 @@ static ST_COMMAND_INFO g_commandServer [] = {
 		moni,
 		NULL,
 	},
-	{
-		"cs2",
-		"command server2",
-		NULL,
-		g_commandServer2,
-	},
 	//-- term --//
 	{
 		NULL,
@@ -76,7 +50,7 @@ static ST_COMMAND_INFO g_commandServer [] = {
 };
 
 
-//////////////////////////////////////
+///////////  root command table  ///////////
 ST_COMMAND_INFO g_rootCommandTable [] = { // extern
 	{
 		"cs",
@@ -90,6 +64,13 @@ ST_COMMAND_INFO g_rootCommandTable [] = { // extern
 		NULL,
 		g_tunerControlCommands,
 	},
+	{
+		"pm",
+		"psisi manager",
+		NULL,
+		g_psisiManagerCommands,
+	},
+
 
 
 	//-- term --//
@@ -100,4 +81,3 @@ ST_COMMAND_INFO g_rootCommandTable [] = { // extern
 		NULL,
 	},
 };
-//////////////////////////////////////

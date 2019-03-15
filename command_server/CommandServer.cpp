@@ -533,7 +533,7 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 			gp_current_command_table = p;
 
 			if (gp_current_command_table == g_rootCommandTable) {
-				showList ("root table");
+				showList ("root tables");
 			} else{
 				showList (peep_sub()->pszDesc);
 			}
@@ -542,7 +542,7 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 	} else if ((int)strlen(".") == (int)strlen(pszCommand) && strncmp (".", pszCommand, (int)strlen(pszCommand)) == 0) {
 
 		if (gp_current_command_table == g_rootCommandTable) {
-			showList ("root table");
+			showList ("root tables");
 		} else{
 			showList (peep_sub()->pszDesc);
 		}
@@ -591,7 +591,7 @@ void CCommandServer::onCommandWaitBegin (void)
 	fprintf (gp_fptr_inner, "###  command line  begin. ###\n");
 
 	gp_current_command_table = g_rootCommandTable ;
-	showList ("root table");
+	showList ("root tables");
 }
 
 void CCommandServer::onCommandLineThrough (void)

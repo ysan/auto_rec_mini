@@ -12,7 +12,7 @@
 #define SYSTIME_STRING_SIZE			(2+1+2+1+2+1+2+1+2 +1)
 #define SYSTIME_MS_STRING_SIZE		(2+1+2+1+2+1+2+1+2+1+3 +1)
 #define THREAD_NAME_STRING_SIZE		(10+1)
-#define LOG_STRING_SIZE				(128)
+#define LOG_STRING_SIZE				(1024)
 #define BACKTRACE_BUFF_SIZE			(20)
 
 
