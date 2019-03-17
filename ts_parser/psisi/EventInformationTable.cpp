@@ -186,6 +186,7 @@ void CEventInformationTable::dumpTable (const CTable* pTable) const
 	_UTL_LOG_I ("========================================\n");
 
 	_UTL_LOG_I ("table_id                    [0x%02x]\n", pTable->header.table_id);
+	_UTL_LOG_I ("service_id                  [0x%04x]\n", pTable->header.table_id_extension);
 	_UTL_LOG_I ("transport_stream_id         [0x%04x]\n", pTable->transport_stream_id);
 	_UTL_LOG_I ("original_network_id         [0x%04x]\n", pTable->original_network_id);
 	_UTL_LOG_I ("segment_last_section_number [0x%02x]\n", pTable->segment_last_section_number);
@@ -235,7 +236,7 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 	}
 
 	_UTL_LOG_I (
-		"table_id:[0x%02x][%s] ts_id:[0x%04x] org_network_id:[0x%04x] %s\n",
+		"table_id:[0x%02x][%s] service_id:[0x%04x] ts_id:[0x%04x] org_network_id:[0x%04x] %s\n",
 		pTable->header.table_id,
 		pTable->header.table_id == 0x4e ? "PF,A " :
 			pTable->header.table_id == 0x4f ? "PF,O " :
@@ -244,6 +245,7 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 			pTable->header.table_id >= 0x60 && pTable->header.table_id < 0x68 ? "Sh,O " :
 			pTable->header.table_id == 0x68 ? "Sh,OE" :
 			"unsup",
+		pTable->header.table_id_extension,
 		pTable->transport_stream_id,
 		pTable->original_network_id,
 		buf

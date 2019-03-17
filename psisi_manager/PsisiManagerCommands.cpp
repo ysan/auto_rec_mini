@@ -160,7 +160,7 @@ ST_COMMAND_INFO g_psisiManagerDumpTables [] = { // extern
 
 ST_COMMAND_INFO g_psisiManagerCommands [] = { // extern
 	{
-		"dp",
+		"d",
 		"dump psisi-tables",
 		NULL,
 		g_psisiManagerDumpTables,

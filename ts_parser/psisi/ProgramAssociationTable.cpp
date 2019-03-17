@@ -145,7 +145,7 @@ void CProgramAssociationTable::dumpTable (const CTable* pTable) const
 
 	std::vector<CTable::CProgram>::const_iterator iter_prog = pTable->programs.begin();
 	for (; iter_prog != pTable->programs.end(); ++ iter_prog) {
-		_UTL_LOG_I ("\n--  programs  --\n");
+		_UTL_LOG_I ("\n--  program  --\n");
 		_UTL_LOG_I ("program_number  [0x%04x]\n", iter_prog->program_number);
 		if (iter_prog->program_number == 0) {
 			_UTL_LOG_I ("network_PID     [0x%04x]\n", iter_prog->program_map_PID);
