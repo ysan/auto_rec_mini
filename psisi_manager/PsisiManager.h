@@ -53,6 +53,8 @@ public:
 
 
 private:
+	void onReceiveNotify (CThreadMgrIf *pIf) override;
+
 	// CTunerControlIf::ITsReceiveHandler
 	bool onPreTsReceive (void) override;
 	void onPostTsReceive (void) override;
@@ -67,6 +69,7 @@ private:
 
 	CTsParser m_parser;
 
+	uint8_t m_tuner_notify_client_id;
 	int m_ts_receive_handler_id;
 
 
@@ -78,7 +81,8 @@ private:
 	CBroadcasterInformationTable mBIT;
 
 	CProgramAssociationTable::CReference mPAT_ref;
-	CEventInformationTable::CReference mEIT_H_ref;
+	CEventInformationTable::CReference mEIT_H_pf_ref;
+	CEventInformationTable::CReference mEIT_H_sch_ref;
 
 };
 

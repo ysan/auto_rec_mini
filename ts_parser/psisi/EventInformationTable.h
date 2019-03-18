@@ -105,24 +105,34 @@ public:
 	// CSectionParser
 	void onSectionCompleted (const CSectionInfo *pCompSection) override;
 
-	void dumpTables (void);
-	void dumpTables_simple (void);
+	void dumpTables_pf (void);
+	void dumpTables_pf_simple (void);
+	void dumpTables_sch (void);
+	void dumpTables_sch_simple (void);
 
 	void dumpTable (const CTable* pTable) const;
 	void dumpTable_simple (const CTable* pTable) const;
 
 	void clear (void);
 
-	CReference reference (void);
+	CReference reference_pf (void);
+	CReference reference_sch (void);
 
 private:
 	bool parse (const CSectionInfo *pCompSection, CTable* pOutTable);
-	void appendTable (CTable *pTable);
-	void releaseTables (void);
+
+	void appendTable_pf (CTable *pTable);
+	void appendTable_sch (CTable *pTable);
+
+	void releaseTables_pf (void);
+	void releaseTables_sch (void);
 
 
-	std::vector <CTable*> mTables;
-	std::mutex mMutexTables;
+	std::vector <CTable*> mTables_pf;
+	std::mutex mMutexTables_pf;
+
+	std::vector <CTable*> mTables_sch;
+	std::mutex mMutexTables_sch;
 
 };
 

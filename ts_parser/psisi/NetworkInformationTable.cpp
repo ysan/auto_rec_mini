@@ -176,6 +176,7 @@ void CNetworkInformationTable::dumpTable (const CTable* pTable) const
 	_UTL_LOG_I ("========================================\n");
 
 	_UTL_LOG_I ("table_id                         [0x%02x]\n", pTable->header.table_id);
+	_UTL_LOG_I ("network_id                       [0x%04x]\n", pTable->header.table_id_extension);
 	_UTL_LOG_I ("network_descriptors_length       [%d]\n", pTable->network_descriptors_length);
 
 	std::vector<CDescriptor>::const_iterator iter_desc = pTable->descriptors.begin();

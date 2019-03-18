@@ -158,6 +158,7 @@ void CServiceDescriptionTable::dumpTable (const CTable* pTable) const
 	_UTL_LOG_I ("========================================\n");
 
 	_UTL_LOG_I ("table_id                  [0x%02x]\n", pTable->header.table_id);
+	_UTL_LOG_I ("transport_stream_id       [0x%04x]\n", pTable->header.table_id_extension);
 	_UTL_LOG_I ("original_network_id       [0x%04x]\n", pTable->original_network_id);
 
 	std::vector<CTable::CService>::const_iterator iter_svc = pTable->services.begin();

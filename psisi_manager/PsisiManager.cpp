@@ -13,6 +13,7 @@
 CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,m_parser (this)
+	,m_tuner_notify_client_id (0xff)
 	,m_ts_receive_handler_id (-1)
 	,mPAT (16)
 	,mEIT_H (4096*20, 20)
@@ -27,7 +28,8 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 
 	// references
 	mPAT_ref = mPAT.reference();
-	mEIT_H_ref = mEIT_H.reference();
+	mEIT_H_pf_ref = mEIT_H.reference_pf();
+	mEIT_H_sch_ref = mEIT_H.reference_sch();
 
 }
 
@@ -42,6 +44,8 @@ void CPsisiManager::moduleUp (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_REG_TUNER_NOTIFY,
+		SECTID_WAIT_REG_TUNER_NOTIFY,
 		SECTID_REQ_REG_HANDLER,
 		SECTID_WAIT_REG_HANDLER,
 		SECTID_REQ_CHECK_LOOP,
@@ -58,8 +62,31 @@ void CPsisiManager::moduleUp (CThreadMgrIf *pIf)
 
 	switch (sectId) {
 	case SECTID_ENTRY:
-		sectId = SECTID_REQ_REG_HANDLER;
+		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
 		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_REG_TUNER_NOTIFY: {
+		CTunerControlIf _if (getExternalIf());
+		_if.reqRegisterTunerNotify ();
+
+		sectId = SECTID_WAIT_REG_TUNER_NOTIFY;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_REG_TUNER_NOTIFY:
+		enRslt = pIf->getSrcInfo()->enRslt;
+        if (enRslt == EN_THM_RSLT_SUCCESS) {
+			m_tuner_notify_client_id = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+			sectId = SECTID_REQ_REG_HANDLER;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("reqRegisterTunerNotify is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
 		break;
 
 	case SECTID_REQ_REG_HANDLER: {
@@ -101,8 +128,7 @@ void CPsisiManager::moduleUp (CThreadMgrIf *pIf)
 //		} else {
 //
 //		}
-
-		// EN_THM_RSLT_SUCCESSのみ
+// EN_THM_RSLT_SUCCESSのみ
 
 		sectId = SECTID_END_SUCCESS;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -249,9 +275,14 @@ void CPsisiManager::dumpTables (CThreadMgrIf *pIf)
 	case EN_PSISI_TYPE_PMT:
 		break;
 
-	case EN_PSISI_TYPE_EIT_H:
-		mEIT_H.dumpTables_simple();
-		mEIT_H.dumpTables();
+	case EN_PSISI_TYPE_EIT_H_PF:
+		mEIT_H.dumpTables_pf_simple();
+		mEIT_H.dumpTables_pf();
+		break;
+
+	case EN_PSISI_TYPE_EIT_H_SCH:
+		mEIT_H.dumpTables_sch_simple();
+		mEIT_H.dumpTables_sch();
 		break;
 
 	case EN_PSISI_TYPE_NIT:
@@ -282,6 +313,27 @@ void CPsisiManager::dumpTables (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
+{
+	if (!(pIf->getSrcInfo()->nClientId == m_tuner_notify_client_id)) {
+		return ;
+	}
+
+	EN_TUNER_NOTIFY enNotify = *(EN_TUNER_NOTIFY*)(pIf->getSrcInfo()->msg.pMsg);
+	switch (enNotify) {
+	case EN_TUNER_NOTIFY__TUNE_BEGIN:
+		_UTL_LOG_E ("xxxxxxxxxxxxxxxxxx  EN_TUNER_NOTIFY__TUNE_BEGIN");
+		break;
+	case EN_TUNER_NOTIFY__TUNE_END_SUCCESS:
+		_UTL_LOG_E ("xxxxxxxxxxxxxxxxxx  EN_TUNER_NOTIFY__TUNE_END_SUCCESS");
+		break;
+	case EN_TUNER_NOTIFY__TUNE_END_ERROR:
+		_UTL_LOG_E ("xxxxxxxxxxxxxxxxxx  EN_TUNER_NOTIFY__TUNE_END_ERROR");
+		break;
+	default:
+		break;
+	}
+}
 
 
 

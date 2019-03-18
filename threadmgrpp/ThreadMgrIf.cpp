@@ -57,37 +57,37 @@ bool CThreadMgrIf::reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 	}
 }
 
-bool CThreadMgrIf::regNotify (uint8_t *pnClientId)
+bool CThreadMgrIf::regNotify (uint8_t nCategory, uint8_t *pnClientId)
 {
 	if (mpIf) {
-		return mpIf->pfnRegNotify (pnClientId);
+		return mpIf->pfnRegNotify (nCategory, pnClientId);
 	} else {
 		return false;
 	}
 }
 
-bool CThreadMgrIf::unregNotify (uint8_t nClientId)
+bool CThreadMgrIf::unregNotify (uint8_t nCategory, uint8_t nClientId)
 {
 	if (mpIf) {
-		return mpIf->pfnUnRegNotify (nClientId);
+		return mpIf->pfnUnRegNotify (nCategory, nClientId);
 	} else {
 		return false;
 	}
 }
 
-bool CThreadMgrIf::notify (uint8_t nClientId)
+bool CThreadMgrIf::notify (uint8_t nCategory)
 {
 	if (mpIf) {
-		return mpIf->pfnNotify (nClientId, NULL, 0);
+		return mpIf->pfnNotify (nCategory, NULL, 0);
 	} else {
 		return false;
 	}
 }
 
-bool CThreadMgrIf::notify (uint8_t nClientId, uint8_t *pMsg, size_t msgSize)
+bool CThreadMgrIf::notify (uint8_t nCategory, uint8_t *pMsg, size_t msgSize)
 {
 	if (mpIf) {
-		return mpIf->pfnNotify (nClientId, pMsg, msgSize);
+		return mpIf->pfnNotify (nCategory, pMsg, msgSize);
 	} else {
 		return false;
 	}

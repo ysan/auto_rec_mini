@@ -19,6 +19,10 @@ CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
 	mSeqs [EN_SEQ_TUNER_CONTROL_TUNE]        = {(PFN_SEQ_BASE)&CTunerControl::tune,       (char*)"tune"};
 	mSeqs [EN_SEQ_TUNER_CONTROL_TUNE_START]  = {(PFN_SEQ_BASE)&CTunerControl::tuneStart,  (char*)"tuneStart"};
 	mSeqs [EN_SEQ_TUNER_CONTROL_TUNE_STOP]   = {(PFN_SEQ_BASE)&CTunerControl::tuneStop,   (char*)"tuneStop"};
+	mSeqs [EN_SEQ_TUNER_CONTROL_REG_TUNER_NOTIFY] =
+		{(PFN_SEQ_BASE)&CTunerControl::registerTunerNotify, (char*)"registerTunerNotify"};
+	mSeqs [EN_SEQ_TUNER_CONTROL_UNREG_TUNER_NOTIFY] = 
+		{(PFN_SEQ_BASE)&CTunerControl::unregisterTunerNotify, (char*)"unregisterTunerNotify"};
 	mSeqs [EN_SEQ_TUNER_CONTROL_REG_TS_RECEIVE_HANDLER] =
 		{(PFN_SEQ_BASE)&CTunerControl::registerTsReceiveHandler, (char*)"registerTsReceiveHandler"};
 	mSeqs [EN_SEQ_TUNER_CONTROL_UNREG_TS_RECEIVE_HANDLER] = 
@@ -38,6 +42,7 @@ CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
 	for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
 		mpRegTsReceiveHandlers [i] = NULL;
 	}
+
 }
 
 CTunerControl::~CTunerControl (void)
@@ -51,6 +56,7 @@ void CTunerControl::moduleUp (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_TUNE_THREAD_MODULE_UP,
 		SECTID_WAIT_TUNE_THREAD_MODULE_UP,
 		SECTID_END,
 	};
@@ -60,7 +66,11 @@ void CTunerControl::moduleUp (CThreadMgrIf *pIf)
 
 	switch (sectId) {
 	case SECTID_ENTRY:
+		sectId = SECTID_REQ_TUNE_THREAD_MODULE_UP;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
 
+	case SECTID_REQ_TUNE_THREAD_MODULE_UP:
 		requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_MODULE_UP);
 
 		sectId = SECTID_WAIT_TUNE_THREAD_MODULE_UP;
@@ -114,7 +124,9 @@ void CTunerControl::tune (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_TUNE_STOP,
 		SECTID_WAIT_TUNE_STOP,
+		SECTID_REQ_TUNE_START,
 		SECTID_WAIT_TUNE_START,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
@@ -136,23 +148,33 @@ void CTunerControl::tune (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_STOP);
-			sectId = SECTID_WAIT_TUNE_STOP;
-			enAct = EN_THM_ACT_WAIT;
+			sectId = SECTID_REQ_TUNE_STOP;
+			enAct = EN_THM_ACT_CONTINUE;
 		}
+		break;
+
+	case SECTID_REQ_TUNE_STOP:
+		requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_STOP);
+		sectId = SECTID_WAIT_TUNE_STOP;
+		enAct = EN_THM_ACT_WAIT;
 		break;
 
 	case SECTID_WAIT_TUNE_STOP:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_START, (uint8_t*)&freq, sizeof(freq));
-			sectId = SECTID_WAIT_TUNE_START;
-			enAct = EN_THM_ACT_WAIT;
+			sectId = SECTID_REQ_TUNE_START;
+			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
+		break;
+
+	case SECTID_REQ_TUNE_START:
+		requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_START, (uint8_t*)&freq, sizeof(freq));
+		sectId = SECTID_WAIT_TUNE_START;
+		enAct = EN_THM_ACT_WAIT;
 		break;
 
 	case SECTID_WAIT_TUNE_START:
@@ -192,6 +214,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_TUNE_THREAD_TUNE,
 		SECTID_WAIT_TUNE_THREAD_TUNE,
 		SECTID_CHECK_TUNED,
 		SECTID_END_SUCCESS,
@@ -201,17 +224,27 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-	static uint32_t freq = 0;
+	static uint32_t s_freq = 0;
 	static int chkcnt = 0;
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
 	switch (sectId) {
-	case SECTID_ENTRY:
+	case SECTID_ENTRY: {
+		// lock
 		pIf->lock();
 
-		freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
+		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNE_BEGIN;
+		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_NOTIFY));
 
-		requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_TUNE, (uint8_t*)&freq, sizeof(freq));
+		s_freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+		sectId = SECTID_REQ_TUNE_THREAD_TUNE;
+		enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_REQ_TUNE_THREAD_TUNE:
+		requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_TUNE, (uint8_t*)&s_freq, sizeof(s_freq));
 
 		sectId = SECTID_WAIT_TUNE_THREAD_TUNE;
 		enAct = EN_THM_ACT_WAIT;
@@ -231,7 +264,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_CHECK_TUNED:
-		if (chkcnt > 20) {
+		if (chkcnt > 40) {
 			pIf->clearTimeout ();
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -251,23 +284,33 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		}
 		break;
 
-	case SECTID_END_SUCCESS:
+	case SECTID_END_SUCCESS: {
+		// unlock
 		pIf->unlock();
 
-		mFreq = freq;
+		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNE_END_SUCCESS;
+		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_NOTIFY));
+
+		mFreq = s_freq;
 		chkcnt = 0;
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		pIf->reply (EN_THM_RSLT_SUCCESS);
+		}
 		break;
 
-	case SECTID_END_ERROR:
+	case SECTID_END_ERROR: {
+		// unlock
 		pIf->unlock();
+
+		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNE_END_ERROR;
+		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_NOTIFY));
 
 		chkcnt = 0;
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		pIf->reply (EN_THM_RSLT_ERROR);
+		}
 		break;
 
 	default:
@@ -318,6 +361,72 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 	}
 
 	chkcnt = 0;
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CTunerControl::registerTunerNotify (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	uint8_t clientId = 0;
+	EN_THM_RSLT enRslt;
+	bool rslt = pIf->regNotify (_TUNER_NOTIFY, &clientId);
+	if (rslt) {
+		enRslt = EN_THM_RSLT_SUCCESS;
+	} else {
+		enRslt = EN_THM_RSLT_ERROR;
+	}
+
+	_UTL_LOG_I ("registerd clientId=[0x%02x]\n", clientId);
+
+	// clientIdをreply msgで返す 
+	pIf->reply (enRslt, (uint8_t*)&clientId, sizeof(clientId));
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CTunerControl::unregisterTunerNotify (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	EN_THM_RSLT enRslt;
+	// msgからclientIdを取得
+	uint8_t clientId = *(pIf->getSrcInfo()->msg.pMsg);
+	bool rslt = pIf->unregNotify (_TUNER_NOTIFY, clientId);
+	if (rslt) {
+		_UTL_LOG_I ("unregisterd clientId=[0x%02x]\n", clientId);
+		enRslt = EN_THM_RSLT_SUCCESS;
+	} else {
+		_UTL_LOG_E ("failure unregister clientId=[0x%02x]\n", clientId);
+		enRslt = EN_THM_RSLT_ERROR;
+	}
+
+	pIf->reply (enRslt);
+
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;

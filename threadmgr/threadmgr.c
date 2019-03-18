@@ -62,7 +62,9 @@
 
 #define MSG_SIZE						(0x80) // 128
 
-#define NOTIFY_CLIENT_ID_MAX			(0x40) // 64  1threadごとnotifyを登録できるクライアント数
+#define NOTIFY_CATEGORY_MAX				(0x08) // 8   1threadごとのnotifyを登録できるカテゴリ数 (notifyの種別)
+#define NOTIFY_CATEGORY_BLANK			(0x80) // 128
+#define NOTIFY_CLIENT_ID_MAX			(0x20) // 32  1カテゴリごとnotifyを登録できるクライアント数
 #define NOTIFY_CLIENT_ID_BLANK			(0x80) // 128
 
 #define SECT_ID_MAX						(0x40) // 64  1sequenceあたりsection分割可能な最大数
@@ -283,7 +285,7 @@ static ST_REQUEST_ID_INFO gstRequestIdInfo [THREAD_IDX_MAX +1][REQUEST_ID_MAX]; 
 static ST_SYNC_REPLY_INFO gstSyncReplyInfo [THREAD_IDX_MAX];
 static ST_THM_SRC_INFO gstThmSrcInfo [THREAD_IDX_MAX];
 
-static ST_NOTIFY_CLIENT_INFO gstNotifyClientInfo [THREAD_IDX_MAX][NOTIFY_CLIENT_ID_MAX];
+static ST_NOTIFY_CLIENT_INFO gstNotifyClientInfo [THREAD_IDX_MAX][NOTIFY_CATEGORY_MAX][NOTIFY_CLIENT_ID_MAX];
 
 static ST_EXTERNAL_CONTROL_INFO *gpstExtInfoListTop;
 static ST_EXTERNAL_CONTROL_INFO *gpstExtInfoListBtm;
@@ -345,7 +347,7 @@ static const char *gpszTimeoutState [EN_TIMEOUT_STATE_MAX] = {
 	"TIMEOUT_STATE_NOT_SET",
 };
 
-static PFN_DISPATCHER gpfnDispatcher = NULL; /* for c++ wrapper extention */
+static PFN_DISPATCHER gpfnDispatcher = NULL; /* for c++ wrapper extension */
 
 
 /*
@@ -448,10 +450,10 @@ static ST_SYNC_REPLY_INFO *getSyncReplyInfo (uint8_t nThreadIdx);
 static bool cashSyncReplyInfo (uint8_t nThreadIdx, EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize);
 static void setReplyAlreadySyncReplyInfo (uint8_t nThreadIdx);
 static void clearSyncReplyInfo (ST_SYNC_REPLY_INFO *p);
-static bool registerNotify (uint8_t *pnClientId);
-static bool unregisterNotify (uint8_t nClientId);
-static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nClientThreadIdx);
-static bool unsetNotifyClientInfo (uint8_t nThreadIdx, uint8_t nClientId);
+static bool registerNotify (uint8_t nCategory, uint8_t *pnClientId);
+static bool unregisterNotify (uint8_t nCategory, uint8_t nClientId);
+static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8_t nClientThreadIdx);
+static bool unsetNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8_t nClientId);
 static bool notifyInner (
 	uint8_t nThreadIdx,
 	uint8_t nClientId,
@@ -459,7 +461,7 @@ static bool notifyInner (
 	uint8_t *pMsg,
 	size_t msgSize
 );
-static bool notify (uint8_t nClientId, uint8_t *pMsg, size_t msgSize);
+static bool notify (uint8_t nCategory, uint8_t *pMsg, size_t msgSize);
 static void clearNotifyClientInfo (ST_NOTIFY_CLIENT_INFO *p);
 static void setSectId (uint8_t nSectId, EN_THM_ACT enAct);
 static void setSectIdInner (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t nSectId, EN_THM_ACT enAct);
@@ -491,7 +493,7 @@ static void setLock (uint8_t nThreadIdx, uint8_t nSeqIdx, bool isLock);
 static EN_NEAREST_TIMEOUT searchNearestTimeout (
 	uint8_t nThreadIdx,
 	ST_REQUEST_ID_INFO **pstRequestIdInfo,	// out
-	ST_SEQ_INFO **pstSeqInfo		// out
+	ST_SEQ_INFO **pstSeqInfo				// out
 );
 static void addExtInfoList (ST_EXTERNAL_CONTROL_INFO *pstExtInfo);
 static ST_EXTERNAL_CONTROL_INFO *searchExtInfoList (pthread_t key);
@@ -506,7 +508,7 @@ void finalize (void); // extern
 static bool isEnableLog (void);
 static void enableLog (void);
 static void disableLog (void);
-void setDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper extention */ // extern
+void setDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper extension */ // extern
 
 
 /*
@@ -594,6 +596,7 @@ static void init (void)
 {
 	int i = 0;
 	int j = 0;
+	int k = 0;
 
 	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
 		gpstThmRegTbl [i] = NULL;
@@ -627,8 +630,10 @@ static void init (void)
 
 	/* init notifyInfo */
 	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
-		for (j = 0; j < NOTIFY_CLIENT_ID_MAX; ++ j) {
-			clearNotifyClientInfo (&gstNotifyClientInfo [i][j]);
+		for (j = 0; j < NOTIFY_CATEGORY_MAX; ++ j) {
+			for (k = 0; k < NOTIFY_CLIENT_ID_MAX; ++ k) {
+				clearNotifyClientInfo (&gstNotifyClientInfo [i][j][k]);
+			}
 		}
 	}
 
@@ -2068,7 +2073,7 @@ static void *workerThread (void *pArg)
 
 		if (gpfnDispatcher) {
 
-			/* c++ wrapper extention */
+			/* c++ wrapper extension */
 			gpfnDispatcher (
 				EN_THM_DISPATCH_TYPE_CREATE,
 				pstInnerInfo->nThreadIdx,
@@ -2177,7 +2182,7 @@ static void *workerThread (void *pArg)
 						 */
 						if (gpfnDispatcher) {
 
-							/* c++ wrapper extention */
+							/* c++ wrapper extension */
 							gpfnDispatcher (
 								EN_THM_DISPATCH_TYPE_REQ_REPLY,
 								pstInnerInfo->nThreadIdx,
@@ -2305,7 +2310,7 @@ static void *workerThread (void *pArg)
 					 * 主処理
 					 */
 					if (gpfnDispatcher) {
-						/* c++ wrapper extention */
+						/* c++ wrapper extension */
 						gpfnDispatcher (
 							EN_THM_DISPATCH_TYPE_NOTIFY,
 							pstInnerInfo->nThreadIdx,
@@ -2353,7 +2358,7 @@ static void *workerThread (void *pArg)
 
 		if (gpfnDispatcher) {
 
-			/* c++ wrapper extention */
+			/* c++ wrapper extension */
 			gpfnDispatcher (
 				EN_THM_DISPATCH_TYPE_DESTROY,
 				pstInnerInfo->nThreadIdx,
@@ -3265,10 +3270,10 @@ static void dumpRequestIdInfo (void)
 	}
 
 	/* 外部スレッド */
-	THM_INNER_FORCE_LOG_I (" --- thread:external\n");
+	THM_LOG_I (" --- thread:external\n");
 	for (j = 0; j < REQUEST_ID_MAX; ++ j) {
 		if (gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nId != REQUEST_ID_BLANK) {
-			THM_INNER_FORCE_LOG_I (
+			THM_LOG_I (
 				"  0x%02x - 0x%02x 0x%02x %s\n",
 				gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nId,
 				gstRequestIdInfo [THREAD_IDX_EXTERNAL][j].nSrcThreadIdx,
@@ -3279,7 +3284,7 @@ static void dumpRequestIdInfo (void)
 		}
 	}
 	if (!is_found) {
-		THM_INNER_FORCE_LOG_I ("  none\n");
+		THM_LOG_I ("  none\n");
 	}
 }
 
@@ -3771,11 +3776,11 @@ static void clearSyncReplyInfo (ST_SYNC_REPLY_INFO *p)
  * Notify登録
  * 引数 pClientId はout
  *
- * コンテキが登録先スレッド(server側)
+ * これを実行するコンテキストは登録先スレッドです(server側)
  * replyでclientIdを返してください
  * 複数クライアントからの登録は個々のスレッドでid管理しなくていはならない
  */
-static bool registerNotify (uint8_t *pnClientId)
+static bool registerNotify (uint8_t nCategory, uint8_t *pnClientId)
 {
 	/*
 	 * getContext->自分のthreadIdx取得->innerInfoを参照して登録先を得る
@@ -3801,7 +3806,7 @@ static bool registerNotify (uint8_t *pnClientId)
 	uint8_t nClientThreadIdx = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.nSrcThreadIdx;
 
 
-	uint8_t id = setNotifyClientInfo (stContext.nThreadIdx, nClientThreadIdx);
+	uint8_t id = setNotifyClientInfo (stContext.nThreadIdx, nCategory, nClientThreadIdx);
 	if (id == NOTIFY_CLIENT_ID_MAX) {
 		return false;
 	}
@@ -3817,10 +3822,10 @@ static bool registerNotify (uint8_t *pnClientId)
 /**
  * Notify登録解除
  *
- * コンテキが登録先スレッド(server側)
+ * これを実行するコンテキストは登録先スレッドです(server側)
  * requestのmsgでclientIdをもらうこと
  */
-static bool unregisterNotify (uint8_t nClientId)
+static bool unregisterNotify (uint8_t nCategory, uint8_t nClientId)
 {
 	if (nClientId >= NOTIFY_CLIENT_ID_MAX) {
 		THM_INNER_LOG_E( "invalid argument.\n" );
@@ -3832,7 +3837,7 @@ static bool unregisterNotify (uint8_t nClientId)
 		return false;
 	}
 
-	return unsetNotifyClientInfo (stContext.nThreadIdx, nClientId);
+	return unsetNotifyClientInfo (stContext.nThreadIdx, nCategory, nClientId);
 }
 
 /**
@@ -3840,7 +3845,7 @@ static bool unregisterNotify (uint8_t nClientId)
  * セットしてクライアントIDを返す
  * NOTIFY_CLIENT_ID_MAX が返ったら空きがない状態 error
  */
-static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nClientThreadIdx)
+static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8_t nClientThreadIdx)
 {
 	uint8_t id = 0;
 
@@ -3851,7 +3856,7 @@ static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nClientThreadIdx
 
 	/* 空きを探す */
 	for (id = 0; id < NOTIFY_CLIENT_ID_MAX; id ++) {
-		if (!gstNotifyClientInfo [nThreadIdx][id].isUsed) {
+		if (!gstNotifyClientInfo [nThreadIdx][nCategory][id].isUsed) {
 			break;
 		}
 	}
@@ -3859,11 +3864,16 @@ static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nClientThreadIdx
 	if (id == NOTIFY_CLIENT_ID_MAX) {
 		/* 空きがない */
 		THM_INNER_LOG_E ("clientId is full.\n");
+
+		/* unlock */
+//TODO いらないかも ここは個々のスレッドが処理するから
+		pthread_mutex_unlock (&gMutexNotifyClientInfo [nThreadIdx]);
+
 		return id;
 	}
 
-	gstNotifyClientInfo [nThreadIdx][id].nThreadIdx = nClientThreadIdx;
-	gstNotifyClientInfo [nThreadIdx][id].isUsed = true;
+	gstNotifyClientInfo [nThreadIdx][nCategory][id].nThreadIdx = nClientThreadIdx;
+	gstNotifyClientInfo [nThreadIdx][nCategory][id].isUsed = true;
 
 
 	/* unlock */
@@ -3876,18 +3886,22 @@ static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nClientThreadIdx
 /**
  * unsetNotifyClientInfo
  */
-static bool unsetNotifyClientInfo (uint8_t nThreadIdx, uint8_t nClientId)
+static bool unsetNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8_t nClientId)
 {
 	/* lock */
 //TODO いらないかも ここは個々のスレッドが処理するから
 	pthread_mutex_lock (&gMutexNotifyClientInfo [nThreadIdx]);
 
-	if (!gstNotifyClientInfo [nThreadIdx][nClientId].isUsed) {
+	if (!gstNotifyClientInfo [nThreadIdx][nCategory][nClientId].isUsed) {
 		THM_INNER_LOG_E ("clientId is not use...?");
+
+//TODO いらないかも ここは個々のスレッドが処理するから
+		pthread_mutex_unlock (&gMutexNotifyClientInfo [nThreadIdx]);
+
 		return false;
 	}
 
-	clearNotifyClientInfo (&gstNotifyClientInfo [nThreadIdx][nClientId]);
+	clearNotifyClientInfo (&gstNotifyClientInfo [nThreadIdx][nCategory][nClientId]);
 
 	/* unlock */
 //TODO いらないかも ここは個々のスレッドが処理するから
@@ -3940,13 +3954,13 @@ static bool notifyInner (
  * Notify送信
  * 公開
  */
-static bool notify (uint8_t nClientId, uint8_t *pMsg, size_t msgSize)
+static bool notify (uint8_t nCategory, uint8_t *pMsg, size_t msgSize)
 {
 	/*
 	 * getContext->自分のthreadIdx取得-> notifyClientInfoをみて trueだったらenque
 	 */
 
-	if (nClientId >= NOTIFY_CLIENT_ID_MAX) {
+	if (nCategory >= NOTIFY_CATEGORY_MAX) {
 		THM_INNER_LOG_E ("invalid argument.\n");
 		return false;
 	}
@@ -3956,17 +3970,26 @@ static bool notify (uint8_t nClientId, uint8_t *pMsg, size_t msgSize)
 		return false;
 	}
 
-	if (!gstNotifyClientInfo [stContext.nThreadIdx][nClientId].isUsed) {
-		THM_INNER_LOG_E ("clientId is not use.");
-		return false;
-	}
 
-	uint8_t nClientThreadIdx = gstNotifyClientInfo [stContext.nThreadIdx][nClientId].nThreadIdx;
+	uint8_t n_clientId = 0;
+	for (n_clientId = 0; n_clientId < NOTIFY_CLIENT_ID_MAX; ++ n_clientId) {
+
+		if (!gstNotifyClientInfo [stContext.nThreadIdx][nCategory][n_clientId].isUsed) {
+			continue;
+		}
+
+		uint8_t nClientThreadIdx = gstNotifyClientInfo [stContext.nThreadIdx][nCategory][n_clientId].nThreadIdx;
 
 
-	/* Notify投げる */
-	if (!notifyInner (nClientThreadIdx, nClientId, &stContext, pMsg, msgSize)) {
-		return false;
+		/* categoryに属したclientにNotify投げる */
+		if (!notifyInner (nClientThreadIdx, n_clientId, &stContext, pMsg, msgSize)) {
+			THM_INNER_LOG_E (
+				"notifyInner failure. nClientThreadIdx=[0x%02x] nCategory=[0x%02x] n_clientId=[0x%02x]\n",
+				nClientThreadIdx,
+				nCategory,
+				n_clientId
+			);
+		}
 	}
 
 	return true;
@@ -4785,7 +4808,7 @@ static void dumpExtInfoList (void)
 	pstExtInfoTmp = gpstExtInfoListTop;
 	while (pstExtInfoTmp) {
 
-		THM_INNER_FORCE_LOG_I (" %d: %lu reqId:[0x%x]  (%p -> %p)\n", n, pstExtInfoTmp->nPthreadId, pstExtInfoTmp->nReqId, pstExtInfoTmp, pstExtInfoTmp->pNext);
+		THM_LOG_I (" %d: %lu reqId:[0x%x]  (%p -> %p)\n", n, pstExtInfoTmp->nPthreadId, pstExtInfoTmp->nReqId, pstExtInfoTmp, pstExtInfoTmp->pNext);
 
 		// next set
 		pstExtInfoTmp = pstExtInfoTmp->pNext;
@@ -4951,7 +4974,7 @@ static void disableLog (void)
 
 /**
  * setDispatcher
- * for c++ wrapper extention
+ * for c++ wrapper extension
  */
 void setDispatcher (const PFN_DISPATCHER pfnDispatcher)
 {

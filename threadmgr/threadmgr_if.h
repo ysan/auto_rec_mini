@@ -70,7 +70,7 @@ typedef enum {
 	EN_THM_ACT_MAX,
 } EN_THM_ACT;
 
-/* for c++ wrapper extention */
+/* for c++ wrapper extension */
 typedef enum {
 	EN_THM_DISPATCH_TYPE_CREATE = 0,
 	EN_THM_DISPATCH_TYPE_DESTROY,
@@ -114,9 +114,9 @@ typedef struct threadmgr_external_if {
 
 /*--- threadmgr_if ---*/
 typedef bool (*PFN_REPLY) (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize);
-typedef bool (*PFN_REG_NOTIFY) (uint8_t *pnClientId);
-typedef bool (*PFN_UNREG_NOTIFY) (uint8_t nClientId);
-typedef bool (*PFN_NOTIFY) (uint8_t nClientId, uint8_t *pMsg, size_t msgSize);
+typedef bool (*PFN_REG_NOTIFY) (uint8_t nCategory, uint8_t *pnClientId);
+typedef bool (*PFN_UNREG_NOTIFY) (uint8_t nCategory, uint8_t nClientId);
+typedef bool (*PFN_NOTIFY) (uint8_t nCategory, uint8_t *pMsg, size_t msgSize);
 typedef void (*PFN_SET_SECTID) (uint8_t nSectId, EN_THM_ACT enAct);
 typedef uint8_t (*PFN_GET_SECTID) (void);
 typedef void (*PFN_SET_TIMEOUT) (uint32_t nTimeoutMsec);
@@ -179,7 +179,7 @@ typedef struct threadmgr_reg_tbl {
 } ST_THM_REG_TBL;
 
 
-/* for c++ wrapper extention */
+/* for c++ wrapper extension */
 typedef void (*PFN_DISPATCHER) (EN_THM_DISPATCH_TYPE enType, uint8_t nThreadIdx, uint8_t nSeqIdx, ST_THM_IF *pIf);
 
 
@@ -192,7 +192,7 @@ extern "C" {
  */
 extern ST_THM_EXTERNAL_IF *setupThreadMgr (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax);
 extern void teardownThreadMgr (void);
-extern void setupDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper extention */
+extern void setupDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper extension */
 
 #ifdef __cplusplus
 };

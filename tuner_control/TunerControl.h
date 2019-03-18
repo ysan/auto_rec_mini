@@ -25,6 +25,9 @@
 
 using namespace ThreadManager;
 
+
+#define _TUNER_NOTIFY							((uint8_t)0) // notify category
+
 #define TS_RECEIVE_HANDLER_REGISTER_NUM_MAX		(10)
 
 
@@ -37,9 +40,13 @@ public:
 
 	void moduleUp (CThreadMgrIf *pIf);
 	void moduleDown (CThreadMgrIf *pIf);
+
 	void tune (CThreadMgrIf *pIf);
 	void tuneStart (CThreadMgrIf *pIf);
 	void tuneStop (CThreadMgrIf *pIf);
+
+	void registerTunerNotify (CThreadMgrIf *pIf);
+	void unregisterTunerNotify (CThreadMgrIf *pIf);
 
 	void registerTsReceiveHandler (CThreadMgrIf *pIf);
 	void unregisterTsReceiveHandler (CThreadMgrIf *pIf);

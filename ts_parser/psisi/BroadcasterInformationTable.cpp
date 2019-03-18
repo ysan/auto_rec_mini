@@ -167,6 +167,7 @@ void CBroadcasterInformationTable::dumpTable (const CTable* pTable) const
 	_UTL_LOG_I ("========================================\n");
 
 	_UTL_LOG_I ("table_id                           [0x%02x]\n", pTable->header.table_id);
+	_UTL_LOG_I ("original_network_id                [0x%04x]\n", pTable->header.table_id_extension);
 	_UTL_LOG_I ("broadcast_view_propriety           [0x%02x]\n", pTable->broadcast_view_propriety);
 	_UTL_LOG_I ("first_descriptors_length           [%d]\n", pTable->first_descriptors_length);
 
