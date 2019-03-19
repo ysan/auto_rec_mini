@@ -50,7 +50,7 @@ static void tuneStop (int argc, char* argv[], CThreadMgrBase *pBase)
 ST_COMMAND_INFO g_tunerControlCommands [] = { // extern
 	{
 		"tune",
-		"tune by freq",
+		"tune by frequency (Usage: tune freqKhz)",
 		tune,
 		NULL,
 	},
