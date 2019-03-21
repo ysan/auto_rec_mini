@@ -158,6 +158,26 @@ char * strtok_r_impl (char *str, const char *delim, char **saveptr, bool *is_tai
 
 
 /**
+ * log level
+ */
+static EN_LOG_LEVEL s_loglevel = EN_LOG_LEVEL_I; // default log level
+void CUtils::setLogLevel (EN_LOG_LEVEL enLvl)
+{
+	if (enLvl > EN_LOG_LEVEL_PE) {
+		enLvl = EN_LOG_LEVEL_PE;
+	} else if (enLvl < EN_LOG_LEVEL_D) {
+		enLvl = EN_LOG_LEVEL_D;
+	}
+	
+	s_loglevel = enLvl;
+}
+EN_LOG_LEVEL CUtils::getLogLevel (void)
+{
+	return s_loglevel;
+}
+
+
+/**
  * システム現在時刻を取得
  * MM/dd HH:mm:ss形式
  */

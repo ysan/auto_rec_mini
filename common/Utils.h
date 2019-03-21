@@ -67,55 +67,55 @@ typedef enum {
 // --- Debug ---
 #ifndef _LOG_ADD_FILE_INFO
 #define _UTL_LOG_D(fmt, ...) do {\
-	CUtils::putsLogLW (CUtils::mpfpLog, EN_LOG_LEVEL_D, fmt, ##__VA_ARGS__);\
+	CUtils::putsLogLW (CUtils::mpfpLog, CUtils::getLogLevel(), EN_LOG_LEVEL_D, fmt, ##__VA_ARGS__);\
 } while (0)
 #else
 #define _UTL_LOG_D(fmt, ...) do {\
-	CUtils::putsLog (CUtils::mpfpLog, EN_LOG_LEVEL_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	CUtils::putsLog (CUtils::mpfpLog, CUtils::getLogLevel(), EN_LOG_LEVEL_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
 
 // --- Information ---
 #ifndef _LOG_ADD_FILE_INFO
 #define _UTL_LOG_I(fmt, ...) do {\
-	CUtils::putsLogLW (CUtils::mpfpLog, EN_LOG_LEVEL_I, fmt, ##__VA_ARGS__);\
+	CUtils::putsLogLW (CUtils::mpfpLog, CUtils::getLogLevel(), EN_LOG_LEVEL_I, fmt, ##__VA_ARGS__);\
 } while (0)
 #else
 #define _UTL_LOG_I(fmt, ...) do {\
-    CUtils::putsLog (CUtils::mpfpLog, EN_LOG_LEVEL_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+    CUtils::putsLog (CUtils::mpfpLog, CUtils::getLogLevel(), EN_LOG_LEVEL_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
 
 // --- Warning ---
 #ifndef _LOG_ADD_FILE_INFO
 #define _UTL_LOG_W(fmt, ...) do {\
-	CUtils::putsLogLW (CUtils::mpfpLog, EN_LOG_LEVEL_W, fmt, ##__VA_ARGS__);\
+	CUtils::putsLogLW (CUtils::mpfpLog, CUtils::getLogLevel(), EN_LOG_LEVEL_W, fmt, ##__VA_ARGS__);\
 } while (0)
 #else
 #define _UTL_LOG_W(fmt, ...) do {\
-    CUtils::putsLog (CUtils::mpfpLog, EN_LOG_LEVEL_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+    CUtils::putsLog (CUtils::mpfpLog, CUtils::getLogLevel(), EN_LOG_LEVEL_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
 
 // --- Error ---
 #ifndef _LOG_ADD_FILE_INFO
 #define _UTL_LOG_E(fmt, ...) do {\
-	CUtils::putsLogLW (CUtils::mpfpLog, EN_LOG_LEVEL_E, fmt, ##__VA_ARGS__);\
+	CUtils::putsLogLW (CUtils::mpfpLog, CUtils::getLogLevel(), EN_LOG_LEVEL_E, fmt, ##__VA_ARGS__);\
 } while (0)
 #else
 #define _UTL_LOG_E(fmt, ...) do {\
-    CUtils::putsLog (CUtils::mpfpLog, EN_LOG_LEVEL_E, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+    CUtils::putsLog (CUtils::mpfpLog, CUtils::getLogLevel(), EN_LOG_LEVEL_E, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
 
 // --- perror ---
 #ifndef _LOG_ADD_FILE_INFO
 #define _UTL_PERROR(fmt, ...) do {\
-	CUtils::putsLogLW (CUtils::mpfpLog, EN_LOG_LEVEL_PE, fmt, ##__VA_ARGS__);\
+	CUtils::putsLogLW (CUtils::mpfpLog, CUtils::getLogLevel(), EN_LOG_LEVEL_PE, fmt, ##__VA_ARGS__);\
 } while (0)
 #else
 #define _UTL_PERROR(fmt, ...) do {\
-	CUtils::putsLog (CUtils::mpfpLog, EN_LOG_LEVEL_PE, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	CUtils::putsLog (CUtils::mpfpLog, CUtils::getLogLevel(), EN_LOG_LEVEL_PE, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
 
@@ -211,6 +211,9 @@ public:
 		const char *pszFormat,
 		...
 	);
+
+	static void setLogLevel (EN_LOG_LEVEL enLvl);
+	static EN_LOG_LEVEL getLogLevel (void);
 
 
 	static int readFile (int fd, uint8_t *pBuff, size_t nSize);

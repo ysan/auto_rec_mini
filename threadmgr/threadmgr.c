@@ -3075,7 +3075,7 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 		nReqId = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.nReqId;
 		if (nReqId == REQUEST_ID_UNNECESSARY) {
 			/* replyする必要なければ とくに何もしない */
-THM_INNER_FORCE_LOG_D ("REQUEST_ID_UNNECESSARY\n");
+			//THM_INNER_FORCE_LOG_D ("REQUEST_ID_UNNECESSARY\n");
 			return true;
 		}
 
@@ -3097,7 +3097,7 @@ THM_INNER_FORCE_LOG_D ("REQUEST_ID_UNNECESSARY\n");
 		nReqId = getSeqInfo (stContext.nThreadIdx, stContext.nSeqIdx)->stSeqInitQueWorker.nReqId;
 		if (nReqId == REQUEST_ID_UNNECESSARY) {
 			/* replyする必要なければ とくに何もしない */
-THM_INNER_FORCE_LOG_D ("REQUEST_ID_UNNECESSARY\n");
+			//THM_INNER_FORCE_LOG_D ("REQUEST_ID_UNNECESSARY\n");
 			return true;
 		}
 
