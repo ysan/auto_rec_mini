@@ -77,6 +77,6 @@ void CTerrestrialDeliverySystemDescriptor::dump (void) const
 	std::vector<CFreq>::const_iterator iter_freq = freqs.begin();
 	for (; iter_freq != freqs.end(); ++ iter_freq) {
 		_UTL_LOG_I ("\n--  freq  --\n");
-		_UTL_LOG_I ("frequency [%d][ch:%d]\n", iter_freq->frequency / 7, CTsAribCommon::freq2ch (iter_freq->frequency));
+		_UTL_LOG_I ("frequency [%.1f]\n", iter_freq->frequency / 7);
 	}
 }

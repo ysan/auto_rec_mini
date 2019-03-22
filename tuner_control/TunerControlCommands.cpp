@@ -7,6 +7,7 @@
 #include "TunerControlIf.h"
 #include "CommandTables.h"
 #include "Utils.h"
+#include "TsAribCommon.h"
 
 
 static void tune (int argc, char* argv[], CThreadMgrBase *pBase)
@@ -17,6 +18,30 @@ static void tune (int argc, char* argv[], CThreadMgrBase *pBase)
 	}
 
 	uint32_t freq = atoi (argv[0]);
+	_UTL_LOG_I ("freq=[%d]kHz\n", freq);
+
+	CTunerControlIf ctl(pBase->getExternalIf());
+	ctl.reqTuneSync (freq);
+
+	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+	if (enRslt == EN_THM_RSLT_SUCCESS) {
+		_UTL_LOG_I ("tune success");
+	} else {
+		_UTL_LOG_I ("tune error");
+	}
+}
+
+static void ch_tune (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 1) {
+		_UTL_LOG_E ("invalid argument\n");
+		return;
+	}
+
+	uint32_t ch = atoi (argv[0]);
+	_UTL_LOG_I ("ch=[%d]\n", ch);
+
+	uint32_t freq = CTsAribCommon::ch2freqKHz (ch);
 	_UTL_LOG_I ("freq=[%d]kHz\n", freq);
 
 	CTunerControlIf ctl(pBase->getExternalIf());
@@ -49,9 +74,15 @@ static void tuneStop (int argc, char* argv[], CThreadMgrBase *pBase)
 
 ST_COMMAND_INFO g_tunerControlCommands [] = { // extern
 	{
-		"tune",
-		"tune by frequency (Usage: tune freqKhz)",
+		"t",
+		"tune by frequency (Usage: t freqKhz)",
 		tune,
+		NULL,
+	},
+	{
+		"ct",
+		"tune by physical channel (Usage: ct ch)",
+		ch_tune,
 		NULL,
 	},
 	{

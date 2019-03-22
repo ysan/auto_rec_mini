@@ -521,7 +521,12 @@ const char* CTsAribCommon::getAudioQuality (uint8_t quality)
 	}
 }
 
-uint16_t CTsAribCommon::freq2ch (uint16_t frequency)
+uint16_t CTsAribCommon::freqKHz2ch (uint32_t freqKHz)
 {
-	return ((frequency/7) - 473) / 6 + 13;
+	return ((freqKHz - 473143) / 6000) + 13;
+}
+
+uint32_t CTsAribCommon::ch2freqKHz (uint16_t ch)
+{
+	return 473143 + (6000 * ch);
 }

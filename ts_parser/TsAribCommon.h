@@ -230,7 +230,8 @@ public:
 	static const char* getAudioComponentType (uint8_t type);
 	static const char* getAudioSamplingRate (uint8_t samplingRate);
 	static const char* getAudioQuality (uint8_t quality);
-	static uint16_t freq2ch (uint16_t frequency);
+	static uint16_t freqKHz2ch (uint32_t freqKHz);
+	static uint32_t ch2freqKHz (uint16_t ch);
 
 
 };
