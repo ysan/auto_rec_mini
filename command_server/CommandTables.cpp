@@ -6,6 +6,7 @@
 #include <signal.h>
 
 #include "CommandTables.h"
+#include "CommandServer.h"
 
 #include "TunerControlCommands.h"
 #include "PsisiManagerCommands.h"
@@ -15,6 +16,17 @@
 static void _echo (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	_UTL_LOG_I ("%s\n", __func__);
+}
+
+static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_UTL_LOG_W ("ignore arguments.");
+	}
+
+	// このcastはどうなの
+	CCommandServer *p = (CCommandServer*)pBase;
+	p->connectionClose ();
 }
 
 static void _moni (int argc, char* argv[], CThreadMgrBase *pBase)
@@ -40,9 +52,15 @@ static void _log_level (int argc, char* argv[], CThreadMgrBase *pBase)
 
 static ST_COMMAND_INFO g_systemCommands [] = {
 	{
-		"echo",
+		"e",
 		"echo from commandServer",
 		_echo,
+		NULL,
+	},
+	{
+		"cl",
+		"close connection",
+		_close,
 		NULL,
 	},
 	{
@@ -52,8 +70,8 @@ static ST_COMMAND_INFO g_systemCommands [] = {
 		NULL,
 	},
 	{
-		"sl",
-		"set log level (usage: sl <0|1|2|3|4>)",
+		"lv",
+		"log level (usage: sl {0|1|2|3|4} )",
 		_log_level,
 		NULL,
 	},
@@ -78,13 +96,13 @@ ST_COMMAND_INFO g_rootCommandTable [] = { // extern
 	},
 	{
 		"tc",
-		"tuner control",
+		"tuner control commands",
 		NULL,
 		g_tunerControlCommands,
 	},
 	{
 		"pm",
-		"psisi manager",
+		"psisi manager commands",
 		NULL,
 		g_psisiManagerCommands,
 	},

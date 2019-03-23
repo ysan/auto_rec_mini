@@ -7,4 +7,4 @@ ts_parser_test main.cpp に TsParser_test.cppを統合
 section parserのlistはfifoにして勝手にやらせる
 adaptation_fieldの処理
 it9175のlog
-command serverのstack 切断したらクリアする
+command serverのstack テンプレートクラス化

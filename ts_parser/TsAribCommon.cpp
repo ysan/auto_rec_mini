@@ -528,5 +528,5 @@ uint16_t CTsAribCommon::freqKHz2ch (uint32_t freqKHz)
 
 uint32_t CTsAribCommon::ch2freqKHz (uint16_t ch)
 {
-	return 473143 + (6000 * ch);
+	return ((ch - 13) * 6000) + 473143;
 }

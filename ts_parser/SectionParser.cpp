@@ -960,7 +960,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 	EN_CHECK_SECTION r = EN_CHECK_SECTION__COMPLETED;
 
 	// payload_unit_start_indicator == 1 のパケット内に
-	// 複数のts含まれるためのループ
+	// 複数のts含まれる場合がある そのためのループ
 	while ((size > 0) && (*p != 0xff)) {
 
 //TODO mpWorkSectInfo check
@@ -977,12 +977,19 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 		if (!pAttached) {
 			return EN_CHECK_SECTION__INVALID;
 		}
-dumpSectionList ();
+
+		// debug dump
+		if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+			dumpSectionList ();
+		}
 
 		// set working addr
 		mpWorkSectInfo = pAttached;
-mpWorkSectInfo->dumpHeader ();
 
+		// debug dump
+		if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+			mpWorkSectInfo->dumpHeader ();
+		}
 
 		if (!onSectionStarted (mpWorkSectInfo)) {
 			r = EN_CHECK_SECTION__CANCELED;
@@ -1038,8 +1045,11 @@ mpWorkSectInfo->dumpHeader ();
 
 		size_t trunclen = mpWorkSectInfo->truncate ();
 		truncate (trunclen);
-dumpSectionList ();
 
+		// debug dump
+		if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+			dumpSectionList ();
+		}
 
 		// すでに持っているsectionかどうかチェック
 		CSectionInfo *pFound = searchSectionList (*mpWorkSectInfo);
@@ -1106,9 +1116,11 @@ EN_CHECK_SECTION CSectionParser::checkSectionFollow (uint8_t *pPayload, size_t p
 		return EN_CHECK_SECTION__INVALID;
 	}
 
-dumpSectionList ();
-mpWorkSectInfo->dumpHeader ();
-
+	// debug dump
+	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+		dumpSectionList ();
+		mpWorkSectInfo->dumpHeader ();
+	}
 
 	if (mpWorkSectInfo->isReceiveAll()) {
 		mpWorkSectInfo->mState = EN_SECTION_STATE__RECEIVED;
@@ -1150,8 +1162,11 @@ mpWorkSectInfo->dumpHeader ();
 
 	size_t trunclen = mpWorkSectInfo->truncate ();
 	truncate (trunclen);
-dumpSectionList ();
 
+	// debug dump
+	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+		dumpSectionList ();
+	}
 
 	// すでに持っているsectionかどうかチェック
 	CSectionInfo *pFound = searchSectionList (*mpWorkSectInfo);

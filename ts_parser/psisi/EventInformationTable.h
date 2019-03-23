@@ -134,6 +134,7 @@ private:
 	std::vector <CTable*> mTables_sch;
 	std::mutex mMutexTables_sch;
 
+	bool m_isParseSchedule;
 };
 
 #endif

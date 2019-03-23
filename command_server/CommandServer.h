@@ -40,12 +40,16 @@ public:
 	void serverLoop (CThreadMgrIf *pIf);
 
 
+	void connectionClose (void);
+
 private:
 	void serverLoop (void);
 	int recvParseDelimiter (int fd, char *pszBuff, int buffSize, const char* pszDelim);
 	bool parseDelimiter (char *pszBuff, int buffSize, const char *pszDelim);
 	void parseCommand (char *pszBuff);
+	void ignoreSigpipe (void);
 
+	static void printSubTables (void);
 	static void showList (const char *pszDesc);
 	static void findCommand (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase);
 	// callbacks
@@ -54,12 +58,11 @@ private:
 	static void onCommandLineThrough (void);
 	static void onCommandWaitEnd (void);
 
-	void ignoreSigPipe (void);
-
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_COMMAND_SERVER_NUM]; // entity
 
 	int mClientfd;
+	bool m_isConnectionClose;
 };
 
 #endif

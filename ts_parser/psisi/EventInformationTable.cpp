@@ -10,6 +10,7 @@
 
 CEventInformationTable::CEventInformationTable (size_t poolSize)
 	:CSectionParser (poolSize)
+	,m_isParseSchedule (false)
 {
 	mTables_pf.clear();
 	mTables_sch.clear();
@@ -17,6 +18,7 @@ CEventInformationTable::CEventInformationTable (size_t poolSize)
 
 CEventInformationTable::CEventInformationTable (size_t poolSize, uint8_t fifoNum)
 	:CSectionParser (poolSize, fifoNum)
+	,m_isParseSchedule (false)
 {
 	mTables_pf.clear();
 	mTables_sch.clear();
@@ -34,6 +36,22 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 		return ;
 	}
 
+
+	// eit schedule judge
+	if (!m_isParseSchedule) {
+		uint8_t _tbl_id = pCompSection->getHeader()->table_id;
+		if (
+			_tbl_id == TBLID_EIT_SCH_A ||
+			_tbl_id == TBLID_EIT_SCH_A_EXT ||
+			_tbl_id == TBLID_EIT_SCH_O ||
+			_tbl_id == TBLID_EIT_SCH_O_EXT
+		) {
+			detachSectionList (pCompSection);
+			return ;
+		}
+	}
+
+
 	CTable *pTable = new CTable ();
 	if (!parse (pCompSection, pTable)) {
 		delete pTable;
@@ -48,8 +66,11 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 	) {
 		appendTable_pf (pTable);
 
-		dumpTables_pf_simple ();
-		dumpTable (pTable);
+		// debug dump
+		if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+			dumpTables_pf_simple ();
+			dumpTable (pTable);
+		}
 
 	} else if (
 		pTable->header.table_id == TBLID_EIT_SCH_A ||
@@ -59,8 +80,11 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 	) {
 		appendTable_sch (pTable);
 
-		dumpTables_sch_simple ();
-		dumpTable (pTable);
+		// debug dump
+		if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+			dumpTables_sch_simple ();
+			dumpTable (pTable);
+		}
 	}
 
 
@@ -87,7 +111,9 @@ bool CEventInformationTable::parse (const CSectionInfo *pCompSection, CTable* pO
 	p += EIT_FIX_LEN;
 
 	int eventLen = (int) (pTable->header.section_length - SECTION_HEADER_FIX_LEN - SECTION_CRC32_LEN - EIT_FIX_LEN);
-	if (eventLen <= EIT_EVENT_FIX_LEN) {
+	if (eventLen == 0 || eventLen == EIT_EVENT_FIX_LEN) {
+		// allow
+	} else if (eventLen < EIT_EVENT_FIX_LEN) {
 		_UTL_LOG_W ("invalid EIT event (eventLen=%d)", eventLen);
 		return false;
 	}

@@ -40,8 +40,10 @@ void CRunningStatusTable::onSectionCompleted (const CSectionInfo *pCompSection)
 
 	appendTable (pTable);
 
-	dumpTable (pTable);
-
+	// debug dump
+	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+		dumpTable (pTable);
+	}
 }
 
 bool CRunningStatusTable::parse (const CSectionInfo *pCompSection, CTable* pOutTable)

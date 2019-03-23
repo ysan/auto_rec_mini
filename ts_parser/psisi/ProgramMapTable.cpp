@@ -40,8 +40,11 @@ void CProgramMapTable::onSectionCompleted (const CSectionInfo *pCompSection)
 	}
 
 	mTables.push_back (pTable);
-	dumpTable (pTable);
 
+	// debug dump
+	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+		dumpTable (pTable);
+	}
 }
 
 bool CProgramMapTable::parse (const CSectionInfo *pCompSection, CTable* pOutTable)

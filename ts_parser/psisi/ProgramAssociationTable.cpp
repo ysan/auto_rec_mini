@@ -41,8 +41,10 @@ void CProgramAssociationTable::onSectionCompleted (const CSectionInfo *pCompSect
 
 	appendTable (pTable);
 
-	dumpTable (pTable);
-
+	// debug dump
+	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+		dumpTable (pTable);
+	}
 }
 
 bool CProgramAssociationTable::parse (const CSectionInfo *pCompSection, CTable* pOutTable)

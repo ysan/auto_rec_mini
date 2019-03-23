@@ -32,6 +32,7 @@ const uint16_t CCommandServer::SERVER_PORT = 20001;
 CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,mClientfd (0)
+	,m_isConnectionClose (false)
 {
 	mSeqs [EN_SEQ_COMMAND_SERVER_MODULE_UP]   = {(PFN_SEQ_BASE)&CCommandServer::moduleUp, (char*)"moduleUp"};
 	mSeqs [EN_SEQ_COMMAND_SERVER_MODULE_DOWN] = {(PFN_SEQ_BASE)&CCommandServer::moduleDown, (char*)"moduleDown"};
@@ -67,7 +68,7 @@ void CCommandServer::moduleUp (CThreadMgrIf *pIf)
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 	// mask SIGPIPE
-	ignoreSigPipe ();
+	ignoreSigpipe ();
 
 
 	uint32_t opt = getRequestOption ();
@@ -129,6 +130,11 @@ void CCommandServer::serverLoop (CThreadMgrIf *pIf)
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
 	pIf->setSectId (sectId, enAct);
+}
+
+void CCommandServer::connectionClose (void)
+{
+	m_isConnectionClose = true;
 }
 
 void CCommandServer::serverLoop (void)
@@ -245,10 +251,13 @@ int CCommandServer::recvParseDelimiter (int fd, char *pszBuff, int buffSize, con
 
 	int rSize = 0;
 	int rSizeTotal = 0;
-	bool isDisconnect = false;
 
 	bool is_parse_remain = false;
 	int offset = 0;
+
+	int r = 0;
+	fd_set stFds;
+	struct timeval stTimeout;
 
 	while (1) {
 		if (is_parse_remain) {
@@ -258,24 +267,41 @@ int CCommandServer::recvParseDelimiter (int fd, char *pszBuff, int buffSize, con
 			offset = 0;
 		}
 
-		rSize = CUtils::recvData (fd, (uint8_t*)pszBuff + offset, buffSize - offset, &isDisconnect);
-		if (rSize < 0) {
-			return -1;
+		FD_ZERO (&stFds);
+		FD_SET (fd, &stFds);
+		stTimeout.tv_sec = 1;
+		stTimeout.tv_usec = 0;
+		r = select (fd+1, &stFds, NULL, NULL, &stTimeout);
+		if (r < 0) {
+			_UTL_PERROR ("select()");
+			continue;
 
-		} else if (rSize == 0) {
-			return 0;
-
-		} else {
-			// recv ok
-			rSizeTotal += rSize;
-
-
-			is_parse_remain = parseDelimiter (pszBuff, buffSize, pszDelim);
-
-
-			if (isDisconnect) {
-				break;
+		} else if (r == 0) {
+			// timeout
+			if (m_isConnectionClose) {
+				_UTL_LOG_I ("connection close --> recvParseDelimiter break\n");
+				m_isConnectionClose = false;
+				return 0;
 			}
+		}
+
+		if (FD_ISSET (fd, &stFds)) {
+
+			rSize = CUtils::recvData (fd, (uint8_t*)pszBuff + offset, buffSize - offset, NULL);
+			if (rSize < 0) {
+				return -1;
+
+			} else if (rSize == 0) {
+				return 0;
+
+			} else {
+				// recv ok
+				rSizeTotal += rSize;
+
+				is_parse_remain = parseDelimiter (pszBuff, buffSize, pszDelim);
+
+			}
+
 		}
 	}
 
@@ -422,13 +448,24 @@ void CCommandServer::parseCommand (char *pszBuff)
 	}
 }
 
+void CCommandServer::ignoreSigpipe (void)
+{
+	sigset_t sigset;
+	sigemptyset (&sigset);
+	sigaddset (&sigset, SIGPIPE);
+	sigprocmask (SIG_BLOCK, &sigset, NULL);
+}
 
 
+//-------------------------------------------------------//
 #define N (16)
 static ST_COMMAND_INFO *stack [N];
 static int sp = 0;
 static void push (ST_COMMAND_INFO *p)
 {
+	if (!p) {
+		return;
+	}
 	if (sp == N) {
 		return;
 	}
@@ -463,6 +500,9 @@ static ST_COMMAND_INFO *stack_sub [N];
 static int sp_sub = 0;
 static void push_sub (ST_COMMAND_INFO *p)
 {
+	if (!p) {
+		return;
+	}
 	if (sp_sub == N) {
 		return;
 	}
@@ -491,7 +531,19 @@ static ST_COMMAND_INFO *peep_sub (void)
 	return stack_sub [sp_sub -1];
 }
 
-static void peep_sub_tables_print (void)
+static void clear_stacks (void)
+{
+	for (int i =0; i < N; ++i) {
+		stack [i] = NULL;
+		stack_sub [i] = NULL;	
+	}
+	sp = 0;
+	sp_sub = 0;
+}
+//-------------------------------------------------------//
+
+
+void CCommandServer::printSubTables (void)
 {
 	if (sp_sub < 1) {
 		fprintf (gp_fptr_inner, "/");
@@ -509,23 +561,25 @@ void CCommandServer::showList (const char *pszDesc)
 
 	fprintf (gp_fptr_inner, "\n  ------ %s ------\n", pszDesc ? pszDesc: "???");
 
-	int i = 0;
-	for (i = 0; pWorkTable->pszCommand; i ++) {
+	for (int i = 0; pWorkTable->pszCommand != NULL; ++ i) {
 		fprintf (gp_fptr_inner, "  %-20s -- %-30s\n", pWorkTable->pszCommand, pWorkTable->pszDesc);
 		++ pWorkTable;
 	}
 	fprintf (gp_fptr_inner, "\n");
 
-	peep_sub_tables_print();
+	printSubTables ();
 	fprintf (gp_fptr_inner, " > ");
-	fflush (gp_fptr_inner);
-
 	fflush (gp_fptr_inner);
 }
 
 void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase)
 {
 	if (((int)strlen("..") == (int)strlen(pszCommand)) && strncmp ("..", pszCommand, (int)strlen(pszCommand)) == 0) {
+		if (argc > 0) {
+			fprintf (gp_fptr_inner, "invalid arguments...\n");
+			fflush (gp_fptr_inner);
+			return;
+		}
 
 		ST_COMMAND_INFO *p = pop ();
 		pop_sub();
@@ -540,6 +594,11 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 		}
 
 	} else if ((int)strlen(".") == (int)strlen(pszCommand) && strncmp (".", pszCommand, (int)strlen(pszCommand)) == 0) {
+		if (argc > 0) {
+			fprintf (gp_fptr_inner, "invalid arguments...\n");
+			fflush (gp_fptr_inner);
+			return;
+		}
 
 		if (gp_current_command_table == g_rootCommandTable) {
 			showList ("root tables");
@@ -565,7 +624,7 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 					(void) (pWorkTable->pcbCommand) (argc, argv, pBase);
 
 				} else {
-					// 下位テーブル
+					// 下位テーブルに移る
 					if (pWorkTable->pNext) {
 						push (gp_current_command_table);
 						push_sub (pWorkTable);
@@ -588,6 +647,8 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 
 void CCommandServer::onCommandWaitBegin (void)
 {
+	clear_stacks ();
+
 	fprintf (gp_fptr_inner, "###  command line  begin. ###\n");
 
 	gp_current_command_table = g_rootCommandTable ;
@@ -596,7 +657,7 @@ void CCommandServer::onCommandWaitBegin (void)
 
 void CCommandServer::onCommandLineThrough (void)
 {
-	peep_sub_tables_print();
+	printSubTables ();
 	fprintf (gp_fptr_inner, " > ");
 	fflush (gp_fptr_inner);
 }
@@ -609,12 +670,6 @@ void CCommandServer::onCommandLineAvailable (const char* pszCommand, int argc, c
 void CCommandServer::onCommandWaitEnd (void)
 {
 	fprintf (gp_fptr_inner, "\n###  command line  exit. ###\n");
-}
 
-void CCommandServer::ignoreSigPipe (void)
-{
-	sigset_t sigset;
-	sigemptyset (&sigset);
-	sigaddset (&sigset, SIGPIPE);
-	sigprocmask (SIG_BLOCK, &sigset, NULL);
+	clear_stacks ();
 }

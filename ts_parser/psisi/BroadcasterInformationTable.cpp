@@ -40,8 +40,10 @@ void CBroadcasterInformationTable::onSectionCompleted (const CSectionInfo *pComp
 
 	appendTable (pTable);
 
-	dumpTable (pTable);
-
+	// debug dump
+	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+		dumpTable (pTable);
+	}
 }
 
 bool CBroadcasterInformationTable::parse (const CSectionInfo *pCompSection, CTable* pOutTable)
