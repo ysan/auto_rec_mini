@@ -26,7 +26,8 @@ CEventInformationTable::CEventInformationTable (size_t poolSize, uint8_t fifoNum
 
 CEventInformationTable::~CEventInformationTable (void)
 {
-	clear();
+	clear_pf();
+	clear_sch();
 }
 
 
@@ -351,9 +352,14 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 	);
 }
 
-void CEventInformationTable::clear (void)
+void CEventInformationTable::clear_pf (void)
 {
 	releaseTables_pf ();
+//	detachAllSectionList ();
+}
+
+void CEventInformationTable::clear_sch (void)
+{
 	releaseTables_sch ();
 //	detachAllSectionList ();
 }

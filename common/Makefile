@@ -32,6 +32,7 @@ SRCS		:=
 
 SRCS_CPP	:= \
 	Utils.cpp \
+	Time.cpp \
 
 
 #

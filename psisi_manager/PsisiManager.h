@@ -48,7 +48,7 @@ public:
 	void moduleUp (CThreadMgrIf *pIf);
 	void moduleDown (CThreadMgrIf *pIf);
 	void checkLoop (CThreadMgrIf *pIf);
-	void checkPAT (CThreadMgrIf *pIf);
+	void parserNotice (CThreadMgrIf *pIf);
 	void dumpTables (CThreadMgrIf *pIf);
 
 
@@ -71,6 +71,8 @@ private:
 
 	uint8_t m_tuner_notify_client_id;
 	int m_ts_receive_handler_id;
+
+	bool m_isTuned ;
 
 
 	CProgramAssociationTable mPAT;

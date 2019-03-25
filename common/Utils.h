@@ -29,6 +29,7 @@
 #endif
 
 #include "Defs.h"
+#include "Time.h"
 
 
 #define _UTL_TEXT_ATTR_RESET			"\x1B[0m"

@@ -113,7 +113,8 @@ public:
 	void dumpTable (const CTable* pTable) const;
 	void dumpTable_simple (const CTable* pTable) const;
 
-	void clear (void);
+	void clear_pf (void);
+	void clear_sch (void);
 
 	CReference reference_pf (void);
 	CReference reference_sch (void);

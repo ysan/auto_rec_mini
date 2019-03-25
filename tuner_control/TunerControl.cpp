@@ -233,7 +233,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		// lock
 		pIf->lock();
 
-		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNE_BEGIN;
+		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNING_BEGIN;
 		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_NOTIFY));
 
 		s_freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
@@ -288,7 +288,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		// unlock
 		pIf->unlock();
 
-		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNE_END_SUCCESS;
+		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNING_END_SUCCESS;
 		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_NOTIFY));
 
 		mFreq = s_freq;
@@ -303,7 +303,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		// unlock
 		pIf->unlock();
 
-		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNE_END_ERROR;
+		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNING_END_ERROR;
 		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_NOTIFY));
 
 		chkcnt = 0;
@@ -361,6 +361,9 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 	}
 
 	chkcnt = 0;
+
+	EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNE_STOP;
+	pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_NOTIFY));
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;

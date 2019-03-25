@@ -17,7 +17,7 @@ enum {
 	EN_SEQ_PSISI_MANAGER_MODULE_UP = 0,
 	EN_SEQ_PSISI_MANAGER_MODULE_DOWN,
 	EN_SEQ_PSISI_MANAGER_CHECK_LOOP,
-	EN_SEQ_PSISI_MANAGER_CHECK_PAT,
+	EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,
 	EN_SEQ_PSISI_MANAGER_DUMP_TABLES,
 
 	EN_SEQ_PSISI_MANAGER_NUM,
@@ -53,11 +53,6 @@ public:
 
 	bool reqModuleDown (void) {
 		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER_MODULE_DOWN);
-	};
-
-	bool reqCheckPAT (bool isCompleteNew) {
-		bool _isCompNew = isCompleteNew;
-		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER_CHECK_PAT, (uint8_t*)&_isCompNew, sizeof(_isCompNew));
 	};
 
 	bool reqDumpTables (EN_PSISI_TYPE type) {

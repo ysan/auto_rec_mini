@@ -71,7 +71,7 @@ static ST_COMMAND_INFO g_systemCommands [] = {
 	},
 	{
 		"lv",
-		"log level (usage: sl {0|1|2|3|4} )",
+		"log level (usage: lv {0|1|2|3|4} )",
 		_log_level,
 		NULL,
 	},

@@ -75,13 +75,13 @@ static void tuneStop (int argc, char* argv[], CThreadMgrBase *pBase)
 ST_COMMAND_INFO g_tunerControlCommands [] = { // extern
 	{
 		"t",
-		"tune by frequency (Usage: t {frequesncy[kHz]} )",
+		"tune by frequency (usage: t {frequesncy[kHz]} )",
 		tune,
 		NULL,
 	},
 	{
 		"ch",
-		"tune by physical channel (Usage: ct {physical channel} )",
+		"tune by physical channel (usage: ct {physical channel} )",
 		ch_tune,
 		NULL,
 	},

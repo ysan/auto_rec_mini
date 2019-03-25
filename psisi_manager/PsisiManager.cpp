@@ -10,19 +10,33 @@
 #include "modules.h"
 
 
+typedef struct {
+	EN_PSISI_TYPE type;
+	bool isNew; // new ts section
+} _PARSER_NOTICE;
+
+
+typedef struct {
+	uint16_t service_id;
+
+
+} _SERVICE_LINKED_DATA;
+
+
 CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,m_parser (this)
 	,m_tuner_notify_client_id (0xff)
 	,m_ts_receive_handler_id (-1)
+	,m_isTuned (false)
 	,mPAT (16)
 	,mEIT_H (4096*20, 20)
 {
-	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_UP]   = {(PFN_SEQ_BASE)&CPsisiManager::moduleUp,   (char*)"moduleUp"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_DOWN] = {(PFN_SEQ_BASE)&CPsisiManager::moduleDown, (char*)"moduleDown"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_CHECK_LOOP]  = {(PFN_SEQ_BASE)&CPsisiManager::checkLoop,  (char*)"checkLoop"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_CHECK_PAT]   = {(PFN_SEQ_BASE)&CPsisiManager::checkPAT,   (char*)"checkPAT"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_TABLES] = {(PFN_SEQ_BASE)&CPsisiManager::dumpTables, (char*)"dumpTables"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_UP]     = {(PFN_SEQ_BASE)&CPsisiManager::moduleUp,    (char*)"moduleUp"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_DOWN]   = {(PFN_SEQ_BASE)&CPsisiManager::moduleDown,  (char*)"moduleDown"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_CHECK_LOOP]    = {(PFN_SEQ_BASE)&CPsisiManager::checkLoop,   (char*)"checkLoop"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_PARSER_NOTICE] = {(PFN_SEQ_BASE)&CPsisiManager::parserNotice,(char*)"parserNotice"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_TABLES]   = {(PFN_SEQ_BASE)&CPsisiManager::dumpTables,  (char*)"dumpTables"};
 	setSeqs (mSeqs, EN_SEQ_PSISI_MANAGER_NUM);
 
 
@@ -201,13 +215,13 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_LOOP:
-		pIf->setTimeout (5000); // 5sec
+		pIf->setTimeout (2000); // 2sec
 		sectId = SECTID_WAIT;
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
 	case SECTID_WAIT:
-
+//TODO
 // PAT途絶とかチェックする
 
 		sectId = SECTID_LOOP;
@@ -226,7 +240,7 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::checkPAT (CThreadMgrIf *pIf)
+void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -239,12 +253,34 @@ void CPsisiManager::checkPAT (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	bool isCompAlready = *(bool*)(pIf->getSrcInfo()->msg.pMsg);
-	if (isCompAlready) {
-		mPAT.dumpTables();
-	}
+	_PARSER_NOTICE _notice = *(_PARSER_NOTICE*)(pIf->getSrcInfo()->msg.pMsg);
+	switch (_notice.type) {
+	case EN_PSISI_TYPE_PAT:
+		if (_notice.isNew) {
+			mPAT.dumpTables();
+		}
 
-// 時間でも保存しておく
+		// 時間でも保存しておく
+
+		break;
+
+	case EN_PSISI_TYPE_NIT:
+		if (_notice.isNew) {
+			mNIT.dumpTables();
+		}
+
+		break;
+
+	case EN_PSISI_TYPE_SDT:
+		if (_notice.isNew) {
+			mSDT.dumpTables();
+		}
+
+		break;
+
+	default:
+		break;
+	}
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -321,15 +357,41 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 	EN_TUNER_NOTIFY enNotify = *(EN_TUNER_NOTIFY*)(pIf->getSrcInfo()->msg.pMsg);
 	switch (enNotify) {
-	case EN_TUNER_NOTIFY__TUNE_BEGIN:
-		_UTL_LOG_E ("xxxxxxxxxxxxxxxxxx  EN_TUNER_NOTIFY__TUNE_BEGIN");
+	case EN_TUNER_NOTIFY__TUNING_BEGIN:
+		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_BEGIN");
+
+		m_isTuned = false;
+
 		break;
-	case EN_TUNER_NOTIFY__TUNE_END_SUCCESS:
-		_UTL_LOG_E ("xxxxxxxxxxxxxxxxxx  EN_TUNER_NOTIFY__TUNE_END_SUCCESS");
+
+	case EN_TUNER_NOTIFY__TUNING_END_SUCCESS:
+		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_END_SUCCESS");
+
+		m_isTuned = true;
+
+		mPAT.clear();
+		mEIT_H.clear_pf();
+		mNIT.clear();
+		mSDT.clear();
+		mRST.clear();
+		mBIT.clear();
+	
 		break;
-	case EN_TUNER_NOTIFY__TUNE_END_ERROR:
-		_UTL_LOG_E ("xxxxxxxxxxxxxxxxxx  EN_TUNER_NOTIFY__TUNE_END_ERROR");
+
+	case EN_TUNER_NOTIFY__TUNING_END_ERROR:
+		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_END_ERROR");
+
+		m_isTuned = false;
+
 		break;
+
+	case EN_TUNER_NOTIFY__TUNE_STOP:
+		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNE_STOP");
+
+		m_isTuned = false;
+
+		break;
+
 	default:
 		break;
 	}
@@ -393,8 +455,13 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		r = mPAT.checkSection (p_ts_header, p_payload, payload_size);
 		if (r == EN_CHECK_SECTION__COMPLETED || r == EN_CHECK_SECTION__COMPLETED_ALREADY) {
-			CPsisiManagerIf _if(getExternalIf());
-			_if.reqCheckPAT ((r == EN_CHECK_SECTION__COMPLETED) ? true : false);
+			_PARSER_NOTICE _notice = {EN_PSISI_TYPE_PAT, r == EN_CHECK_SECTION__COMPLETED ? true : false};
+			requestAsync (
+				EN_MODULE_PSISI_MANAGER,
+				EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,
+				(uint8_t*)&_notice,
+				sizeof(_notice)
+			);
 		}
 
 		break;
@@ -407,11 +474,31 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 	case PID_NIT:
 
 		r = mNIT.checkSection (p_ts_header, p_payload, payload_size);
+		if (r == EN_CHECK_SECTION__COMPLETED || r == EN_CHECK_SECTION__COMPLETED_ALREADY) {
+			_PARSER_NOTICE _notice = {EN_PSISI_TYPE_NIT, r == EN_CHECK_SECTION__COMPLETED ? true : false};
+			requestAsync (
+				EN_MODULE_PSISI_MANAGER,
+				EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,
+				(uint8_t*)&_notice,
+				sizeof(_notice)
+			);
+		}
+
 		break;
 
 	case PID_SDT:
 
 		r = mSDT.checkSection (p_ts_header, p_payload, payload_size);
+		if (r == EN_CHECK_SECTION__COMPLETED || r == EN_CHECK_SECTION__COMPLETED_ALREADY) {
+			_PARSER_NOTICE _notice = {EN_PSISI_TYPE_SDT, r == EN_CHECK_SECTION__COMPLETED ? true : false};
+			requestAsync (
+				EN_MODULE_PSISI_MANAGER,
+				EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,
+				(uint8_t*)&_notice,
+				sizeof(_notice)
+			);
+		}
+
 		break;
 
 	case PID_RST:
@@ -428,8 +515,6 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 	default:	
 		break;
 	}
-
-
 
 
 	return true;
