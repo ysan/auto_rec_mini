@@ -10,7 +10,8 @@
 
 CEventInformationTable::CEventInformationTable (size_t poolSize)
 	:CSectionParser (poolSize)
-	,m_isParseSchedule (false)
+	,m_type (0)
+	,m_isNeedParseSchedule (false)
 {
 	mTables_pf.clear();
 	mTables_sch.clear();
@@ -18,7 +19,8 @@ CEventInformationTable::CEventInformationTable (size_t poolSize)
 
 CEventInformationTable::CEventInformationTable (size_t poolSize, uint8_t fifoNum)
 	:CSectionParser (poolSize, fifoNum)
-	,m_isParseSchedule (false)
+	,m_type (0)
+	,m_isNeedParseSchedule (false)
 {
 	mTables_pf.clear();
 	mTables_sch.clear();
@@ -38,14 +40,27 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 	}
 
 
+	// pf or schedule ?
+	uint8_t _tbl_id = pCompSection->getHeader()->table_id;
+	if (_tbl_id == TBLID_EIT_PF_A || _tbl_id == TBLID_EIT_PF_O) {
+		m_type = 0;
+
+	} else if (
+		(_tbl_id >= TBLID_EIT_SCH_A && _tbl_id <= TBLID_EIT_SCH_A + 0xf) ||
+		(_tbl_id >= TBLID_EIT_SCH_O && _tbl_id <= TBLID_EIT_SCH_O + 0xf)
+	) {
+		m_type = 1;
+
+	} else {
+		_UTL_LOG_W ("EIT unknown table_id [0x%02x]", _tbl_id);
+	}
+
+
 	// eit schedule judge
-	if (!m_isParseSchedule) {
-		uint8_t _tbl_id = pCompSection->getHeader()->table_id;
+	if (!m_isNeedParseSchedule) {
 		if (
-			_tbl_id == TBLID_EIT_SCH_A ||
-			_tbl_id == TBLID_EIT_SCH_A_EXT ||
-			_tbl_id == TBLID_EIT_SCH_O ||
-			_tbl_id == TBLID_EIT_SCH_O_EXT
+			(_tbl_id >= TBLID_EIT_SCH_A && _tbl_id <= TBLID_EIT_SCH_A + 0xf) ||
+			(_tbl_id >= TBLID_EIT_SCH_O && _tbl_id <= TBLID_EIT_SCH_O + 0xf)
 		) {
 			detachSectionList (pCompSection);
 			return ;
@@ -61,10 +76,7 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 		return ;
 	}
 
-	if (
-		pTable->header.table_id == TBLID_EIT_PF_A ||
-		pTable->header.table_id == TBLID_EIT_PF_O
-	) {
+	if (pTable->header.table_id == TBLID_EIT_PF_A || pTable->header.table_id == TBLID_EIT_PF_O) {
 		appendTable_pf (pTable);
 
 		// debug dump
@@ -74,10 +86,8 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 		}
 
 	} else if (
-		pTable->header.table_id == TBLID_EIT_SCH_A ||
-		pTable->header.table_id == TBLID_EIT_SCH_A_EXT ||
-		pTable->header.table_id == TBLID_EIT_SCH_O ||
-		pTable->header.table_id == TBLID_EIT_SCH_O_EXT
+		(pTable->header.table_id >= TBLID_EIT_SCH_A && pTable->header.table_id <= TBLID_EIT_SCH_A + 0xf) ||
+		(pTable->header.table_id >= TBLID_EIT_SCH_O && pTable->header.table_id <= TBLID_EIT_SCH_O + 0xf)
 	) {
 		appendTable_sch (pTable);
 
@@ -88,8 +98,6 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 		}
 	}
 
-
-//detachSectionList (pCompSection);
 }
 
 bool CEventInformationTable::parse (const CSectionInfo *pCompSection, CTable* pOutTable)

@@ -119,6 +119,8 @@ public:
 	CReference reference_pf (void);
 	CReference reference_sch (void);
 
+	int m_type;
+
 private:
 	bool parse (const CSectionInfo *pCompSection, CTable* pOutTable);
 
@@ -135,7 +137,8 @@ private:
 	std::vector <CTable*> mTables_sch;
 	std::mutex mMutexTables_sch;
 
-	bool m_isParseSchedule;
+	bool m_isNeedParseSchedule;	
+
 };
 
 #endif

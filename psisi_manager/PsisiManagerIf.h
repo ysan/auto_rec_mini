@@ -24,14 +24,21 @@ enum {
 };
 
 typedef enum {
-	EN_PSISI_TYPE_PAT = 0,
-	EN_PSISI_TYPE_PMT,
-	EN_PSISI_TYPE_EIT_H_PF,
-	EN_PSISI_TYPE_EIT_H_SCH,
-	EN_PSISI_TYPE_NIT,
-	EN_PSISI_TYPE_SDT,
-	EN_PSISI_TYPE_RST,
-	EN_PSISI_TYPE_BIT,
+	EN_PSISI_TYPE__PAT = 0,
+	EN_PSISI_TYPE__PMT,
+	EN_PSISI_TYPE__EIT_H,
+	EN_PSISI_TYPE__EIT_M,
+	EN_PSISI_TYPE__EIT_L,
+	EN_PSISI_TYPE__NIT,
+	EN_PSISI_TYPE__SDT,
+	EN_PSISI_TYPE__RST,
+	EN_PSISI_TYPE__BIT,
+
+	// for dump command
+	EN_PSISI_TYPE__EIT_H_PF,
+	EN_PSISI_TYPE__EIT_H_PF_simple,
+	EN_PSISI_TYPE__EIT_H_SCH,
+	EN_PSISI_TYPE__EIT_H_SCH_simple,
 
 	EN_PSISI_TYPE_NUM,
 } EN_PSISI_TYPE;
@@ -57,7 +64,12 @@ public:
 
 	bool reqDumpTables (EN_PSISI_TYPE type) {
 		EN_PSISI_TYPE _type = type;
-		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER_DUMP_TABLES, (uint8_t*)&_type, sizeof(_type));
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER,
+					EN_SEQ_PSISI_MANAGER_DUMP_TABLES,
+					(uint8_t*)&_type,
+					sizeof(_type)
+			);
 	};
 
 
