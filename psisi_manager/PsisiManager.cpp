@@ -436,6 +436,8 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		m_isTuned = false;
 
+		clearServiceInfos (true);
+
 		break;
 
 	case EN_TUNER_NOTIFY__TUNING_END_SUCCESS:
@@ -581,6 +583,8 @@ void CPsisiManager::dumpServiceInfos (void)
 
 void CPsisiManager::cacheEventPfInfos (void)
 {
+	clearEventPfInfos();
+
 	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
 		// 今選局中のservice_idを探します
 		if (!m_serviceInfos [i].is_tune_target) {
@@ -721,8 +725,10 @@ void CPsisiManager::checkEventPfInfos (void)
 
 			if (m_eventPfInfos [i].start_time <= cur_time && m_eventPfInfos [i].end_time >= cur_time) {
 
+				if (m_eventPfInfos [i].state == EN_EVENT_PF_STATE__FOLLOW) {
+					m_eventPfInfos [i].dump();
+				}
 				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__PRESENT;
-				m_eventPfInfos [i].dump();
 
 			} else if (m_eventPfInfos [i].start_time > cur_time) {
 
