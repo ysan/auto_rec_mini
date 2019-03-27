@@ -11,7 +11,7 @@ CEtime::CEtime (void)
 {
 	memset (&m_time, 0x00, sizeof(m_time));
 	memset (&m_time_str, 0x00, sizeof(m_time_str));
-	setNowTime ();
+	setCurrentTime ();
 }
 
 CEtime::CEtime (time_t epoch)
@@ -112,7 +112,7 @@ bool CEtime::operator <= (const CEtime &obj) const
 	}
 }
 
-void CEtime::setNowTime (void)
+void CEtime::setCurrentTime (void)
 {
 	memset (&m_time, 0x00, sizeof(m_time));
 	memset (&m_time_str, 0x00, sizeof(m_time_str));
@@ -121,8 +121,6 @@ void CEtime::setNowTime (void)
 #ifndef ENABLE_AFTER_DECIAML_POINT
 	m_time.tv_nsec = 0;
 #endif
-
-	getString (m_time_str, sizeof(m_time_str));
 }
 
 void CEtime::addSec (int sec)
@@ -153,6 +151,12 @@ void CEtime::addWeek (int week)
 {
 	// allow minus value
 	m_time.tv_sec += week * 7 * 24 * 60 * 60;
+}
+
+char* CEtime::toString (void)
+{
+	getString (m_time_str, sizeof(m_time_str));
+	return m_time_str;
 }
 
 void CEtime::getString (char *pszOut, size_t nSize)

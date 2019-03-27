@@ -43,7 +43,7 @@ public:
 //	bool operator - (const CEtime &obj) const;
 //	bool operator + (const CEtime &obj) const;
 
-	void setNowTime (void);
+	void setCurrentTime (void);
 
 	void addSec (int sec);
 	void addMin (int min);

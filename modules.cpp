@@ -15,7 +15,7 @@
 CCommandServer g_commandServer ((char*)"CommandServer", 10);
 CTunerControl g_tunerControl ((char*)"TunerControl", 10);
 CTuneThread g_tuneThread ((char*)"TuneThread", 10);
-CPsisiManager g_psisiManager ((char*)"PsisiManager", 10);
+CPsisiManager g_psisiManager ((char*)"PsisiManager", 50);
 
 
 CThreadMgrBase *gp_modules [] = {

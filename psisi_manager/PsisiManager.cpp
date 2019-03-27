@@ -31,6 +31,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_DOWN]   = {(PFN_SEQ_BASE)&CPsisiManager::moduleDown,  (char*)"moduleDown"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_CHECK_LOOP]    = {(PFN_SEQ_BASE)&CPsisiManager::checkLoop,   (char*)"checkLoop"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_PARSER_NOTICE] = {(PFN_SEQ_BASE)&CPsisiManager::parserNotice,(char*)"parserNotice"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_CACHES]   = {(PFN_SEQ_BASE)&CPsisiManager::dumpCaches,  (char*)"dumpCaches"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_TABLES]   = {(PFN_SEQ_BASE)&CPsisiManager::dumpTables,  (char*)"dumpTables"};
 	setSeqs (mSeqs, EN_SEQ_PSISI_MANAGER_NUM);
 
@@ -194,8 +195,10 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_LOOP,
-		SECTID_WAIT,
+		SECTID_CHECK_PAT,
+		SECTID_CHECK_PAT_WAIT,
+		SECTID_CHECK_EVENT_PF,
+		SECTID_CHECK_EVENT_PF_WAIT,
 		SECTID_END,
 	};
 
@@ -207,21 +210,41 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 		// 先にreplyしておく
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
-		sectId = SECTID_LOOP;
+		sectId = SECTID_CHECK_PAT;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_LOOP:
-		pIf->setTimeout (2000); // 2sec
-		sectId = SECTID_WAIT;
+	case SECTID_CHECK_PAT:
+
+		pIf->setTimeout (1000); // 1sec
+
+		sectId = SECTID_CHECK_PAT_WAIT;
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
-	case SECTID_WAIT:
+	case SECTID_CHECK_PAT_WAIT:
 //TODO
 // PAT途絶とかチェックする
 
-		sectId = SECTID_LOOP;
+
+		sectId = SECTID_CHECK_EVENT_PF;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_CHECK_EVENT_PF:
+
+		pIf->setTimeout (1000); // 1sec
+
+		sectId = SECTID_CHECK_EVENT_PF_WAIT;
+		enAct = EN_THM_ACT_WAIT;
+		break;
+
+	case SECTID_CHECK_EVENT_PF_WAIT:
+
+		checkEventPfInfos ();
+		refreshEventPfInfos ();
+
+		sectId = SECTID_CHECK_PAT;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
@@ -263,17 +286,20 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 
 	case EN_PSISI_TYPE__NIT:
 		if (_notice.isNew) {
-			mNIT.dumpTables();
+//			mNIT.dumpTables();
+
 		}
 
 		break;
 
 	case EN_PSISI_TYPE__SDT:
 		if (_notice.isNew) {
-			mSDT.dumpTables();
+//			mSDT.dumpTables();
 
 			// ここにくるってことは選局したとゆうこと
 			cacheServiceInfos (true);
+//dDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+cacheEventPfInfos();
 		}
 
 		break;
@@ -288,6 +314,41 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 	default:
 		break;
 	}
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::dumpCaches (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	int type = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+	switch (type) {
+	case 0:
+		dumpServiceInfos();
+		break;
+
+	case 1:
+		dumpEventPfInfos();
+		break;
+
+	default:
+		break;
+	}
+
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -412,6 +473,13 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 	}
 }
 
+/**
+ * SDTテーブル内容を_SERVICE_INFOに保存します
+ * 選局が発生しても継続して保持します
+ *
+ * 引数 is_atTuning は選局契機で呼ばれたかどうか
+ * SDTテーブルは選局ごとクリアしてる
+ */
 void CPsisiManager::cacheServiceInfos (bool is_atTuning)
 {
 	std::lock_guard<std::mutex> lock (*mSDT_ref.mpMutex);
@@ -461,11 +529,29 @@ void CPsisiManager::cacheServiceInfos (bool is_atTuning)
 
 			} // loop descriptors
 
-			pInfo->last_update.setNowTime();
+			pInfo->last_update.setCurrentTime();
+			pInfo->is_used = true;
 
 		} // loop services
 
 	} // loop tables
+}
+
+_SERVICE_INFO* CPsisiManager::findEmptyServiceInfo (void)
+{
+	int i = 0;
+	for (i = 0; i < SERVICE_INFOS_MAX; ++ i) {
+		if (!m_serviceInfos [i].is_used) {
+			break;
+		}
+	}
+
+	if (i == SERVICE_INFOS_MAX) {
+		_UTL_LOG_W ("m_serviceInfos full.");
+		return NULL;
+	}
+
+	return &m_serviceInfos [i];
 }
 
 void CPsisiManager::clearServiceInfos (bool is_atTuning)
@@ -479,88 +565,50 @@ void CPsisiManager::clearServiceInfos (bool is_atTuning)
 		} else {
 //TODO 適当クリア
 			memset (&m_serviceInfos [i], 0x00, sizeof(_SERVICE_INFO));
+			m_serviceInfos [i].is_used = false;
 		}
 	}
 }
 
-_SERVICE_INFO* CPsisiManager::findEmptyServiceInfo (void)
+void CPsisiManager::dumpServiceInfos (void)
 {
-	int i = 0;
-	for (i = 0; i < SERVICE_INFOS_MAX; ++ i) {
-		if (
-			m_serviceInfos [i].table_id == 0 &&
-			m_serviceInfos [i].transport_stream_id == 0 &&
-			m_serviceInfos [i].original_network_id == 0 &&
-			m_serviceInfos [i].service_id == 0
-		) {
-			break;
+	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
+		if (m_serviceInfos [i].is_used) {
+			m_serviceInfos [i].dump();
 		}
 	}
-
-	if (i == SERVICE_INFOS_MAX) {
-		_UTL_LOG_W ("m_serviceInfos full.");
-		return NULL;
-	}
-
-	return &m_serviceInfos [i];
 }
 
 void CPsisiManager::cacheEventPfInfos (void)
 {
-	_EVENT_PF_INFO * pInfo = findEmptyEventPfInfo ();
-	if (!pInfo) {
-		_UTL_LOG_E ("cacheEventPfInfos failure.");
-		return ;
-	}
-
 	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
+		// 今選局中のservice_idを探します
 		if (!m_serviceInfos [i].is_tune_target) {
 			continue;
 		}
 
 		// 今選局中のservice_idです
 		uint16_t _service_id = m_serviceInfos [i].service_id;
-
-		getEventPFbyServiceId (_service_id, pInfo);
-
-	}
-}
-
-void CPsisiManager::clearEventPfInfos (void)
-{
-	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
-//TODO 適当クリア
-		memset (&m_eventPfInfos [i], 0x00, sizeof(_EVENT_PF_INFO));
-	}
-}
-
-_EVENT_PF_INFO* CPsisiManager::findEmptyEventPfInfo (void)
-{
-	int i = 0;
-	for (i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
-		if (
-			m_eventPfInfos [i].table_id == 0 &&
-			m_eventPfInfos [i].transport_stream_id == 0 &&
-			m_eventPfInfos [i].original_network_id == 0 &&
-			m_eventPfInfos [i].service_id == 0
-		) {
-			break;
+		if (_service_id == 0) {
+			continue;
 		}
-	}
 
-	if (i == EVENT_PF_INFOS_MAX) {
-		_UTL_LOG_W ("m_eventPfInfos full.");
-		return NULL;
-	}
+		cacheEventPfInfos (_service_id);
 
-	return &m_eventPfInfos [i];
+	}
 }
 
-bool CPsisiManager::getEventPFbyServiceId (uint16_t _service_id, _EVENT_PF_INFO *p_out_event_pf_info)
+/**
+ * service_idをキーにテーブル内容を_EVENT_PF_INFOに保存します
+ * 少なくともp/fの２つ分は見つかるはず
+ */
+void CPsisiManager::cacheEventPfInfos (uint16_t _service_id)
 {
-	if (_service_id == 0 || !p_out_event_pf_info) {
-		return false;
+	if (_service_id == 0) {
+		return ;
 	}
+
+	int m = 0;
 
 	std::lock_guard<std::mutex> lock (*mEIT_H_pf_ref.mpMutex);
 
@@ -572,26 +620,38 @@ bool CPsisiManager::getEventPFbyServiceId (uint16_t _service_id, _EVENT_PF_INFO 
 			continue;
 		}
 
-		// 以下 service_idが一致したテーブルをみる
+		_EVENT_PF_INFO * pInfo = findEmptyEventPfInfo ();
+		if (!pInfo) {
+			_UTL_LOG_E ("getEventPfByServiceId failure.");
+			return ;
+		}
 
-		p_out_event_pf_info->table_id = pTable->header.table_id;
-		p_out_event_pf_info->transport_stream_id = pTable->transport_stream_id;
-		p_out_event_pf_info->original_network_id = pTable->original_network_id;
-		p_out_event_pf_info->service_id = pTable->header.table_id_extension;
+		// service_idが一致したテーブルをみます
+
+		pInfo->table_id = pTable->header.table_id;
+		pInfo->transport_stream_id = pTable->transport_stream_id;
+		pInfo->original_network_id = pTable->original_network_id;
+		pInfo->service_id = pTable->header.table_id_extension;
 
 		std::vector<CEventInformationTable::CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
 		for (; iter_event != pTable->events.end(); ++ iter_event) {
-			// pfのテーブルではeventは一つのはず...  いちおうforでまわしておく
+			// p/fのテーブルにつき eventは一つだと思われる...  いちおうforでまわしておく
+			// p/fでそれぞれ別のテーブル
 
-			p_out_event_pf_info->event_id = iter_event->event_id;
+			if (iter_event->event_id == 0) {
+				// event 情報が付いてない場合
+				continue;
+			}
+
+			pInfo->event_id = iter_event->event_id;
 
 			time_t stime = CTsAribCommon::getEpochFromMJD (iter_event->start_time);
 			CEtime wk (stime);
-			p_out_event_pf_info->start_time = wk;
+			pInfo->start_time = wk;
 
 			int dur_sec = CTsAribCommon::getSecFromBCD (iter_event->duration);
 			wk.addSec (dur_sec);
-			p_out_event_pf_info->end_time = wk;
+			pInfo->end_time = wk;
 
 			std::vector<CDescriptor>::const_iterator iter_desc = iter_event->descriptors.begin();
 			for (; iter_desc != iter_event->descriptors.end(); ++ iter_desc) {
@@ -606,23 +666,115 @@ bool CPsisiManager::getEventPFbyServiceId (uint16_t _service_id, _EVENT_PF_INFO 
 					char aribstr [MAXSECLEN];
 					memset (aribstr, 0x00, MAXSECLEN);
 					AribToString (aribstr, (const char*)sd.event_name_char, (int)sd.event_name_length);
-					strncpy (p_out_event_pf_info->event_name_char, aribstr, 1024);
+					strncpy (pInfo->event_name_char, aribstr, 1024);
 				}
 
 			} // loop descriptors
 
 		} // loop events
 
-//TODO 暫定
-// 同じservice_idで同じ event_idのテーブルは複数あるような気がした
-// とりあえず最初に見つけたものを使う
-		return true;
+
+		if (pInfo->event_id == 0) {
+			// event情報が付いてない
+			// clear
+			memset (pInfo, 0x00, sizeof(_EVENT_PF_INFO));
+			pInfo->is_used = false;
+			continue;
+		}
+
+		pInfo->p_org_table_addr = pTable;
+		pInfo->is_used = true;
+pInfo->dump();
+		++ m;
 
 	} // loop tables
 
-	_UTL_LOG_W ("not match service_id");
-	return false;
+
+	if (m == 0) {
+		_UTL_LOG_W ("not match service_id [0x%04x]", _service_id);
+	}
 }
+
+_EVENT_PF_INFO* CPsisiManager::findEmptyEventPfInfo (void)
+{
+	int i = 0;
+	for (i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
+		if (!m_eventPfInfos [i].is_used) {
+			break;
+		}
+	}
+
+	if (i == EVENT_PF_INFOS_MAX) {
+		_UTL_LOG_W ("m_eventPfInfos full.");
+		return NULL;
+	}
+
+	return &m_eventPfInfos [i];
+}
+
+void CPsisiManager::checkEventPfInfos (void)
+{
+	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
+		if (m_eventPfInfos [i].is_used) {
+
+			CEtime cur_time;
+
+			if (m_eventPfInfos [i].start_time <= cur_time && m_eventPfInfos [i].end_time >= cur_time) {
+
+				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__PRESENT;
+				m_eventPfInfos [i].dump();
+
+			} else if (m_eventPfInfos [i].start_time > cur_time) {
+
+				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__FOLLOW;
+
+			} else if (m_eventPfInfos [i].end_time < cur_time) {
+
+				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__ALREADY_PASSED;
+
+			} else {
+				_UTL_LOG_E ("BUG: checkEventPfInfos");
+			}
+		}
+	}
+}
+
+void CPsisiManager::refreshEventPfInfos (void)
+{
+	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
+		if (m_eventPfInfos [i].is_used) {
+			if (m_eventPfInfos [i].state == EN_EVENT_PF_STATE__ALREADY_PASSED) {
+
+				mEIT_H.clear_pf (m_eventPfInfos [i].p_org_table_addr);
+
+				memset (&m_eventPfInfos [i], 0x00, sizeof(_EVENT_PF_INFO));
+				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__INIT;
+				m_eventPfInfos [i].is_used = false;
+
+			}
+		}
+	}
+}
+
+void CPsisiManager::dumpEventPfInfos (void)
+{
+	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
+		if (m_eventPfInfos [i].is_used) {
+			m_eventPfInfos [i].dump();
+		}
+	}
+}
+
+void CPsisiManager::clearEventPfInfos (void)
+{
+	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
+//TODO 適当クリア
+		memset (&m_eventPfInfos [i], 0x00, sizeof(_EVENT_PF_INFO));
+		m_eventPfInfos [i].state = EN_EVENT_PF_STATE__INIT;
+		m_eventPfInfos [i].is_used = false;
+	}
+}
+
 
 
 

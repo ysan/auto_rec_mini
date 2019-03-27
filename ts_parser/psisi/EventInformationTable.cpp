@@ -203,6 +203,28 @@ void CEventInformationTable::releaseTables_pf (void)
 	mTables_pf.clear();
 }
 
+void CEventInformationTable::releaseTables_pf (CTable *pErase)
+{
+	if (!pErase) {
+		return;
+	}
+	if (mTables_pf.size() == 0) {
+		return;
+	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables_pf);
+
+	std::vector<CTable*>::iterator iter = mTables_pf.begin(); 
+	for (; iter != mTables_pf.end(); ++ iter) {
+		if (*iter == pErase) {
+			delete (*iter);
+			(*iter) = NULL;
+			iter = mTables_pf.erase(iter);
+			break;
+		}
+	}
+}
+
 void CEventInformationTable::releaseTables_sch (void)
 {
 	if (mTables_sch.size() == 0) {
@@ -218,6 +240,28 @@ void CEventInformationTable::releaseTables_sch (void)
 	}
 
 	mTables_sch.clear();
+}
+
+void CEventInformationTable::releaseTables_sch (CTable *pErase)
+{
+	if (!pErase) {
+		return;
+	}
+	if (mTables_sch.size() == 0) {
+		return;
+	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables_sch);
+
+	std::vector<CTable*>::iterator iter = mTables_sch.begin(); 
+	for (; iter != mTables_sch.end(); ++ iter) {
+		if (*iter == pErase) {
+			delete (*iter);
+			(*iter) = NULL;
+			iter = mTables_sch.erase(iter);
+			break;
+		}
+	}
 }
 
 void CEventInformationTable::dumpTables_pf (void)
@@ -344,7 +388,7 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 	}
 
 	_UTL_LOG_I (
-		"table_id:[0x%02x][%s] service_id:[0x%04x] ts_id:[0x%04x] org_network_id:[0x%04x] %s\n",
+		"tblid:[0x%02x][%s] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] ver:[0x%02x] curind:[%d] %s\n",
 		pTable->header.table_id,
 		pTable->header.table_id == 0x4e ? "PF,A " :
 			pTable->header.table_id == 0x4f ? "PF,O " :
@@ -353,9 +397,11 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 			pTable->header.table_id >= 0x60 && pTable->header.table_id < 0x68 ? "Sh,O " :
 			pTable->header.table_id == 0x68 ? "Sh,OE" :
 			"unsup",
-		pTable->header.table_id_extension,
 		pTable->transport_stream_id,
 		pTable->original_network_id,
+		pTable->header.table_id_extension,
+		pTable->header.version_number,
+		pTable->header.current_next_indicator,
 		buf
 	);
 }
@@ -366,10 +412,20 @@ void CEventInformationTable::clear_pf (void)
 //	detachAllSectionList ();
 }
 
+void CEventInformationTable::clear_pf (CTable *pErase)
+{
+	releaseTables_pf (pErase);
+}
+
 void CEventInformationTable::clear_sch (void)
 {
 	releaseTables_sch ();
 //	detachAllSectionList ();
+}
+
+void CEventInformationTable::clear_sch (CTable *pErase)
+{
+	releaseTables_sch (pErase);
 }
 
 CEventInformationTable::CReference CEventInformationTable::reference_pf (void)

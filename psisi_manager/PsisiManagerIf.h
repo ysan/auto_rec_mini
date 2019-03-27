@@ -18,6 +18,7 @@ enum {
 	EN_SEQ_PSISI_MANAGER_MODULE_DOWN,
 	EN_SEQ_PSISI_MANAGER_CHECK_LOOP,
 	EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,
+	EN_SEQ_PSISI_MANAGER_DUMP_CACHES,
 	EN_SEQ_PSISI_MANAGER_DUMP_TABLES,
 
 	EN_SEQ_PSISI_MANAGER_NUM,
@@ -60,6 +61,16 @@ public:
 
 	bool reqModuleDown (void) {
 		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER_MODULE_DOWN);
+	};
+
+	bool reqDumpCaches (int type) {
+		int _type = type;
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER,
+					EN_SEQ_PSISI_MANAGER_DUMP_CACHES,
+					(uint8_t*)&_type,
+					sizeof(_type)
+			);
 	};
 
 	bool reqDumpTables (EN_PSISI_TYPE type) {

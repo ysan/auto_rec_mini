@@ -114,7 +114,9 @@ public:
 	void dumpTable_simple (const CTable* pTable) const;
 
 	void clear_pf (void);
+	void clear_pf (CTable* pErase);
 	void clear_sch (void);
+	void clear_sch (CTable* pErase);
 
 	CReference reference_pf (void);
 	CReference reference_sch (void);
@@ -128,7 +130,9 @@ private:
 	void appendTable_sch (CTable *pTable);
 
 	void releaseTables_pf (void);
+	void releaseTables_pf (CTable* pErase);
 	void releaseTables_sch (void);
+	void releaseTables_sch (CTable* pErase);
 
 
 	std::vector <CTable*> mTables_pf;

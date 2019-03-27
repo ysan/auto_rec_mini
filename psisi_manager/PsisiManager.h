@@ -39,12 +39,22 @@ using namespace ThreadManager;
 #define EVENT_PF_INFOS_MAX	(32)
 
 typedef enum {
-	EN_EVENT_PF__FINISHED = 0,
-	EN_EVENT_PF__PRESENT,
-	EN_EVENT_PF__FOLLOW,
+	EN_EVENT_PF_STATE__INIT = 0,
+	EN_EVENT_PF_STATE__PRESENT,
+	EN_EVENT_PF_STATE__FOLLOW,
+	EN_EVENT_PF_STATE__ALREADY_PASSED,
 
-} EN_EVENT_PF;
+	EN_EVENT_PF_STATE__MAX,
 
+} EN_EVENT_PF_STATE;
+
+static const char *gpszEventPfState [EN_EVENT_PF_STATE__MAX] = {
+	// for debug log
+	"-",
+	"P",
+	"F",
+	"X",
+};
 
 typedef struct {
 	uint8_t table_id;
@@ -57,6 +67,28 @@ typedef struct {
 	CEtime end_time;
 
 	char event_name_char [1024];
+
+	EN_EVENT_PF_STATE state;
+
+	CEventInformationTable::CTable* p_org_table_addr;
+
+	bool is_used;
+
+	void dump (void) {
+		_UTL_LOG_I (
+			"tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]\n  [%s - %s] [%s] [%s]",
+			table_id,
+			transport_stream_id,
+			original_network_id,
+			service_id,
+			event_id,
+			start_time.toString(),
+			end_time.toString(),
+			gpszEventPfState [state],
+			event_name_char
+		);
+		_UTL_LOG_I ("\n");
+	}
 
 } _EVENT_PF_INFO;
 
@@ -76,6 +108,22 @@ typedef struct {
 
 	CEtime last_update;
 
+	bool is_used;
+
+	void dump (void) {
+		_UTL_LOG_I (
+			"tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svtype:[0x%02x] %s [%s] [%s]",
+			table_id,
+			transport_stream_id,
+			original_network_id,
+			service_id,
+			service_type,
+			is_tune_target ? "*" : " ",
+			service_name_char,
+			last_update.toString()
+		);
+	}
+
 } _SERVICE_INFO;
 
 
@@ -93,6 +141,7 @@ public:
 	void moduleDown (CThreadMgrIf *pIf);
 	void checkLoop (CThreadMgrIf *pIf);
 	void parserNotice (CThreadMgrIf *pIf);
+	void dumpCaches (CThreadMgrIf *pIf);
 	void dumpTables (CThreadMgrIf *pIf);
 
 
@@ -100,13 +149,18 @@ private:
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
 	void cacheServiceInfos (bool is_atTuning);
-	void clearServiceInfos (bool is_atTuning);
 	_SERVICE_INFO* findEmptyServiceInfo (void);
+	void dumpServiceInfos (void);
+	void clearServiceInfos (bool is_atTuning);
 
 	void cacheEventPfInfos (void);
-	void clearEventPfInfos (void);
+	void cacheEventPfInfos (uint16_t _service_id);
 	_EVENT_PF_INFO* findEmptyEventPfInfo (void);
-	bool getEventPFbyServiceId (uint16_t service_id, _EVENT_PF_INFO *p_out_event_pf_info);
+	void checkEventPfInfos (void);
+	void refreshEventPfInfos (void);
+	void dumpEventPfInfos (void);
+	void clearEventPfInfos (void);
+
 
 
 
@@ -120,6 +174,7 @@ private:
 	bool onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size) override;
 
 
+
 	ST_SEQ_BASE mSeqs [EN_SEQ_PSISI_MANAGER_NUM]; // entity
 
 	CTsParser m_parser;
@@ -127,6 +182,7 @@ private:
 	uint8_t m_tuner_notify_client_id;
 	int m_ts_receive_handler_id;
 
+	// tuner is tuned 
 	bool m_isTuned ;
 
 
