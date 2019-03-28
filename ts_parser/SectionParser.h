@@ -122,9 +122,9 @@ public:
 	
 public:
 	CSectionParser (EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI);
-	CSectionParser (uint8_t fifoNum, EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI);
+	CSectionParser (int fifoNum, EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI);
 	CSectionParser (size_t poolSize, EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI);
-	CSectionParser (size_t poolSize, uint8_t fifoNum, EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI);
+	CSectionParser (size_t poolSize, int fifoNum, EN_SECTION_TYPE enType=EN_SECTION_TYPE__PSISI);
 	virtual ~CSectionParser (void);
 
 
@@ -168,7 +168,7 @@ private:
 	CSectionInfo *mpSectListBottom;
 
 	bool mListIsFifo;
-	uint8_t mFifoNum; // limited num of sectionList
+	int mFifoNum; // limited num of sectionList
 
 	CSectionInfo *mpWorkSectInfo;
 

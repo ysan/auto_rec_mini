@@ -13,7 +13,7 @@ CProgramMapTable::CProgramMapTable (void)
 	mTables.clear();
 }
 
-CProgramMapTable::CProgramMapTable (uint8_t fifoNum)
+CProgramMapTable::CProgramMapTable (int fifoNum)
 	:CSectionParser (fifoNum)
 {
 	mTables.clear();
@@ -43,6 +43,8 @@ void CProgramMapTable::onSectionCompleted (const CSectionInfo *pCompSection)
 
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+//TODO mutex
+		std::lock_guard<std::mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
 }
@@ -133,11 +135,11 @@ void CProgramMapTable::appendTable (CTable *pTable)
 
 void CProgramMapTable::releaseTables (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
 	if (mTables.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
@@ -150,11 +152,11 @@ void CProgramMapTable::releaseTables (void)
 
 void CProgramMapTable::dumpTables (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
 	if (mTables.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {

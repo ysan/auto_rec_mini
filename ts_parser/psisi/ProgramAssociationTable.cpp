@@ -14,7 +14,7 @@ CProgramAssociationTable::CProgramAssociationTable (void)
 	mTables.clear();
 }
 
-CProgramAssociationTable::CProgramAssociationTable (uint8_t fifoNum)
+CProgramAssociationTable::CProgramAssociationTable (int fifoNum)
 	:CSectionParser (fifoNum)
 {
 	mTables.clear();
@@ -43,6 +43,8 @@ void CProgramAssociationTable::onSectionCompleted (const CSectionInfo *pCompSect
 
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+//TODO mutex
+		std::lock_guard<std::mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
 }
@@ -106,11 +108,11 @@ void CProgramAssociationTable::appendTable (CTable *pTable)
 
 void CProgramAssociationTable::releaseTables (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
 	if (mTables.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
@@ -123,11 +125,11 @@ void CProgramAssociationTable::releaseTables (void)
 
 void CProgramAssociationTable::dumpTables (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
 	if (mTables.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {

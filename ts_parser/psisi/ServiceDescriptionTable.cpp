@@ -13,7 +13,7 @@ CServiceDescriptionTable::CServiceDescriptionTable (void)
 	mTables.clear();
 }
 
-CServiceDescriptionTable::CServiceDescriptionTable (uint8_t fifoNum)
+CServiceDescriptionTable::CServiceDescriptionTable (int fifoNum)
 	:CSectionParser (fifoNum)
 {
 	mTables.clear();
@@ -42,6 +42,8 @@ void CServiceDescriptionTable::onSectionCompleted (const CSectionInfo *pCompSect
 
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+//TODO mutex
+		std::lock_guard<std::mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
 }
@@ -120,11 +122,11 @@ void CServiceDescriptionTable::appendTable (CTable *pTable)
 
 void CServiceDescriptionTable::releaseTables (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
 	if (mTables.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
@@ -137,11 +139,11 @@ void CServiceDescriptionTable::releaseTables (void)
 
 void CServiceDescriptionTable::dumpTables (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
 	if (mTables.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {

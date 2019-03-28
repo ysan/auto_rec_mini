@@ -17,7 +17,7 @@ CEventInformationTable::CEventInformationTable (size_t poolSize)
 	mTables_sch.clear();
 }
 
-CEventInformationTable::CEventInformationTable (size_t poolSize, uint8_t fifoNum)
+CEventInformationTable::CEventInformationTable (size_t poolSize, int fifoNum)
 	:CSectionParser (poolSize, fifoNum)
 	,m_type (0)
 	,m_isNeedParseSchedule (false)
@@ -77,11 +77,20 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 	}
 
 	if (pTable->header.table_id == TBLID_EIT_PF_A || pTable->header.table_id == TBLID_EIT_PF_O) {
+
+		while (1) {
+			if (!refreshByVersionNumber_pf (pTable)) {
+				break;
+			}
+		}
+
 		appendTable_pf (pTable);
 
 		// debug dump
 		if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
 			dumpTables_pf_simple ();
+//TODO mutex
+			std::lock_guard<std::mutex> lock (mMutexTables_pf);
 			dumpTable (pTable);
 		}
 
@@ -89,11 +98,14 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 		(pTable->header.table_id >= TBLID_EIT_SCH_A && pTable->header.table_id <= TBLID_EIT_SCH_A + 0xf) ||
 		(pTable->header.table_id >= TBLID_EIT_SCH_O && pTable->header.table_id <= TBLID_EIT_SCH_O + 0xf)
 	) {
+
 		appendTable_sch (pTable);
 
 		// debug dump
 		if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
 			dumpTables_sch_simple ();
+//TODO mutex
+			std::lock_guard<std::mutex> lock (mMutexTables_sch);
 			dumpTable (pTable);
 		}
 	}
@@ -188,11 +200,11 @@ void CEventInformationTable::appendTable_sch (CTable *pTable)
 
 void CEventInformationTable::releaseTables_pf (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables_pf);
+
 	if (mTables_pf.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables_pf);
 
 	std::vector<CTable*>::iterator iter = mTables_pf.begin(); 
 	for (; iter != mTables_pf.end(); ++ iter) {
@@ -203,16 +215,34 @@ void CEventInformationTable::releaseTables_pf (void)
 	mTables_pf.clear();
 }
 
-void CEventInformationTable::releaseTables_pf (CTable *pErase)
+void CEventInformationTable::releaseTables_sch (void)
+{
+	std::lock_guard<std::mutex> lock (mMutexTables_sch);
+
+	if (mTables_sch.size() == 0) {
+		return;
+	}
+
+	std::vector<CTable*>::iterator iter = mTables_sch.begin(); 
+	for (; iter != mTables_sch.end(); ++ iter) {
+		delete (*iter);
+		(*iter) = NULL;
+	}
+
+	mTables_sch.clear();
+}
+
+void CEventInformationTable::releaseTable_pf (CTable *pErase)
 {
 	if (!pErase) {
 		return;
 	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables_pf);
+
 	if (mTables_pf.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables_pf);
 
 	std::vector<CTable*>::iterator iter = mTables_pf.begin(); 
 	for (; iter != mTables_pf.end(); ++ iter) {
@@ -225,33 +255,17 @@ void CEventInformationTable::releaseTables_pf (CTable *pErase)
 	}
 }
 
-void CEventInformationTable::releaseTables_sch (void)
-{
-	if (mTables_sch.size() == 0) {
-		return;
-	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables_sch);
-
-	std::vector<CTable*>::iterator iter = mTables_sch.begin(); 
-	for (; iter != mTables_sch.end(); ++ iter) {
-		delete (*iter);
-		(*iter) = NULL;
-	}
-
-	mTables_sch.clear();
-}
-
-void CEventInformationTable::releaseTables_sch (CTable *pErase)
+void CEventInformationTable::releaseTable_sch (CTable *pErase)
 {
 	if (!pErase) {
 		return;
 	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables_sch);
+
 	if (mTables_sch.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables_sch);
 
 	std::vector<CTable*>::iterator iter = mTables_sch.begin(); 
 	for (; iter != mTables_sch.end(); ++ iter) {
@@ -266,11 +280,11 @@ void CEventInformationTable::releaseTables_sch (CTable *pErase)
 
 void CEventInformationTable::dumpTables_pf (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables_pf);
+
 	if (mTables_pf.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables_pf);
 
 	std::vector<CTable*>::const_iterator iter = mTables_pf.begin(); 
 	for (; iter != mTables_pf.end(); ++ iter) {
@@ -281,11 +295,11 @@ void CEventInformationTable::dumpTables_pf (void)
 
 void CEventInformationTable::dumpTables_sch (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables_sch);
+
 	if (mTables_sch.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables_sch);
 
 	std::vector<CTable*>::const_iterator iter = mTables_sch.begin(); 
 	for (; iter != mTables_sch.end(); ++ iter) {
@@ -296,11 +310,11 @@ void CEventInformationTable::dumpTables_sch (void)
 
 void CEventInformationTable::dumpTables_pf_simple (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables_pf);
+
 	if (mTables_pf.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables_pf);
 
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
@@ -313,11 +327,11 @@ void CEventInformationTable::dumpTables_pf_simple (void)
 
 void CEventInformationTable::dumpTables_sch_simple (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables_sch);
+
 	if (mTables_sch.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables_sch);
 
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
@@ -382,6 +396,7 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 	for (; iter_event != pTable->events.end(); ++ iter_event) {
 		int len = strlen (buf);
 		if (len > 120) {
+			_UTL_LOG_W ("event still continues");
 			return;
 		}
 		snprintf (buf+len, sizeof(buf) -1, "[0x%04x]", iter_event->event_id);
@@ -390,13 +405,13 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 	_UTL_LOG_I (
 		"tblid:[0x%02x][%s] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] ver:[0x%02x] curind:[%d] %s\n",
 		pTable->header.table_id,
-		pTable->header.table_id == 0x4e ? "PF,A " :
-			pTable->header.table_id == 0x4f ? "PF,O " :
-			pTable->header.table_id >= 0x50 && pTable->header.table_id < 0x58 ? "Sh,A " :
-			pTable->header.table_id == 0x58 ? "Sh,AE" :
-			pTable->header.table_id >= 0x60 && pTable->header.table_id < 0x68 ? "Sh,O " :
-			pTable->header.table_id == 0x68 ? "Sh,OE" :
-			"unsup",
+		pTable->header.table_id == 0x4e ? "PF ,A " :
+			pTable->header.table_id == 0x4f ? "PF ,O " :
+			pTable->header.table_id >= 0x50 && pTable->header.table_id < 0x58 ? "Sch,A " :
+			pTable->header.table_id >= 0x58 && pTable->header.table_id < 0x60 ? "Sch,AE" :
+			pTable->header.table_id >= 0x60 && pTable->header.table_id < 0x68 ? "Sch,O " :
+			pTable->header.table_id >= 0x68 && pTable->header.table_id < 0x70 ? "Sch,OE" :
+			"unsup ",
 		pTable->transport_stream_id,
 		pTable->original_network_id,
 		pTable->header.table_id_extension,
@@ -412,20 +427,86 @@ void CEventInformationTable::clear_pf (void)
 //	detachAllSectionList ();
 }
 
-void CEventInformationTable::clear_pf (CTable *pErase)
-{
-	releaseTables_pf (pErase);
-}
-
 void CEventInformationTable::clear_sch (void)
 {
 	releaseTables_sch ();
 //	detachAllSectionList ();
 }
 
+void CEventInformationTable::clear_pf (CTable *pErase)
+{
+	releaseTable_pf (pErase);
+}
+
 void CEventInformationTable::clear_sch (CTable *pErase)
 {
-	releaseTables_sch (pErase);
+	releaseTable_sch (pErase);
+}
+
+bool CEventInformationTable::refreshByVersionNumber_pf (CTable* pTarget)
+{
+	if (!pTarget) {
+		return false;
+	}
+
+	std::lock_guard<std::mutex> lock (mMutexTables_pf);
+
+
+	std::vector<CTable::CEvent>::const_iterator iter_event = pTarget->events.begin();
+	if (iter_event == pTarget->events.end()) {
+		_UTL_LOG_D ("not exist event");
+		return false;
+	}
+	uint16_t evtid = iter_event->event_id; // found first, pf should have only one event
+
+	uint8_t tblid = pTarget->header.table_id;
+	uint16_t svcid = pTarget->header.table_id_extension;
+	uint16_t tsid = pTarget->transport_stream_id;
+	uint16_t org_nid = pTarget->original_network_id;
+	uint8_t ver = pTarget->header.version_number;
+
+
+	CTable *pErase = NULL;
+	bool is_existed = false;
+
+	std::vector<CTable*>::const_iterator iter = mTables_pf.begin();
+    for (; iter != mTables_pf.end(); ++ iter) {
+		CTable *pTable = *iter;
+
+		std::vector<CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
+		if (iter_event == pTable->events.end()) {
+			// not exist event
+			continue;
+		}
+		uint16_t _event_id  =iter_event->event_id; // found first, pf should have only one event
+
+		if (
+			(tblid == pTable->header.table_id) &&
+			(svcid == pTable->header.table_id_extension) &&
+			(tsid == pTable->transport_stream_id) &&
+			(org_nid == pTable->original_network_id) &&
+			(evtid == _event_id)
+		) {
+			if (ver > pTable->header.version_number) {
+				pErase = pTable;
+
+			} else if (ver < pTable->header.version_number) {
+				pErase = pTarget;
+
+			} else {
+				_UTL_LOG_E ("BUG: same version_number [0x%02x]", ver);
+				return false;
+			}
+
+			is_existed = true;
+		}
+	}
+
+	if (pErase) {
+		releaseTable_pf (pErase);
+	}
+
+	return is_existed;
 }
 
 CEventInformationTable::CReference CEventInformationTable::reference_pf (void)
@@ -439,4 +520,3 @@ CEventInformationTable::CReference CEventInformationTable::reference_sch (void)
     CReference ref (&mTables_sch, &mMutexTables_sch);
     return ref;
 }
-

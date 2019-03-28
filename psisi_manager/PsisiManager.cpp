@@ -25,7 +25,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	,m_ts_receive_handler_id (-1)
 	,m_isTuned (false)
 	,mPAT (16)
-	,mEIT_H (4096*20, 20)
+	,mEIT_H (4096*1000, 1000)
 {
 	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_UP]     = {(PFN_SEQ_BASE)&CPsisiManager::moduleUp,    (char*)"moduleUp"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_DOWN]   = {(PFN_SEQ_BASE)&CPsisiManager::moduleDown,  (char*)"moduleDown"};
@@ -294,8 +294,6 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 
 	case EN_PSISI_TYPE__SDT:
 		if (_notice.isNew) {
-//			mSDT.dumpTables();
-
 			// ここにくるってことは選局したとゆうこと
 			cacheServiceInfos (true);
 //dDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
@@ -566,7 +564,11 @@ void CPsisiManager::clearServiceInfos (bool is_atTuning)
 
 		} else {
 //TODO 適当クリア
+			// clear all
 			memset (&m_serviceInfos [i], 0x00, sizeof(_SERVICE_INFO));
+			m_serviceInfos [i].is_tune_target = false;
+			m_serviceInfos [i].p_event_present = NULL;
+			m_serviceInfos [i].p_event_follow = NULL;
 			m_serviceInfos [i].is_used = false;
 		}
 	}
@@ -574,6 +576,9 @@ void CPsisiManager::clearServiceInfos (bool is_atTuning)
 
 void CPsisiManager::dumpServiceInfos (void)
 {
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+	_UTL_LOG_I ("========================================\n");
+
 	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
 		if (m_serviceInfos [i].is_used) {
 			m_serviceInfos [i].dump();
@@ -643,7 +648,7 @@ void CPsisiManager::cacheEventPfInfos (uint16_t _service_id)
 			// p/fでそれぞれ別のテーブル
 
 			if (iter_event->event_id == 0) {
-				// event 情報が付いてない場合
+				// event情報が付いてない
 				continue;
 			}
 
@@ -680,15 +685,13 @@ void CPsisiManager::cacheEventPfInfos (uint16_t _service_id)
 
 		if (pInfo->event_id == 0) {
 			// event情報が付いてない
-			// clear
-			memset (pInfo, 0x00, sizeof(_EVENT_PF_INFO));
-			pInfo->is_used = false;
+			// cancel
+			clearEventPfInfo (pInfo);
 			continue;
 		}
 
 		pInfo->p_org_table_addr = pTable;
 		pInfo->is_used = true;
-pInfo->dump();
 		++ m;
 
 	} // loop tables
@@ -726,6 +729,8 @@ void CPsisiManager::checkEventPfInfos (void)
 			if (m_eventPfInfos [i].start_time <= cur_time && m_eventPfInfos [i].end_time >= cur_time) {
 
 				if (m_eventPfInfos [i].state == EN_EVENT_PF_STATE__FOLLOW) {
+					// event change
+					_UTL_LOG_I ("event change");
 					m_eventPfInfos [i].dump();
 				}
 				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__PRESENT;
@@ -752,11 +757,7 @@ void CPsisiManager::refreshEventPfInfos (void)
 			if (m_eventPfInfos [i].state == EN_EVENT_PF_STATE__ALREADY_PASSED) {
 
 				mEIT_H.clear_pf (m_eventPfInfos [i].p_org_table_addr);
-
-				memset (&m_eventPfInfos [i], 0x00, sizeof(_EVENT_PF_INFO));
-				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__INIT;
-				m_eventPfInfos [i].is_used = false;
-
+				clearEventPfInfo (&m_eventPfInfos [i]);
 			}
 		}
 	}
@@ -764,6 +765,9 @@ void CPsisiManager::refreshEventPfInfos (void)
 
 void CPsisiManager::dumpEventPfInfos (void)
 {
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+	_UTL_LOG_I ("========================================\n");
+
 	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
 		if (m_eventPfInfos [i].is_used) {
 			m_eventPfInfos [i].dump();
@@ -771,13 +775,22 @@ void CPsisiManager::dumpEventPfInfos (void)
 	}
 }
 
+void CPsisiManager::clearEventPfInfo (_EVENT_PF_INFO *pInfo)
+{
+	if (!pInfo) {
+		return ;
+	}
+//TODO 適当クリア
+	// clear all
+	memset (pInfo, 0x00, sizeof(_EVENT_PF_INFO));
+	pInfo->state = EN_EVENT_PF_STATE__INIT;
+	pInfo->is_used = false;
+}
+
 void CPsisiManager::clearEventPfInfos (void)
 {
 	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
-//TODO 適当クリア
-		memset (&m_eventPfInfos [i], 0x00, sizeof(_EVENT_PF_INFO));
-		m_eventPfInfos [i].state = EN_EVENT_PF_STATE__INIT;
-		m_eventPfInfos [i].is_used = false;
+		clearEventPfInfo (&m_eventPfInfos [i]);
 	}
 }
 

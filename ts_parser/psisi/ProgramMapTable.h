@@ -98,7 +98,7 @@ public:
 
 public:
 	CProgramMapTable (void);
-	explicit CProgramMapTable (uint8_t fifioNum);
+	explicit CProgramMapTable (int fifioNum);
 	virtual ~CProgramMapTable (void);
 
 

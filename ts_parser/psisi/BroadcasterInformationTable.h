@@ -89,7 +89,7 @@ public:
 
 public:
 	CBroadcasterInformationTable (void);
-	explicit CBroadcasterInformationTable (uint8_t fifoNum);
+	explicit CBroadcasterInformationTable (int fifoNum);
 	virtual ~CBroadcasterInformationTable (void);
 
 

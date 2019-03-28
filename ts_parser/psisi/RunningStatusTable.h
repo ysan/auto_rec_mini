@@ -76,7 +76,7 @@ public:
 
 public:
 	CRunningStatusTable (void);
-	explicit CRunningStatusTable (uint8_t fifoNum);
+	explicit CRunningStatusTable (int fifoNum);
 	virtual ~CRunningStatusTable (void);
 
 

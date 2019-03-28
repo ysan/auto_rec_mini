@@ -96,7 +96,7 @@ public:
 
 public:
 	CNetworkInformationTable (void);
-	explicit CNetworkInformationTable (uint8_t fifoNum);
+	explicit CNetworkInformationTable (int fifoNum);
 	virtual ~CNetworkInformationTable (void);
 
 

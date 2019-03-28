@@ -401,7 +401,7 @@ CSectionParser::CSectionParser (EN_SECTION_TYPE type)
 	mType = type;
 }
 
-CSectionParser::CSectionParser (uint8_t fifoNum, EN_SECTION_TYPE type)
+CSectionParser::CSectionParser (int fifoNum, EN_SECTION_TYPE type)
 	:mPid (0)
 	,mpSectListTop(NULL)
 	,mpSectListBottom (NULL)
@@ -442,7 +442,7 @@ CSectionParser::CSectionParser (size_t poolSize, EN_SECTION_TYPE type)
 	mType = type;
 }
 
-CSectionParser::CSectionParser (size_t poolSize ,uint8_t fifoNum, EN_SECTION_TYPE type)
+CSectionParser::CSectionParser (size_t poolSize ,int fifoNum, EN_SECTION_TYPE type)
 	:mPid (0)
 	,mpSectListTop(NULL)
 	,mpSectListBottom (NULL)

@@ -62,7 +62,7 @@ public:
 
 public:
 	CProgramAssociationTable (void);
-	explicit CProgramAssociationTable (uint8_t fifoNum);
+	explicit CProgramAssociationTable (int fifoNum);
 	virtual ~CProgramAssociationTable (void);
 
 

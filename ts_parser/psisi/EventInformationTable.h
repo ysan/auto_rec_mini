@@ -98,7 +98,7 @@ public:
 
 public:
 	explicit CEventInformationTable (size_t poolSize);
-	CEventInformationTable (size_t poolSize, uint8_t fifoNum);
+	CEventInformationTable (size_t poolSize, int fifoNum);
 	virtual ~CEventInformationTable (void);
 
 
@@ -114,8 +114,9 @@ public:
 	void dumpTable_simple (const CTable* pTable) const;
 
 	void clear_pf (void);
-	void clear_pf (CTable* pErase);
 	void clear_sch (void);
+
+	void clear_pf (CTable* pErase);
 	void clear_sch (CTable* pErase);
 
 	CReference reference_pf (void);
@@ -130,9 +131,12 @@ private:
 	void appendTable_sch (CTable *pTable);
 
 	void releaseTables_pf (void);
-	void releaseTables_pf (CTable* pErase);
 	void releaseTables_sch (void);
-	void releaseTables_sch (CTable* pErase);
+
+	void releaseTable_pf (CTable* pErase);
+	void releaseTable_sch (CTable* pErase);
+
+	bool refreshByVersionNumber_pf (CTable* pTarget);
 
 
 	std::vector <CTable*> mTables_pf;

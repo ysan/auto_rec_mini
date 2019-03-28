@@ -13,7 +13,7 @@ CBroadcasterInformationTable::CBroadcasterInformationTable (void)
 	mTables.clear();
 }
 
-CBroadcasterInformationTable::CBroadcasterInformationTable (uint8_t fifoNum)
+CBroadcasterInformationTable::CBroadcasterInformationTable (int fifoNum)
 	:CSectionParser (fifoNum)
 {
 	mTables.clear();
@@ -42,6 +42,8 @@ void CBroadcasterInformationTable::onSectionCompleted (const CSectionInfo *pComp
 
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+//TODO mutex
+		std::lock_guard<std::mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
 }
@@ -129,11 +131,11 @@ void CBroadcasterInformationTable::appendTable (CTable *pTable)
 
 void CBroadcasterInformationTable::releaseTables (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
 	if (mTables.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {
@@ -146,11 +148,11 @@ void CBroadcasterInformationTable::releaseTables (void)
 
 void CBroadcasterInformationTable::dumpTables (void)
 {
+	std::lock_guard<std::mutex> lock (mMutexTables);
+
 	if (mTables.size() == 0) {
 		return;
 	}
-
-	std::lock_guard<std::mutex> lock (mMutexTables);
 
 	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
 	for (; iter != mTables.end(); ++ iter) {

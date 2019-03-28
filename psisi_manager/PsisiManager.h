@@ -76,7 +76,7 @@ typedef struct {
 
 	void dump (void) {
 		_UTL_LOG_I (
-			"tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]\n  [%s - %s] [%s] [%s]",
+			"tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x] [%s - %s] [%s] [%s]",
 			table_id,
 			transport_stream_id,
 			original_network_id,
@@ -87,7 +87,6 @@ typedef struct {
 			gpszEventPfState [state],
 			event_name_char
 		);
-		_UTL_LOG_I ("\n");
 	}
 
 } _EVENT_PF_INFO;
@@ -159,8 +158,8 @@ private:
 	void checkEventPfInfos (void);
 	void refreshEventPfInfos (void);
 	void dumpEventPfInfos (void);
+	void clearEventPfInfo (_EVENT_PF_INFO *pInfo);
 	void clearEventPfInfos (void);
-
 
 
 
@@ -202,6 +201,7 @@ private:
 
 	_SERVICE_INFO m_serviceInfos [SERVICE_INFOS_MAX];
 	_EVENT_PF_INFO m_eventPfInfos [EVENT_PF_INFOS_MAX];
+
 };
 
 #endif

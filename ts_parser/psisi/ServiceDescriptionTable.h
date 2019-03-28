@@ -98,7 +98,7 @@ public:
 
 public:
 	CServiceDescriptionTable (void);
-	explicit CServiceDescriptionTable (uint8_t fifoNum);
+	explicit CServiceDescriptionTable (int fifoNum);
 	virtual ~CServiceDescriptionTable (void);
 
 
