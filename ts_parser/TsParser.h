@@ -35,8 +35,6 @@ private:
 	bool copyInnerBuffer (uint8_t *pBuff, size_t nSize);
 	bool checkUnitSize (void);
 	uint8_t *getSyncTopAddr (uint8_t *pTop, uint8_t *pBtm, size_t nUnitSize) const;
-//	void getTsHeader (TS_HEADER *pDst, uint8_t *pSrc) const;
-//	void dumpTsHeader (const TS_HEADER *p) const;
 
 	bool parse (void);
 

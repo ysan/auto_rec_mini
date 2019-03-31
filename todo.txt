@@ -2,9 +2,11 @@ log エスケープシーケンス 色つけ方
 chennel scan
 event rec
 event chenge notify
-section parser を table_idごと分けたい EIT用
 ts_parser_test main.cpp に TsParser_test.cppを統合
-section parserのlistはfifoにして勝手にやらせる
 adaptation_fieldの処理
 it9175のlog
 command serverのstack テンプレートクラス化
+eit scheduleはsectionのリスト管理しないで 派生クラスでテーブル管理する
+    p/f はsectionリスト管理して重複はチェックする
+    -->バッファサイズとfifo数はそんなに必要ないはず
+version_numberのチェックは派生側にするか考える

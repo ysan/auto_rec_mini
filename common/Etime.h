@@ -40,8 +40,8 @@ public:
 	bool operator < (const CEtime &obj) const;
 	bool operator >= (const CEtime &obj) const;
 	bool operator <= (const CEtime &obj) const;
-//	bool operator - (const CEtime &obj) const;
-//	bool operator + (const CEtime &obj) const;
+//	CEtime operator - (const CEtime &obj) const;
+//	CEtime operator + (const CEtime &obj) const;
 
 	void setCurrentTime (void);
 

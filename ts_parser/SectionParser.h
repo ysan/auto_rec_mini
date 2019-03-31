@@ -28,6 +28,32 @@ typedef enum {
 } EN_SECTION_TYPE;
 
 typedef struct {
+
+	void dump (void) const {
+		if (section_syntax_indicator == 0) {
+			_UTL_LOG_I (
+				"SectHeader: tbl_id:[0x%02x] syntax:[0x%02x] priv:[0x%02x] len:[%d]\n",
+				table_id,
+				section_syntax_indicator,
+				private_indicator,
+				section_length
+			);
+		} else {
+			_UTL_LOG_I (
+				"SectHeader: tbl_id:[0x%02x] syntax:[0x%02x] priv:[0x%02x] len:[%d] tbl_ext:[0x%04x] ver:[0x%02x] next:[0x%02x] num:[0x%02x] last:[0x%02x]\n",
+				table_id,
+				section_syntax_indicator,
+				private_indicator,
+				section_length,
+				table_id_extension,
+				version_number,
+				current_next_indicator,
+				section_number,
+				last_section_number
+			);
+		}
+	}
+
 	uint8_t table_id;						//  0- 7 :  8 bits
 	uint8_t section_syntax_indicator;		//  8- 8 :  1 bit
 	uint8_t private_indicator;				//  9- 9 :  1 bit

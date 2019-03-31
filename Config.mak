@@ -22,6 +22,10 @@ MAKE		+=	--no-print-directory
 ifeq ($(DEBUG_BUILD), 1)
 MAKE		+=	DEBUG_BUILD=1
 endif
+ifeq ($(NO_STRIP), 1)
+MAKE		+=	NO_STRIP=1
+endif
+
 
 
 # CFLAGS
@@ -277,16 +281,22 @@ ifeq ($(TARGET_TYPE), EXEC)
 ifneq ($(TARGET_OBJ),)
 ifneq ($(INSTALLDIR_BIN),)
 	@$(INSTALL) -v -d $(INSTALLDIR_BIN)
+ifeq ($(NO_STRIP), 1)
+	@$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_BIN)
+else
 	@$(INSTALL) -v --strip $(TARGET_OBJ) $(INSTALLDIR_BIN)
-#	@$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_BIN)
+endif
 endif
 endif
 else ifeq ($(TARGET_TYPE), SHARED)
 ifneq ($(TARGET_OBJ),)
 ifneq ($(INSTALLDIR_LIB),)
 	@$(INSTALL) -v -d $(INSTALLDIR_LIB)
+ifeq ($(NO_STRIP), 1)
+	@$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_LIB)
+else
 	@$(INSTALL) -v --strip $(TARGET_OBJ) $(INSTALLDIR_LIB)
-#	@$(INSTALL) -v $(TARGET_OBJ) $(INSTALLDIR_LIB)
+endif
 endif
 endif
 endif

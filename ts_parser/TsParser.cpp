@@ -266,42 +266,6 @@ uint8_t * CTsParser::getSyncTopAddr (uint8_t *pTop, uint8_t *p_btm, size_t unit_
 	return NULL;
 }
 
-/*
-void CTsParser::getTsHeader (TS_HEADER *pDst, uint8_t* pSrc) const
-{
-	if ((!pSrc) || (!pDst)) {
-		return;
-	}
-
-	pDst->sync                         =   *(pSrc+0);
-	pDst->transport_error_indicator    =  (*(pSrc+1) >> 7) & 0x01;
-	pDst->payload_unit_start_indicator =  (*(pSrc+1) >> 6) & 0x01;
-	pDst->transport_priority           =  (*(pSrc+1) >> 5) & 0x01;
-	pDst->pid                          = ((*(pSrc+1) & 0x1f) << 8) | *(pSrc+2);
-	pDst->transport_scrambling_control =  (*(pSrc+3) >> 6) & 0x03;
-	pDst->adaptation_field_control     =  (*(pSrc+3) >> 4) & 0x03;
-	pDst->continuity_counter           =   *(pSrc+3)       & 0x0f;
-}
-
-void CTsParser::dumpTsHeader (const TS_HEADER *p) const
-{
-	if (!p) {
-		return ;
-	}
-	_UTL_LOG_I (
-		"TsHeader: sync:[0x%02x] trans_err:[0x%02x] start_ind:[0x%02x] prio:[0x%02x] pid:[0x%04x] scram:[0x%02x] adap:[0x%02x] cont:[0x%02x]\n",
-		p->sync,
-		p->transport_error_indicator,
-		p->payload_unit_start_indicator,
-		p->transport_priority,
-		p->pid,
-		p->transport_scrambling_control,
-		p->adaptation_field_control,
-		p->continuity_counter
-	);
-}
-*/
-
 bool CTsParser::parse (void)
 {
 	TS_HEADER ts_header = {0};

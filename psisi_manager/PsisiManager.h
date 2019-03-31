@@ -198,6 +198,7 @@ private:
 	CNetworkInformationTable::CReference mNIT_ref;
 	CServiceDescriptionTable::CReference mSDT_ref;
 
+	CEtime m_patRecvTime;
 
 	_SERVICE_INFO m_serviceInfos [SERVICE_INFOS_MAX];
 	_EVENT_PF_INFO m_eventPfInfos [EVENT_PF_INFOS_MAX];

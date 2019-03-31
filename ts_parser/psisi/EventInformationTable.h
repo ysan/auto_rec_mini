@@ -86,14 +86,14 @@ public:
 	class CReference {
 	public:
 		CReference (void) {}
-		CReference (const std::vector <CTable*> *pTables, std::mutex *pMutex)
+		CReference (const std::vector <CTable*> *pTables, std::recursive_mutex *pMutex)
 			:mpTables (pTables)
 			,mpMutex (pMutex)
 		{}
 		virtual ~CReference (void) {}
 
 		const std::vector <CTable*> *mpTables;
-		std::mutex *mpMutex;
+		std::recursive_mutex *mpMutex;
 	};
 
 public:
@@ -140,10 +140,10 @@ private:
 
 
 	std::vector <CTable*> mTables_pf;
-	std::mutex mMutexTables_pf;
+	std::recursive_mutex mMutexTables_pf;
 
 	std::vector <CTable*> mTables_sch;
-	std::mutex mMutexTables_sch;
+	std::recursive_mutex mMutexTables_sch;
 
 	bool m_isNeedParseSchedule;	
 

@@ -8,6 +8,7 @@
 #include "CommandTables.h"
 #include "Utils.h"
 #include "TsAribCommon.h"
+#include "it9175_extern.h"
 
 
 static void tune (int argc, char* argv[], CThreadMgrBase *pBase)
@@ -72,6 +73,34 @@ static void tuneStop (int argc, char* argv[], CThreadMgrBase *pBase)
 	}
 }
 
+static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_UTL_LOG_W ("ignore arguments.\n");
+	}
+
+	EN_IT9175_STATE state = it9175_get_state();
+	switch (state) {
+	case EN_IT9175_STATE__CLOSED:
+		_UTL_LOG_I ("EN_IT9175_STATE__CLOSED");
+		break;
+	case EN_IT9175_STATE__OPENED:
+		_UTL_LOG_I ("EN_IT9175_STATE__OPENED");
+		break;
+	case EN_IT9175_STATE__TUNE_BEGINED:
+		_UTL_LOG_I ("EN_IT9175_STATE__TUNE_BEGINED");
+		break;
+	case EN_IT9175_STATE__TUNED:
+		_UTL_LOG_I ("EN_IT9175_STATE__TUNED");
+		break;
+	case EN_IT9175_STATE__TUNE_ENDED:
+		_UTL_LOG_I ("EN_IT9175_STATE__TUNE_ENDED");
+		break;
+	default:
+		break;
+	}
+}
+
 ST_COMMAND_INFO g_tunerControlCommands [] = { // extern
 	{
 		"t",
@@ -89,6 +118,12 @@ ST_COMMAND_INFO g_tunerControlCommands [] = { // extern
 		"stop",
 		"tune stop",
 		tuneStop,
+		NULL,
+	},
+	{
+		"stat",
+		"get tuner state (it9175 state)",
+		getState,
 		NULL,
 	},
 	//-- term --//

@@ -222,13 +222,21 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
-	case SECTID_CHECK_PAT_WAIT:
-//TODO
-// PAT途絶とかチェックする
+	case SECTID_CHECK_PAT_WAIT: {
 
+		if (m_isTuned) {
+			// PAT途絶チェック
+			CEtime tcur;
+			CEtime ttmp = m_patRecvTime;
+			ttmp.addSec (5);
+			if (tcur > ttmp) {
+				_UTL_LOG_E ("PAT was not detected. probably stream is broken...");
+			}
+		}
 
 		sectId = SECTID_CHECK_EVENT_PF;
 		enAct = EN_THM_ACT_CONTINUE;
+		}
 		break;
 
 	case SECTID_CHECK_EVENT_PF:
@@ -280,13 +288,14 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 			mPAT.dumpTables();
 		}
 
-		// PAT途絶チェック用の時間でも保存しておく
+		// PAT途絶チェック用
+		m_patRecvTime.setCurrentTime ();
 
 		break;
 
 	case EN_PSISI_TYPE__NIT:
 		if (_notice.isNew) {
-//			mNIT.dumpTables();
+			mNIT.dumpTables();
 
 		}
 
@@ -294,6 +303,8 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 
 	case EN_PSISI_TYPE__SDT:
 		if (_notice.isNew) {
+			mSDT.dumpTables();
+
 			// ここにくるってことは選局したとゆうこと
 			cacheServiceInfos (true);
 //dDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
@@ -619,7 +630,7 @@ void CPsisiManager::cacheEventPfInfos (uint16_t _service_id)
 
 	int m = 0;
 
-	std::lock_guard<std::mutex> lock (*mEIT_H_pf_ref.mpMutex);
+	std::lock_guard<std::recursive_mutex> lock (*mEIT_H_pf_ref.mpMutex);
 
 	std::vector<CEventInformationTable::CTable*>::const_iterator iter = mEIT_H_pf_ref.mpTables->begin();
 	for (; iter != mEIT_H_pf_ref.mpTables->end(); ++ iter) {
