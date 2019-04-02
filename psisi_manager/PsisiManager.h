@@ -75,16 +75,20 @@ typedef struct {
 	bool is_used;
 
 	void dump (void) {
+		p_org_table_addr->header.dump();
 		_UTL_LOG_I (
-			"tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x] [%s - %s] [%s] [%s]",
+			"  tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
 			table_id,
 			transport_stream_id,
 			original_network_id,
 			service_id,
-			event_id,
+			event_id
+		);
+		_UTL_LOG_I (
+			"  p/f:[%s] time:[%s - %s] [%s]",
+			gpszEventPfState [state],
 			start_time.toString(),
 			end_time.toString(),
-			gpszEventPfState [state],
 			event_name_char
 		);
 	}
@@ -111,7 +115,7 @@ typedef struct {
 
 	void dump (void) {
 		_UTL_LOG_I (
-			"tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svtype:[0x%02x] %s [%s] [%s]",
+			"tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svctype:[0x%02x] %s [%s] [%s]",
 			table_id,
 			transport_stream_id,
 			original_network_id,
@@ -182,7 +186,7 @@ private:
 	int m_ts_receive_handler_id;
 
 	// tuner is tuned 
-	bool m_isTuned ;
+	bool m_tunerIsTuned ;
 
 
 	CProgramAssociationTable mPAT;

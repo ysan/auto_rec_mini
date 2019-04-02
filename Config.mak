@@ -4,9 +4,13 @@
 
 MAKE		:=	/usr/bin/make
 ECHO		:=	echo
-#CC			:=	/bin/gcc
+ifeq ($(WITH_CLANG), 1)
+CC			:=	/usr/bin/clang
+CPP			:=	/usr/bin/clang++
+else
 CC			:=	/usr/bin/gcc
 CPP			:=	/usr/bin/g++
+endif
 AR			:=	/usr/bin/ar
 RANLIB		:=	/usr/bin/ranlib
 MKDIR		:=	/bin/mkdir
@@ -44,6 +48,10 @@ endif
 
 ifeq ($(DEBUG_BUILD), 1)
 CFLAGS		+=	-g -D_DEBUG_BUILD
+endif
+
+ifeq ($(ADDR_SANITIZE), 1)
+CFLAGS		+=	-fsanitize=address -fno-omit-frame-pointer
 endif
 
 

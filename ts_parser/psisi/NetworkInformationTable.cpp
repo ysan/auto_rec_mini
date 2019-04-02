@@ -177,6 +177,7 @@ void CNetworkInformationTable::dumpTable (const CTable* pTable) const
 		return;
 	}
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
+	pTable->header.dump ();
 	_UTL_LOG_I ("========================================\n");
 
 	_UTL_LOG_I ("table_id                         [0x%02x]\n", pTable->header.table_id);
@@ -211,7 +212,10 @@ void CNetworkInformationTable::dumpTable (const CTable* pTable) const
 void CNetworkInformationTable::clear (void)
 {
 	releaseTables ();
+
 //	detachAllSectionList ();
+	// detachAllSectionList in parser loop
+	asyncDelete ();
 }
 
 CNetworkInformationTable::CReference CNetworkInformationTable::reference (void)

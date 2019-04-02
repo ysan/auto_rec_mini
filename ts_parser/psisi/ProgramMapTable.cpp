@@ -172,6 +172,7 @@ void CProgramMapTable::dumpTable (const CTable* pTable) const
 	}
 
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
+	pTable->header.dump ();
 	_UTL_LOG_I ("========================================\n");
 
 	_UTL_LOG_I ("PCR_PID             [0x%04x]\n", pTable->PCR_PID);
@@ -203,7 +204,10 @@ void CProgramMapTable::dumpTable (const CTable* pTable) const
 void CProgramMapTable:: clear (void)
 {
 	releaseTables ();
+
 //	detachAllSectionList ();
+	// detachAllSectionList in parser loop
+	asyncDelete ();
 }
 
 CProgramMapTable::CReference CProgramMapTable::reference (void)

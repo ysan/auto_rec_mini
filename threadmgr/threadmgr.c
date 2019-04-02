@@ -4945,6 +4945,9 @@ static void clearExternalControlInfo (ST_EXTERNAL_CONTROL_INFO *p)
 
 	p->isReplyAlready = false;
 
+    p->requestOption = 0;
+    p->requestTimeoutMsec = 0;
+
 	p->pNext = NULL;
 }
 

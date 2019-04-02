@@ -141,6 +141,7 @@ void CRunningStatusTable::dumpTable (const CTable* pTable) const
 	
 	}
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
+	pTable->header.dump ();
 	_UTL_LOG_I ("========================================\n");
 
 	std::vector<CTable::CStatus>::const_iterator iter_stt = pTable->statuses.begin();
@@ -159,7 +160,10 @@ void CRunningStatusTable::dumpTable (const CTable* pTable) const
 void CRunningStatusTable::clear (void)
 {
 	releaseTables ();
+
 //	detachAllSectionList ();
+	// detachAllSectionList in parser loop
+	asyncDelete ();
 }
 
 CRunningStatusTable::CReference CRunningStatusTable::reference (void)

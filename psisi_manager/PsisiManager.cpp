@@ -23,7 +23,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	,m_parser (this)
 	,m_tuner_notify_client_id (0xff)
 	,m_ts_receive_handler_id (-1)
-	,m_isTuned (false)
+	,m_tunerIsTuned (false)
 	,mPAT (16)
 	,mEIT_H (4096*1000, 1000)
 {
@@ -224,7 +224,7 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_PAT_WAIT: {
 
-		if (m_isTuned) {
+		if (m_tunerIsTuned) {
 			// PAT途絶チェック
 			CEtime tcur;
 			CEtime ttmp = m_patRecvTime;
@@ -250,7 +250,10 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 	case SECTID_CHECK_EVENT_PF_WAIT:
 
 		checkEventPfInfos ();
+
+#ifndef _DEBUG_BUILD
 		refreshEventPfInfos ();
+#endif
 
 		sectId = SECTID_CHECK_PAT;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -307,8 +310,10 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 
 			// ここにくるってことは選局したとゆうこと
 			cacheServiceInfos (true);
-//dDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-cacheEventPfInfos();
+
+#ifdef _DEBUG_BUILD
+			cacheEventPfInfos();
+#endif
 		}
 
 		break;
@@ -443,7 +448,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 	case EN_TUNER_NOTIFY__TUNING_BEGIN:
 		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_BEGIN");
 
-		m_isTuned = false;
+		m_tunerIsTuned = false;
 
 		clearServiceInfos (true);
 
@@ -452,7 +457,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 	case EN_TUNER_NOTIFY__TUNING_END_SUCCESS:
 		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_END_SUCCESS");
 
-		m_isTuned = true;
+		m_tunerIsTuned = true;
 
 		mPAT.clear();
 		mEIT_H.clear_pf();
@@ -468,14 +473,14 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 	case EN_TUNER_NOTIFY__TUNING_END_ERROR:
 		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_END_ERROR");
 
-		m_isTuned = false;
+		m_tunerIsTuned = false;
 
 		break;
 
 	case EN_TUNER_NOTIFY__TUNE_STOP:
 		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNE_STOP");
 
-		m_isTuned = false;
+		m_tunerIsTuned = false;
 
 		break;
 
@@ -588,7 +593,6 @@ void CPsisiManager::clearServiceInfos (bool is_atTuning)
 void CPsisiManager::dumpServiceInfos (void)
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
-	_UTL_LOG_I ("========================================\n");
 
 	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
 		if (m_serviceInfos [i].is_used) {
@@ -777,10 +781,10 @@ void CPsisiManager::refreshEventPfInfos (void)
 void CPsisiManager::dumpEventPfInfos (void)
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
-	_UTL_LOG_I ("========================================\n");
 
 	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
 		if (m_eventPfInfos [i].is_used) {
+			_UTL_LOG_I ("-----------------------------------------");
 			m_eventPfInfos [i].dump();
 		}
 	}
@@ -856,7 +860,6 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		return true;
 	}
 
-//	p_ts_header->dump();
 
 	EN_CHECK_SECTION r = EN_CHECK_SECTION__COMPLETED;
 

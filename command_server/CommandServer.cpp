@@ -391,7 +391,8 @@ void CCommandServer::parseCommand (char *pszBuff)
 
 	const char *pszDelim = (const char*)" ";
 
-	char szTmp [(int)strlen(pszBuff) + 1] = {0};
+//	char szTmp [(int)strlen(pszBuff) + 1] = {0};
+	char szTmp [128] = {0};
 	strncpy (szTmp, pszBuff, sizeof(szTmp));
 
 	// count args

@@ -47,6 +47,7 @@ void CProgramAssociationTable::onSectionCompleted (const CSectionInfo *pCompSect
 		std::lock_guard<std::mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
+
 }
 
 bool CProgramAssociationTable::parse (const CSectionInfo *pCompSection, CTable* pOutTable)
@@ -145,6 +146,7 @@ void CProgramAssociationTable::dumpTable (const CTable* pTable) const
 	
 	}
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
+	pTable->header.dump ();
 	_UTL_LOG_I ("========================================\n");
 
 	std::vector<CTable::CProgram>::const_iterator iter_prog = pTable->programs.begin();
@@ -164,7 +166,10 @@ void CProgramAssociationTable::dumpTable (const CTable* pTable) const
 void CProgramAssociationTable::clear (void)
 {
 	releaseTables ();
+
 //	detachAllSectionList ();
+	// detachAllSectionList in parser loop
+	asyncDelete ();
 }
 
 CProgramAssociationTable::CReference CProgramAssociationTable::reference (void)

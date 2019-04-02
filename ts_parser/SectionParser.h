@@ -166,6 +166,7 @@ protected:
 	virtual bool onSectionStarted (const CSectionInfo *pSection);
 	virtual void onSectionCompleted (const CSectionInfo *pCompSection);
 
+	void asyncDelete (void);
 
 private:
 //	void convertRaw2SectionInfo (CSectionInfo *pOut, uint8_t *pBuff, size_t size);
@@ -173,9 +174,10 @@ private:
 	CSectionInfo* attachSectionList (uint8_t *pBuff, size_t size);
 	CSectionInfo* addSectionList (CSectionInfo *pSectInfo);
 
-	void deleteSectionList (const CSectionInfo &sectInfo);
-	void deleteSectionList (const CSectionInfo *pSectInfo);
+	void deleteSectionList (const CSectionInfo &sectInfo, bool isDelete=true);
+	void deleteSectionList (const CSectionInfo *pSectInfo, bool isDelete=true);
 	void deleteAllSectionList (void);
+	void shiftAllSectionList (size_t shiftSize);
 
 	void checkDetachFifoSectionList (void);
 	CSectionInfo* checkDeleteFifoSectionList (void);
@@ -203,6 +205,8 @@ private:
 	size_t mPoolSize;
 
 	EN_SECTION_TYPE mType;
+
+	bool mIsAsyncDelete;
 };
 
 #endif

@@ -78,11 +78,7 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 
 	if (pTable->header.table_id == TBLID_EIT_PF_A || pTable->header.table_id == TBLID_EIT_PF_O) {
 
-		while (1) {
-			if (!refreshByVersionNumber_pf (pTable)) {
-				break;
-			}
-		}
+		refreshAllByVersionNumber_pf (pTable) ;
 
 		appendTable_pf (pTable);
 
@@ -100,6 +96,9 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 	) {
 
 		appendTable_sch (pTable);
+
+		// EIT schedule is not create section-list
+		detachSectionList (pCompSection);
 
 		// debug dump
 		if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
@@ -391,6 +390,7 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 		return;
 	}
 	
+	_UTL_LOG_I ("========================================\n");
 	pTable->header.dump ();
 
 	char buf[128] = {0};
@@ -406,8 +406,8 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 	}
 
 	_UTL_LOG_I (
-		"tblid:[0x%02x][%s] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] ver:[0x%02x] curind:[%d] %s\n",
-		pTable->header.table_id,
+		"svcid:[0x%04x] [%s] tsid:[0x%04x] org_nid:[0x%04x] seg_last:[0x%02x] last:[0x%02x] %s\n",
+		pTable->header.table_id_extension,
 		pTable->header.table_id == 0x4e ? "PF ,A " :
 			pTable->header.table_id == 0x4f ? "PF ,O " :
 			pTable->header.table_id >= 0x50 && pTable->header.table_id < 0x58 ? "Sch,A " :
@@ -417,9 +417,8 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 			"unsup ",
 		pTable->transport_stream_id,
 		pTable->original_network_id,
-		pTable->header.table_id_extension,
-		pTable->header.version_number,
-		pTable->header.current_next_indicator,
+		pTable->segment_last_section_number,
+		pTable->last_table_id,
 		buf
 	);
 }
@@ -427,13 +426,19 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 void CEventInformationTable::clear_pf (void)
 {
 	releaseTables_pf ();
+
 //	detachAllSectionList ();
+	// detachAllSectionList in parser loop
+	asyncDelete ();
 }
 
 void CEventInformationTable::clear_sch (void)
 {
 	releaseTables_sch ();
+
 //	detachAllSectionList ();
+	// detachAllSectionList in parser loop
+	asyncDelete ();
 }
 
 void CEventInformationTable::clear_pf (CTable *pErase)
@@ -446,6 +451,7 @@ void CEventInformationTable::clear_sch (CTable *pErase)
 	releaseTable_sch (pErase);
 }
 
+/***
 bool CEventInformationTable::refreshByVersionNumber_pf (CTable* pNewTable)
 {
 	if (!pNewTable) {
@@ -455,7 +461,7 @@ bool CEventInformationTable::refreshByVersionNumber_pf (CTable* pNewTable)
 	std::lock_guard<std::recursive_mutex> lock (mMutexTables_pf);
 
 
-	std::vector<CTable::CEvent>::const_iterator iter_event = pNewTable->events.begin();
+	std::veceor<CTable::CEvent>::const_iterator iter_event = pNewTable->events.begin();
 	if (iter_event == pNewTable->events.end()) {
 		_UTL_LOG_D ("not exist event");
 		return false;
@@ -516,6 +522,91 @@ bool CEventInformationTable::refreshByVersionNumber_pf (CTable* pNewTable)
 	}
 
 	return is_existed;
+}
+***/
+
+bool CEventInformationTable::refreshByVersionNumber_pf (CTable* pNewTable)
+{
+	if (!pNewTable) {
+		return false;
+	}
+
+	std::lock_guard<std::recursive_mutex> lock (mMutexTables_pf);
+
+
+	// sub-table identify
+	uint8_t new_tblid = pNewTable->header.table_id;
+	uint16_t new_svcid = pNewTable->header.table_id_extension;
+	uint16_t new_tsid = pNewTable->transport_stream_id;
+	uint16_t new_org_nid = pNewTable->original_network_id;
+
+
+	uint8_t new_ver = pNewTable->header.version_number;
+	uint8_t sec_num = pNewTable->header.section_number;
+
+	CTable *pErase = NULL;
+
+	std::vector<CTable*>::const_iterator iter = mTables_pf.begin();
+    for (; iter != mTables_pf.end(); ++ iter) {
+		CTable *pTable = *iter;
+
+		// check every sub-table
+		if (
+			(new_tblid == pTable->header.table_id) &&
+			(new_svcid == pTable->header.table_id_extension) &&
+			(new_tsid == pTable->transport_stream_id) &&
+			(new_org_nid == pTable->original_network_id)
+		) {
+			uint8_t ver_tmp = pTable->header.version_number;
+			++ ver_tmp;
+			ver_tmp &= 0x1f;
+
+			if (new_ver >= ver_tmp) {
+
+				// new version
+				pErase = pTable;
+				break;
+
+			} else {
+				if (new_ver == pTable->header.version_number) {
+					if (sec_num == pTable->header.section_number) {
+						// duplicate sections should be checked by CSectionParser
+						_UTL_LOG_E (
+							"BUG: same version.  new_ver:[0x%02x]  pTable->header.version_number:[0x%02x]",
+							new_ver,
+							pTable->header.version_number
+						);
+					}
+				} else {
+					_UTL_LOG_E (
+						"BUG: unexpected version.  new_ver:[0x%02x]  pTable->header.version_number:[0x%02x]",
+						new_ver,
+						pTable->header.version_number
+					);
+				}
+			}
+		}
+	}
+
+	if (pErase) {
+		releaseTable_pf (pErase);
+		return true;
+	} else {
+		return false;
+	}
+}
+
+void CEventInformationTable::refreshAllByVersionNumber_pf (CTable* pNewTable)
+{
+	if (!pNewTable) {
+		return ;
+	}
+
+	while (1) {
+		if (!refreshByVersionNumber_pf (pNewTable)) {
+			break;
+		}
+	}
 }
 
 CEventInformationTable::CReference CEventInformationTable::reference_pf (void)

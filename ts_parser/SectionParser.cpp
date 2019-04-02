@@ -395,6 +395,7 @@ CSectionParser::CSectionParser (EN_SECTION_TYPE type)
 	,mPoolInd (0)
 	,mPoolSize (POOL_SIZE)
 	,mType (EN_SECTION_TYPE__PSISI)
+	,mIsAsyncDelete (false)
 {
 	mpPool = new uint8_t [mPoolSize];
 	memset (mpPool, 0x00, mPoolSize);
@@ -412,6 +413,7 @@ CSectionParser::CSectionParser (int fifoNum, EN_SECTION_TYPE type)
 	,mPoolInd (0)
 	,mPoolSize (POOL_SIZE)
 	,mType (EN_SECTION_TYPE__PSISI)
+	,mIsAsyncDelete (false)
 {
 	mpPool = new uint8_t [mPoolSize];
 	memset (mpPool, 0x00, mPoolSize);
@@ -435,6 +437,7 @@ CSectionParser::CSectionParser (size_t poolSize, EN_SECTION_TYPE type)
 	,mPoolInd (0)
 	,mPoolSize (POOL_SIZE)
 	,mType (EN_SECTION_TYPE__PSISI)
+	,mIsAsyncDelete (false)
 {
 	mPoolSize = poolSize;
 	mpPool = new uint8_t [mPoolSize];
@@ -453,6 +456,7 @@ CSectionParser::CSectionParser (size_t poolSize ,int fifoNum, EN_SECTION_TYPE ty
 	,mPoolInd (0)
 	,mPoolSize (POOL_SIZE)
 	,mType (EN_SECTION_TYPE__PSISI)
+	,mIsAsyncDelete (false)
 {
 	mPoolSize = poolSize;
 	mpPool = new uint8_t [mPoolSize];
@@ -514,7 +518,13 @@ CSectionInfo* CSectionParser::attachSectionList (uint8_t *pBuff, size_t size)
 		if (!pList) {
 
 			// cancel pool data
-			memcpy (pCur, mpPool + mPoolInd, (mpPool + (mPoolSize -1)) - (mpPool + mPoolInd));
+//TODO memcpy-param-overlap
+//			memcpy (pCur, mpPool + mPoolInd, (mpPool + (mPoolSize -1)) - (mpPool + mPoolInd));
+			uint8_t tmp [mPoolSize] = {0};
+			size_t cpsize = (mpPool + mPoolSize) - (mpPool + mPoolInd);
+			memcpy (tmp, mpPool + mPoolInd, cpsize);
+			memcpy (pCur, tmp, cpsize);
+
 			mPoolInd -= size;
 
 			pRtn = NULL;
@@ -555,7 +565,12 @@ CSectionInfo* CSectionParser::addSectionList (CSectionInfo *pSectInfo)
 }
 
 /**
+ * detachSectionList
+ * 指定のセクションを削除します
  *
+ * TODO 
+ * これを呼ぶところは今取得中のセクションで最後尾にあたるので
+ * mpRaw, mpData, mpTailのshiftは不要とします
  */
 void CSectionParser::detachSectionList (const CSectionInfo *pSectInfo)
 {
@@ -563,18 +578,28 @@ void CSectionParser::detachSectionList (const CSectionInfo *pSectInfo)
 		return ;
 	}
 
-	deleteSectionList (pSectInfo);
+
+	deleteSectionList (pSectInfo, false);
 
 	// pool から消す - 間詰める
-	memcpy (pSectInfo->mpRaw, pSectInfo->mpTail, mpPool + (mPoolSize -1) - pSectInfo->mpTail);
-	uint32_t shift = pSectInfo->mpTail - pSectInfo->mpRaw;
+//TODO memcpy-param-overlap
+//	memcpy (pSectInfo->mpRaw, pSectInfo->mpTail, mpPool + (mPoolSize -1) - pSectInfo->mpTail);
+	uint8_t tmp [mPoolSize] = {0};
+	size_t cpsize = mpPool + mPoolSize - pSectInfo->mpTail;
+	memcpy (tmp, pSectInfo->mpTail, cpsize);
+	memcpy (pSectInfo->mpRaw, tmp, cpsize);
+
+	size_t shift = pSectInfo->mpTail - pSectInfo->mpRaw;
 	mPoolInd -= shift;
 
 	// pool 消す時はセットで
 	if (pSectInfo == mpWorkSectInfo) {
-		mpWorkSectInfo->clear ();
+// deleteSectionList内で実行済
+//		mpWorkSectInfo->clear ();
 		mpWorkSectInfo = NULL;
 	}
+
+	delete pSectInfo;
 }
 
 /**
@@ -582,7 +607,7 @@ void CSectionParser::detachSectionList (const CSectionInfo *pSectInfo)
  * インスタンスの一致で削除
  * 重複していないこと前提
  */
-void CSectionParser::deleteSectionList (const CSectionInfo &sectInfo)
+void CSectionParser::deleteSectionList (const CSectionInfo &sectInfo, bool isDelete)
 {
 	CSectionInfo *pTmp = NULL;
 	CSectionInfo *pBef = NULL;
@@ -629,9 +654,13 @@ void CSectionParser::deleteSectionList (const CSectionInfo &sectInfo)
 					pTmp->mpNext = NULL;
 				}
 
-				_UTL_LOG_D ("delete");
-				delete pDel;
-				pDel = NULL;
+				if (isDelete) {
+					_UTL_LOG_D ("delete");
+					pDel->clear();
+					delete pDel;
+					pDel = NULL;
+				}
+
 				break;
 
 			} else {
@@ -650,7 +679,7 @@ void CSectionParser::deleteSectionList (const CSectionInfo &sectInfo)
  * アドレスの一致で削除
  * 重複していないこと前提
  */
-void CSectionParser::deleteSectionList (const CSectionInfo *pSectInfo)
+void CSectionParser::deleteSectionList (const CSectionInfo *pSectInfo, bool isDelete)
 {
 	if (!pSectInfo) {
 		return ;
@@ -701,9 +730,13 @@ void CSectionParser::deleteSectionList (const CSectionInfo *pSectInfo)
 					pTmp->mpNext = NULL;
 				}
 
-				_UTL_LOG_D ("delete");
-				delete pDel;
-				pDel = NULL;
+				if (isDelete) {
+					_UTL_LOG_D ("delete");
+					pDel->clear();
+					delete pDel;
+					pDel = NULL;
+				}
+
 				break;
 
 			} else {
@@ -724,12 +757,17 @@ void CSectionParser::detachAllSectionList (void)
 {
 	deleteAllSectionList ();
 
-	memset (mpPool, 0x00, mPoolSize);
-	mPoolInd = 0;
+	if (mpPool) {
+		memset (mpPool, 0x00, mPoolSize);
+		mPoolInd = 0;
+	}
 
 	// pool 消す時はセットで
-	mpWorkSectInfo->clear ();
-	mpWorkSectInfo = NULL;
+	if (mpWorkSectInfo) {
+// deleteAllSectionList内で実行済
+//		mpWorkSectInfo->clear ();
+		mpWorkSectInfo = NULL;
+	}
 }
 
 /**
@@ -754,6 +792,7 @@ void CSectionParser::deleteAllSectionList (void)
 			// next set
 			pTmp = pTmp->mpNext;
 
+			pDel->clear();
 			delete pDel;
 			pDel = NULL;
 		}
@@ -761,6 +800,33 @@ void CSectionParser::deleteAllSectionList (void)
 
 	mpSectListTop = NULL;
 	mpSectListBottom = NULL;
+}
+
+/**
+ * shiftAllSectionList
+ * リストのsectionのmpRaw,mpData,mpTailをずらす
+ */
+void CSectionParser::shiftAllSectionList (size_t shiftSize)
+{
+	CSectionInfo *pTmp = NULL;
+
+
+	if (!mpSectListTop) {
+		// リストが空
+
+	} else {
+		pTmp = mpSectListTop;
+
+		while (pTmp) {
+
+			pTmp->mpRaw -= shiftSize;
+			pTmp->mpData -= shiftSize;
+			pTmp->mpTail -= shiftSize;
+
+			// next set
+			pTmp = pTmp->mpNext;
+		}
+	}
 }
 
 /**
@@ -810,9 +876,17 @@ void CSectionParser::checkDetachFifoSectionList (void)
 	CSectionInfo *pDelSect = checkDeleteFifoSectionList ();
 	if (pDelSect) {
 		// pool から消す - 間詰める
-		memcpy (pDelSect->mpRaw, pDelSect->mpTail, mpPool + (mPoolSize -1) - pDelSect->mpTail);
+//TODO memcpy-param-overlap
+//		memcpy (pDelSect->mpRaw, pDelSect->mpTail, mpPool + (mPoolSize -1) - pDelSect->mpTail);
+		uint8_t tmp [mPoolSize] = {0};
+		size_t cpsize = mpPool + mPoolSize - pDelSect->mpTail;
+		memcpy (tmp, pDelSect->mpTail, cpsize);
+		memcpy (pDelSect->mpRaw, tmp, cpsize);
+
 		uint32_t shift = pDelSect->mpTail - pDelSect->mpRaw;
 		mPoolInd -= shift;
+
+		shiftAllSectionList (shift);
 
 		// pool 消す時はセットで
 		if (pDelSect == mpWorkSectInfo) {
@@ -820,27 +894,9 @@ void CSectionParser::checkDetachFifoSectionList (void)
 			mpWorkSectInfo = NULL;
 		}
 
-//TODO 関数化
-		// リストに入ってるsectionのmpRaw,mpData,mpTailをずらす
-		CSectionInfo *pTmp = NULL;
-		if (!mpSectListTop) {
-			// リストが空
-		} else {
-			pTmp = mpSectListTop;
-
-			while (pTmp) {
-				pTmp->mpRaw -= shift;
-				pTmp->mpData -= shift;
-				pTmp->mpTail -= shift;
-
-				// next set
-				pTmp = pTmp->mpNext;
-			}
-		}
+		delete pDelSect;
+		pDelSect = NULL;
 	}
-
-	delete pDelSect;
-	pDelSect = NULL;
 }
 
 /**
@@ -1197,12 +1253,22 @@ EN_CHECK_SECTION CSectionParser::checkSection (const TS_HEADER *pTsHdr, uint8_t 
 		return EN_CHECK_SECTION__INVALID;
 	}
 
+
 	mPid = pTsHdr->pid;
 
 	if (pTsHdr->payload_unit_start_indicator == 0) {
+
 		_UTL_LOG_D ("checkSectionFollow");
 		return checkSectionFollow (pPayload, payloadSize);
+
 	} else {
+
+		if (mIsAsyncDelete) {
+			_UTL_LOG_I ("pid:[%d] exec asyncDelete", mPid);
+			detachAllSectionList();
+			mIsAsyncDelete = false;
+		}
+
 		_UTL_LOG_D ("checkSectionFirst");
 		return checkSectionFirst (pPayload, payloadSize);
 	}
@@ -1253,4 +1319,12 @@ bool CSectionParser::onSectionStarted (const CSectionInfo *pCompSection)
 void CSectionParser::onSectionCompleted (const CSectionInfo *pCompSection)
 {
 	return;
+}
+
+/**
+ *
+ */
+void CSectionParser::asyncDelete (void)
+{
+	mIsAsyncDelete = true;
 }
