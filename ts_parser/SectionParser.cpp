@@ -1014,6 +1014,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 
 
 	EN_CHECK_SECTION r = EN_CHECK_SECTION__COMPLETED;
+	bool isEvenOnceComplete = false;
 
 	// payload_unit_start_indicator == 1 のパケット内に
 	// 複数のts含まれる場合がある そのためのループ
@@ -1122,6 +1123,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 		} else {
 			// new section
 			_UTL_LOG_D ("new section");
+			isEvenOnceComplete = true;
 			r = EN_CHECK_SECTION__COMPLETED;
 			size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
 			p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
@@ -1137,8 +1139,11 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 
 	} // while ((size > 0) && (*p != 0xff))
 
-
-	return r;
+	if (isEvenOnceComplete) {
+		return EN_CHECK_SECTION__COMPLETED;
+	} else {
+		return r;
+	}
 }
 
 /**
@@ -1264,8 +1269,8 @@ EN_CHECK_SECTION CSectionParser::checkSection (const TS_HEADER *pTsHdr, uint8_t 
 	} else {
 
 		if (mIsAsyncDelete) {
-			_UTL_LOG_I ("pid:[%d] exec asyncDelete", mPid);
-			detachAllSectionList();
+			_UTL_LOG_I ("pid:[0x%04x] asyncDelete -> detachAllSectionList", mPid);
+			detachAllSectionList ();
 			mIsAsyncDelete = false;
 		}
 

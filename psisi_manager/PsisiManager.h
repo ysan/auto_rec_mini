@@ -144,6 +144,7 @@ public:
 	void moduleDown (CThreadMgrIf *pIf);
 	void checkLoop (CThreadMgrIf *pIf);
 	void parserNotice (CThreadMgrIf *pIf);
+	void stabilizationAfterTuning (CThreadMgrIf *pIf);
 	void dumpCaches (CThreadMgrIf *pIf);
 	void dumpTables (CThreadMgrIf *pIf);
 

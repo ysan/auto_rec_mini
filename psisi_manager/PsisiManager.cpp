@@ -31,6 +31,9 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_DOWN]   = {(PFN_SEQ_BASE)&CPsisiManager::moduleDown,  (char*)"moduleDown"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_CHECK_LOOP]    = {(PFN_SEQ_BASE)&CPsisiManager::checkLoop,   (char*)"checkLoop"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_PARSER_NOTICE] = {(PFN_SEQ_BASE)&CPsisiManager::parserNotice,(char*)"parserNotice"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_STABILIZATION_AFTER_TUNING] = {
+		(PFN_SEQ_BASE)&CPsisiManager::stabilizationAfterTuning, (char*)"stabilizationAfterTuning,"
+	};
 	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_CACHES]   = {(PFN_SEQ_BASE)&CPsisiManager::dumpCaches,  (char*)"dumpCaches"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_TABLES]   = {(PFN_SEQ_BASE)&CPsisiManager::dumpTables,  (char*)"dumpTables"};
 	setSeqs (mSeqs, EN_SEQ_PSISI_MANAGER_NUM);
@@ -288,7 +291,8 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 	switch (_notice.type) {
 	case EN_PSISI_TYPE__PAT:
 		if (_notice.isNew) {
-			mPAT.dumpTables();
+//			mPAT.dumpTables();
+			_UTL_LOG_I ("notice new PAT");
 		}
 
 		// PAT途絶チェック用
@@ -298,15 +302,16 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 
 	case EN_PSISI_TYPE__NIT:
 		if (_notice.isNew) {
-			mNIT.dumpTables();
-
+//			mNIT.dumpTables();
+			_UTL_LOG_I ("notice new NIT");
 		}
 
 		break;
 
 	case EN_PSISI_TYPE__SDT:
 		if (_notice.isNew) {
-			mSDT.dumpTables();
+//			mSDT.dumpTables();
+			_UTL_LOG_I ("notice new SDT");
 
 			// ここにくるってことは選局したとゆうこと
 			cacheServiceInfos (true);
@@ -320,6 +325,7 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 
 	case EN_PSISI_TYPE__EIT_H_PF:
 		if (_notice.isNew) {
+			_UTL_LOG_I ("notice new EIT p/f");
 			cacheEventPfInfos ();
 		}
 
@@ -333,6 +339,62 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::stabilizationAfterTuning (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_CHECK,
+		SECTID_CHECK_WAIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+		// 先にreplyしておく
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		sectId = SECTID_CHECK;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_CHECK:
+
+		pIf->setTimeout (1500);
+
+		sectId = SECTID_CHECK_WAIT;
+		enAct = EN_THM_ACT_WAIT;
+		break;
+
+	case SECTID_CHECK_WAIT:
+
+		mPAT.clear();
+		mEIT_H.clear_pf();
+		mNIT.clear();
+		mSDT.clear();
+		mRST.clear();
+		mBIT.clear();
+
+		sectId = SECTID_END;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_END:
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
 	pIf->setSectId (sectId, enAct);
 }
 
@@ -454,21 +516,29 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		break;
 
-	case EN_TUNER_NOTIFY__TUNING_END_SUCCESS:
+	case EN_TUNER_NOTIFY__TUNING_END_SUCCESS: {
 		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_END_SUCCESS");
 
 		m_tunerIsTuned = true;
 
-		mPAT.clear();
-		mEIT_H.clear_pf();
-		mNIT.clear();
-		mSDT.clear();
-		mRST.clear();
-		mBIT.clear();
+//		mPAT.clear();
+//		mEIT_H.clear_pf();
+//		mNIT.clear();
+//		mSDT.clear();
+//		mRST.clear();
+//		mBIT.clear();
+//		clearEventPfInfos ();
 
-		clearEventPfInfos ();
+		uint32_t opt = getRequestOption ();
+		opt |= REQUEST_OPTION__WITHOUT_REPLY;
+		setRequestOption (opt);
 
-		break;
+		requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER_STABILIZATION_AFTER_TUNING);
+
+		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+		setRequestOption (opt);
+
+		} break;
 
 	case EN_TUNER_NOTIFY__TUNING_END_ERROR:
 		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_END_ERROR");
