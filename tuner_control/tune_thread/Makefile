@@ -29,7 +29,7 @@ SUBDIRS		:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	tune_thread
+TARGET_NAME	:=	tunethread
 
 #
 #   Target type

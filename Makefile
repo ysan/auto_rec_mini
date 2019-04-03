@@ -26,14 +26,14 @@ LIBS		:= \
 	-L$(BASEDIR)/threadmgr -lthreadmgr \
 	-L$(BASEDIR)/threadmgrpp -lthreadmgrpp \
 	-L$(BASEDIR)/common -lcommon \
-	-L$(BASEDIR)/tuner_control/tune_thread -ltune_thread \
-	-L$(BASEDIR)/tuner_control -ltuner_control \
+	-L$(BASEDIR)/tuner_control/tune_thread -ltunethread \
+	-L$(BASEDIR)/tuner_control -ltunercontrol \
 	-L$(BASEDIR)/tuner_control/it9175 -lit9175 \
-	-L$(BASEDIR)/ts_parser -lts_parser \
+	-L$(BASEDIR)/ts_parser -ltsparser \
 	-L$(BASEDIR)/ts_parser/psisi -lpsisi \
 	-L$(BASEDIR)/ts_parser/dsmcc -ldsmcc \
-	-L$(BASEDIR)/psisi_manager -lpsisi_manager \
-	-L$(BASEDIR)/command_server -lcommand_server \
+	-L$(BASEDIR)/psisi_manager -lpsisimanager \
+	-L$(BASEDIR)/command_server -lcommandserver \
 	-larib25 \
 	-lpthread \
 	-lpcsclite \

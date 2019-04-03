@@ -85,12 +85,12 @@ typedef struct {
 			event_id
 		);
 		_UTL_LOG_I (
-			"  p/f:[%s] time:[%s - %s] [%s]",
+			"  p/f:[%s] time:[%s - %s]",
 			gpszEventPfState [state],
 			start_time.toString(),
-			end_time.toString(),
-			event_name_char
+			end_time.toString()
 		);
+		_UTL_LOG_I ("  [%s]", event_name_char);
 	}
 
 } _EVENT_PF_INFO;
@@ -152,13 +152,32 @@ public:
 private:
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
+	// serviceInfo
 	void cacheServiceInfos (bool is_atTuning);
+	_SERVICE_INFO* findServiceInfo (
+		uint8_t _table_id,
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id
+	);
 	_SERVICE_INFO* findEmptyServiceInfo (void);
+	bool isExistService (
+		uint8_t _table_id,
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id
+	);
 	void dumpServiceInfos (void);
 	void clearServiceInfos (bool is_atTuning);
 
+	// eventPfInfo
 	void cacheEventPfInfos (void);
-	void cacheEventPfInfos (uint16_t _service_id);
+	void cacheEventPfInfos (
+		uint8_t _table_id,
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id
+	);
 	_EVENT_PF_INFO* findEmptyEventPfInfo (void);
 	void checkEventPfInfos (void);
 	void refreshEventPfInfos (void);

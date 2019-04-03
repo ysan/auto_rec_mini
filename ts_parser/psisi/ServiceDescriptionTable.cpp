@@ -43,7 +43,7 @@ void CServiceDescriptionTable::onSectionCompleted (const CSectionInfo *pCompSect
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
 //TODO mutex
-		std::lock_guard<std::mutex> lock (mMutexTables);
+		std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
 }
@@ -115,14 +115,14 @@ void CServiceDescriptionTable::appendTable (CTable *pTable)
 		return ;
 	}
 
-	std::lock_guard<std::mutex> lock (mMutexTables);
+	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
 	mTables.push_back (pTable);
 }
 
 void CServiceDescriptionTable::releaseTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
+	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
 	if (mTables.size() == 0) {
 		return;
@@ -139,7 +139,7 @@ void CServiceDescriptionTable::releaseTables (void)
 
 void CServiceDescriptionTable::dumpTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
+	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
 	if (mTables.size() == 0) {
 		return;

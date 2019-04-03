@@ -24,8 +24,8 @@ LIBS		:= \
 	-L$(BASEDIR)/threadmgr -lthreadmgr \
 	-L$(BASEDIR)/threadmgrpp -lthreadmgrpp \
 	-L$(BASEDIR)/common -lcommon \
-	-L$(BASEDIR)/tuner_control -ltuner_control \
-	-L$(BASEDIR)/ts_parser -lts_parser \
+	-L$(BASEDIR)/tuner_control -ltunercontrol \
+	-L$(BASEDIR)/ts_parser -ltsparser \
 	-L$(BASEDIR)/ts_parser/aribstr -laribstr \
 	-L$(BASEDIR)/ts_parser/psisi -lpsisi \
 	-lpthread \
@@ -36,7 +36,7 @@ USERDEFS	:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	psisi_manager
+TARGET_NAME	:=	psisimanager
 
 #
 #   Target type

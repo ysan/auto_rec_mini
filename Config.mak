@@ -24,12 +24,14 @@ OBJDUMP		:=	/usr/bin/objdump
 # redefine MAKE command
 MAKE		+=	--no-print-directory
 ifeq ($(DEBUG_BUILD), 1)
-MAKE		+=	DEBUG_BUILD=1
+MAKE		+=	DEBUG_BUILD=1 NO_STRIP=1
 endif
 ifeq ($(NO_STRIP), 1)
 MAKE		+=	NO_STRIP=1
 endif
-
+ifeq ($(NO_TUNER), 1)
+MAKE		+=	NO_TUNER=1
+endif
 
 
 # CFLAGS
@@ -48,6 +50,10 @@ endif
 
 ifeq ($(DEBUG_BUILD), 1)
 CFLAGS		+=	-g -D_DEBUG_BUILD
+endif
+
+ifeq ($(NO_TUNER), 1)
+CFLAGS		+=	-D_NO_TUNER
 endif
 
 ifeq ($(ADDR_SANITIZE), 1)

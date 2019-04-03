@@ -229,9 +229,10 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 
 		if (m_tunerIsTuned) {
 			// PAT途絶チェック
+			// 最後にPATを受けとった時刻から再び受け取るまで5秒以上経過していたら異常	
 			CEtime tcur;
 			CEtime ttmp = m_patRecvTime;
-			ttmp.addSec (5);
+			ttmp.addSec (5); 
 			if (tcur > ttmp) {
 				_UTL_LOG_E ("PAT was not detected. probably stream is broken...");
 			}
@@ -254,7 +255,8 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 
 		checkEventPfInfos ();
 
-#ifndef _DEBUG_BUILD
+#ifndef _NO_TUNER
+// ローカルデバッグ中は消したくないので
 		refreshEventPfInfos ();
 #endif
 
@@ -316,7 +318,7 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 			// ここにくるってことは選局したとゆうこと
 			cacheServiceInfos (true);
 
-#ifdef _DEBUG_BUILD
+#ifdef _NO_TUNER
 			cacheEventPfInfos();
 #endif
 		}
@@ -512,7 +514,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		m_tunerIsTuned = false;
 
-		clearServiceInfos (true);
+//		clearServiceInfos (true);
 
 		break;
 
@@ -521,14 +523,14 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		m_tunerIsTuned = true;
 
-//		mPAT.clear();
-//		mEIT_H.clear_pf();
-//		mNIT.clear();
-//		mSDT.clear();
-//		mRST.clear();
-//		mBIT.clear();
-//		clearEventPfInfos ();
-
+#ifdef _NO_TUNER
+		mPAT.clear();
+		mEIT_H.clear_pf();
+		mNIT.clear();
+		mSDT.clear();
+		mRST.clear();
+		mBIT.clear();
+#else
 		uint32_t opt = getRequestOption ();
 		opt |= REQUEST_OPTION__WITHOUT_REPLY;
 		setRequestOption (opt);
@@ -537,6 +539,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 		setRequestOption (opt);
+#endif
 
 		} break;
 
@@ -568,7 +571,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
  */
 void CPsisiManager::cacheServiceInfos (bool is_atTuning)
 {
-	std::lock_guard<std::mutex> lock (*mSDT_ref.mpMutex);
+	std::lock_guard<std::recursive_mutex> lock (*mSDT_ref.mpMutex);
 
 	std::vector<CServiceDescriptionTable::CTable*>::const_iterator iter = mSDT_ref.mpTables->begin();
 	for (; iter != mSDT_ref.mpTables->end(); ++ iter) {
@@ -581,10 +584,13 @@ void CPsisiManager::cacheServiceInfos (bool is_atTuning)
 		std::vector<CServiceDescriptionTable::CTable::CService>::const_iterator iter_svc = pTable->services.begin();
 		for (; iter_svc != pTable->services.end(); ++ iter_svc) {
 
-			_SERVICE_INFO * pInfo = findEmptyServiceInfo();
+			_SERVICE_INFO * pInfo = findServiceInfo (tbl_id, ts_id, network_id, iter_svc->service_id);
 			if (!pInfo) {
-				_UTL_LOG_E ("cacheServiceInfos failure.");
-				return;
+				pInfo = findEmptyServiceInfo();
+				if (!pInfo) {
+					_UTL_LOG_E ("cacheServiceInfos failure.");
+					return;
+				}
 			}
 
 			if (is_atTuning) {
@@ -623,6 +629,39 @@ void CPsisiManager::cacheServiceInfos (bool is_atTuning)
 	} // loop tables
 }
 
+_SERVICE_INFO* CPsisiManager::findServiceInfo (
+	uint8_t _table_id,
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id,
+	uint16_t _service_id
+)
+{
+	if (
+		(_table_id == 0) &&
+		(_transport_stream_id == 0) &&
+		(_original_network_id == 0) &&
+		(_service_id == 0)
+	) {
+		return NULL;
+	}
+
+	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
+		if (m_serviceInfos [i].is_used) {
+			if (
+				(_table_id == m_serviceInfos [i].table_id) &&
+				(_transport_stream_id == m_serviceInfos [i].transport_stream_id) &&
+				(_original_network_id == m_serviceInfos [i].original_network_id) &&
+				(_service_id == m_serviceInfos [i].service_id)
+			) {
+				return &m_serviceInfos [i];
+			}
+		}
+	}
+
+	// not existed
+	return NULL;
+}
+
 _SERVICE_INFO* CPsisiManager::findEmptyServiceInfo (void)
 {
 	int i = 0;
@@ -638,6 +677,55 @@ _SERVICE_INFO* CPsisiManager::findEmptyServiceInfo (void)
 	}
 
 	return &m_serviceInfos [i];
+}
+
+bool CPsisiManager::isExistService (
+	uint8_t _table_id,
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id,
+	uint16_t _service_id
+)
+{
+	if (
+		(_table_id == 0) &&
+		(_transport_stream_id == 0) &&
+		(_original_network_id == 0) &&
+		(_service_id == 0)
+	) {
+		return false;
+	}
+
+	std::lock_guard<std::recursive_mutex> lock (*mSDT_ref.mpMutex);
+
+	std::vector<CServiceDescriptionTable::CTable*>::const_iterator iter = mSDT_ref.mpTables->begin();
+	for (; iter != mSDT_ref.mpTables->end(); ++ iter) {
+
+		CServiceDescriptionTable::CTable *pTable = *iter;
+		uint8_t tbl_id = pTable->header.table_id;
+		uint16_t ts_id = pTable->header.table_id_extension;
+		uint16_t network_id = pTable->original_network_id;
+
+		std::vector<CServiceDescriptionTable::CTable::CService>::const_iterator iter_svc = pTable->services.begin();
+		for (; iter_svc != pTable->services.end(); ++ iter_svc) {
+
+			uint16_t service_id = iter_svc->service_id;
+
+			if (
+				(_table_id == tbl_id) &&
+				(_transport_stream_id == ts_id) &&
+				(_original_network_id == network_id) &&
+				(_service_id == service_id)
+			) {
+				return true;
+			}
+
+		} // loop services
+
+	} // loop tables
+
+
+	// not existed
+	return false;
 }
 
 void CPsisiManager::clearServiceInfos (bool is_atTuning)
@@ -676,30 +764,47 @@ void CPsisiManager::cacheEventPfInfos (void)
 	clearEventPfInfos();
 
 	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
-		// 今選局中のservice_idを探します
+		// 今選局中のserviceを探します
 		if (!m_serviceInfos [i].is_tune_target) {
 			continue;
 		}
 
-		// 今選局中のservice_idです
+		uint8_t _table_id = m_serviceInfos [i].table_id;
+		uint16_t _transport_stream_id = m_serviceInfos [i].transport_stream_id;
+		uint16_t _original_network_id = m_serviceInfos [i].original_network_id;
 		uint16_t _service_id = m_serviceInfos [i].service_id;
-		if (_service_id == 0) {
+		if (
+			(_table_id == 0) &&
+			(_transport_stream_id == 0) &&
+			(_original_network_id == 0) &&
+			(_service_id == 0)
+		) {
 			continue;
 		}
 
-		cacheEventPfInfos (_service_id);
+		cacheEventPfInfos (_table_id, _transport_stream_id, _original_network_id, _service_id);
 
 	}
 }
 
 /**
- * service_idをキーにテーブル内容を_EVENT_PF_INFOに保存します
+ * 引数をキーにテーブル内容を_EVENT_PF_INFOに保存します
  * 少なくともp/fの２つ分は見つかるはず
  */
-void CPsisiManager::cacheEventPfInfos (uint16_t _service_id)
+void CPsisiManager::cacheEventPfInfos (
+	uint8_t _table_id,
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id,
+	uint16_t _service_id
+)
 {
-	if (_service_id == 0) {
-		return ;
+	if (
+		(_table_id == 0) &&
+		(_transport_stream_id == 0) &&
+		(_original_network_id == 0) &&
+		(_service_id == 0)
+	) {
+		return;
 	}
 
 	int m = 0;
@@ -710,7 +815,14 @@ void CPsisiManager::cacheEventPfInfos (uint16_t _service_id)
 	for (; iter != mEIT_H_pf_ref.mpTables->end(); ++ iter) {
 
 		CEventInformationTable::CTable *pTable = *iter;
-		if (_service_id != pTable->header.table_id_extension) {
+
+		// キーが一致したテーブルをみます
+		if (
+//			(_table_id != pTable->header.table_id) || // table_idは異なるので除外
+			(_transport_stream_id != pTable->transport_stream_id) ||
+			(_original_network_id != pTable->original_network_id) ||
+			(_service_id != pTable->header.table_id_extension)
+		) {
 			continue;
 		}
 
@@ -719,8 +831,6 @@ void CPsisiManager::cacheEventPfInfos (uint16_t _service_id)
 			_UTL_LOG_E ("getEventPfByServiceId failure.");
 			return ;
 		}
-
-		// service_idが一致したテーブルをみます
 
 		pInfo->table_id = pTable->header.table_id;
 		pInfo->transport_stream_id = pTable->transport_stream_id;
@@ -783,7 +893,7 @@ void CPsisiManager::cacheEventPfInfos (uint16_t _service_id)
 
 
 	if (m == 0) {
-		_UTL_LOG_W ("not match service_id [0x%04x]", _service_id);
+		_UTL_LOG_W ("(cacheEventPfInfos) not match service_id [0x%04x]", _service_id);
 	}
 }
 
@@ -841,7 +951,9 @@ void CPsisiManager::refreshEventPfInfos (void)
 		if (m_eventPfInfos [i].is_used) {
 			if (m_eventPfInfos [i].state == EN_EVENT_PF_STATE__ALREADY_PASSED) {
 
-				mEIT_H.clear_pf (m_eventPfInfos [i].p_org_table_addr);
+//TODO parserがわで同等の処理しているはず
+//				mEIT_H.clear_pf (m_eventPfInfos [i].p_org_table_addr);
+
 				clearEventPfInfo (&m_eventPfInfos [i]);
 			}
 		}

@@ -26,7 +26,7 @@ USERDEFS	:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	command_server
+TARGET_NAME	:=	commandserver
 
 #
 #   Target type

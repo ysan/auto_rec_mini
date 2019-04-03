@@ -24,7 +24,7 @@ LIBS		:= \
 	-L../ts_parser/aribstr -laribstr \
 	-L../ts_parser/psisi -lpsisi \
 	-L../ts_parser/dsmcc -ldsmcc \
-	-L../ts_parser -lts_parser \
+	-L../ts_parser -ltsparser \
 	-L../common -lcommon \
 
 SUBDIRS		:= \
@@ -32,7 +32,7 @@ SUBDIRS		:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	ts_parser
+TARGET_NAME	:=	tsparser_test
 
 #
 #   Target type

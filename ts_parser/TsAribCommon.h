@@ -1,5 +1,5 @@
-#ifndef _TS_COMMON_H_
-#define _TS_COMMON_H_
+#ifndef _TS_ARIB_COMMON_H_
+#define _TS_ARIB_COMMON_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,6 +91,9 @@
 #define TBLID_LDT						(0xc7)
 #define TBLID_CDT						(0xc8)
 
+#define UHF_PHYSICAL_CHANNEL_MIN		(13)	// UHFの最小物理CH
+#define UHF_PHYSICAL_CHANNEL_MAX		(62)	// UHFの最大物理CH
+
 
 typedef enum {
 	EN_AREA_CODE_COMMON				= 0x34d,
@@ -175,6 +178,7 @@ typedef enum
 
 
 typedef struct _ts_header {
+
 	void parse (const uint8_t* p_src) {
 		if (!p_src) {
 			return;
@@ -211,7 +215,49 @@ typedef struct _ts_header {
 	uint8_t transport_scrambling_control;	// 24-25 :  2 bits
 	uint8_t adaptation_field_control;		// 26-27 :  2 bits
 	uint8_t continuity_counter;				// 28-31 :  4 bits
+
 } TS_HEADER;
+
+typedef struct _section_header {
+
+	void dump (void) const {
+		if (section_syntax_indicator == 0) {
+			_UTL_LOG_I (
+				"SectHeader: tbl_id:[0x%02x] syntax:[0x%02x] priv:[0x%02x] len:[%d]\n",
+				table_id,
+				section_syntax_indicator,
+				private_indicator,
+				section_length
+			);
+		} else {
+			_UTL_LOG_I (
+				"SectHeader: tbl_id:[0x%02x] syntax:[0x%02x] priv:[0x%02x] len:[%d] tbl_ext:[0x%04x] ver:[0x%02x] next:[0x%02x] num:[0x%02x] last:[0x%02x]\n",
+				table_id,
+				section_syntax_indicator,
+				private_indicator,
+				section_length,
+				table_id_extension,
+				version_number,
+				current_next_indicator,
+				section_number,
+				last_section_number
+			);
+		}
+	}
+
+	uint8_t table_id;						//  0- 7 :  8 bits
+	uint8_t section_syntax_indicator;		//  8- 8 :  1 bit
+	uint8_t private_indicator;				//  9- 9 :  1 bit
+	uint8_t reserved_1;						// 10-11 :  2 bits
+	uint16_t section_length;				// 12-23 : 12 bits
+	uint16_t table_id_extension;			// 24-39 : 16 bits
+	uint8_t reserved_2;						// 40-41 :  2 bits
+	uint8_t version_number;					// 42-46 :  5 bits
+	uint8_t current_next_indicator;			// 47-47 :  1 bit
+	uint8_t section_number;					// 48-55 :  8 bits
+	uint8_t last_section_number;			// 56-63 :  8 bits
+
+} ST_SECTION_HEADER;
 
 
 class CTsAribCommon {

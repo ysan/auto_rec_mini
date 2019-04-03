@@ -21,7 +21,7 @@ LIBS		:= \
 	-L$(BASEDIR)/threadmgrpp -lthreadmgrpp \
 	-L$(BASEDIR)/common -lcommon \
 	-L./it9175 -lit9175 \
-	-L./tune_thread -ltune_thread \
+	-L./tune_thread -ltunethread \
 	-lpthread \
 
 USERDEFS	:= \
@@ -35,7 +35,7 @@ SUBDIRS		:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	tuner_control
+TARGET_NAME	:=	tunercontrol
 
 #
 #   Target type
