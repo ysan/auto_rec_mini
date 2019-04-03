@@ -316,11 +316,9 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 			_UTL_LOG_I ("notice new SDT");
 
 			// ここにくるってことは選局したとゆうこと
+			clearServiceInfos (true);
 			cacheServiceInfos (true);
-
-#ifdef _NO_TUNER
 			cacheEventPfInfos();
-#endif
 		}
 
 		break;
@@ -513,8 +511,6 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_BEGIN");
 
 		m_tunerIsTuned = false;
-
-//		clearServiceInfos (true);
 
 		break;
 
