@@ -19,6 +19,8 @@ enum {
 	EN_SEQ_PSISI_MANAGER_CHECK_LOOP,
 	EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,
 	EN_SEQ_PSISI_MANAGER_STABILIZATION_AFTER_TUNING,
+	EN_SEQ_PSISI_MANAGER_REG_PSISI_NOTIFY,
+	EN_SEQ_PSISI_MANAGER_UNREG_PSISI_NOTIFY,
 	EN_SEQ_PSISI_MANAGER_DUMP_CACHES,
 	EN_SEQ_PSISI_MANAGER_DUMP_TABLES,
 
@@ -45,6 +47,12 @@ typedef enum {
 	EN_PSISI_TYPE_NUM,
 } EN_PSISI_TYPE;
 
+typedef enum {
+	EN_PSISI_NOTIFY__EVENT_CHANGE = 0,
+
+} EN_PSISI_NOTIFY;
+
+
 
 class CPsisiManagerIf : public CThreadMgrExternalIf
 {
@@ -62,6 +70,15 @@ public:
 
 	bool reqModuleDown (void) {
 		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER_MODULE_DOWN);
+	};
+
+	bool reqRegisterPsisiNotify (void) {
+		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER_REG_PSISI_NOTIFY);
+	};
+
+	bool reqUnregisterPsisiNotify (int client_id) {
+		int _id = client_id;
+		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER_UNREG_PSISI_NOTIFY, (uint8_t*)&_id, sizeof(_id));
 	};
 
 	bool reqDumpCaches (int type) {

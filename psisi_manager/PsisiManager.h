@@ -70,12 +70,14 @@ typedef struct {
 
 	EN_EVENT_PF_STATE state;
 
-	CEventInformationTable::CTable* p_org_table_addr;
+	CEventInformationTable::CTable* p_orgTable;
 
 	bool is_used;
 
 	void dump (void) {
-		p_org_table_addr->header.dump();
+		if (p_orgTable) {
+			p_orgTable->header.dump();
+		}
 		_UTL_LOG_I (
 			"  tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
 			table_id,
@@ -111,16 +113,24 @@ typedef struct {
 
 	CEtime last_update;
 
+	CServiceDescriptionTable::CTable* p_orgTable;
+
 	bool is_used;
 
 	void dump (void) {
+		if (p_orgTable) {
+			p_orgTable->header.dump();
+		}
 		_UTL_LOG_I (
-			"tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svctype:[0x%02x] %s [%s] [%s]",
+			"  tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svctype:[0x%02x]",
 			table_id,
 			transport_stream_id,
 			original_network_id,
 			service_id,
-			service_type,
+			service_type
+		);
+		_UTL_LOG_I (
+			"  %s [%s] last_update:[%s]",
 			is_tune_target ? "*" : " ",
 			service_name_char,
 			last_update.toString()
@@ -128,6 +138,10 @@ typedef struct {
 	}
 
 } _SERVICE_INFO;
+
+
+// notify category
+#define _PSISI_NOTIFY		((uint8_t)0) 
 
 
 class CPsisiManager
@@ -145,6 +159,9 @@ public:
 	void checkLoop (CThreadMgrIf *pIf);
 	void parserNotice (CThreadMgrIf *pIf);
 	void stabilizationAfterTuning (CThreadMgrIf *pIf);
+	void registerPsisiNotify (CThreadMgrIf *pIf);
+	void unregisterPsisiNotify (CThreadMgrIf *pIf);
+	void getOnairEvent (CThreadMgrIf *pIf);
 	void dumpCaches (CThreadMgrIf *pIf);
 	void dumpTables (CThreadMgrIf *pIf);
 
@@ -172,7 +189,7 @@ private:
 
 	// eventPfInfo
 	void cacheEventPfInfos (void);
-	void cacheEventPfInfos (
+	bool cacheEventPfInfos (
 		uint8_t _table_id,
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,

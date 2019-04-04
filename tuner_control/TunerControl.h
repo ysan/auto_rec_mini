@@ -26,7 +26,8 @@
 using namespace ThreadManager;
 
 
-#define _TUNER_NOTIFY							((uint8_t)0) // notify category
+// notify category
+#define _TUNER_NOTIFY							((uint8_t)0)
 
 #define TS_RECEIVE_HANDLER_REGISTER_NUM_MAX		(10)
 

@@ -32,7 +32,7 @@ TARGET_TYPE	:=	SHARED
 #
 #   Compile sources
 #
-ifeq ($(NO_TUNER), 1)
+ifeq ($(DUMMY_TUNER), 1)
 SRCS		:= \
 	it9175_extern_debug.c \
 	it9175.c \

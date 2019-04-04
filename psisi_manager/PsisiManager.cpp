@@ -25,15 +25,18 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	,m_ts_receive_handler_id (-1)
 	,m_tunerIsTuned (false)
 	,mPAT (16)
-	,mEIT_H (4096*1000, 1000)
+	,mEIT_H (4096*100, 100)
 {
 	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_UP]     = {(PFN_SEQ_BASE)&CPsisiManager::moduleUp,    (char*)"moduleUp"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_DOWN]   = {(PFN_SEQ_BASE)&CPsisiManager::moduleDown,  (char*)"moduleDown"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_CHECK_LOOP]    = {(PFN_SEQ_BASE)&CPsisiManager::checkLoop,   (char*)"checkLoop"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_PARSER_NOTICE] = {(PFN_SEQ_BASE)&CPsisiManager::parserNotice,(char*)"parserNotice"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_STABILIZATION_AFTER_TUNING] = {
-		(PFN_SEQ_BASE)&CPsisiManager::stabilizationAfterTuning, (char*)"stabilizationAfterTuning,"
-	};
+	mSeqs [EN_SEQ_PSISI_MANAGER_STABILIZATION_AFTER_TUNING] =
+		{(PFN_SEQ_BASE)&CPsisiManager::stabilizationAfterTuning, (char*)"stabilizationAfterTuning,"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_REG_PSISI_NOTIFY] =
+		{(PFN_SEQ_BASE)&CPsisiManager::registerPsisiNotify, (char*)"registerPsisiNotify"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_UNREG_PSISI_NOTIFY] =
+		{(PFN_SEQ_BASE)&CPsisiManager::unregisterPsisiNotify, (char*)"unregisterPsisiNotify"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_CACHES]   = {(PFN_SEQ_BASE)&CPsisiManager::dumpCaches,  (char*)"dumpCaches"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_TABLES]   = {(PFN_SEQ_BASE)&CPsisiManager::dumpTables,  (char*)"dumpTables"};
 	setSeqs (mSeqs, EN_SEQ_PSISI_MANAGER_NUM);
@@ -255,7 +258,7 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 
 		checkEventPfInfos ();
 
-#ifndef _NO_TUNER
+#ifndef _DUMMY_TUNER
 // ローカルデバッグ中は消したくないので
 		refreshEventPfInfos ();
 #endif
@@ -398,6 +401,72 @@ void CPsisiManager::stabilizationAfterTuning (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CPsisiManager::registerPsisiNotify (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	uint8_t clientId = 0;
+	EN_THM_RSLT enRslt;
+	bool rslt = pIf->regNotify (_PSISI_NOTIFY, &clientId);
+	if (rslt) {
+		enRslt = EN_THM_RSLT_SUCCESS;
+	} else {
+		enRslt = EN_THM_RSLT_ERROR;
+	}
+
+	_UTL_LOG_I ("registerd clientId=[0x%02x]\n", clientId);
+
+	// clientIdをreply msgで返す 
+	pIf->reply (enRslt, (uint8_t*)&clientId, sizeof(clientId));
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::unregisterPsisiNotify (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	EN_THM_RSLT enRslt;
+	// msgからclientIdを取得
+	uint8_t clientId = *(pIf->getSrcInfo()->msg.pMsg);
+	bool rslt = pIf->unregNotify (_PSISI_NOTIFY, clientId);
+	if (rslt) {
+		_UTL_LOG_I ("unregisterd clientId=[0x%02x]\n", clientId);
+		enRslt = EN_THM_RSLT_SUCCESS;
+	} else {
+		_UTL_LOG_E ("failure unregister clientId=[0x%02x]\n", clientId);
+		enRslt = EN_THM_RSLT_ERROR;
+	}
+
+	pIf->reply (enRslt);
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CPsisiManager::dumpCaches (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -511,6 +580,14 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_BEGIN");
 
 		m_tunerIsTuned = false;
+#ifdef _DUMMY_TUNER
+		mPAT.clear();
+		mEIT_H.clear_pf();
+		mNIT.clear();
+		mSDT.clear();
+		mRST.clear();
+		mBIT.clear();
+#endif
 
 		break;
 
@@ -519,14 +596,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		m_tunerIsTuned = true;
 
-#ifdef _NO_TUNER
-		mPAT.clear();
-		mEIT_H.clear_pf();
-		mNIT.clear();
-		mSDT.clear();
-		mRST.clear();
-		mBIT.clear();
-#else
+
 		uint32_t opt = getRequestOption ();
 		opt |= REQUEST_OPTION__WITHOUT_REPLY;
 		setRequestOption (opt);
@@ -535,7 +605,6 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 		setRequestOption (opt);
-#endif
 
 		} break;
 
@@ -617,8 +686,9 @@ void CPsisiManager::cacheServiceInfos (bool is_atTuning)
 
 			} // loop descriptors
 
-			pInfo->last_update.setCurrentTime();
+			pInfo->p_orgTable = pTable;
 			pInfo->is_used = true;
+			pInfo->last_update.setCurrentTime();
 
 		} // loop services
 
@@ -750,6 +820,7 @@ void CPsisiManager::dumpServiceInfos (void)
 
 	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
 		if (m_serviceInfos [i].is_used) {
+			_UTL_LOG_I ("-----------------------------------------");
 			m_serviceInfos [i].dump();
 		}
 	}
@@ -757,6 +828,8 @@ void CPsisiManager::dumpServiceInfos (void)
 
 void CPsisiManager::cacheEventPfInfos (void)
 {
+	bool r = false;
+
 	clearEventPfInfos();
 
 	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
@@ -765,12 +838,11 @@ void CPsisiManager::cacheEventPfInfos (void)
 			continue;
 		}
 
-		uint8_t _table_id = m_serviceInfos [i].table_id;
+		uint8_t _table_id = TBLID_EIT_PF_A;
 		uint16_t _transport_stream_id = m_serviceInfos [i].transport_stream_id;
 		uint16_t _original_network_id = m_serviceInfos [i].original_network_id;
 		uint16_t _service_id = m_serviceInfos [i].service_id;
 		if (
-			(_table_id == 0) &&
 			(_transport_stream_id == 0) &&
 			(_original_network_id == 0) &&
 			(_service_id == 0)
@@ -778,8 +850,12 @@ void CPsisiManager::cacheEventPfInfos (void)
 			continue;
 		}
 
-		cacheEventPfInfos (_table_id, _transport_stream_id, _original_network_id, _service_id);
+		r = cacheEventPfInfos (_table_id, _transport_stream_id, _original_network_id, _service_id);
 
+	}
+
+	if (!r) {
+		_UTL_LOG_W ("(cacheEventPfInfos) not match");
 	}
 }
 
@@ -787,7 +863,7 @@ void CPsisiManager::cacheEventPfInfos (void)
  * 引数をキーにテーブル内容を_EVENT_PF_INFOに保存します
  * 少なくともp/fの２つ分は見つかるはず
  */
-void CPsisiManager::cacheEventPfInfos (
+bool CPsisiManager::cacheEventPfInfos (
 	uint8_t _table_id,
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
@@ -800,7 +876,7 @@ void CPsisiManager::cacheEventPfInfos (
 		(_original_network_id == 0) &&
 		(_service_id == 0)
 	) {
-		return;
+		return false;
 	}
 
 	int m = 0;
@@ -814,7 +890,7 @@ void CPsisiManager::cacheEventPfInfos (
 
 		// キーが一致したテーブルをみます
 		if (
-//			(_table_id != pTable->header.table_id) || // table_idは異なるので除外
+			(_table_id != pTable->header.table_id) ||
 			(_transport_stream_id != pTable->transport_stream_id) ||
 			(_original_network_id != pTable->original_network_id) ||
 			(_service_id != pTable->header.table_id_extension)
@@ -825,7 +901,7 @@ void CPsisiManager::cacheEventPfInfos (
 		_EVENT_PF_INFO * pInfo = findEmptyEventPfInfo ();
 		if (!pInfo) {
 			_UTL_LOG_E ("getEventPfByServiceId failure.");
-			return ;
+			return false;
 		}
 
 		pInfo->table_id = pTable->header.table_id;
@@ -881,7 +957,7 @@ void CPsisiManager::cacheEventPfInfos (
 			continue;
 		}
 
-		pInfo->p_org_table_addr = pTable;
+		pInfo->p_orgTable = pTable;
 		pInfo->is_used = true;
 		++ m;
 
@@ -889,7 +965,9 @@ void CPsisiManager::cacheEventPfInfos (
 
 
 	if (m == 0) {
-		_UTL_LOG_W ("(cacheEventPfInfos) not match service_id [0x%04x]", _service_id);
+		return false;
+	} else {
+		return true;
 	}
 }
 
@@ -948,7 +1026,7 @@ void CPsisiManager::refreshEventPfInfos (void)
 			if (m_eventPfInfos [i].state == EN_EVENT_PF_STATE__ALREADY_PASSED) {
 
 //TODO parserがわで同等の処理しているはず
-//				mEIT_H.clear_pf (m_eventPfInfos [i].p_org_table_addr);
+//				mEIT_H.clear_pf (m_eventPfInfos [i].p_orgTable);
 
 				clearEventPfInfo (&m_eventPfInfos [i]);
 			}

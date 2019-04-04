@@ -29,8 +29,8 @@ endif
 ifeq ($(NO_STRIP), 1)
 MAKE		+=	NO_STRIP=1
 endif
-ifeq ($(NO_TUNER), 1)
-MAKE		+=	NO_TUNER=1
+ifeq ($(DUMMY_TUNER), 1)
+MAKE		+=	DUMMY_TUNER=1
 endif
 
 
@@ -52,8 +52,8 @@ ifeq ($(DEBUG_BUILD), 1)
 CFLAGS		+=	-g -D_DEBUG_BUILD
 endif
 
-ifeq ($(NO_TUNER), 1)
-CFLAGS		+=	-D_NO_TUNER
+ifeq ($(DUMMY_TUNER), 1)
+CFLAGS		+=	-D_DUMMY_TUNER
 endif
 
 ifeq ($(ADDR_SANITIZE), 1)
