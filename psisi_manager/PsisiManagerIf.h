@@ -10,17 +10,24 @@
 #include "ThreadMgrExternalIf.h"
 #include "modules.h"
 
+#include "PsisiManagerStructs.h"
+
 
 using namespace ThreadManager;
 
 enum {
 	EN_SEQ_PSISI_MANAGER_MODULE_UP = 0,
 	EN_SEQ_PSISI_MANAGER_MODULE_DOWN,
-	EN_SEQ_PSISI_MANAGER_CHECK_LOOP,
-	EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,
-	EN_SEQ_PSISI_MANAGER_STABILIZATION_AFTER_TUNING,
-	EN_SEQ_PSISI_MANAGER_REG_PSISI_NOTIFY,
-	EN_SEQ_PSISI_MANAGER_UNREG_PSISI_NOTIFY,
+	EN_SEQ_PSISI_MANAGER_CHECK_LOOP,					// inner
+	EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,					// inner
+	EN_SEQ_PSISI_MANAGER_STABILIZATION_AFTER_TUNING,	// inner
+	EN_SEQ_PSISI_MANAGER_REG_PAT_DETECT_NOTIFY,
+	EN_SEQ_PSISI_MANAGER_UNREG_PAT_DETECT_NOTIFY,
+	EN_SEQ_PSISI_MANAGER_REG_EVENT_CHANGE_NOTIFY,
+	EN_SEQ_PSISI_MANAGER_UNREG_EVENT_CHANGE_NOTIFY,
+	EN_SEQ_PSISI_MANAGER_GET_CURRENT_SERVICE_INFOS,
+	EN_SEQ_PSISI_MANAGER_GET_PRESENT_EVENT_INFO,
+	EN_SEQ_PSISI_MANAGER_GET_FOLLOW_EVENT_INFO,
 	EN_SEQ_PSISI_MANAGER_DUMP_CACHES,
 	EN_SEQ_PSISI_MANAGER_DUMP_TABLES,
 
@@ -48,7 +55,9 @@ typedef enum {
 } EN_PSISI_TYPE;
 
 typedef enum {
-	EN_PSISI_NOTIFY__EVENT_CHANGE = 0,
+	EN_PSISI_NOTIFY__PAT_DETECTED = 0,
+	EN_PSISI_NOTIFY__PAT_NOT_DETECTED,
+	EN_PSISI_NOTIFY__EVENT_CHANGE,
 
 } EN_PSISI_NOTIFY;
 
@@ -72,13 +81,80 @@ public:
 		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER_MODULE_DOWN);
 	};
 
-	bool reqRegisterPsisiNotify (void) {
-		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER_REG_PSISI_NOTIFY);
+	bool reqRegisterPatDetectNotify (void) {
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER,
+					EN_SEQ_PSISI_MANAGER_REG_PAT_DETECT_NOTIFY
+				);
 	};
 
-	bool reqUnregisterPsisiNotify (int client_id) {
+	bool reqUnregisterPatDetectNotify (int client_id) {
 		int _id = client_id;
-		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER_UNREG_PSISI_NOTIFY, (uint8_t*)&_id, sizeof(_id));
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER,
+					EN_SEQ_PSISI_MANAGER_UNREG_PAT_DETECT_NOTIFY,
+					(uint8_t*)&_id,
+					sizeof(_id)
+				);
+	};
+
+	bool reqRegisterEventChangeNotify (void) {
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER,
+					EN_SEQ_PSISI_MANAGER_REG_EVENT_CHANGE_NOTIFY
+				);
+	};
+
+	bool reqUnregisterEventChangeNotify (int client_id) {
+		int _id = client_id;
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER,
+					EN_SEQ_PSISI_MANAGER_UNREG_EVENT_CHANGE_NOTIFY,
+					(uint8_t*)&_id,
+					sizeof(_id)
+				);
+	};
+
+	bool reqGetCurrentServiceInfos (PSISI_SERVICE_INFO *p_out_serviceInfos, int num) {
+		if (!p_out_serviceInfos || num == 0) {
+			return false;
+		}
+
+		REQ_SERVICE_INFO_PARAM param = {p_out_serviceInfos, num};
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER,
+					EN_SEQ_PSISI_MANAGER_GET_CURRENT_SERVICE_INFOS,
+					(uint8_t*)&param,
+					sizeof(param)
+				);
+	};
+
+	bool reqGetPresentEventInfo (PSISI_SERVICE_INFO *p_key, PSISI_EVENT_INFO *p_out_eventInfo) {
+		if (!p_key || !p_out_eventInfo) {
+			return false;
+		}
+
+		REQ_EVENT_INFO_PARAM param = {*p_key, p_out_eventInfo};
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER,
+					EN_SEQ_PSISI_MANAGER_GET_PRESENT_EVENT_INFO,
+					(uint8_t*)&param,
+					sizeof(param)
+				);
+	};
+
+	bool reqGetFollowEventInfo (PSISI_SERVICE_INFO *p_key, PSISI_EVENT_INFO *p_out_eventInfo) {
+		if (!p_key || !p_out_eventInfo) {
+			return false;
+		}
+
+		REQ_EVENT_INFO_PARAM param = {*p_key, p_out_eventInfo};
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER,
+					EN_SEQ_PSISI_MANAGER_GET_FOLLOW_EVENT_INFO,
+					(uint8_t*)&param,
+					sizeof(param)
+				);
 	};
 
 	bool reqDumpCaches (int type) {
@@ -88,7 +164,7 @@ public:
 					EN_SEQ_PSISI_MANAGER_DUMP_CACHES,
 					(uint8_t*)&_type,
 					sizeof(_type)
-			);
+				);
 	};
 
 	bool reqDumpTables (EN_PSISI_TYPE type) {
@@ -98,9 +174,8 @@ public:
 					EN_SEQ_PSISI_MANAGER_DUMP_TABLES,
 					(uint8_t*)&_type,
 					sizeof(_type)
-			);
+				);
 	};
-
 
 };
 

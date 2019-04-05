@@ -78,7 +78,7 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 
 	if (pTable->header.table_id == TBLID_EIT_PF_A || pTable->header.table_id == TBLID_EIT_PF_O) {
 
-		refreshAllByVersionNumber_pf (pTable) ;
+		refreshTablesByVersionNumber_pf (pTable) ;
 
 		appendTable_pf (pTable);
 
@@ -451,81 +451,7 @@ void CEventInformationTable::clear_sch (CTable *pErase)
 	releaseTable_sch (pErase);
 }
 
-/***
-bool CEventInformationTable::refreshByVersionNumber_pf (CTable* pNewTable)
-{
-	if (!pNewTable) {
-		return false;
-	}
-
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables_pf);
-
-
-	std::veceor<CTable::CEvent>::const_iterator iter_event = pNewTable->events.begin();
-	if (iter_event == pNewTable->events.end()) {
-		_UTL_LOG_D ("not exist event");
-		return false;
-	}
-	uint16_t new_evtid = iter_event->event_id; // found first, pf should have only one event
-
-	uint8_t new_tblid = pNewTable->header.table_id;
-	uint16_t new_svcid = pNewTable->header.table_id_extension;
-	uint16_t new_tsid = pNewTable->transport_stream_id;
-	uint16_t new_org_nid = pNewTable->original_network_id;
-	uint8_t new_ver = pNewTable->header.version_number;
-
-
-	CTable *pErase = NULL;
-	bool is_existed = false;
-
-	std::vector<CTable*>::const_iterator iter = mTables_pf.begin();
-    for (; iter != mTables_pf.end(); ++ iter) {
-		CTable *pTable = *iter;
-
-		std::vector<CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
-		if (iter_event == pTable->events.end()) {
-			// not exist event
-			continue;
-		}
-		uint16_t _event_id  =iter_event->event_id; // found first, pf should have only one event
-
-		if (
-			(new_tblid == pTable->header.table_id) &&
-			(new_svcid == pTable->header.table_id_extension) &&
-			(new_tsid == pTable->transport_stream_id) &&
-			(new_org_nid == pTable->original_network_id) &&
-			(new_evtid == _event_id)
-		) {
-			uint8_t tmp = pTable->header.version_number;
-			++ tmp;
-			if (new_ver >= tmp) {
-//TODO
-// only one version ahead can be checked
-				pErase = pTable;
-
-			} else {
-				_UTL_LOG_I (
-					"new_ver:[0x%02x] -[0x%02x]",
-					new_ver,
-					pTable->header.version_number
-				);
-				pErase = pNewTable;
-			}
-
-			is_existed = true;
-			break;
-		}
-	}
-
-	if (pErase) {
-		releaseTable_pf (pErase);
-	}
-
-	return is_existed;
-}
-***/
-
-bool CEventInformationTable::refreshByVersionNumber_pf (CTable* pNewTable)
+bool CEventInformationTable::refreshTableByVersionNumber_pf (CTable* pNewTable)
 {
 	if (!pNewTable) {
 		return false;
@@ -596,14 +522,14 @@ bool CEventInformationTable::refreshByVersionNumber_pf (CTable* pNewTable)
 	}
 }
 
-void CEventInformationTable::refreshAllByVersionNumber_pf (CTable* pNewTable)
+void CEventInformationTable::refreshTablesByVersionNumber_pf (CTable* pNewTable)
 {
 	if (!pNewTable) {
 		return ;
 	}
 
 	while (1) {
-		if (!refreshByVersionNumber_pf (pNewTable)) {
+		if (!refreshTableByVersionNumber_pf (pNewTable)) {
 			break;
 		}
 	}

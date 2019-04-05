@@ -12,10 +12,10 @@
 #include "modules.h"
 
 
-CCommandServer g_commandServer ((char*)"CommandServer", 10);
-CTunerControl g_tunerControl ((char*)"TunerControl", 10);
-CTuneThread g_tuneThread ((char*)"TuneThread", 10);
-CPsisiManager g_psisiManager ((char*)"PsisiManager", 50);
+static CCommandServer g_commandServer ((char*)"CommandServer", 10);
+static CTunerControl  g_tunerControl  ((char*)"TunerControl",  10);
+static CTuneThread    g_tuneThread    ((char*)"TuneThread",    10);
+static CPsisiManager  g_psisiManager  ((char*)"PsisiManager",  50);
 
 
 CThreadMgrBase *gp_modules [] = {
@@ -24,8 +24,8 @@ CThreadMgrBase *gp_modules [] = {
 	&g_tunerControl,
 	&g_psisiManager,
 
-
 };
+
 
 CThreadMgrBase **getModules (void)
 {

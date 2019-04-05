@@ -50,14 +50,14 @@ public:
 	class CReference {
 	public:
 		CReference (void) {}
-		CReference (const std::vector <CTable*> *pTables, std::mutex *pMutex)
+		CReference (const std::vector <CTable*> *pTables, std::recursive_mutex *pMutex)
 			:mpTables (pTables)
 			,mpMutex (pMutex)
 		{}
 		virtual ~CReference (void) {}
 
 		const std::vector <CTable*> *mpTables;
-		std::mutex *mpMutex;
+		std::recursive_mutex *mpMutex;
 	};
 
 public:
@@ -79,10 +79,13 @@ private:
 	bool parse (const CSectionInfo *pCompSection, CTable* pOutTable);
 	void appendTable (CTable *pTable);
 	void releaseTables (void);
+	void releaseTable (CTable* pErase);
+	bool refreshTableByVersionNumber (CTable* pNewTable);
+	void refreshTablesByVersionNumber (CTable* pNewTable);
 
 
 	std::vector <CTable*> mTables;
-	std::mutex mMutexTables;
+	std::recursive_mutex mMutexTables;
 
 };
 

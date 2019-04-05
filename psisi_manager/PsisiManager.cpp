@@ -24,6 +24,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	,m_tuner_notify_client_id (0xff)
 	,m_ts_receive_handler_id (-1)
 	,m_tunerIsTuned (false)
+	,m_isDetectedPAT (false)
 	,mPAT (16)
 	,mEIT_H (4096*100, 100)
 {
@@ -33,10 +34,20 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	mSeqs [EN_SEQ_PSISI_MANAGER_PARSER_NOTICE] = {(PFN_SEQ_BASE)&CPsisiManager::parserNotice,(char*)"parserNotice"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_STABILIZATION_AFTER_TUNING] =
 		{(PFN_SEQ_BASE)&CPsisiManager::stabilizationAfterTuning, (char*)"stabilizationAfterTuning,"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_REG_PSISI_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::registerPsisiNotify, (char*)"registerPsisiNotify"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_UNREG_PSISI_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::unregisterPsisiNotify, (char*)"unregisterPsisiNotify"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_REG_PAT_DETECT_NOTIFY] =
+		{(PFN_SEQ_BASE)&CPsisiManager::registerPatDetectNotify, (char*)"registerPatDetectNotify"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_UNREG_PAT_DETECT_NOTIFY] =
+		{(PFN_SEQ_BASE)&CPsisiManager::unregisterPatDetectNotify, (char*)"unregisterPatDetectNotify"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_REG_EVENT_CHANGE_NOTIFY] =
+		{(PFN_SEQ_BASE)&CPsisiManager::registerEventChangeNotify, (char*)"registerEventChangeNotify"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_UNREG_EVENT_CHANGE_NOTIFY] =
+		{(PFN_SEQ_BASE)&CPsisiManager::unregisterEventChangeNotify, (char*)"unregisterEventChangeNotify"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_GET_CURRENT_SERVICE_INFOS] =
+		{(PFN_SEQ_BASE)&CPsisiManager::getCurrentServiceInfos,  (char*)"getCurrentServiceInfos"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_GET_PRESENT_EVENT_INFO] =
+		{(PFN_SEQ_BASE)&CPsisiManager::getPresentEventInfo,  (char*)"getPresentEventInfo"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_GET_FOLLOW_EVENT_INFO] =
+		{(PFN_SEQ_BASE)&CPsisiManager::getFollowEventInfo,  (char*)"getFollowEventInfo"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_CACHES]   = {(PFN_SEQ_BASE)&CPsisiManager::dumpCaches,  (char*)"dumpCaches"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_TABLES]   = {(PFN_SEQ_BASE)&CPsisiManager::dumpTables,  (char*)"dumpTables"};
 	setSeqs (mSeqs, EN_SEQ_PSISI_MANAGER_NUM);
@@ -238,6 +249,26 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 			ttmp.addSec (5); 
 			if (tcur > ttmp) {
 				_UTL_LOG_E ("PAT was not detected. probably stream is broken...");
+
+				if (m_isDetectedPAT) {
+					// true -> false
+					// fire notify
+					EN_PSISI_NOTIFY _notify = EN_PSISI_NOTIFY__PAT_NOT_DETECTED;
+					pIf->notify (NOTIFY_CAT__PAT_DETECT, (uint8_t*)&_notify, sizeof(EN_PSISI_NOTIFY));
+				}
+
+				m_isDetectedPAT = false;
+
+			} else {
+
+				if (!m_isDetectedPAT) {
+					// false -> true
+					// fire notify
+					EN_PSISI_NOTIFY _notify = EN_PSISI_NOTIFY__PAT_DETECTED;
+					pIf->notify (NOTIFY_CAT__PAT_DETECT, (uint8_t*)&_notify, sizeof(EN_PSISI_NOTIFY));
+				}
+
+				m_isDetectedPAT = true;
 			}
 		}
 
@@ -254,9 +285,13 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
-	case SECTID_CHECK_EVENT_PF_WAIT:
+	case SECTID_CHECK_EVENT_PF_WAIT: {
 
-		checkEventPfInfos ();
+		if (checkEventPfInfos ()) {
+			// fire notify
+			EN_PSISI_NOTIFY _notify = EN_PSISI_NOTIFY__EVENT_CHANGE;
+			pIf->notify (NOTIFY_CAT__EVENT_CHANGE, (uint8_t*)&_notify, sizeof(EN_PSISI_NOTIFY));
+		}
 
 #ifndef _DUMMY_TUNER
 // ローカルデバッグ中は消したくないので
@@ -265,7 +300,7 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 
 		sectId = SECTID_CHECK_PAT;
 		enAct = EN_THM_ACT_CONTINUE;
-		break;
+		} break;
 
 	case SECTID_END:
 		sectId = THM_SECT_ID_INIT;
@@ -298,6 +333,9 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 		if (_notice.isNew) {
 //			mPAT.dumpTables();
 			_UTL_LOG_I ("notice new PAT");
+
+			clearProgramInfos();
+			cacheProgramInfos();
 		}
 
 		// PAT途絶チェック用
@@ -321,6 +359,7 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 			// ここにくるってことは選局したとゆうこと
 			clearServiceInfos (true);
 			cacheServiceInfos (true);
+			clearEventPfInfos();
 			cacheEventPfInfos();
 		}
 
@@ -329,6 +368,7 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 	case EN_PSISI_TYPE__EIT_H_PF:
 		if (_notice.isNew) {
 			_UTL_LOG_I ("notice new EIT p/f");
+			clearEventPfInfos();
 			cacheEventPfInfos ();
 		}
 
@@ -401,7 +441,7 @@ void CPsisiManager::stabilizationAfterTuning (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::registerPsisiNotify (CThreadMgrIf *pIf)
+void CPsisiManager::registerPatDetectNotify (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -416,7 +456,7 @@ void CPsisiManager::registerPsisiNotify (CThreadMgrIf *pIf)
 
 	uint8_t clientId = 0;
 	EN_THM_RSLT enRslt;
-	bool rslt = pIf->regNotify (_PSISI_NOTIFY, &clientId);
+	bool rslt = pIf->regNotify (NOTIFY_CAT__PAT_DETECT, &clientId);
 	if (rslt) {
 		enRslt = EN_THM_RSLT_SUCCESS;
 	} else {
@@ -434,7 +474,7 @@ void CPsisiManager::registerPsisiNotify (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::unregisterPsisiNotify (CThreadMgrIf *pIf)
+void CPsisiManager::unregisterPatDetectNotify (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -450,13 +490,205 @@ void CPsisiManager::unregisterPsisiNotify (CThreadMgrIf *pIf)
 	EN_THM_RSLT enRslt;
 	// msgからclientIdを取得
 	uint8_t clientId = *(pIf->getSrcInfo()->msg.pMsg);
-	bool rslt = pIf->unregNotify (_PSISI_NOTIFY, clientId);
+	bool rslt = pIf->unregNotify (NOTIFY_CAT__PAT_DETECT, clientId);
 	if (rslt) {
 		_UTL_LOG_I ("unregisterd clientId=[0x%02x]\n", clientId);
 		enRslt = EN_THM_RSLT_SUCCESS;
 	} else {
 		_UTL_LOG_E ("failure unregister clientId=[0x%02x]\n", clientId);
 		enRslt = EN_THM_RSLT_ERROR;
+	}
+
+	pIf->reply (enRslt);
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::registerEventChangeNotify (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	uint8_t clientId = 0;
+	EN_THM_RSLT enRslt;
+	bool rslt = pIf->regNotify (NOTIFY_CAT__EVENT_CHANGE, &clientId);
+	if (rslt) {
+		enRslt = EN_THM_RSLT_SUCCESS;
+	} else {
+		enRslt = EN_THM_RSLT_ERROR;
+	}
+
+	_UTL_LOG_I ("registerd clientId=[0x%02x]\n", clientId);
+
+	// clientIdをreply msgで返す 
+	pIf->reply (enRslt, (uint8_t*)&clientId, sizeof(clientId));
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::unregisterEventChangeNotify (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	EN_THM_RSLT enRslt;
+	// msgからclientIdを取得
+	uint8_t clientId = *(pIf->getSrcInfo()->msg.pMsg);
+	bool rslt = pIf->unregNotify (NOTIFY_CAT__EVENT_CHANGE, clientId);
+	if (rslt) {
+		_UTL_LOG_I ("unregisterd clientId=[0x%02x]\n", clientId);
+		enRslt = EN_THM_RSLT_SUCCESS;
+	} else {
+		_UTL_LOG_E ("failure unregister clientId=[0x%02x]\n", clientId);
+		enRslt = EN_THM_RSLT_ERROR;
+	}
+
+	pIf->reply (enRslt);
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::getCurrentServiceInfos (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	REQ_SERVICE_INFO_PARAM param = *(REQ_SERVICE_INFO_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+	if (!param.p_out_serviceInfos || param.num == 0) {
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else {
+		int get_num = getCurrentServiceInfos (param.p_out_serviceInfos, param.num);
+		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&get_num, sizeof(get_num));
+	}
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::getPresentEventInfo (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt;
+
+	REQ_EVENT_INFO_PARAM param = *(REQ_EVENT_INFO_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+	if (!param.p_out_eventInfo) {
+		enRslt = EN_THM_RSLT_ERROR;
+
+	} else {
+		_EVENT_PF_INFO *p_info = findEventPfInfo (
+										param.key.transport_stream_id,
+										param.key.original_network_id,
+										param.key.service_id,
+										EN_EVENT_PF_STATE__PRESENT
+									);
+		if (p_info) {
+			param.p_out_eventInfo->transport_stream_id = p_info->transport_stream_id;
+			param.p_out_eventInfo->original_network_id = p_info->original_network_id;
+			param.p_out_eventInfo->service_id = p_info->service_id;
+			param.p_out_eventInfo->event_id = p_info->event_id;
+			param.p_out_eventInfo->start_time = p_info->start_time;
+			param.p_out_eventInfo->end_time = p_info->end_time;
+			param.p_out_eventInfo->p_event_name_char = p_info->event_name_char;
+
+			enRslt = EN_THM_RSLT_SUCCESS;
+
+		} else {
+			enRslt = EN_THM_RSLT_ERROR;
+		}
+	}
+
+	pIf->reply (enRslt);
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::getFollowEventInfo (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt;
+
+	REQ_EVENT_INFO_PARAM param = *(REQ_EVENT_INFO_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+	if (!param.p_out_eventInfo) {
+		enRslt = EN_THM_RSLT_ERROR;
+
+	} else {
+		_EVENT_PF_INFO *p_info = findEventPfInfo (
+										param.key.transport_stream_id,
+										param.key.original_network_id,
+										param.key.service_id,
+										EN_EVENT_PF_STATE__FOLLOW
+									);
+		if (p_info) {
+			param.p_out_eventInfo->transport_stream_id = p_info->transport_stream_id;
+			param.p_out_eventInfo->original_network_id = p_info->original_network_id;
+			param.p_out_eventInfo->service_id = p_info->service_id;
+			param.p_out_eventInfo->event_id = p_info->event_id;
+			param.p_out_eventInfo->start_time = p_info->start_time;
+			param.p_out_eventInfo->end_time = p_info->end_time;
+			param.p_out_eventInfo->p_event_name_char = p_info->event_name_char;
+
+			enRslt = EN_THM_RSLT_SUCCESS;
+
+		} else {
+			enRslt = EN_THM_RSLT_ERROR;
+		}
 	}
 
 	pIf->reply (enRslt);
@@ -483,10 +715,14 @@ void CPsisiManager::dumpCaches (CThreadMgrIf *pIf)
 	int type = *(int*)(pIf->getSrcInfo()->msg.pMsg);
 	switch (type) {
 	case 0:
-		dumpServiceInfos();
+		dumpProgramInfos();
 		break;
 
 	case 1:
+		dumpServiceInfos();
+		break;
+
+	case 2:
 		dumpEventPfInfos();
 		break;
 
@@ -580,6 +816,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_BEGIN");
 
 		m_tunerIsTuned = false;
+
 #ifdef _DUMMY_TUNER
 		mPAT.clear();
 		mEIT_H.clear_pf();
@@ -596,7 +833,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		m_tunerIsTuned = true;
 
-
+#ifndef _DUMMY_TUNER
 		uint32_t opt = getRequestOption ();
 		opt |= REQUEST_OPTION__WITHOUT_REPLY;
 		setRequestOption (opt);
@@ -605,6 +842,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 		setRequestOption (opt);
+#endif
 
 		} break;
 
@@ -624,6 +862,63 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 	default:
 		break;
+	}
+}
+
+void CPsisiManager::cacheProgramInfos (void)
+{
+	int n = 0;
+
+	std::lock_guard<std::recursive_mutex> lock (*mPAT_ref.mpMutex);
+
+	std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = mPAT_ref.mpTables->begin();
+	for (; iter != mPAT_ref.mpTables->end(); ++ iter) {
+
+		if (n >= PROGRAM_INFOS_MAX) {
+			return ;
+		}
+
+		CProgramAssociationTable::CTable *pTable = *iter;
+		uint8_t tbl_id = pTable->header.table_id;
+		uint16_t ts_id = pTable->header.table_id_extension;
+
+		std::vector<CProgramAssociationTable::CTable::CProgram>::const_iterator iter_prog = pTable->programs.begin();
+		for (; iter_prog != pTable->programs.end(); ++ iter_prog) {
+
+			m_programInfos[n].table_id = tbl_id;
+			m_programInfos[n].transport_stream_id = ts_id;
+
+			m_programInfos[n].program_number = iter_prog->program_number;
+			m_programInfos[n].program_map_PID = iter_prog->program_map_PID;
+
+			m_programInfos[n].p_orgTable = pTable;
+			m_programInfos[n].is_used = true;
+
+			++ n;
+
+		} // loop programs
+
+	} // loop tables
+}
+
+void CPsisiManager::dumpProgramInfos (void)
+{
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+
+	for (int i = 0; i < PROGRAM_INFOS_MAX; ++ i) {
+		if (m_programInfos [i].is_used) {
+			_UTL_LOG_I ("-----------------------------------------");
+			m_programInfos [i].dump();
+		}
+	}
+}
+
+void CPsisiManager::clearProgramInfos (void)
+{
+//TODO 適当クリア
+	for (int i = 0; i < PROGRAM_INFOS_MAX; ++ i) {
+		memset (&m_programInfos [i], 0x00, sizeof(_SERVICE_INFO));
+		m_programInfos [i].is_used = false;
 	}
 }
 
@@ -794,26 +1089,6 @@ bool CPsisiManager::isExistService (
 	return false;
 }
 
-void CPsisiManager::clearServiceInfos (bool is_atTuning)
-{
-	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
-		if (is_atTuning) {
-			m_serviceInfos [i].is_tune_target = false;
-			m_serviceInfos [i].p_event_present = NULL;
-			m_serviceInfos [i].p_event_follow = NULL;
-
-		} else {
-//TODO 適当クリア
-			// clear all
-			memset (&m_serviceInfos [i], 0x00, sizeof(_SERVICE_INFO));
-			m_serviceInfos [i].is_tune_target = false;
-			m_serviceInfos [i].p_event_present = NULL;
-			m_serviceInfos [i].p_event_follow = NULL;
-			m_serviceInfos [i].is_used = false;
-		}
-	}
-}
-
 void CPsisiManager::dumpServiceInfos (void)
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
@@ -826,11 +1101,58 @@ void CPsisiManager::dumpServiceInfos (void)
 	}
 }
 
+void CPsisiManager::clearServiceInfos (bool is_atTuning)
+{
+	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
+		if (is_atTuning) {
+			m_serviceInfos [i].is_tune_target = false;
+
+		} else {
+//TODO 適当クリア
+			// clear all
+			memset (&m_serviceInfos [i], 0x00, sizeof(_SERVICE_INFO));
+			m_serviceInfos [i].is_tune_target = false;
+			m_serviceInfos [i].is_used = false;
+		}
+	}
+}
+
+int CPsisiManager::getCurrentServiceInfos (PSISI_SERVICE_INFO *p_out_serviceInfos, int num)
+{
+	if (!p_out_serviceInfos || num == 0) {
+		return 0;
+	}
+
+	int n = 0;
+
+	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
+		if (n >= num) {
+			break;
+		}
+
+		if (!m_serviceInfos [i].is_used) {
+			continue;
+		}
+
+		if (!m_serviceInfos [i].is_tune_target) {
+			continue;
+		}
+
+		(p_out_serviceInfos + n)->transport_stream_id = m_serviceInfos [i].transport_stream_id;
+		(p_out_serviceInfos + n)->original_network_id = m_serviceInfos [i].original_network_id;
+		(p_out_serviceInfos + n)->service_id = m_serviceInfos [i].service_id;
+		(p_out_serviceInfos + n)->service_type = m_serviceInfos [i].service_type;
+		(p_out_serviceInfos + n)->p_service_name_char = m_serviceInfos [i].service_name_char;
+
+		++ n;
+	}
+	
+	return n;
+}
+
 void CPsisiManager::cacheEventPfInfos (void)
 {
 	bool r = false;
-
-	clearEventPfInfos();
 
 	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
 		// 今選局中のserviceを探します
@@ -988,8 +1310,10 @@ _EVENT_PF_INFO* CPsisiManager::findEmptyEventPfInfo (void)
 	return &m_eventPfInfos [i];
 }
 
-void CPsisiManager::checkEventPfInfos (void)
+bool CPsisiManager::checkEventPfInfos (void)
 {
+	bool r = false;
+
 	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
 		if (m_eventPfInfos [i].is_used) {
 
@@ -1001,6 +1325,7 @@ void CPsisiManager::checkEventPfInfos (void)
 					// event change
 					_UTL_LOG_I ("event change");
 					m_eventPfInfos [i].dump();
+					r = true;
 				}
 				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__PRESENT;
 
@@ -1017,6 +1342,8 @@ void CPsisiManager::checkEventPfInfos (void)
 			}
 		}
 	}
+
+	return r;
 }
 
 void CPsisiManager::refreshEventPfInfos (void)
@@ -1065,6 +1392,39 @@ void CPsisiManager::clearEventPfInfos (void)
 	}
 }
 
+_EVENT_PF_INFO* CPsisiManager::findEventPfInfo (
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id,
+	uint16_t _service_id,
+	EN_EVENT_PF_STATE state
+)
+{
+	int i = 0;
+	for (i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
+		if (!m_eventPfInfos [i].is_used) {
+			continue;
+		}
+
+		if (m_eventPfInfos [i].state != EN_EVENT_PF_STATE__PRESENT) {
+			continue;
+		}
+
+		if (
+			(m_eventPfInfos [i].transport_stream_id == _transport_stream_id) &&
+			(m_eventPfInfos [i].original_network_id == _original_network_id) &&
+			(m_eventPfInfos [i].service_id == _service_id)
+		) {
+			break;
+		}
+	}
+
+	if (i == EVENT_PF_INFOS_MAX) {
+		_UTL_LOG_W ("findEventPfInfo not found.");
+		return NULL;
+	}
+
+	return &m_eventPfInfos[i];
+}
 
 
 

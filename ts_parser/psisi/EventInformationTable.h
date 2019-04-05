@@ -136,8 +136,8 @@ private:
 	void releaseTable_pf (CTable* pErase);
 	void releaseTable_sch (CTable* pErase);
 
-	bool refreshByVersionNumber_pf (CTable* pNewTable);
-	void refreshAllByVersionNumber_pf (CTable* pNewTable);
+	bool refreshTableByVersionNumber_pf (CTable* pNewTable);
+	void refreshTablesByVersionNumber_pf (CTable* pNewTable);
 
 
 	std::vector <CTable*> mTables_pf;

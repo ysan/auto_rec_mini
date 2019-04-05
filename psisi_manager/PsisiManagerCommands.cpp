@@ -9,7 +9,7 @@
 #include "Utils.h"
 
 
-static void dump_serviceInfos (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_programInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_UTL_LOG_W ("ignore arguments.\n");
@@ -26,7 +26,7 @@ static void dump_serviceInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
-static void dump_eventPfInfos (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_serviceInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_UTL_LOG_W ("ignore arguments.\n");
@@ -38,6 +38,23 @@ static void dump_eventPfInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	CPsisiManagerIf mgr(pBase->getExternalIf());
 	mgr.reqDumpCaches (1);
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
+static void dump_eventPfInfos (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_UTL_LOG_W ("ignore arguments.\n");
+	}
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CPsisiManagerIf mgr(pBase->getExternalIf());
+	mgr.reqDumpCaches (2);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -263,19 +280,25 @@ ST_COMMAND_INFO g_psisiManagerDumpTables [] = { // extern
 
 ST_COMMAND_INFO g_psisiManagerCommands [] = { // extern
 	{
+		"dp",
+		"dump program infos",
+		dump_programInfos,
+		NULL,
+	},
+	{
 		"ds",
-		"dump cache service infos",
+		"dump service infos",
 		dump_serviceInfos,
 		NULL,
 	},
 	{
 		"de",
-		"dump cache event p/f infos",
+		"dump event p/f infos",
 		dump_eventPfInfos,
 		NULL,
 	},
 	{
-		"d",
+		"table",
 		"dump psisi-tables",
 		NULL,
 		g_psisiManagerDumpTables,
