@@ -5,6 +5,8 @@
 #include <errno.h>
 #include <signal.h>
 
+#include <regex>
+
 #include "CommandTables.h"
 #include "CommandServer.h"
 
@@ -12,6 +14,13 @@
 #include "PsisiManagerCommands.h"
 
 
+const char *g_szLogLevels [] = {
+	"LOG_LEVEL_D",
+	"LOG_LEVEL_I",
+	"LOG_LEVEL_W",
+	"LOG_LEVEL_E",
+	"LOG_LEVEL_PE",
+};
 
 static void _echo (int argc, char* argv[], CThreadMgrBase *pBase)
 {
@@ -41,12 +50,19 @@ static void _moni (int argc, char* argv[], CThreadMgrBase *pBase)
 static void _log_level (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_UTL_LOG_E ("invalid arguments.");
+		_UTL_LOG_E ("invalid arguments. (usage: lv {0|1|2|3|4} )");
+		return;
+	}
+
+	std::regex regex("[0-4]");
+	if (!std::regex_match (argv[0], regex)) {
+		_UTL_LOG_E ("invalid arguments. (usage: lv {0|1|2|3|4} )");
 		return;
 	}
 
 	EN_LOG_LEVEL lvl = (EN_LOG_LEVEL) atoi (argv[0]);
 	CUtils::setLogLevel (lvl);
+	_UTL_LOG_I ("set %s", g_szLogLevels [lvl]);
 }
 
 
