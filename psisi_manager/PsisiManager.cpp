@@ -42,6 +42,8 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CPsisiManager::registerEventChangeNotify, (char*)"registerEventChangeNotify"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_UNREG_EVENT_CHANGE_NOTIFY] =
 		{(PFN_SEQ_BASE)&CPsisiManager::unregisterEventChangeNotify, (char*)"unregisterEventChangeNotify"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_GET_PAT_DETECT_STATE] =
+		{(PFN_SEQ_BASE)&CPsisiManager::getPatDetectState,  (char*)"getPatDetectState"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_GET_CURRENT_SERVICE_INFOS] =
 		{(PFN_SEQ_BASE)&CPsisiManager::getCurrentServiceInfos,  (char*)"getCurrentServiceInfos"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_GET_PRESENT_EVENT_INFO] =
@@ -253,8 +255,8 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 				if (m_isDetectedPAT) {
 					// true -> false
 					// fire notify
-					EN_PSISI_NOTIFY _notify = EN_PSISI_NOTIFY__PAT_NOT_DETECTED;
-					pIf->notify (NOTIFY_CAT__PAT_DETECT, (uint8_t*)&_notify, sizeof(EN_PSISI_NOTIFY));
+					EN_PAT_DETECT_STATE _state = EN_PAT_DETECT_STATE__NOT_DETECTED;
+					pIf->notify (NOTIFY_CAT__PAT_DETECT, (uint8_t*)&_state, sizeof(EN_PAT_DETECT_STATE));
 				}
 
 				m_isDetectedPAT = false;
@@ -264,8 +266,8 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 				if (!m_isDetectedPAT) {
 					// false -> true
 					// fire notify
-					EN_PSISI_NOTIFY _notify = EN_PSISI_NOTIFY__PAT_DETECTED;
-					pIf->notify (NOTIFY_CAT__PAT_DETECT, (uint8_t*)&_notify, sizeof(EN_PSISI_NOTIFY));
+					EN_PAT_DETECT_STATE _state = EN_PAT_DETECT_STATE__DETECTED;
+					pIf->notify (NOTIFY_CAT__PAT_DETECT, (uint8_t*)&_state, sizeof(EN_PAT_DETECT_STATE));
 				}
 
 				m_isDetectedPAT = true;
@@ -287,16 +289,12 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_EVENT_PF_WAIT: {
 
-		if (checkEventPfInfos ()) {
-			// fire notify
-			EN_PSISI_NOTIFY _notify = EN_PSISI_NOTIFY__EVENT_CHANGE;
-			pIf->notify (NOTIFY_CAT__EVENT_CHANGE, (uint8_t*)&_notify, sizeof(EN_PSISI_NOTIFY));
-		}
-
+		if (checkEventPfInfos (pIf)) {
 #ifndef _DUMMY_TUNER
 // ローカルデバッグ中は消したくないので
-		refreshEventPfInfos ();
+			refreshEventPfInfos ();
 #endif
+		}
 
 		sectId = SECTID_CHECK_PAT;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -566,6 +564,30 @@ void CPsisiManager::unregisterEventChangeNotify (CThreadMgrIf *pIf)
 	}
 
 	pIf->reply (enRslt);
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::getPatDetectState (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	EN_PAT_DETECT_STATE state =
+			m_isDetectedPAT ? EN_PAT_DETECT_STATE__DETECTED: EN_PAT_DETECT_STATE__NOT_DETECTED;
+
+	pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&state, sizeof(state));
 
 
 	sectId = THM_SECT_ID_INIT;
@@ -1310,7 +1332,7 @@ _EVENT_PF_INFO* CPsisiManager::findEmptyEventPfInfo (void)
 	return &m_eventPfInfos [i];
 }
 
-bool CPsisiManager::checkEventPfInfos (void)
+bool CPsisiManager::checkEventPfInfos (CThreadMgrIf *pIf)
 {
 	bool r = false;
 
@@ -1322,15 +1344,31 @@ bool CPsisiManager::checkEventPfInfos (void)
 			if (m_eventPfInfos [i].start_time <= cur_time && m_eventPfInfos [i].end_time >= cur_time) {
 
 				if (m_eventPfInfos [i].state == EN_EVENT_PF_STATE__FOLLOW) {
-					// event change
-					_UTL_LOG_I ("event change");
+					// event changed
+					_UTL_LOG_I ("event changed");
 					m_eventPfInfos [i].dump();
 					r = true;
+
+					if (pIf) {
+						PSISI_EVENT_INFO _info;
+						_info.transport_stream_id = m_eventPfInfos [i].transport_stream_id;
+						_info.original_network_id = m_eventPfInfos [i].original_network_id;
+						_info.service_id = m_eventPfInfos [i].service_id;
+						_info.event_id = m_eventPfInfos [i].event_id;
+						_info.start_time = m_eventPfInfos [i].start_time;
+						_info.end_time = m_eventPfInfos [i].end_time;
+						_info.p_event_name_char = m_eventPfInfos [i].event_name_char;
+
+						// fire notify
+						pIf->notify (NOTIFY_CAT__EVENT_CHANGE, (uint8_t*)&_info, sizeof(PSISI_EVENT_INFO));
+					}
+
 				}
 				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__PRESENT;
 
 			} else if (m_eventPfInfos [i].start_time > cur_time) {
 
+//				_UTL_LOG_W ("start_time > cur_time ???");
 				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__FOLLOW;
 
 			} else if (m_eventPfInfos [i].end_time < cur_time) {

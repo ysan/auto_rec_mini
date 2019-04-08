@@ -16,6 +16,7 @@
 #include "CommandServerIf.h"
 #include "TunerControlIf.h"
 #include "PsisiManagerIf.h"
+#include "RecManagerIf.h"
 
 #include "Utils.h"
 #include "modules.h"
@@ -41,6 +42,7 @@ int main (void)
 	CCommandServerIf *p_comSvrIf = new CCommandServerIf (p_mgr->getExternalIf());
 	CTunerControlIf *p_tunerCtlIf = new CTunerControlIf (p_mgr->getExternalIf());
 	CPsisiManagerIf *p_psisiMgrIf = new CPsisiManagerIf (p_mgr->getExternalIf());
+	CRecManagerIf *p_recMgrIf = new CRecManagerIf (p_mgr->getExternalIf());
 
 
 	uint32_t opt = p_mgr->getExternalIf()->getRequestOption ();
@@ -53,6 +55,7 @@ int main (void)
 	p_comSvrIf-> reqModuleUp ();
 	p_tunerCtlIf-> reqModuleUp ();
 	p_psisiMgrIf->reqModuleUp();
+	p_recMgrIf->reqModuleUp();
 
 
 

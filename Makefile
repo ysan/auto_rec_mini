@@ -19,6 +19,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/ts_parser/dsmcc \
 	-I$(BASEDIR)/ts_parser/dsmcc/dsmcc_descriptor \
 	-I$(BASEDIR)/psisi_manager \
+	-I$(BASEDIR)/rec_manager \
 	-I$(BASEDIR)/command_server \
 	-I./ \
 
@@ -33,6 +34,7 @@ LIBS		:= \
 	-L$(BASEDIR)/ts_parser/psisi -lpsisi \
 	-L$(BASEDIR)/ts_parser/dsmcc -ldsmcc \
 	-L$(BASEDIR)/psisi_manager -lpsisimanager \
+	-L$(BASEDIR)/rec_manager -lrecmanager \
 	-L$(BASEDIR)/command_server -lcommandserver \
 	-larib25 \
 	-lpthread \
@@ -46,6 +48,7 @@ SUBDIRS		:= \
 	ts_parser_test \
 	tuner_control \
 	psisi_manager \
+	rec_manager \
 	command_server \
 
 

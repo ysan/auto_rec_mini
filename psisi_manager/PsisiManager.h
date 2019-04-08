@@ -191,6 +191,7 @@ public:
 	void unregisterPatDetectNotify (CThreadMgrIf *pIf);
 	void registerEventChangeNotify (CThreadMgrIf *pIf);
 	void unregisterEventChangeNotify (CThreadMgrIf *pIf);
+	void getPatDetectState (CThreadMgrIf *pIf);
 	void getCurrentServiceInfos (CThreadMgrIf *pIf);
 	void getPresentEventInfo (CThreadMgrIf *pIf);
 	void getFollowEventInfo (CThreadMgrIf *pIf);
@@ -239,7 +240,7 @@ private:
 		uint16_t _service_id
 	);
 	_EVENT_PF_INFO* findEmptyEventPfInfo (void);
-	bool checkEventPfInfos (void);
+	bool checkEventPfInfos (CThreadMgrIf *pIf);
 	void refreshEventPfInfos (void);
 	void dumpEventPfInfos (void);
 	void clearEventPfInfo (_EVENT_PF_INFO *pInfo);

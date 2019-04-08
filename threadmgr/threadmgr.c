@@ -62,10 +62,10 @@
 
 #define MSG_SIZE						(0x80) // 128
 
-#define NOTIFY_CATEGORY_MAX				(0x20) // 128 1threadごとのnotifyを登録できるカテゴリ数 (notifyの種別)
+#define NOTIFY_CATEGORY_MAX				(0x20) // 32  1threadごとのnotifyを登録できるカテゴリ数 (notifyの種別)
 #define NOTIFY_CATEGORY_BLANK			(0x80) // 128
-#define NOTIFY_CLIENT_ID_MAX			(0x20) // 32  1カテゴリごとnotifyを登録できるクライアント数
-#define NOTIFY_CLIENT_ID_BLANK			(0x80) // 128
+#define NOTIFY_CLIENT_ID_MAX			(0xA0) // 160  1カテゴリごとnotifyを登録できるクライアント数
+#define NOTIFY_CLIENT_ID_BLANK			(0xE0) // 224
 
 #define SECT_ID_MAX						(0x40) // 64  1sequenceあたりsection分割可能な最大数
 #define SECT_ID_INIT					THM_SECT_ID_INIT
@@ -240,7 +240,8 @@ typedef struct request_id_info {
 } ST_REQUEST_ID_INFO;
 
 typedef struct notify_client_info {
-	uint8_t nThreadIdx; // clientのthreadIdx
+	uint8_t nSrcThreadIdx; // server threadIdx
+	uint8_t nDestThreadIdx; // client threadIdx
 	uint8_t nCategory;
 	bool isUsed;
 } ST_NOTIFY_CLIENT_INFO;
@@ -286,7 +287,7 @@ static ST_REQUEST_ID_INFO gstRequestIdInfo [THREAD_IDX_MAX +1][REQUEST_ID_MAX]; 
 static ST_SYNC_REPLY_INFO gstSyncReplyInfo [THREAD_IDX_MAX];
 static ST_THM_SRC_INFO gstThmSrcInfo [THREAD_IDX_MAX];
 
-static ST_NOTIFY_CLIENT_INFO gstNotifyClientInfo [THREAD_IDX_MAX][NOTIFY_CLIENT_ID_MAX];
+static ST_NOTIFY_CLIENT_INFO gstNotifyClientInfo [NOTIFY_CLIENT_ID_MAX];
 
 static ST_EXTERNAL_CONTROL_INFO *gpstExtInfoListTop;
 static ST_EXTERNAL_CONTROL_INFO *gpstExtInfoListBtm;
@@ -630,10 +631,8 @@ static void init (void)
 	}
 
 	/* init notifyInfo */
-	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
-		for (j = 0; j < NOTIFY_CLIENT_ID_MAX; ++ j) {
-			clearNotifyClientInfo (&gstNotifyClientInfo [i][j]);
-		}
+	for (i = 0; i < NOTIFY_CLIENT_ID_MAX; ++ i) {
+		clearNotifyClientInfo (&gstNotifyClientInfo [i]);
 	}
 
 	gpstExtInfoListTop = NULL;
@@ -3860,7 +3859,7 @@ static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8
 
 	/* 空きを探す */
 	for (id = 0; id < NOTIFY_CLIENT_ID_MAX; id ++) {
-		if (!gstNotifyClientInfo [nThreadIdx][id].isUsed) {
+		if (!gstNotifyClientInfo [id].isUsed) {
 			break;
 		}
 	}
@@ -3876,9 +3875,10 @@ static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8
 		return id;
 	}
 
-	gstNotifyClientInfo [nThreadIdx][id].nThreadIdx = nClientThreadIdx;
-	gstNotifyClientInfo [nThreadIdx][id].nCategory = nCategory;
-	gstNotifyClientInfo [nThreadIdx][id].isUsed = true;
+	gstNotifyClientInfo [id].nSrcThreadIdx = nThreadIdx;
+	gstNotifyClientInfo [id].nDestThreadIdx = nClientThreadIdx;
+	gstNotifyClientInfo [id].nCategory = nCategory;
+	gstNotifyClientInfo [id].isUsed = true;
 
 
 	/* unlock */
@@ -3899,7 +3899,7 @@ static bool unsetNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8_
 //TODO いらないかも ここは個々のスレッドが処理するから
 	pthread_mutex_lock (&gMutexNotifyClientInfo [nThreadIdx]);
 
-	if (!gstNotifyClientInfo [nThreadIdx][nClientId].isUsed) {
+	if (!gstNotifyClientInfo [nClientId].isUsed) {
 		THM_INNER_LOG_E ("clientId is not use...?");
 
 //TODO いらないかも ここは個々のスレッドが処理するから
@@ -3908,7 +3908,7 @@ static bool unsetNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8_
 		return false;
 	}
 
-	clearNotifyClientInfo (&gstNotifyClientInfo [nThreadIdx][nClientId]);
+	clearNotifyClientInfo (&gstNotifyClientInfo [nClientId]);
 
 	/* unlock */
 //TODO いらないかも ここは個々のスレッドが処理するから
@@ -3979,18 +3979,22 @@ static bool notify (uint8_t nCategory, uint8_t *pMsg, size_t msgSize)
 
 
 	uint8_t n_clientId = 0;
-	/* categoryに属したclientにNotify投げる */
+	/* 自分のthreadIdxの該当categoryに属したclientにNotify投げる */
 	for (n_clientId = 0; n_clientId < NOTIFY_CLIENT_ID_MAX; ++ n_clientId) {
 
-		if (!gstNotifyClientInfo [stContext.nThreadIdx][n_clientId].isUsed) {
+		if (!gstNotifyClientInfo [n_clientId].isUsed) {
 			continue;
 		}
 
-		if (gstNotifyClientInfo [stContext.nThreadIdx][n_clientId].nCategory != nCategory) {
+		if (gstNotifyClientInfo [n_clientId].nSrcThreadIdx != stContext.nThreadIdx) {
 			continue;
 		}
 
-		uint8_t nClientThreadIdx = gstNotifyClientInfo [stContext.nThreadIdx][n_clientId].nThreadIdx;
+		if (gstNotifyClientInfo [n_clientId].nCategory != nCategory) {
+			continue;
+		}
+
+		uint8_t nClientThreadIdx = gstNotifyClientInfo [n_clientId].nDestThreadIdx;
 
 
 		if (!notifyInner (nClientThreadIdx, n_clientId, &stContext, pMsg, msgSize)) {
@@ -4015,7 +4019,8 @@ static void clearNotifyClientInfo (ST_NOTIFY_CLIENT_INFO *p)
 		return;
 	}
 
-	p->nThreadIdx = THREAD_IDX_BLANK;
+	p->nSrcThreadIdx = THREAD_IDX_BLANK;
+	p->nDestThreadIdx = THREAD_IDX_BLANK;
 	p->nCategory = NOTIFY_CATEGORY_BLANK;
 	p->isUsed = false;
 }
