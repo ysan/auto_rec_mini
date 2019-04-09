@@ -122,13 +122,8 @@ public:
 	CReference reference_pf (void);
 	CReference reference_sch (void);
 
-
 	// p/f or schedule
 	int m_type;
-
-	// table update by version number
-	bool m_isRefreshTables;
-
 
 private:
 	bool parse (const CSectionInfo *pCompSection, CTable* pOutTable);
@@ -142,8 +137,8 @@ private:
 	void releaseTable_pf (CTable* pErase);
 	void releaseTable_sch (CTable* pErase);
 
-	bool refreshTable_byVersionNumber_pf (CTable* pNewTable);
-	bool refreshTables_byVersionNumber_pf (CTable* pNewTable);
+	bool refreshTableByVersionNumber_pf (CTable* pNewTable);
+	void refreshTablesByVersionNumber_pf (CTable* pNewTable);
 
 
 	std::vector <CTable*> mTables_pf;

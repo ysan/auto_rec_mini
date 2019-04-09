@@ -2,6 +2,9 @@ log エスケープシーケンス 色つけ方
 chennel scan
 event rec
 event chenge notify
+  cacheEventPfInfos -> checkEventPfInfosで印付け -> followsが空だったら follow eventをcopy
+  followsをloopcheck -> start_timeで notify -> follows clear
+  選局で follows clear
 ts_parser_test main.cpp に TsParser_test.cppを統合
 adaptation_fieldの処理
 it9175のlog

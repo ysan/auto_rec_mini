@@ -287,23 +287,18 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
-	case SECTID_CHECK_EVENT_PF_WAIT:
+	case SECTID_CHECK_EVENT_PF_WAIT: {
 
 		if (checkEventPfInfos (pIf)) {
-#ifndef _DUMMY_TUNER // ローカルデバッグ中は消したくないので
-//			refreshEventPfInfos ();
-
-			// イベントが変わったのでparserから新しいものを取得し直します
-			// parser側はまだ更新されてない場合があるので
-			// 新しいのものが取れるまで ここは何回か繰り返します
-			clearEventPfInfos();
-			cacheEventPfInfos();
+#ifndef _DUMMY_TUNER
+// ローカルデバッグ中は消したくないので
+			refreshEventPfInfos ();
 #endif
 		}
 
 		sectId = SECTID_CHECK_PAT;
 		enAct = EN_THM_ACT_CONTINUE;
-		break;
+		} break;
 
 	case SECTID_END:
 		sectId = THM_SECT_ID_INIT;
@@ -1382,7 +1377,6 @@ bool CPsisiManager::checkEventPfInfos (CThreadMgrIf *pIf)
 					}
 
 				}
-
 				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__PRESENT;
 
 			} else if (m_eventPfInfos [i].start_time > cur_time) {
@@ -1564,18 +1558,14 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 			if (mEIT_H.m_type == 0) {
 				// p/f
 
-				// version_number によるテーブル更新は通知したくない
-				// 上位の実装の都合上
-				if (!mEIT_H.m_isRefreshTables) {
-					_PARSER_NOTICE _notice = {EN_PSISI_TYPE__EIT_H_PF,
-												r == EN_CHECK_SECTION__COMPLETED ? true : false};
-					requestAsync (
-						EN_MODULE_PSISI_MANAGER,
-						EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,
-						(uint8_t*)&_notice,
-						sizeof(_notice)
-					);
-				}
+				_PARSER_NOTICE _notice = {EN_PSISI_TYPE__EIT_H_PF,
+											r == EN_CHECK_SECTION__COMPLETED ? true : false};
+				requestAsync (
+					EN_MODULE_PSISI_MANAGER,
+					EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,
+					(uint8_t*)&_notice,
+					sizeof(_notice)
+				);
 
 			} else if (mEIT_H.m_type == 1) {
 				// schedule

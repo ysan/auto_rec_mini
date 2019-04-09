@@ -11,7 +11,6 @@
 CEventInformationTable::CEventInformationTable (size_t poolSize)
 	:CSectionParser (poolSize)
 	,m_type (0)
-	,m_isRefreshTables (false)
 	,m_isNeedParseSchedule (false)
 {
 	mTables_pf.clear();
@@ -21,7 +20,6 @@ CEventInformationTable::CEventInformationTable (size_t poolSize)
 CEventInformationTable::CEventInformationTable (size_t poolSize, int fifoNum)
 	:CSectionParser (poolSize, fifoNum)
 	,m_type (0)
-	,m_isRefreshTables (false)
 	,m_isNeedParseSchedule (false)
 {
 	mTables_pf.clear();
@@ -40,8 +38,6 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 	if (!pCompSection) {
 		return ;
 	}
-
-	m_isRefreshTables = false;
 
 
 	// pf or schedule ?
@@ -84,10 +80,7 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 
 	if (pTable->header.table_id == TBLID_EIT_PF_A || pTable->header.table_id == TBLID_EIT_PF_O) {
 
-		if (refreshTables_byVersionNumber_pf (pTable)) {
-			// for do not notify of table update by version number
-			m_isRefreshTables = true;
-		}
+		refreshTablesByVersionNumber_pf (pTable) ;
 
 		appendTable_pf (pTable);
 
@@ -460,7 +453,7 @@ void CEventInformationTable::clear_sch (CTable *pErase)
 	releaseTable_sch (pErase);
 }
 
-bool CEventInformationTable::refreshTable_byVersionNumber_pf (CTable* pNewTable)
+bool CEventInformationTable::refreshTableByVersionNumber_pf (CTable* pNewTable)
 {
 	if (!pNewTable) {
 		return false;
@@ -531,23 +524,17 @@ bool CEventInformationTable::refreshTable_byVersionNumber_pf (CTable* pNewTable)
 	}
 }
 
-bool CEventInformationTable::refreshTables_byVersionNumber_pf (CTable* pNewTable)
+void CEventInformationTable::refreshTablesByVersionNumber_pf (CTable* pNewTable)
 {
 	if (!pNewTable) {
-		return false;
+		return ;
 	}
 
-	bool r = false;
-
 	while (1) {
-		if (refreshTable_byVersionNumber_pf (pNewTable)) {
-			r = true;
-		} else {
+		if (!refreshTableByVersionNumber_pf (pNewTable)) {
 			break;
 		}
 	}
-
-	return r;
 }
 
 CEventInformationTable::CReference CEventInformationTable::reference_pf (void)
