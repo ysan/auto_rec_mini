@@ -28,11 +28,15 @@ extern "C" {
 CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,m_tunerNotify_clientId (0xff)
-	,m_ts_receive_handler_id (-1)
+	,m_tsReceive_handlerId (-1)
 	,m_eventChangeNotify_clientId (0xff)
+	,m_recState (EN_REC_STATE__INIT)
 {
-	mSeqs [EN_SEQ_REC_MANAGER_MODULE_UP]     = {(PFN_SEQ_BASE)&CRecManager::moduleUp,    (char*)"moduleUp"};
-	mSeqs [EN_SEQ_REC_MANAGER_MODULE_DOWN]   = {(PFN_SEQ_BASE)&CRecManager::moduleDown,  (char*)"moduleDown"};
+	mSeqs [EN_SEQ_REC_MANAGER_MODULE_UP]     = {(PFN_SEQ_BASE)&CRecManager::moduleUp,     (char*)"moduleUp"};
+	mSeqs [EN_SEQ_REC_MANAGER_MODULE_DOWN]   = {(PFN_SEQ_BASE)&CRecManager::moduleDown,   (char*)"moduleDown"};
+	mSeqs [EN_SEQ_REC_MANAGER_RESERVE_CHECK] = {(PFN_SEQ_BASE)&CRecManager::reserveCheck, (char*)"reserveCheck"};
+	mSeqs [EN_SEQ_REC_MANAGER_START_RECORDING] =
+		{(PFN_SEQ_BASE)&CRecManager::startRecording, (char*)"startRecording"};
 	setSeqs (mSeqs, EN_SEQ_REC_MANAGER_NUM);
 
 }
@@ -54,6 +58,8 @@ void CRecManager::moduleUp (CThreadMgrIf *pIf)
 		SECTID_WAIT_REG_HANDLER,
 		SECTID_REQ_REG_EVENT_CHANGE_NOTIFY,
 		SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY,
+		SECTID_REQ_RESERVE_CHECK,
+		SECTID_WAIT_RESERVE_CHECK,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
 	};
@@ -107,7 +113,7 @@ void CRecManager::moduleUp (CThreadMgrIf *pIf)
 	case SECTID_WAIT_REG_HANDLER:
 		enRslt = pIf->getSrcInfo()->enRslt;
         if (enRslt == EN_THM_RSLT_SUCCESS) {
-			m_ts_receive_handler_id = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+			m_tsReceive_handlerId = *(int*)(pIf->getSrcInfo()->msg.pMsg);
 			sectId = SECTID_REQ_REG_EVENT_CHANGE_NOTIFY;
 			enAct = EN_THM_ACT_CONTINUE;
 
@@ -131,7 +137,7 @@ void CRecManager::moduleUp (CThreadMgrIf *pIf)
 		enRslt = pIf->getSrcInfo()->enRslt;
         if (enRslt == EN_THM_RSLT_SUCCESS) {
 			m_eventChangeNotify_clientId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
-			sectId = SECTID_END_SUCCESS;
+			sectId = SECTID_REQ_RESERVE_CHECK;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
@@ -139,6 +145,26 @@ void CRecManager::moduleUp (CThreadMgrIf *pIf)
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
+		break;
+
+	case SECTID_REQ_RESERVE_CHECK:
+		requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_RESERVE_CHECK);
+
+		sectId = SECTID_WAIT_RESERVE_CHECK;
+		enAct = EN_THM_ACT_WAIT;
+		break;
+
+	case SECTID_WAIT_RESERVE_CHECK:
+//		enRslt = pIf->getSrcInfo()->enRslt;
+//		if (enRslt == EN_THM_RSLT_SUCCESS) {
+//
+//		} else {
+//
+//		}
+// EN_THM_RSLT_SUCCESSのみ
+
+		sectId = SECTID_END_SUCCESS;
+		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
 	case SECTID_END_SUCCESS:
@@ -183,6 +209,81 @@ void CRecManager::moduleDown (CThreadMgrIf *pIf)
 	enAct = EN_THM_ACT_DONE;
 	pIf->setSectId (sectId, enAct);
 }
+
+void CRecManager::reserveCheck (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_CHECK,
+		SECTID_CHECK_WAIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+		// 先にreplyしておく
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		sectId = SECTID_CHECK;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_CHECK:
+
+		pIf->setTimeout (1000); // 1sec
+
+		sectId = SECTID_CHECK_WAIT;
+		enAct = EN_THM_ACT_WAIT;
+		break;
+
+	case SECTID_CHECK_WAIT:
+
+		// reserve check
+
+
+
+
+		sectId = SECTID_CHECK;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_END:
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+	pIf->setSectId (sectId, enAct);
+}
+
+void CRecManager::startRecording (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 
 void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 {
@@ -254,15 +355,22 @@ bool CRecManager::onCheckTsReceiveLoop (void)
 
 bool CRecManager::onTsReceived (void *p_ts_data, int length)
 {
+	switch (m_recState) {
+	case EN_REC_STATE__PRE_PROC:
+		break;
 
+	case EN_REC_STATE__NOW_RECORDING:
 
-
-	if (0) {
 		OutputBuffer_put (NULL, p_ts_data, length);
+
+		break;
+
+	case EN_REC_STATE__POST_PROC:
+		break;
+
+	default:
+		break;
 	}
-
-
-
 
 
 	return true;

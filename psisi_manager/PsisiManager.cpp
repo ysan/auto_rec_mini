@@ -292,9 +292,10 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 		if (checkEventPfInfos (pIf)) {
 #ifndef _DUMMY_TUNER // ローカルデバッグ中は消したくないので
 //			refreshEventPfInfos ();
-			// イベントが変わったのでmEITから新しいものを取得し直します
-			// mEIT(parser側)はまだ更新されてない場合があるので
-			// 新しいのものが取れるまで ここは何回か繰り返す
+
+			// イベントが変わったのでparserから新しいものを取得し直します
+			// parser側はまだ更新されてない場合があるので
+			// 新しいのものが取れるまで ここは何回か繰り返します
 			clearEventPfInfos();
 			cacheEventPfInfos();
 #endif
@@ -1386,7 +1387,6 @@ bool CPsisiManager::checkEventPfInfos (CThreadMgrIf *pIf)
 
 			} else if (m_eventPfInfos [i].start_time > cur_time) {
 
-				_UTL_LOG_W ("start_time > cur_time ???");
 				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__FOLLOW;
 
 			} else if (m_eventPfInfos [i].end_time < cur_time) {
@@ -1579,6 +1579,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 			} else if (mEIT_H.m_type == 1) {
 				// schedule
+
 				_PARSER_NOTICE _notice = {EN_PSISI_TYPE__EIT_H_SCH,
 											r == EN_CHECK_SECTION__COMPLETED ? true : false};
 				requestAsync (

@@ -26,9 +26,43 @@
 using namespace ThreadManager;
 
 
-// notify category
-//#define NOTIFY_CAT__PAT_DETECT		((uint8_t)0) 
-//#define NOTIFY_CAT__EVENT_CHANGE	((uint8_t)1) 
+typedef enum {
+	EN_REC_STATE__INIT = 0,
+	EN_REC_STATE__PRE_PROC,
+	EN_REC_STATE__NOW_RECORDING,
+	EN_REC_STATE__POST_PROC,
+} EN_REC_STATE;
+
+
+typedef struct {
+
+	uint16_t transport_stream_id;
+	uint16_t original_network_id;
+	uint16_t service_id;
+
+	uint16_t event_id;
+	CEtime start_time;
+	CEtime end_time;
+
+	char title_name [1024];
+
+	void dump (void) {
+		_UTL_LOG_I (
+			"tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
+			transport_stream_id,
+			original_network_id,
+			service_id,
+			event_id
+		);
+		_UTL_LOG_I (
+			"time:[%s - %s]",
+			start_time.toString(),
+			end_time.toString()
+		);
+		_UTL_LOG_I ("[%s]", title_name);
+	}
+
+} _RESERVE;
 
 
 class CRecManager
@@ -42,6 +76,8 @@ public:
 
 	void moduleUp (CThreadMgrIf *pIf);
 	void moduleDown (CThreadMgrIf *pIf);
+	void reserveCheck (CThreadMgrIf *pIf);
+	void startRecording (CThreadMgrIf *pIf);
 
 
 private:
@@ -59,9 +95,10 @@ private:
 	ST_SEQ_BASE mSeqs [EN_SEQ_REC_MANAGER_NUM]; // entity
 
 	uint8_t m_tunerNotify_clientId;
-	int m_ts_receive_handler_id;
+	int m_tsReceive_handlerId;
 	uint8_t m_eventChangeNotify_clientId;
 
+	EN_REC_STATE m_recState;
 };
 
 #endif

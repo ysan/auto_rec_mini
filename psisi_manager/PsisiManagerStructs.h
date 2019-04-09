@@ -40,7 +40,8 @@ typedef struct {
 
 	void dump (void) {
 		_UTL_LOG_I (
-			"tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svctype:[0x%02x] [%s]",
+			"tblid:[0x%2x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svctype:[0x%02x] [%s]",
+			table_id,
 			transport_stream_id,
 			original_network_id,
 			service_id,
@@ -71,7 +72,8 @@ typedef struct {
 
 	void dump (void) {
 		_UTL_LOG_I (
-			"tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
+			"tblid:[0x%2x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
+			table_id,
 			transport_stream_id,
 			original_network_id,
 			service_id,
@@ -97,7 +99,8 @@ typedef struct {
 
 	void dump (void) {
 		_UTL_LOG_I (
-			"tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
+			"tblid:[0x%2x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
+			table_id,
 			transport_stream_id,
 			original_network_id,
 			service_id,
