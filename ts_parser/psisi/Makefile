@@ -24,7 +24,7 @@ SUBDIRS		:= ./descriptor
 #
 #   Target object
 #
-TARGET_NAME	:=	psisi
+TARGET_NAME	:=	psisiparser
 
 #
 #   Target type

@@ -19,8 +19,8 @@ INCLUDES	:= \
 LIBS		:= \
 	-L$(BASEDIR)/common -lcommon \
 	-L./aribstr -laribstr \
-	-L./psisi -lpsisi \
-	-L./dsmcc -ldsmcc \
+	-L./psisi -lpsisiparser \
+	-L./dsmcc -ldsmccparser \
 	-lpthread \
 	-lpcsclite \
 

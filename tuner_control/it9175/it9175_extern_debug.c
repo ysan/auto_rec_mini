@@ -18,8 +18,8 @@
 #include "it9175_extern.h"
 
 
-#define TS_FILE		"../in.m2ts"
-//#define TS_FILE		"../test.m2ts"
+//#define TS_FILE		"../in.m2ts"
+#define TS_FILE		"../test.m2ts"
 
 int readFile (int fd, uint8_t *pBuff, size_t nSize)
 {

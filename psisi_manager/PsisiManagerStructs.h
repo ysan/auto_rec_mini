@@ -11,6 +11,7 @@
 
 
 typedef struct {
+	uint8_t table_id;
 	uint16_t transport_stream_id;
 
 	uint16_t program_number;
@@ -29,6 +30,7 @@ typedef struct {
 
 
 typedef struct {
+	uint8_t table_id;
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint16_t service_id;
@@ -56,6 +58,7 @@ typedef struct {
 
 
 typedef struct {
+	uint8_t table_id;
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint16_t service_id;
@@ -64,7 +67,7 @@ typedef struct {
 	CEtime start_time;
 	CEtime end_time;
 
-	char *p_event_name_char;
+	char event_name_char [1024];
 
 	void dump (void) {
 		_UTL_LOG_I (
@@ -79,10 +82,30 @@ typedef struct {
 			start_time.toString(),
 			end_time.toString()
 		);
-		_UTL_LOG_I ("[%s]", p_event_name_char);
+		_UTL_LOG_I ("[%s]", event_name_char);
 	}
 
 } PSISI_EVENT_INFO;
+
+typedef struct {
+	uint8_t table_id;
+	uint16_t transport_stream_id;
+	uint16_t original_network_id;
+	uint16_t service_id;
+
+	uint16_t event_id;
+
+	void dump (void) {
+		_UTL_LOG_I (
+			"tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
+			transport_stream_id,
+			original_network_id,
+			service_id,
+			event_id
+		);
+	}
+
+} PSISI_NOTIFY_EVENT_INFO;
 
 typedef struct {
 	PSISI_SERVICE_INFO key;

@@ -287,18 +287,22 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
-	case SECTID_CHECK_EVENT_PF_WAIT: {
+	case SECTID_CHECK_EVENT_PF_WAIT:
 
 		if (checkEventPfInfos (pIf)) {
-#ifndef _DUMMY_TUNER
-// ローカルデバッグ中は消したくないので
-			refreshEventPfInfos ();
+#ifndef _DUMMY_TUNER // ローカルデバッグ中は消したくないので
+//			refreshEventPfInfos ();
+			// イベントが変わったのでmEITから新しいものを取得し直します
+			// mEIT(parser側)はまだ更新されてない場合があるので
+			// 新しいのものが取れるまで ここは何回か繰り返す
+			clearEventPfInfos();
+			cacheEventPfInfos();
 #endif
 		}
 
 		sectId = SECTID_CHECK_PAT;
 		enAct = EN_THM_ACT_CONTINUE;
-		} break;
+		break;
 
 	case SECTID_END:
 		sectId = THM_SECT_ID_INIT;
@@ -643,19 +647,25 @@ void CPsisiManager::getPresentEventInfo (CThreadMgrIf *pIf)
 
 	} else {
 		_EVENT_PF_INFO *p_info = findEventPfInfo (
+										TBLID_EIT_PF_A,
 										param.key.transport_stream_id,
 										param.key.original_network_id,
 										param.key.service_id,
 										EN_EVENT_PF_STATE__PRESENT
 									);
 		if (p_info) {
+			param.p_out_eventInfo->table_id = p_info->table_id;
 			param.p_out_eventInfo->transport_stream_id = p_info->transport_stream_id;
 			param.p_out_eventInfo->original_network_id = p_info->original_network_id;
 			param.p_out_eventInfo->service_id = p_info->service_id;
 			param.p_out_eventInfo->event_id = p_info->event_id;
 			param.p_out_eventInfo->start_time = p_info->start_time;
 			param.p_out_eventInfo->end_time = p_info->end_time;
-			param.p_out_eventInfo->p_event_name_char = p_info->event_name_char;
+			strncpy (
+				param.p_out_eventInfo->event_name_char,
+				p_info->event_name_char,
+				strlen(p_info->event_name_char)
+			);
 
 			enRslt = EN_THM_RSLT_SUCCESS;
 
@@ -692,19 +702,25 @@ void CPsisiManager::getFollowEventInfo (CThreadMgrIf *pIf)
 
 	} else {
 		_EVENT_PF_INFO *p_info = findEventPfInfo (
+										TBLID_EIT_PF_A,
 										param.key.transport_stream_id,
 										param.key.original_network_id,
 										param.key.service_id,
 										EN_EVENT_PF_STATE__FOLLOW
 									);
 		if (p_info) {
+			param.p_out_eventInfo->table_id = p_info->table_id;
 			param.p_out_eventInfo->transport_stream_id = p_info->transport_stream_id;
 			param.p_out_eventInfo->original_network_id = p_info->original_network_id;
 			param.p_out_eventInfo->service_id = p_info->service_id;
 			param.p_out_eventInfo->event_id = p_info->event_id;
 			param.p_out_eventInfo->start_time = p_info->start_time;
 			param.p_out_eventInfo->end_time = p_info->end_time;
-			param.p_out_eventInfo->p_event_name_char = p_info->event_name_char;
+			strncpy (
+				param.p_out_eventInfo->event_name_char,
+				p_info->event_name_char,
+				strlen(p_info->event_name_char)
+			);
 
 			enRslt = EN_THM_RSLT_SUCCESS;
 
@@ -1139,6 +1155,7 @@ void CPsisiManager::clearServiceInfos (bool is_atTuning)
 	}
 }
 
+// serviceInfo for request
 int CPsisiManager::getCurrentServiceInfos (PSISI_SERVICE_INFO *p_out_serviceInfos, int num)
 {
 	if (!p_out_serviceInfos || num == 0) {
@@ -1160,6 +1177,7 @@ int CPsisiManager::getCurrentServiceInfos (PSISI_SERVICE_INFO *p_out_serviceInfo
 			continue;
 		}
 
+		(p_out_serviceInfos + n)->table_id = m_serviceInfos [i].table_id;
 		(p_out_serviceInfos + n)->transport_stream_id = m_serviceInfos [i].transport_stream_id;
 		(p_out_serviceInfos + n)->original_network_id = m_serviceInfos [i].original_network_id;
 		(p_out_serviceInfos + n)->service_id = m_serviceInfos [i].service_id;
@@ -1187,6 +1205,7 @@ void CPsisiManager::cacheEventPfInfos (void)
 		uint16_t _original_network_id = m_serviceInfos [i].original_network_id;
 		uint16_t _service_id = m_serviceInfos [i].service_id;
 		if (
+			(_table_id == 0) &&
 			(_transport_stream_id == 0) &&
 			(_original_network_id == 0) &&
 			(_service_id == 0)
@@ -1350,30 +1369,30 @@ bool CPsisiManager::checkEventPfInfos (CThreadMgrIf *pIf)
 					r = true;
 
 					if (pIf) {
-						PSISI_EVENT_INFO _info;
+						PSISI_NOTIFY_EVENT_INFO _info;
+						_info.table_id = m_eventPfInfos [i].table_id;
 						_info.transport_stream_id = m_eventPfInfos [i].transport_stream_id;
 						_info.original_network_id = m_eventPfInfos [i].original_network_id;
 						_info.service_id = m_eventPfInfos [i].service_id;
 						_info.event_id = m_eventPfInfos [i].event_id;
-						_info.start_time = m_eventPfInfos [i].start_time;
-						_info.end_time = m_eventPfInfos [i].end_time;
-						_info.p_event_name_char = m_eventPfInfos [i].event_name_char;
 
 						// fire notify
-						pIf->notify (NOTIFY_CAT__EVENT_CHANGE, (uint8_t*)&_info, sizeof(PSISI_EVENT_INFO));
+						pIf->notify (NOTIFY_CAT__EVENT_CHANGE, (uint8_t*)&_info, sizeof(PSISI_NOTIFY_EVENT_INFO));
 					}
 
 				}
+
 				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__PRESENT;
 
 			} else if (m_eventPfInfos [i].start_time > cur_time) {
 
-//				_UTL_LOG_W ("start_time > cur_time ???");
+				_UTL_LOG_W ("start_time > cur_time ???");
 				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__FOLLOW;
 
 			} else if (m_eventPfInfos [i].end_time < cur_time) {
 
 				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__ALREADY_PASSED;
+				r = true;
 
 			} else {
 				_UTL_LOG_E ("BUG: checkEventPfInfos");
@@ -1430,7 +1449,9 @@ void CPsisiManager::clearEventPfInfos (void)
 	}
 }
 
+// eventPfInfo for request
 _EVENT_PF_INFO* CPsisiManager::findEventPfInfo (
+	uint8_t _table_id,
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
 	uint16_t _service_id,
@@ -1448,6 +1469,7 @@ _EVENT_PF_INFO* CPsisiManager::findEventPfInfo (
 		}
 
 		if (
+			(m_eventPfInfos [i].table_id == _table_id) &&
 			(m_eventPfInfos [i].transport_stream_id == _transport_stream_id) &&
 			(m_eventPfInfos [i].original_network_id == _original_network_id) &&
 			(m_eventPfInfos [i].service_id == _service_id)
@@ -1540,16 +1562,23 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		if (r == EN_CHECK_SECTION__COMPLETED || r == EN_CHECK_SECTION__COMPLETED_ALREADY) {
 
 			if (mEIT_H.m_type == 0) {
-				_PARSER_NOTICE _notice = {EN_PSISI_TYPE__EIT_H_PF,
-											r == EN_CHECK_SECTION__COMPLETED ? true : false};
-				requestAsync (
-					EN_MODULE_PSISI_MANAGER,
-					EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,
-					(uint8_t*)&_notice,
-					sizeof(_notice)
-				);
+				// p/f
+
+				// version_number によるテーブル更新は通知したくない
+				// 上位の実装の都合上
+				if (!mEIT_H.m_isRefreshTables) {
+					_PARSER_NOTICE _notice = {EN_PSISI_TYPE__EIT_H_PF,
+												r == EN_CHECK_SECTION__COMPLETED ? true : false};
+					requestAsync (
+						EN_MODULE_PSISI_MANAGER,
+						EN_SEQ_PSISI_MANAGER_PARSER_NOTICE,
+						(uint8_t*)&_notice,
+						sizeof(_notice)
+					);
+				}
 
 			} else if (mEIT_H.m_type == 1) {
+				// schedule
 				_PARSER_NOTICE _notice = {EN_PSISI_TYPE__EIT_H_SCH,
 											r == EN_CHECK_SECTION__COMPLETED ? true : false};
 				requestAsync (

@@ -31,8 +31,8 @@ LIBS		:= \
 	-L$(BASEDIR)/tuner_control -ltunercontrol \
 	-L$(BASEDIR)/tuner_control/it9175 -lit9175 \
 	-L$(BASEDIR)/ts_parser -ltsparser \
-	-L$(BASEDIR)/ts_parser/psisi -lpsisi \
-	-L$(BASEDIR)/ts_parser/dsmcc -ldsmcc \
+	-L$(BASEDIR)/ts_parser/psisi -lpsisiparser \
+	-L$(BASEDIR)/ts_parser/dsmcc -ldsmccparser \
 	-L$(BASEDIR)/psisi_manager -lpsisimanager \
 	-L$(BASEDIR)/rec_manager -lrecmanager \
 	-L$(BASEDIR)/command_server -lcommandserver \

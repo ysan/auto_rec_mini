@@ -22,8 +22,8 @@ LIBS		:= \
 	-lpthread \
 	-lpcsclite \
 	-L../ts_parser/aribstr -laribstr \
-	-L../ts_parser/psisi -lpsisi \
-	-L../ts_parser/dsmcc -ldsmcc \
+	-L../ts_parser/psisi -lpsisiparser \
+	-L../ts_parser/dsmcc -ldsmccparser \
 	-L../ts_parser -ltsparser \
 	-L../common -lcommon \
 

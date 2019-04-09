@@ -248,6 +248,7 @@ private:
 
 	// eventPfInfo for request
 	_EVENT_PF_INFO* findEventPfInfo (
+		uint8_t _table_id,
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id,

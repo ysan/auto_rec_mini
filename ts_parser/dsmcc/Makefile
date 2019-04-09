@@ -24,7 +24,7 @@ SUBDIRS		:= ./dsmcc_descriptor
 #
 #   Target object
 #
-TARGET_NAME	:=	dsmcc
+TARGET_NAME	:=	dsmccparser
 
 #
 #   Target type

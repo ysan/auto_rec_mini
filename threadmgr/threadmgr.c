@@ -62,9 +62,9 @@
 
 #define MSG_SIZE						(0x80) // 128
 
-#define NOTIFY_CATEGORY_MAX				(0x20) // 32  1threadごとのnotifyを登録できるカテゴリ数 (notifyの種別)
+#define NOTIFY_CATEGORY_MAX				(0x20) // 32  notifyを登録できるカテゴリ数 (notifyの種別)
 #define NOTIFY_CATEGORY_BLANK			(0x80) // 128
-#define NOTIFY_CLIENT_ID_MAX			(0xA0) // 160  1カテゴリごとnotifyを登録できるクライアント数
+#define NOTIFY_CLIENT_ID_MAX			(0xA0) // 160  notifyを登録できるクライアント数 全スレッドに渡りユニーク
 #define NOTIFY_CLIENT_ID_BLANK			(0xE0) // 224
 
 #define SECT_ID_MAX						(0x40) // 64  1sequenceあたりsection分割可能な最大数

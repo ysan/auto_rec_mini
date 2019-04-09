@@ -27,7 +27,7 @@ LIBS		:= \
 	-L$(BASEDIR)/tuner_control -ltunercontrol \
 	-L$(BASEDIR)/ts_parser -ltsparser \
 	-L$(BASEDIR)/ts_parser/aribstr -laribstr \
-	-L$(BASEDIR)/ts_parser/psisi -lpsisi \
+	-L$(BASEDIR)/ts_parser/psisi -lpsisiparser \
 	-lpthread \
 
 USERDEFS	:= \
