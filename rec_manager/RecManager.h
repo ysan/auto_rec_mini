@@ -26,15 +26,61 @@
 using namespace ThreadManager;
 
 
+#define RESERVE_NUM_MAX		(60)
+
 typedef enum {
 	EN_REC_STATE__INIT = 0,
-	EN_REC_STATE__PRE_PROC,
+	EN_REC_STATE__PRE_PROCESS,
 	EN_REC_STATE__NOW_RECORDING,
-	EN_REC_STATE__POST_PROC,
+	EN_REC_STATE__POST_PROCESS,
 } EN_REC_STATE;
 
+typedef enum {
+	EN_RESERVE_STATE__INIT = 0,
+	EN_RESERVE_STATE__PRE_PROCESS,
+	EN_RESERVE_STATE__NOW_RECORDING,
+	EN_RESERVE_STATE__POST_PROCESS,
+	EN_RESERVE_STATE__END_SUCCESS,
+	EN_RESERVE_STATE__END_ERROR,
+} EN_RESERVE_STATE;
 
-typedef struct {
+
+class CRecReserve {
+public:
+	CRecReserve (void) {
+		clear ();
+	}
+	~CRecReserve (void) {}
+
+	bool operator == (const CRecReserve &obj) const {
+		if (
+			this->transport_stream_id == obj.transport_stream_id &&
+			this->original_network_id == obj.original_network_id &&
+			this->service_id == obj.service_id &&
+			this->event_id == obj.event_id &&
+			this->start_time == obj.start_time &&
+			this->end_time == obj.end_time
+		) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	bool operator != (const CRecReserve &obj) const {
+		if (
+			this->transport_stream_id != obj.transport_stream_id ||
+			this->original_network_id != obj.original_network_id ||
+			this->service_id != obj.service_id ||
+			this->event_id != obj.event_id ||
+			this->start_time != obj.start_time ||
+			this->end_time != obj.end_time
+		) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
@@ -45,6 +91,17 @@ typedef struct {
 	CEtime end_time;
 
 	char title_name [1024];
+
+	EN_RESERVE_STATE state;
+	bool is_used;
+
+	void clear (void) {
+//TODO 適当クリア
+		// clear all
+		memset (this, 0x00, sizeof(CRecReserve));
+		state = EN_RESERVE_STATE__INIT;
+		is_used = false;
+	}
 
 	void dump (void) {
 		_UTL_LOG_I (
@@ -62,7 +119,7 @@ typedef struct {
 		_UTL_LOG_I ("[%s]", title_name);
 	}
 
-} _RESERVE;
+};
 
 
 class CRecManager
@@ -76,12 +133,36 @@ public:
 
 	void moduleUp (CThreadMgrIf *pIf);
 	void moduleDown (CThreadMgrIf *pIf);
-	void reserveCheck (CThreadMgrIf *pIf);
+	void checkLoop (CThreadMgrIf *pIf);
 	void startRecording (CThreadMgrIf *pIf);
 
+	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
 private:
-	void onReceiveNotify (CThreadMgrIf *pIf) override;
+	bool setReserve (PSISI_EVENT_INFO *p_info);
+	bool setReserve (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id,
+		uint16_t _event_id,
+		CEtime* p_start_time,
+		CEtime* p_end_time,
+		char *psz_title_name
+	);
+	bool setReserve (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id,
+		uint16_t _event_id,
+		CEtime* p_start_time,
+		CEtime* p_end_time,
+		char *psz_title_name,
+		CRecReserve* p_reserve
+	);
+	CRecReserve *findEmptyReserve (void);
+	bool isDuplicateReserve (CRecReserve* p_reserve);
+	bool isOverrapTimeReserve (CRecReserve* p_reserve);
+
 
 
 	// CTunerControlIf::ITsReceiveHandler
@@ -99,6 +180,9 @@ private:
 	uint8_t m_eventChangeNotify_clientId;
 
 	EN_REC_STATE m_recState;
+
+	CRecReserve m_reserves [RESERVE_NUM_MAX];
+
 };
 
 #endif

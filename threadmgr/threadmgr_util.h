@@ -5,6 +5,7 @@
 /*
  * Constant define
  */
+#ifndef _LOG_COLOR_OFF
 #define THM_TEXT_ATTR_RESET			"\x1B[0m"
 #define THM_TEXT_BOLD_TYPE			"\x1B[1m"
 #define THM_TEXT_UNDER_LINE			"\x1B[4m"
@@ -18,6 +19,21 @@
 #define THM_TEXT_CYAN				"\x1B[36m"
 #define THM_TEXT_WHITE				"\x1B[37m"
 #define THM_TEXT_STANDARD_COLOR		"\x1B[39m"
+#else
+#define THM_TEXT_ATTR_RESET			""
+#define THM_TEXT_BOLD_TYPE			""
+#define THM_TEXT_UNDER_LINE			""
+#define THM_TEXT_REVERSE			""
+#define THM_TEXT_BLACK				""
+#define THM_TEXT_RED				""
+#define THM_TEXT_GREEN				""
+#define THM_TEXT_YELLOW				""
+#define THM_TEXT_BLUE				""
+#define THM_TEXT_MAGENTA			""
+#define THM_TEXT_CYAN				""
+#define THM_TEXT_WHITE				""
+#define THM_TEXT_STANDARD_COLOR		""
+#endif
 
 #define LOG_PATH	"./"
 #define LOG_NAME	"trace"

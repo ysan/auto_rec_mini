@@ -60,6 +60,10 @@ ifeq ($(ADDR_SANITIZE), 1)
 CFLAGS		+=	-fsanitize=address -fno-omit-frame-pointer
 endif
 
+ifeq ($(LOG_COLOR_OFF), 1)
+CFLAGS		+=	-D_LOG_COLOR_OFF
+endif
+
 
 EXIST_SRCS		:=	FALSE
 ifneq ($(SRCS),)

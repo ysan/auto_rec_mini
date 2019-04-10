@@ -298,7 +298,7 @@ ST_COMMAND_INFO g_psisiManagerCommands [] = { // extern
 		NULL,
 	},
 	{
-		"table",
+		"t",
 		"dump psisi-tables",
 		NULL,
 		g_psisiManagerDumpTables,

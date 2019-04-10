@@ -52,7 +52,6 @@ typedef enum {
 	EN_EVENT_PF_STATE__ALREADY_PASSED,
 
 	EN_EVENT_PF_STATE__MAX,
-
 } EN_EVENT_PF_STATE;
 
 static const char *gpszEventPfState [EN_EVENT_PF_STATE__MAX] = {
@@ -63,7 +62,13 @@ static const char *gpszEventPfState [EN_EVENT_PF_STATE__MAX] = {
 	"X",
 };
 
-typedef struct {
+typedef struct _program_info {
+public:
+	_program_info (void) {
+		clear ();
+	}
+	~_program_info (void) {}
+
 	uint8_t table_id;
 	uint16_t transport_stream_id;
 
@@ -73,6 +78,12 @@ typedef struct {
 	CProgramAssociationTable::CTable* p_orgTable;
 
 	bool is_used;
+
+	void clear (void) {
+//TODO 適当クリア
+		memset (this, 0x00, sizeof(struct _program_info));
+		is_used = false;
+	}
 
 	void dump (void) {
 		if (p_orgTable) {
@@ -89,47 +100,13 @@ typedef struct {
 
 } _PROGRAM_INFO;
 
-typedef struct {
-	uint8_t table_id;
-	uint16_t transport_stream_id;
-	uint16_t original_network_id;
-	uint16_t service_id;
-
-	uint8_t service_type;
-	char service_name_char [64];
-
-	// clear each tuning
-	bool is_tune_target;
-
-	CEtime last_update;
-
-	CServiceDescriptionTable::CTable* p_orgTable;
-
-	bool is_used;
-
-	void dump (void) {
-		if (p_orgTable) {
-			p_orgTable->header.dump();
-		}
-		_UTL_LOG_I (
-			"  tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svctype:[0x%02x]",
-			table_id,
-			transport_stream_id,
-			original_network_id,
-			service_id,
-			service_type
-		);
-		_UTL_LOG_I (
-			"  %s [%s] last_update:[%s]",
-			is_tune_target ? "*" : " ",
-			service_name_char,
-			last_update.toString()
-		);
+typedef struct _event_pf_info {
+public:
+	_event_pf_info (void) {
+		clear();
 	}
+	~_event_pf_info (void) {}
 
-} _SERVICE_INFO;
-
-typedef struct {
 	uint8_t table_id;
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
@@ -146,6 +123,14 @@ typedef struct {
 	CEventInformationTable::CTable* p_orgTable;
 
 	bool is_used;
+
+	void clear () {
+//TODO 適当クリア
+		// clear all
+		memset (this, 0x00, sizeof(struct _event_pf_info));
+		state = EN_EVENT_PF_STATE__INIT;
+		is_used = false;
+	}
 
 	void dump (void) {
 		if (p_orgTable) {
@@ -169,6 +154,71 @@ typedef struct {
 	}
 
 } _EVENT_PF_INFO;
+
+typedef struct _service_info {
+public:
+	_service_info (void) {
+		clear ();
+	}
+	~_service_info (void) {}
+
+	uint8_t table_id;
+	uint16_t transport_stream_id;
+	uint16_t original_network_id;
+	uint16_t service_id;
+
+	uint8_t service_type;
+	char service_name_char [64];
+
+	// -- clear each tuning
+	bool is_tune_target;
+	_EVENT_PF_INFO eventFollowInfo;
+	// --
+
+	CEtime last_update;
+
+	CServiceDescriptionTable::CTable* p_orgTable;
+
+	bool is_used;
+
+	void clear (void) {
+//TODO 適当クリア
+		// clear all
+		memset (this, 0x00, sizeof(struct _event_pf_info));
+		is_tune_target = false;
+		eventFollowInfo.clear();
+		is_used = false;
+	}
+
+	void clear_atTuning (void) {
+		is_tune_target = false;
+		eventFollowInfo.clear();
+	}
+
+	void dump (void) {
+		if (p_orgTable) {
+			p_orgTable->header.dump();
+		}
+		_UTL_LOG_I (
+			"  tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svctype:[0x%02x]",
+			table_id,
+			transport_stream_id,
+			original_network_id,
+			service_id,
+			service_type
+		);
+		_UTL_LOG_I (
+			"  %s [%s] last_update:[%s]",
+			is_tune_target ? "*" : " ",
+			service_name_char,
+			last_update.toString()
+		);
+		if (eventFollowInfo.is_used) {
+			eventFollowInfo.dump();
+		}
+	}
+
+} _SERVICE_INFO;
 
 
 
@@ -198,11 +248,9 @@ public:
 	void dumpCaches (CThreadMgrIf *pIf);
 	void dumpTables (CThreadMgrIf *pIf);
 
-
-private:
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
-
+private:
 	// programInfo
 	void cacheProgramInfos (void);
 	void dumpProgramInfos (void);
@@ -218,12 +266,14 @@ private:
 		uint16_t _service_id
 	);
 	_SERVICE_INFO* findEmptyServiceInfo (void);
-	bool isExistService (
+	bool isExistServiceTable (
 		uint8_t _table_id,
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id
 	);
+	void assignFollowEventToServiceInfos (void);
+	void checkFollowEventAtServiceInfos (CThreadMgrIf *pIf);
 	void dumpServiceInfos (void);
 	void clearServiceInfos (bool is_atTuning);
 
@@ -240,7 +290,8 @@ private:
 		uint16_t _service_id
 	);
 	_EVENT_PF_INFO* findEmptyEventPfInfo (void);
-	bool checkEventPfInfos (CThreadMgrIf *pIf);
+//	bool checkEventPfInfos (CThreadMgrIf *pIf);
+	void checkEventPfInfos (void);
 	void refreshEventPfInfos (void);
 	void dumpEventPfInfos (void);
 	void clearEventPfInfo (_EVENT_PF_INFO *pInfo);

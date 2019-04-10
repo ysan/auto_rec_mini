@@ -289,12 +289,16 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_EVENT_PF_WAIT: {
 
-		if (checkEventPfInfos (pIf)) {
+//		if (checkEventPfInfos (pIf)) {
 #ifndef _DUMMY_TUNER
 // ローカルデバッグ中は消したくないので
-			refreshEventPfInfos ();
+//			refreshEventPfInfos ();
 #endif
-		}
+//		}
+
+		assignFollowEventToServiceInfos ();
+		checkFollowEventAtServiceInfos (pIf);
+
 
 		sectId = SECTID_CHECK_PAT;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -357,8 +361,10 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 			// ここにくるってことは選局したとゆうこと
 			clearServiceInfos (true);
 			cacheServiceInfos (true);
+
 			clearEventPfInfos();
 			cacheEventPfInfos();
+			checkEventPfInfos();
 		}
 
 		break;
@@ -368,6 +374,7 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 			_UTL_LOG_I ("notice new EIT p/f");
 			clearEventPfInfos();
 			cacheEventPfInfos ();
+			checkEventPfInfos();
 		}
 
 		break;
@@ -949,10 +956,8 @@ void CPsisiManager::dumpProgramInfos (void)
 
 void CPsisiManager::clearProgramInfos (void)
 {
-//TODO 適当クリア
 	for (int i = 0; i < PROGRAM_INFOS_MAX; ++ i) {
-		memset (&m_programInfos [i], 0x00, sizeof(_SERVICE_INFO));
-		m_programInfos [i].is_used = false;
+		m_programInfos [i].clear();
 	}
 }
 
@@ -1074,7 +1079,7 @@ _SERVICE_INFO* CPsisiManager::findEmptyServiceInfo (void)
 	return &m_serviceInfos [i];
 }
 
-bool CPsisiManager::isExistService (
+bool CPsisiManager::isExistServiceTable (
 	uint8_t _table_id,
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
@@ -1123,6 +1128,82 @@ bool CPsisiManager::isExistService (
 	return false;
 }
 
+void CPsisiManager::assignFollowEventToServiceInfos (void)
+{
+	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
+		if (m_serviceInfos [i].is_tune_target) {
+			if (!m_serviceInfos [i].eventFollowInfo.is_used) {
+
+				_EVENT_PF_INFO* p_info = findEventPfInfo (
+												TBLID_EIT_PF_A,
+												m_serviceInfos [i].transport_stream_id,
+												m_serviceInfos [i].original_network_id,
+												m_serviceInfos [i].service_id,
+												EN_EVENT_PF_STATE__FOLLOW
+											);
+				if (p_info) {
+_UTL_LOG_I ("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+p_info->dump();
+//					m_serviceInfos [i].eventFollowInfo = *p_info;
+					memcpy (&m_serviceInfos [i].eventFollowInfo, p_info, sizeof(_EVENT_PF_INFO));
+					m_serviceInfos [i].eventFollowInfo.start_time = p_info->start_time;
+					m_serviceInfos [i].eventFollowInfo.end_time = p_info->end_time;
+					m_serviceInfos [i].eventFollowInfo.is_used = true;
+					m_serviceInfos [i].last_update.setCurrentTime();
+_UTL_LOG_I ("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+m_serviceInfos [i].eventFollowInfo.dump();
+				}
+			}
+		}
+	}
+}
+
+void CPsisiManager::checkFollowEventAtServiceInfos (CThreadMgrIf *pIf)
+{
+	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
+		if (m_serviceInfos [i].is_tune_target) {
+			if (m_serviceInfos [i].eventFollowInfo.is_used) {
+
+				CEtime cur_time;
+
+				if (m_serviceInfos [i].eventFollowInfo.start_time <= cur_time) {
+					// 次のイベント開始時刻到来
+					// event changed
+
+					if (pIf) {
+						PSISI_NOTIFY_EVENT_INFO _info;
+						_info.table_id = m_serviceInfos [i].eventFollowInfo.table_id;
+						_info.transport_stream_id = m_serviceInfos [i].eventFollowInfo.transport_stream_id;
+						_info.original_network_id = m_serviceInfos [i].eventFollowInfo.original_network_id;
+						_info.service_id = m_serviceInfos [i].eventFollowInfo.service_id;
+						_info.event_id = m_serviceInfos [i].eventFollowInfo.event_id;
+
+						// fire notify
+						pIf->notify (NOTIFY_CAT__EVENT_CHANGE, (uint8_t*)&_info, sizeof(PSISI_NOTIFY_EVENT_INFO));
+					}
+
+					// 用済みなのでクリアします
+					m_serviceInfos [i].eventFollowInfo.clear();
+
+
+					CEtime t_tmp = m_serviceInfos [i].eventFollowInfo.start_time;
+					t_tmp.addSec(15);
+					// 次イベント開始から15秒以上経過していたら
+					// cacheEventPfInfos 実行する
+					if (t_tmp < cur_time) {
+						_UTL_LOG_E ("more than 30 seconds have passed since the start of the next event.");
+						clearEventPfInfos ();
+						cacheEventPfInfos ();
+						checkEventPfInfos ();
+					}
+
+				}
+
+			}
+		}
+	}
+}
+
 void CPsisiManager::dumpServiceInfos (void)
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
@@ -1139,14 +1220,10 @@ void CPsisiManager::clearServiceInfos (bool is_atTuning)
 {
 	for (int i = 0; i < SERVICE_INFOS_MAX; ++ i) {
 		if (is_atTuning) {
-			m_serviceInfos [i].is_tune_target = false;
+			m_serviceInfos [i].clear_atTuning();
 
 		} else {
-//TODO 適当クリア
-			// clear all
-			memset (&m_serviceInfos [i], 0x00, sizeof(_SERVICE_INFO));
-			m_serviceInfos [i].is_tune_target = false;
-			m_serviceInfos [i].is_used = false;
+			m_serviceInfos [i].clear();
 		}
 	}
 }
@@ -1312,7 +1389,7 @@ bool CPsisiManager::cacheEventPfInfos (
 		if (pInfo->event_id == 0) {
 			// event情報が付いてない
 			// cancel
-			clearEventPfInfo (pInfo);
+			pInfo->clear();
 			continue;
 		}
 
@@ -1347,6 +1424,7 @@ _EVENT_PF_INFO* CPsisiManager::findEmptyEventPfInfo (void)
 	return &m_eventPfInfos [i];
 }
 
+/*
 bool CPsisiManager::checkEventPfInfos (CThreadMgrIf *pIf)
 {
 	bool r = false;
@@ -1396,6 +1474,33 @@ bool CPsisiManager::checkEventPfInfos (CThreadMgrIf *pIf)
 
 	return r;
 }
+*/
+
+void CPsisiManager::checkEventPfInfos (void)
+{
+	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
+		if (m_eventPfInfos [i].is_used) {
+
+			CEtime cur_time;
+
+			if (m_eventPfInfos [i].start_time <= cur_time && m_eventPfInfos [i].end_time >= cur_time) {
+
+				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__PRESENT;
+
+			} else if (m_eventPfInfos [i].start_time > cur_time) {
+
+				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__FOLLOW;
+
+			} else if (m_eventPfInfos [i].end_time < cur_time) {
+
+				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__ALREADY_PASSED;
+
+			} else {
+				_UTL_LOG_E ("checkEventPfInfos ???");
+			}
+		}
+	}
+}
 
 void CPsisiManager::refreshEventPfInfos (void)
 {
@@ -1406,7 +1511,7 @@ void CPsisiManager::refreshEventPfInfos (void)
 //TODO parserがわで同等の処理しているはず
 //				mEIT_H.clear_pf (m_eventPfInfos [i].p_orgTable);
 
-				clearEventPfInfo (&m_eventPfInfos [i]);
+				m_eventPfInfos [i].clear();
 			}
 		}
 	}
@@ -1424,22 +1529,10 @@ void CPsisiManager::dumpEventPfInfos (void)
 	}
 }
 
-void CPsisiManager::clearEventPfInfo (_EVENT_PF_INFO *pInfo)
-{
-	if (!pInfo) {
-		return ;
-	}
-//TODO 適当クリア
-	// clear all
-	memset (pInfo, 0x00, sizeof(_EVENT_PF_INFO));
-	pInfo->state = EN_EVENT_PF_STATE__INIT;
-	pInfo->is_used = false;
-}
-
 void CPsisiManager::clearEventPfInfos (void)
 {
 	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
-		clearEventPfInfo (&m_eventPfInfos [i]);
+		m_eventPfInfos [i].clear();
 	}
 }
 
@@ -1458,7 +1551,7 @@ _EVENT_PF_INFO* CPsisiManager::findEventPfInfo (
 			continue;
 		}
 
-		if (m_eventPfInfos [i].state != EN_EVENT_PF_STATE__PRESENT) {
+		if (m_eventPfInfos [i].state != state) {
 			continue;
 		}
 
@@ -1473,7 +1566,7 @@ _EVENT_PF_INFO* CPsisiManager::findEventPfInfo (
 	}
 
 	if (i == EVENT_PF_INFOS_MAX) {
-		_UTL_LOG_W ("findEventPfInfo not found.");
+//		_UTL_LOG_W ("findEventPfInfo not found.");
 		return NULL;
 	}
 
