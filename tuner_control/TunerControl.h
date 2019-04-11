@@ -52,6 +52,8 @@ public:
 	void registerTsReceiveHandler (CThreadMgrIf *pIf);
 	void unregisterTsReceiveHandler (CThreadMgrIf *pIf);
 
+	void getState (CThreadMgrIf *pIf);
+
 
 
 	std::mutex* getMutexTsReceiveHandlers (void) {
@@ -65,6 +67,9 @@ public:
 private:
 	int registerTsReceiveHandler (CTunerControlIf::ITsReceiveHandler *pHandler);
 	void unregisterTsReceiveHandler (int id);
+	void setState (EN_TUNER_STATE s);
+
+
 
 	// it9175 ts callbacks
 	static bool onPreTsReceive (void *p_shared_data);
@@ -80,6 +85,7 @@ private:
 	std::mutex mMutexTsReceiveHandlers;
 	CTunerControlIf::ITsReceiveHandler *mpRegTsReceiveHandlers [TS_RECEIVE_HANDLER_REGISTER_NUM_MAX];
 
+	EN_TUNER_STATE mState;
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_TUNER_CONTROL_NUM]; // entity
 };

@@ -95,6 +95,30 @@ public:
 	EN_RESERVE_STATE state;
 	bool is_used;
 
+
+	void set (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id,
+		uint16_t _event_id,
+		CEtime* p_start_time,
+		CEtime* p_end_time,
+		char *psz_title_name
+	)
+	{
+		this->transport_stream_id = _transport_stream_id;
+		this->original_network_id = _original_network_id;
+		this->service_id = _service_id;
+		this->event_id = _event_id;
+		this->start_time = *p_start_time;
+		this->end_time = *p_end_time;
+		if (psz_title_name) {
+			strncpy (this->title_name, psz_title_name, strlen(psz_title_name));
+		}
+		this->state = EN_RESERVE_STATE__INIT;
+		this->is_used = true;
+	}
+
 	void clear (void) {
 //TODO 適当クリア
 		// clear all
@@ -135,6 +159,7 @@ public:
 	void moduleDown (CThreadMgrIf *pIf);
 	void checkLoop (CThreadMgrIf *pIf);
 	void startRecording (CThreadMgrIf *pIf);
+	void startCurrentEventRecording (CThreadMgrIf *pIf);
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
@@ -149,16 +174,8 @@ private:
 		CEtime* p_end_time,
 		char *psz_title_name
 	);
-	bool setReserve (
-		uint16_t _transport_stream_id,
-		uint16_t _original_network_id,
-		uint16_t _service_id,
-		uint16_t _event_id,
-		CEtime* p_start_time,
-		CEtime* p_end_time,
-		char *psz_title_name,
-		CRecReserve* p_reserve
-	);
+	CRecReserve* searchAscendingOrderReserve (CEtime *p_start_time_rf);
+	bool isExistEmptyReserve (void);
 	CRecReserve *findEmptyReserve (void);
 	bool isDuplicateReserve (CRecReserve* p_reserve);
 	bool isOverrapTimeReserve (CRecReserve* p_reserve);

@@ -23,17 +23,18 @@ enum {
 	EN_SEQ_TUNER_CONTROL_UNREG_TUNER_NOTIFY,
 	EN_SEQ_TUNER_CONTROL_REG_TS_RECEIVE_HANDLER,
 	EN_SEQ_TUNER_CONTROL_UNREG_TS_RECEIVE_HANDLER,
+	EN_SEQ_TUNER_CONTROL_GET_STATE,
 
 	EN_SEQ_TUNER_CONTROL_NUM,
 };
 
 typedef enum {
-	EN_TUNER_NOTIFY__TUNING_BEGIN = 0,
-	EN_TUNER_NOTIFY__TUNING_END_SUCCESS,
-	EN_TUNER_NOTIFY__TUNING_END_ERROR,
-	EN_TUNER_NOTIFY__TUNE_STOP,
+	EN_TUNER_STATE__TUNING_BEGIN = 0,		// closed -> open -> tune
+	EN_TUNER_STATE__TUNING_SUCCESS,			// tuning -> tuned
+	EN_TUNER_STATE__TUNING_ERROR_STOP,		// not tune, not close 
+	EN_TUNER_STATE__TUNE_STOP,				// closed
 
-} EN_TUNER_NOTIFY;
+} EN_TUNER_STATE;
 
 
 class CTunerControlIf : public CThreadMgrExternalIf
@@ -99,6 +100,10 @@ public:
 	bool reqUnregisterTsReceiveHandler (int client_id) {
 		int _id = client_id;
 		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_UNREG_TS_RECEIVE_HANDLER, (uint8_t*)&_id, sizeof(_id));
+	};
+
+	bool reqGetState (void) {
+		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_GET_STATE);
 	};
 
 };

@@ -35,8 +35,10 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	mSeqs [EN_SEQ_REC_MANAGER_MODULE_UP]   = {(PFN_SEQ_BASE)&CRecManager::moduleUp,   (char*)"moduleUp"};
 	mSeqs [EN_SEQ_REC_MANAGER_MODULE_DOWN] = {(PFN_SEQ_BASE)&CRecManager::moduleDown, (char*)"moduleDown"};
 	mSeqs [EN_SEQ_REC_MANAGER_CHECK_LOOP]  = {(PFN_SEQ_BASE)&CRecManager::checkLoop,  (char*)"checkLoop"};
-	mSeqs [EN_SEQ_REC_MANAGER_START_RECORDING] =
+	mSeqs [EN_SEQ_REC_MANAGER_START_REC] =
 		{(PFN_SEQ_BASE)&CRecManager::startRecording, (char*)"startRecording"};
+	mSeqs [EN_SEQ_REC_MANAGER_START_CURRENT_EVENT_REC] =
+		{(PFN_SEQ_BASE)&CRecManager::startCurrentEventRecording, (char*)"startCurrentEventRecording"};
 	setSeqs (mSeqs, EN_SEQ_REC_MANAGER_NUM);
 
 }
@@ -288,26 +290,50 @@ void CRecManager::startRecording (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CRecManager::startCurrentEventRecording (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+
+
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 {
 	if (pIf->getSrcInfo()->nClientId == m_tunerNotify_clientId) {
 
-		EN_TUNER_NOTIFY enNotify = *(EN_TUNER_NOTIFY*)(pIf->getSrcInfo()->msg.pMsg);
-		switch (enNotify) {
-		case EN_TUNER_NOTIFY__TUNING_BEGIN:
-			_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_BEGIN");
+		EN_TUNER_STATE enState = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
+		switch (enState) {
+		case EN_TUNER_STATE__TUNING_BEGIN:
+			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_BEGIN");
 			break;
 
-		case EN_TUNER_NOTIFY__TUNING_END_SUCCESS:
-			_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_END_SUCCESS");
+		case EN_TUNER_STATE__TUNING_SUCCESS:
+			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_SUCCESS");
 			break;
 
-		case EN_TUNER_NOTIFY__TUNING_END_ERROR:
-			_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_END_ERROR");
+		case EN_TUNER_STATE__TUNING_ERROR_STOP:
+			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP");
 			break;
 
-		case EN_TUNER_NOTIFY__TUNE_STOP:
-			_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNE_STOP");
+		case EN_TUNER_STATE__TUNE_STOP:
+			_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP");
 			break;
 
 		default:
@@ -358,51 +384,103 @@ bool CRecManager::setReserve (
 		return false;
 	}
 
-	CRecReserve* p_reserve = findEmptyReserve();
-	if (!p_reserve) {
+
+	CRecReserve tmp;
+	tmp.set (
+		_transport_stream_id,
+		_original_network_id,
+		_service_id,
+		_event_id,
+		p_start_time,
+		p_end_time,
+		psz_title_name
+	);
+
+
+	if (!isExistEmptyReserve ()) {
+		_UTL_LOG_E ("reserve full.");
 		return false;
 	}
 
-	bool r = setReserve (
-					_transport_stream_id,
-					_original_network_id,
-					_service_id,
-					_event_id,
-					p_start_time,
-					p_end_time,
-					psz_title_name,
-					p_reserve
-				);
+	if (isDuplicateReserve (&tmp)) {
+		_UTL_LOG_E ("reserve is duplicate.");
+		return false;
+	}
 
-	return r;
+	if (isOverrapTimeReserve (&tmp)) {
+		_UTL_LOG_E ("reserve time is Overrap.");
+		return false;
+	}
+
+
+	CRecReserve* p_reserve = searchAscendingOrderReserve (p_start_time);
+	if (!p_reserve) {
+		_UTL_LOG_E ("reserve full.");
+		return false;
+	}
+
+	p_reserve->set (
+				_transport_stream_id,
+				_original_network_id,
+				_service_id,
+				_event_id,
+				p_start_time,
+				p_end_time,
+				psz_title_name
+			);
+
+	return true;
 }
 
-bool CRecManager::setReserve (
-	uint16_t _transport_stream_id,
-	uint16_t _original_network_id,
-	uint16_t _service_id,
-	uint16_t _event_id,
-	CEtime* p_start_time,
-	CEtime* p_end_time,
-	char *psz_title_name,
-	CRecReserve* p_reserve
-)
+/**
+ * 開始時間を基準に降順で空きをさがします
+ */
+CRecReserve* CRecManager::searchAscendingOrderReserve (CEtime *p_start_time_ref)
 {
-	if (!p_reserve) {
-		return false;
+	if (!p_start_time_ref) {
+		return NULL;
 	}
 
-	p_reserve->transport_stream_id = _transport_stream_id;
-	p_reserve->original_network_id = _original_network_id;
-	p_reserve->service_id = _service_id;
-	p_reserve->event_id = _event_id;
-	p_reserve->start_time = *p_start_time;
-	p_reserve->end_time = *p_end_time;
-	if (psz_title_name) {
-		strncpy (p_reserve->title_name, psz_title_name, strlen(psz_title_name));
+
+	int i = 0;
+	for (i = 0; i < RESERVE_NUM_MAX; ++ i) {
+
+		// 基準時間より後ろの時間を探します
+		if (m_reserves [i].start_time > *p_start_time_ref) {
+
+			// 後ろから見てずらします
+			for (int j = RESERVE_NUM_MAX; j > i; -- j) {
+				m_reserves [j] = m_reserves [j-1] ;
+			}
+
+			break;
+		}
 	}
-	p_reserve->state = EN_RESERVE_STATE__INIT;
-	p_reserve->is_used = true;
+
+	if (i == RESERVE_NUM_MAX) {
+		// 見つからなかったので最後尾にします
+		return findEmptyReserve ();
+
+	} else {
+
+		m_reserves [i].clear ();
+		return &m_reserves [i];
+	}
+}
+
+bool CRecManager::isExistEmptyReserve (void)
+{
+	int i = 0;
+	for (i = 0; i < RESERVE_NUM_MAX; ++ i) {
+		if (!m_reserves [i].is_used) {
+			break;
+		}
+	}
+
+	if (i == RESERVE_NUM_MAX) {
+		_UTL_LOG_W ("m_reserves full.");
+		return false;
+	}
 
 	return true;
 }

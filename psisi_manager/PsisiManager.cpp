@@ -851,10 +851,10 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 		return ;
 	}
 
-	EN_TUNER_NOTIFY enNotify = *(EN_TUNER_NOTIFY*)(pIf->getSrcInfo()->msg.pMsg);
-	switch (enNotify) {
-	case EN_TUNER_NOTIFY__TUNING_BEGIN:
-		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_BEGIN");
+	EN_TUNER_STATE enState = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
+	switch (enState) {
+	case EN_TUNER_STATE__TUNING_BEGIN:
+		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_BEGIN");
 
 		m_tunerIsTuned = false;
 
@@ -869,8 +869,8 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		break;
 
-	case EN_TUNER_NOTIFY__TUNING_END_SUCCESS: {
-		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_END_SUCCESS");
+	case EN_TUNER_STATE__TUNING_SUCCESS: {
+		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_SUCCESS");
 
 		m_tunerIsTuned = true;
 
@@ -887,15 +887,15 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		} break;
 
-	case EN_TUNER_NOTIFY__TUNING_END_ERROR:
-		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNING_END_ERROR");
+	case EN_TUNER_STATE__TUNING_ERROR_STOP:
+		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP");
 
 		m_tunerIsTuned = false;
 
 		break;
 
-	case EN_TUNER_NOTIFY__TUNE_STOP:
-		_UTL_LOG_I ("EN_TUNER_NOTIFY__TUNE_STOP");
+	case EN_TUNER_STATE__TUNE_STOP:
+		_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP");
 
 		m_tunerIsTuned = false;
 

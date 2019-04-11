@@ -13,6 +13,7 @@
 CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,mFreq (0)
+	,mState (EN_TUNER_STATE__TUNING_BEGIN)
 {
 	mSeqs [EN_SEQ_TUNER_CONTROL_MODULE_UP]   = {(PFN_SEQ_BASE)&CTunerControl::moduleUp,   (char*)"moduleUp"};
 	mSeqs [EN_SEQ_TUNER_CONTROL_MODULE_DOWN] = {(PFN_SEQ_BASE)&CTunerControl::moduleDown, (char*)"moduleDown"};
@@ -27,6 +28,8 @@ CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CTunerControl::registerTsReceiveHandler, (char*)"registerTsReceiveHandler"};
 	mSeqs [EN_SEQ_TUNER_CONTROL_UNREG_TS_RECEIVE_HANDLER] = 
 		{(PFN_SEQ_BASE)&CTunerControl::unregisterTsReceiveHandler, (char*)"unregisterTsReceiveHandler"};
+	mSeqs [EN_SEQ_TUNER_CONTROL_GET_STATE] = 
+		{(PFN_SEQ_BASE)&CTunerControl::getState, (char*)"getState"};
 	setSeqs (mSeqs, EN_SEQ_TUNER_CONTROL_NUM);
 
 
@@ -234,8 +237,9 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		pIf->lock();
 
 		// fire notify
-		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNING_BEGIN;
-		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_NOTIFY));
+		EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNING_BEGIN;
+		setState (EN_TUNER_STATE__TUNING_BEGIN);
+		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
 		s_freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
 
@@ -290,8 +294,9 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		pIf->unlock();
 
 		// fire notify
-		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNING_END_SUCCESS;
-		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_NOTIFY));
+		EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNING_SUCCESS;
+		setState (EN_TUNER_STATE__TUNING_SUCCESS);
+		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
 		mFreq = s_freq;
 		chkcnt = 0;
@@ -306,8 +311,9 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		pIf->unlock();
 
 		// fire notify
-		EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNING_END_ERROR;
-		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_NOTIFY));
+		EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNING_ERROR_STOP;
+		setState (EN_TUNER_STATE__TUNING_ERROR_STOP);
+		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
 		chkcnt = 0;
 		sectId = THM_SECT_ID_INIT;
@@ -366,8 +372,9 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 	chkcnt = 0;
 
 	// fire notify
-	EN_TUNER_NOTIFY enNotify = EN_TUNER_NOTIFY__TUNE_STOP;
-	pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_NOTIFY));
+	EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNE_STOP;
+	setState (EN_TUNER_STATE__TUNE_STOP);
+	pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
@@ -493,6 +500,28 @@ void CTunerControl::unregisterTsReceiveHandler (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CTunerControl::getState (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	// reply msgに乗せます
+	pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&mState, sizeof(mState));
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 int CTunerControl::registerTsReceiveHandler (CTunerControlIf::ITsReceiveHandler *pHandler)
 {
 	if (!pHandler) {
@@ -528,6 +557,12 @@ void CTunerControl::unregisterTsReceiveHandler (int id)
 
 	mpRegTsReceiveHandlers [id] = NULL;
 }
+
+void CTunerControl::setState (EN_TUNER_STATE s)
+{
+	mState = s;
+}
+
 
 
 //////////  it9175 ts callbacks  //////////
