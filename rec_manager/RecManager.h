@@ -159,9 +159,11 @@ public:
 	void moduleDown (CThreadMgrIf *pIf);
 	void checkLoop (CThreadMgrIf *pIf);
 	void startRecording (CThreadMgrIf *pIf);
-	void startCurrentEventRecording (CThreadMgrIf *pIf);
+	void setReserveCurrentEvent (CThreadMgrIf *pIf);
+	void setReserveManual (CThreadMgrIf *pIf);
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
+
 
 private:
 	bool setReserve (PSISI_EVENT_INFO *p_info);
@@ -194,6 +196,7 @@ private:
 
 	uint8_t m_tunerNotify_clientId;
 	int m_tsReceive_handlerId;
+	uint8_t m_patDetectNotify_clientId;
 	uint8_t m_eventChangeNotify_clientId;
 
 	EN_REC_STATE m_recState;

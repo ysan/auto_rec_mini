@@ -106,6 +106,10 @@ public:
 		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_GET_STATE);
 	};
 
+	bool reqGetStateSync (void) {
+		return requestSync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_GET_STATE);
+	};
+
 };
 
 #endif

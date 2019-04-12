@@ -2710,6 +2710,7 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 	/*
 	 * main loop側でセクション終わりにクリアしているけど先にここでもクリアします
 	 * セクション内で複数回requestSyncした場合などに対応
+//TODO なぜなのか思い出したい
 	 */
 	clearSyncReplyInfo (&gstSyncReplyInfo [stContext.nThreadIdx]);
 
@@ -3763,7 +3764,10 @@ static void clearSyncReplyInfo (ST_SYNC_REPLY_INFO *p)
 
 	p->nReqId = REQUEST_ID_BLANK;
 	p->enRslt = EN_THM_RSLT_IGNORE;
-	memset (p->msg.msg, 0x00, MSG_SIZE);
+//TODO 暫定回避
+// 受け渡し先がポインタなため 同期待受の最後で
+// これを呼ぶところでmsgが消えてしまう
+//	memset (p->msg.msg, 0x00, MSG_SIZE);
 	p->msg.size = 0;
 	p->msg.isUsed = false;
 	p->isReplyAlready = false;

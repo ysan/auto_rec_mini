@@ -43,13 +43,13 @@ static void tune (int argc, char* argv[], CThreadMgrBase *pBase)
 static void ch_tune (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_UTL_LOG_E ("invalid arguments. (usage: ct {physical channel} )");
+		_UTL_LOG_E ("invalid arguments. (usage: ch {physical channel} )");
 		return;
 	}
 
 	std::regex regex("[0-9]+");
 	if (!std::regex_match (argv[0], regex)) {
-		_UTL_LOG_E ("invalid arguments. (usage: ct {physical channel} )");
+		_UTL_LOG_E ("invalid arguments. (usage: ch {physical channel} )");
 		return;
 	}
 
@@ -99,6 +99,41 @@ static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
 		_UTL_LOG_W ("ignore arguments.\n");
 	}
 
+	CTunerControlIf ctl(pBase->getExternalIf());
+	ctl.reqGetStateSync ();
+
+	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+	if (enRslt == EN_THM_RSLT_SUCCESS) {
+		_UTL_LOG_I ("get state success");
+	} else {
+		_UTL_LOG_I ("get state error");
+	}
+
+	EN_TUNER_STATE state = *(EN_TUNER_STATE*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+	switch (state) {
+	case EN_TUNER_STATE__TUNING_BEGIN:
+		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_BEGIN");
+		break;
+	case EN_TUNER_STATE__TUNING_SUCCESS:
+		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_SUCCESS");
+		break;
+	case EN_TUNER_STATE__TUNING_ERROR_STOP:
+		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP");
+		break;
+	case EN_TUNER_STATE__TUNE_STOP:
+		_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP");
+		break;
+	default:
+		break;
+	}
+}
+
+static void getState_it9175 (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_UTL_LOG_W ("ignore arguments.\n");
+	}
+
 	EN_IT9175_STATE state = it9175_get_state();
 	switch (state) {
 	case EN_IT9175_STATE__CLOSED:
@@ -141,9 +176,15 @@ ST_COMMAND_INFO g_tunerControlCommands [] = { // extern
 		NULL,
 	},
 	{
-		"stat",
-		"get tuner state (it9175 state)",
+		"s",
+		"get tuner state",
 		getState,
+		NULL,
+	},
+	{
+		"ss",
+		"get tuner state (it9175 state)",
+		getState_it9175,
 		NULL,
 	},
 	//-- term --//

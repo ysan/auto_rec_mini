@@ -12,4 +12,4 @@ command serverのstack テンプレートクラス化
 eit scheduleはsectionのリスト管理しないで 派生クラスでテーブル管理する
     p/f はsectionリスト管理して重複はチェックする
     -->バッファサイズとfifo数はそんなに必要ないはず
-version_numberのチェックはpsisiManagerでやるか考える
+notify clientのdump threadmgr

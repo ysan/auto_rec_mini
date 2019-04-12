@@ -29,6 +29,7 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,m_tunerNotify_clientId (0xff)
 	,m_tsReceive_handlerId (-1)
+	,m_patDetectNotify_clientId (0xff)
 	,m_eventChangeNotify_clientId (0xff)
 	,m_recState (EN_REC_STATE__INIT)
 {
@@ -37,8 +38,10 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	mSeqs [EN_SEQ_REC_MANAGER_CHECK_LOOP]  = {(PFN_SEQ_BASE)&CRecManager::checkLoop,  (char*)"checkLoop"};
 	mSeqs [EN_SEQ_REC_MANAGER_START_REC] =
 		{(PFN_SEQ_BASE)&CRecManager::startRecording, (char*)"startRecording"};
-	mSeqs [EN_SEQ_REC_MANAGER_START_CURRENT_EVENT_REC] =
-		{(PFN_SEQ_BASE)&CRecManager::startCurrentEventRecording, (char*)"startCurrentEventRecording"};
+	mSeqs [EN_SEQ_REC_MANAGER_SET_RESERVE_CURRENT_EVENT] =
+		{(PFN_SEQ_BASE)&CRecManager::setReserveCurrentEvent, (char*)"setReserveCurrentEvent"};
+	mSeqs [EN_SEQ_REC_MANAGER_SET_RESERVE_MANUAL] =
+		{(PFN_SEQ_BASE)&CRecManager::setReserveManual, (char*)"setReserveManual"};
 	setSeqs (mSeqs, EN_SEQ_REC_MANAGER_NUM);
 
 }
@@ -59,6 +62,8 @@ void CRecManager::moduleUp (CThreadMgrIf *pIf)
 		SECTID_REQ_REG_HANDLER,
 		SECTID_WAIT_REG_HANDLER,
 		SECTID_REQ_REG_EVENT_CHANGE_NOTIFY,
+		SECTID_REQ_REG_PAT_DETECT_NOTIFY,
+		SECTID_WAIT_REG_PAT_DETECT_NOTIFY,
 		SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY,
 		SECTID_REQ_CHECK_LOOP,
 		SECTID_WAIT_CHECK_LOOP,
@@ -116,11 +121,34 @@ void CRecManager::moduleUp (CThreadMgrIf *pIf)
 		enRslt = pIf->getSrcInfo()->enRslt;
         if (enRslt == EN_THM_RSLT_SUCCESS) {
 			m_tsReceive_handlerId = *(int*)(pIf->getSrcInfo()->msg.pMsg);
-			sectId = SECTID_REQ_REG_EVENT_CHANGE_NOTIFY;
+			sectId = SECTID_REQ_REG_PAT_DETECT_NOTIFY;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
 			_UTL_LOG_E ("reqRegisterTsReceiveHandler is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_REQ_REG_PAT_DETECT_NOTIFY: {
+		CPsisiManagerIf _if (getExternalIf());
+		_if.reqRegisterPatDetectNotify ();
+
+		sectId = SECTID_WAIT_REG_PAT_DETECT_NOTIFY;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_REG_PAT_DETECT_NOTIFY:
+		enRslt = pIf->getSrcInfo()->enRslt;
+        if (enRslt == EN_THM_RSLT_SUCCESS) {
+			m_patDetectNotify_clientId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+			sectId = SECTID_REQ_REG_EVENT_CHANGE_NOTIFY;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("reqRegisterPatDetectNotify is failure.");
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -290,7 +318,110 @@ void CRecManager::startRecording (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::startCurrentEventRecording (CThreadMgrIf *pIf)
+void CRecManager::setReserveCurrentEvent (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_GET_TUNER_STATE,
+		SECTID_WAIT_GET_TUNER_STATE,
+		SECTID_REQ_GET_PAT_DETECT_STATE,
+		SECTID_WAIT_GET_PAT_DETECT_STATE,
+		SECTID_END_SUCCESS,
+		SECTID_END_ERROR,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+		sectId = SECTID_REQ_GET_TUNER_STATE;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_GET_TUNER_STATE: {
+		CTunerControlIf _if (getExternalIf());
+		_if.reqGetState ();
+
+		sectId = SECTID_WAIT_GET_TUNER_STATE;
+		enAct = EN_THM_ACT_WAIT;
+
+		} break;
+
+	case SECTID_WAIT_GET_TUNER_STATE: {
+		enRslt = pIf->getSrcInfo()->enRslt;
+        if (enRslt == EN_THM_RSLT_SUCCESS) {
+			EN_TUNER_STATE _state = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
+			if (_state == EN_TUNER_STATE__TUNING_SUCCESS) {
+				sectId = SECTID_REQ_GET_PAT_DETECT_STATE;
+				enAct = EN_THM_ACT_CONTINUE;
+			} else {
+				_UTL_LOG_E ("not EN_TUNER_STATE__TUNING_SUCCESS %d", _state);
+				sectId = SECTID_END_ERROR;
+//DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+sectId = SECTID_REQ_GET_PAT_DETECT_STATE;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
+
+		} else {
+			// only success
+		}
+
+		} break;
+
+	case SECTID_REQ_GET_PAT_DETECT_STATE: {
+		CPsisiManagerIf _if (getExternalIf());
+		_if.reqGetPatDetectState ();
+
+		sectId = SECTID_WAIT_GET_PAT_DETECT_STATE;
+		enAct = EN_THM_ACT_WAIT;
+
+		} break;
+
+	case SECTID_WAIT_GET_PAT_DETECT_STATE: {
+		enRslt = pIf->getSrcInfo()->enRslt;
+        if (enRslt == EN_THM_RSLT_SUCCESS) {
+			EN_PAT_DETECT_STATE _state = *(EN_PAT_DETECT_STATE*)(pIf->getSrcInfo()->msg.pMsg);
+			if (_state == EN_PAT_DETECT_STATE__DETECTED) {
+				sectId = SECTID_END_SUCCESS;
+				enAct = EN_THM_ACT_CONTINUE;
+			} else {
+				_UTL_LOG_E ("not EN_PAT_DETECT_STATE__DETECTED %d", _state);
+				sectId = SECTID_END_ERROR;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
+
+		} else {
+			// only success
+		}
+
+		} break;
+
+	case SECTID_END_SUCCESS:
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	case SECTID_END_ERROR:
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+	pIf->setSectId (sectId, enAct);
+}
+
+void CRecManager::setReserveManual (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -338,6 +469,18 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		default:
 			break;
+		}
+
+
+	} else if (pIf->getSrcInfo()->nClientId == m_patDetectNotify_clientId) {
+		EN_PAT_DETECT_STATE _state = *(EN_PAT_DETECT_STATE*)(pIf->getSrcInfo()->msg.pMsg);
+		_UTL_LOG_I ("!!! event chenged !!!");
+		if (_state == EN_PAT_DETECT_STATE__DETECTED) {
+			_UTL_LOG_I ("EN_PAT_DETECT_STATE__DETECTED");
+
+		} else if (_state == EN_PAT_DETECT_STATE__NOT_DETECTED) {
+			_UTL_LOG_E ("EN_PAT_DETECT_STATE__NOT_DETECTED");
+
 		}
 
 

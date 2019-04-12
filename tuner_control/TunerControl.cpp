@@ -13,7 +13,7 @@
 CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,mFreq (0)
-	,mState (EN_TUNER_STATE__TUNING_BEGIN)
+	,mState (EN_TUNER_STATE__TUNE_STOP)
 {
 	mSeqs [EN_SEQ_TUNER_CONTROL_MODULE_UP]   = {(PFN_SEQ_BASE)&CTunerControl::moduleUp,   (char*)"moduleUp"};
 	mSeqs [EN_SEQ_TUNER_CONTROL_MODULE_DOWN] = {(PFN_SEQ_BASE)&CTunerControl::moduleDown, (char*)"moduleDown"};
@@ -236,9 +236,10 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		// lock
 		pIf->lock();
 
+		setState (EN_TUNER_STATE__TUNING_BEGIN);
+
 		// fire notify
 		EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNING_BEGIN;
-		setState (EN_TUNER_STATE__TUNING_BEGIN);
 		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
 		s_freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
@@ -293,9 +294,10 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		// unlock
 		pIf->unlock();
 
+		setState (EN_TUNER_STATE__TUNING_SUCCESS);
+
 		// fire notify
 		EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNING_SUCCESS;
-		setState (EN_TUNER_STATE__TUNING_SUCCESS);
 		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
 		mFreq = s_freq;
@@ -310,9 +312,10 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		// unlock
 		pIf->unlock();
 
+		setState (EN_TUNER_STATE__TUNING_ERROR_STOP);
+
 		// fire notify
 		EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNING_ERROR_STOP;
-		setState (EN_TUNER_STATE__TUNING_ERROR_STOP);
 		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
 		chkcnt = 0;
@@ -371,9 +374,10 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 
 	chkcnt = 0;
 
+	setState (EN_TUNER_STATE__TUNE_STOP);
+
 	// fire notify
 	EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNE_STOP;
-	setState (EN_TUNER_STATE__TUNE_STOP);
 	pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
 	sectId = THM_SECT_ID_INIT;
@@ -514,7 +518,7 @@ void CTunerControl::getState (CThreadMgrIf *pIf)
 
 
 	// reply msgに乗せます
-	pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&mState, sizeof(mState));
+	bool r = pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&mState, sizeof(mState));
 
 
 	sectId = THM_SECT_ID_INIT;

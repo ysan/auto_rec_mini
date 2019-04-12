@@ -47,6 +47,7 @@ TARGET_TYPE	:=	SHARED
 #
 SRCS_CPP	:= \
 	RecManager.cpp \
+	RecManagerCommands.cpp \
 
 
 #

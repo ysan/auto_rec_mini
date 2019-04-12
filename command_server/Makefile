@@ -11,6 +11,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/common \
 	-I$(BASEDIR)/tuner_control \
 	-I$(BASEDIR)/psisi_manager \
+	-I$(BASEDIR)/rec_manager \
 	-I./ \
 	-I../ \
 
