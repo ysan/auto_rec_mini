@@ -1195,20 +1195,20 @@ void CPsisiManager::checkFollowEventAtServiceInfos (CThreadMgrIf *pIf)
 						pIf->notify (NOTIFY_CAT__EVENT_CHANGE, (uint8_t*)&_info, sizeof(PSISI_NOTIFY_EVENT_INFO));
 					}
 
-					// 用済みなのでクリアします
-					m_serviceInfos [i].eventFollowInfo.clear();
-
 
 					CEtime t_tmp = m_serviceInfos [i].eventFollowInfo.start_time;
 					t_tmp.addSec(15);
 					// 次イベント開始から15秒以上経過していたら
 					// cacheEventPfInfos 実行する
 					if (t_tmp < cur_time) {
-						_UTL_LOG_E ("more than 30 seconds have passed since the start of the next event.");
+						_UTL_LOG_E ("more than 15 seconds have passed since the start of the next event.");
 						clearEventPfInfos ();
 						cacheEventPfInfos ();
 						checkEventPfInfos ();
 					}
+
+					// 用済みなのでクリアします
+					m_serviceInfos [i].eventFollowInfo.clear();
 
 				}
 
