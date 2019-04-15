@@ -53,6 +53,8 @@ public:
 
 	char * toString (void);
 
+	void clear (void);
+
 private:
 	void getString (char *pszOut, size_t nSize);
 

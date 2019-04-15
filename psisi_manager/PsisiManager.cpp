@@ -62,10 +62,21 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	mNIT_ref =  mNIT.reference();
 	mSDT_ref = mSDT.reference();
 
+
+	m_patRecvTime.clear();
+
+	clearProgramInfos ();
+	clearServiceInfos ();
+	clearEventPfInfos ();
 }
 
 CPsisiManager::~CPsisiManager (void)
 {
+	m_patRecvTime.clear();
+
+	clearProgramInfos ();
+	clearServiceInfos ();
+	clearEventPfInfos ();
 }
 
 
@@ -247,6 +258,7 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 			// PAT途絶チェック
 			// 最後にPATを受けとった時刻から再び受け取るまで5秒以上経過していたら異常	
 			CEtime tcur;
+			tcur.setCurrentTime();
 			CEtime ttmp = m_patRecvTime;
 			ttmp.addSec (5); 
 			if (tcur > ttmp) {
@@ -1165,6 +1177,7 @@ void CPsisiManager::checkFollowEventAtServiceInfos (CThreadMgrIf *pIf)
 			if (m_serviceInfos [i].eventFollowInfo.is_used) {
 
 				CEtime cur_time;
+				cur_time.setCurrentTime();
 
 				if (m_serviceInfos [i].eventFollowInfo.start_time <= cur_time) {
 					// 次のイベント開始時刻到来
@@ -1214,6 +1227,11 @@ void CPsisiManager::dumpServiceInfos (void)
 			m_serviceInfos [i].dump();
 		}
 	}
+}
+
+void CPsisiManager::clearServiceInfos (void)
+{
+	clearServiceInfos (false);
 }
 
 void CPsisiManager::clearServiceInfos (bool is_atTuning)
@@ -1433,6 +1451,7 @@ bool CPsisiManager::checkEventPfInfos (CThreadMgrIf *pIf)
 		if (m_eventPfInfos [i].is_used) {
 
 			CEtime cur_time;
+			cur_time.setCurrentTime();
 
 			if (m_eventPfInfos [i].start_time <= cur_time && m_eventPfInfos [i].end_time >= cur_time) {
 
@@ -1482,6 +1501,7 @@ void CPsisiManager::checkEventPfInfos (void)
 		if (m_eventPfInfos [i].is_used) {
 
 			CEtime cur_time;
+			cur_time.setCurrentTime();
 
 			if (m_eventPfInfos [i].start_time <= cur_time && m_eventPfInfos [i].end_time >= cur_time) {
 

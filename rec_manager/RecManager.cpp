@@ -33,25 +33,30 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	,m_eventChangeNotify_clientId (0xff)
 	,m_recState (EN_REC_STATE__INIT)
 {
-	mSeqs [EN_SEQ_REC_MANAGER_MODULE_UP]   = {(PFN_SEQ_BASE)&CRecManager::moduleUp,   (char*)"moduleUp"};
-	mSeqs [EN_SEQ_REC_MANAGER_MODULE_DOWN] = {(PFN_SEQ_BASE)&CRecManager::moduleDown, (char*)"moduleDown"};
-	mSeqs [EN_SEQ_REC_MANAGER_CHECK_LOOP]  = {(PFN_SEQ_BASE)&CRecManager::checkLoop,  (char*)"checkLoop"};
-	mSeqs [EN_SEQ_REC_MANAGER_START_REC] =
-		{(PFN_SEQ_BASE)&CRecManager::startRecording, (char*)"startRecording"};
+	mSeqs [EN_SEQ_REC_MANAGER_MODULE_UP]   = {(PFN_SEQ_BASE)&CRecManager::onModuleUp,   (char*)"onModuleUp"};
+	mSeqs [EN_SEQ_REC_MANAGER_MODULE_DOWN] = {(PFN_SEQ_BASE)&CRecManager::onModuleDown, (char*)"onModuleDown"};
+	mSeqs [EN_SEQ_REC_MANAGER_CHECK_LOOP]  = {(PFN_SEQ_BASE)&CRecManager::onCheckLoop,  (char*)"onCheckLoop"};
+	mSeqs [EN_SEQ_REC_MANAGER_START_RECORDING] =
+		{(PFN_SEQ_BASE)&CRecManager::onStartRecording, (char*)"onStartRecording"};
 	mSeqs [EN_SEQ_REC_MANAGER_SET_RESERVE_CURRENT_EVENT] =
-		{(PFN_SEQ_BASE)&CRecManager::setReserveCurrentEvent, (char*)"setReserveCurrentEvent"};
+		{(PFN_SEQ_BASE)&CRecManager::onSetReserve_currentEvent, (char*)"onSetReserve_currentEvent"};
 	mSeqs [EN_SEQ_REC_MANAGER_SET_RESERVE_MANUAL] =
-		{(PFN_SEQ_BASE)&CRecManager::setReserveManual, (char*)"setReserveManual"};
+		{(PFN_SEQ_BASE)&CRecManager::onSetReserve_manual, (char*)"onSetReserve_manual"};
+	mSeqs [EN_SEQ_REC_MANAGER_DUMP_RESERVES] =
+		{(PFN_SEQ_BASE)&CRecManager::onDumpReserves, (char*)"onDumpReserves"};
 	setSeqs (mSeqs, EN_SEQ_REC_MANAGER_NUM);
 
+
+	clearReserves ();
 }
 
 CRecManager::~CRecManager (void)
 {
+	clearReserves ();
 }
 
 
-void CRecManager::moduleUp (CThreadMgrIf *pIf)
+void CRecManager::onModuleUp (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -61,9 +66,9 @@ void CRecManager::moduleUp (CThreadMgrIf *pIf)
 		SECTID_WAIT_REG_TUNER_NOTIFY,
 		SECTID_REQ_REG_HANDLER,
 		SECTID_WAIT_REG_HANDLER,
-		SECTID_REQ_REG_EVENT_CHANGE_NOTIFY,
 		SECTID_REQ_REG_PAT_DETECT_NOTIFY,
 		SECTID_WAIT_REG_PAT_DETECT_NOTIFY,
+		SECTID_REQ_REG_EVENT_CHANGE_NOTIFY,
 		SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY,
 		SECTID_REQ_CHECK_LOOP,
 		SECTID_WAIT_CHECK_LOOP,
@@ -217,7 +222,7 @@ void CRecManager::moduleUp (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::moduleDown (CThreadMgrIf *pIf)
+void CRecManager::onModuleDown (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -240,7 +245,7 @@ void CRecManager::moduleDown (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::checkLoop (CThreadMgrIf *pIf)
+void CRecManager::onCheckLoop (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -248,11 +253,16 @@ void CRecManager::checkLoop (CThreadMgrIf *pIf)
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_CHECK_RESERVE,
 		SECTID_CHECK_RESERVE_WAIT,
+		SECTID_REQ_START_RECORDING,
+		SECTID_WAIT_START_RECORDING,
 		SECTID_END,
 	};
 
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+
 
 	switch (sectId) {
 	case SECTID_ENTRY:
@@ -274,9 +284,30 @@ void CRecManager::checkLoop (CThreadMgrIf *pIf)
 	case SECTID_CHECK_RESERVE_WAIT:
 
 		// reserve check
+		checkReserves ();
+		refreshReserves ();
 
+		if (pickReqStartRecordingReserve ()) {
 
+			// request start recording
+			requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_START_RECORDING);
+			sectId = SECTID_WAIT_START_RECORDING;
+			enAct = EN_THM_ACT_WAIT;
 
+		} else {
+			sectId = SECTID_CHECK_RESERVE;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		break;
+
+	case SECTID_WAIT_START_RECORDING:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+
+		} else {
+
+		}
 
 		sectId = SECTID_CHECK_RESERVE;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -294,7 +325,7 @@ void CRecManager::checkLoop (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::startRecording (CThreadMgrIf *pIf)
+void CRecManager::onStartRecording (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -318,7 +349,7 @@ void CRecManager::startRecording (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::setReserveCurrentEvent (CThreadMgrIf *pIf)
+void CRecManager::onSetReserve_currentEvent (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -328,6 +359,10 @@ void CRecManager::setReserveCurrentEvent (CThreadMgrIf *pIf)
 		SECTID_WAIT_GET_TUNER_STATE,
 		SECTID_REQ_GET_PAT_DETECT_STATE,
 		SECTID_WAIT_GET_PAT_DETECT_STATE,
+		SECTID_REQ_GET_SERVICE_INFOS,
+		SECTID_WAIT_GET_SERVICE_INFOS,
+		SECTID_REQ_GET_PRESENT_EVENT_INFO,
+		SECTID_WAIT_GET_PRESENT_EVENT_INFO,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
 	};
@@ -362,14 +397,16 @@ void CRecManager::setReserveCurrentEvent (CThreadMgrIf *pIf)
 				enAct = EN_THM_ACT_CONTINUE;
 			} else {
 				_UTL_LOG_E ("not EN_TUNER_STATE__TUNING_SUCCESS %d", _state);
+#ifdef _DUMMY_TUNER
+				sectId = SECTID_REQ_GET_PAT_DETECT_STATE;
+#else
 				sectId = SECTID_END_ERROR;
-//DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-sectId = SECTID_REQ_GET_PAT_DETECT_STATE;
+#endif
 				enAct = EN_THM_ACT_CONTINUE;
 			}
 
 		} else {
-			// only success
+			// success only
 		}
 
 		} break;
@@ -388,19 +425,88 @@ sectId = SECTID_REQ_GET_PAT_DETECT_STATE;
         if (enRslt == EN_THM_RSLT_SUCCESS) {
 			EN_PAT_DETECT_STATE _state = *(EN_PAT_DETECT_STATE*)(pIf->getSrcInfo()->msg.pMsg);
 			if (_state == EN_PAT_DETECT_STATE__DETECTED) {
-				sectId = SECTID_END_SUCCESS;
+				sectId = SECTID_REQ_GET_SERVICE_INFOS;
 				enAct = EN_THM_ACT_CONTINUE;
 			} else {
 				_UTL_LOG_E ("not EN_PAT_DETECT_STATE__DETECTED %d", _state);
+#ifdef _DUMMY_TUNER
+				sectId = SECTID_REQ_GET_SERVICE_INFOS;
+#else
+				sectId = SECTID_END_ERROR;
+#endif
+				enAct = EN_THM_ACT_CONTINUE;
+			}
+
+		} else {
+			// success only
+		}
+
+		} break;
+
+	case SECTID_REQ_GET_SERVICE_INFOS: {
+		CPsisiManagerIf _if (getExternalIf());
+		_if.reqGetCurrentServiceInfos (m_serviceInfos, 10);
+
+		sectId = SECTID_WAIT_GET_SERVICE_INFOS;
+		enAct = EN_THM_ACT_WAIT;
+
+		} break;
+
+	case SECTID_WAIT_GET_SERVICE_INFOS:
+		enRslt = pIf->getSrcInfo()->enRslt;
+        if (enRslt == EN_THM_RSLT_SUCCESS) {
+			int num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+			if (num > 0) {
+m_serviceInfos[0].dump();
+				sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
+				enAct = EN_THM_ACT_CONTINUE;
+
+			} else {
+				_UTL_LOG_E ("reqGetCurrentServiceInfos err");
 				sectId = SECTID_END_ERROR;
 				enAct = EN_THM_ACT_CONTINUE;
 			}
 
 		} else {
-			// only success
+			_UTL_LOG_E ("reqGetCurrentServiceInfos err");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
 		}
 
+		break;
+
+	case SECTID_REQ_GET_PRESENT_EVENT_INFO: {
+		CPsisiManagerIf _if (getExternalIf());
+//TODO m_serviceInfos[0] 暫定0番目使用
+		_if.reqGetPresentEventInfo (&m_serviceInfos[0], &m_presentEventInfo);
+
+		sectId = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
+		enAct = EN_THM_ACT_WAIT;
+
 		} break;
+
+	case SECTID_WAIT_GET_PRESENT_EVENT_INFO:
+		enRslt = pIf->getSrcInfo()->enRslt;
+        if (enRslt == EN_THM_RSLT_SUCCESS) {
+m_presentEventInfo.dump();
+
+			// set reserve
+			if (setReserve (&m_presentEventInfo)) {
+				sectId = SECTID_END_SUCCESS;
+				enAct = EN_THM_ACT_CONTINUE;
+
+			} else {
+				sectId = SECTID_END_ERROR;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
+
+		} else {
+			_UTL_LOG_E ("reqGetPresentEventInfo err");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		break;
 
 	case SECTID_END_SUCCESS:
 		pIf->reply (EN_THM_RSLT_SUCCESS);
@@ -421,7 +527,7 @@ sectId = SECTID_REQ_GET_PAT_DETECT_STATE;
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::setReserveManual (CThreadMgrIf *pIf)
+void CRecManager::onSetReserve_manual (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -436,6 +542,41 @@ void CRecManager::setReserveManual (CThreadMgrIf *pIf)
 
 
 
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CRecManager::onDumpReserves (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	int type = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+	switch (type) {
+	case 0:
+		dumpReserves();
+		break;
+
+	case 1:
+		dumpErrors();
+		break;
+
+	default:
+		break;
+	}
 
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
@@ -473,6 +614,7 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 
 	} else if (pIf->getSrcInfo()->nClientId == m_patDetectNotify_clientId) {
+
 		EN_PAT_DETECT_STATE _state = *(EN_PAT_DETECT_STATE*)(pIf->getSrcInfo()->msg.pMsg);
 		_UTL_LOG_I ("!!! event chenged !!!");
 		if (_state == EN_PAT_DETECT_STATE__DETECTED) {
@@ -577,6 +719,7 @@ bool CRecManager::setReserve (
 
 /**
  * 開始時間を基準に降順で空きをさがします
+ * 空きがある前提
  */
 CRecReserve* CRecManager::searchAscendingOrderReserve (CEtime *p_start_time_ref)
 {
@@ -588,11 +731,16 @@ CRecReserve* CRecManager::searchAscendingOrderReserve (CEtime *p_start_time_ref)
 	int i = 0;
 	for (i = 0; i < RESERVE_NUM_MAX; ++ i) {
 
+		// 先頭から詰まっているはず
+//		if (!m_reserves [i].is_used) {
+//			continue;
+//		}
+
 		// 基準時間より後ろの時間を探します
 		if (m_reserves [i].start_time > *p_start_time_ref) {
 
 			// 後ろから見てずらします
-			for (int j = RESERVE_NUM_MAX; j > i; -- j) {
+			for (int j = RESERVE_NUM_MAX -1; j > i; -- j) {
 				m_reserves [j] = m_reserves [j-1] ;
 			}
 
@@ -718,6 +866,140 @@ bool CRecManager::isOverrapTimeReserve (CRecReserve* p_reserve)
 	}
 
 	return false;
+}
+
+void CRecManager::checkReserves (void)
+{
+	CEtime current_time;
+	current_time.setCurrentTime();
+
+	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
+
+		if (!m_reserves [i].is_used) {
+			continue;
+		}
+
+		if (!m_reserves [i].state == EN_RESERVE_STATE__INIT) {
+			continue;
+		}
+
+		if (m_reserves [i].start_time < current_time && m_reserves [i].end_time <= current_time) {
+			m_reserves [i].state = EN_RESERVE_STATE__END_ERROR__ALREADY_PASSED;
+			setError (&m_reserves[i], EN_RESERVE_STATE__END_ERROR__ALREADY_PASSED);
+			continue;
+		}
+
+		if (m_reserves [i].start_time <= current_time && m_reserves [i].end_time > current_time) {
+			// request start recording
+			m_reserves [i].state = EN_RESERVE_STATE__REQ_START_RECORDING;
+		}
+	}
+}
+
+void CRecManager::refreshReserves (void)
+{
+	for (int i = RESERVE_NUM_MAX -1; i < 0; -- i) {
+		if (!m_reserves [i].is_used) {
+			continue;
+		}
+
+		if (m_reserves[i].state <= EN_RESERVE_STATE__END_SUCCESS) {
+			continue;
+		}
+
+		// 逆から見てエラーのものを詰めます
+		for (int j = i; j < RESERVE_NUM_MAX -1; ++ j) {
+			m_reserves [j] = m_reserves [j+1];
+		}
+		m_reserves [RESERVE_NUM_MAX -1].clear();
+	}
+}
+
+bool CRecManager::pickReqStartRecordingReserve (void)
+{
+	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
+		if (!m_reserves [i].is_used) {
+			continue;
+		}
+
+		if (m_reserves[i].state == EN_RESERVE_STATE__REQ_START_RECORDING) {
+
+			m_recording = m_reserves[i];
+
+			// 間詰め
+			for (int j = i; j < RESERVE_NUM_MAX -1; ++ j) {
+				m_reserves [j] = m_reserves [j+1];
+			}
+			m_reserves [RESERVE_NUM_MAX -1].clear();
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void CRecManager::setError (CRecReserve *p_error, EN_RESERVE_STATE enErrorState)
+{
+	if (!p_error) {
+		return ;
+	}
+
+
+	for (int i = 0; i < ERROR_NUM_MAX; ++ i) {
+		if (!m_errors [i].is_used) {
+			m_errors [i] = *p_error;
+			m_errors [i].state = enErrorState;
+			return ;
+		}
+	}
+
+	// m_errors full
+	// 最古のものを消します
+	for (int i = ERROR_NUM_MAX -1; i < 0; -- i) {
+		m_errors [i-1] = m_errors [i] ;		
+	}
+
+	m_errors [ERROR_NUM_MAX -1].clear ();
+	m_errors [ERROR_NUM_MAX -1] = *p_error;
+	m_errors [ERROR_NUM_MAX -1].state = enErrorState;
+}
+
+void CRecManager::dumpReserves (void)
+{
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+
+	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
+		if (m_reserves [i].is_used) {
+			_UTL_LOG_I ("-----------------------------------------");
+			m_reserves [i].dump();
+		}
+	}
+}
+
+void CRecManager::dumpErrors (void)
+{
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+
+	for (int i = 0; i < ERROR_NUM_MAX; ++ i) {
+		if (m_errors [i].is_used) {
+			_UTL_LOG_I ("-----------------------------------------");
+			m_errors [i].dump();
+		}
+	}
+}
+
+void CRecManager::clearReserves (void)
+{
+	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
+		m_reserves [i].clear();
+	}
+
+	for (int i = 0; i < ERROR_NUM_MAX; ++ i) {
+		m_errors [i].clear();
+	}
+
+	m_recording.clear ();
 }
 
 

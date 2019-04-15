@@ -26,7 +26,9 @@
 using namespace ThreadManager;
 
 
-#define RESERVE_NUM_MAX		(60)
+#define RESERVE_NUM_MAX		(64)
+#define ERROR_NUM_MAX		(64)
+
 
 typedef enum {
 	EN_REC_STATE__INIT = 0,
@@ -37,11 +39,12 @@ typedef enum {
 
 typedef enum {
 	EN_RESERVE_STATE__INIT = 0,
-	EN_RESERVE_STATE__PRE_PROCESS,
+	EN_RESERVE_STATE__REQ_START_RECORDING,
 	EN_RESERVE_STATE__NOW_RECORDING,
-	EN_RESERVE_STATE__POST_PROCESS,
 	EN_RESERVE_STATE__END_SUCCESS,
-	EN_RESERVE_STATE__END_ERROR,
+	EN_RESERVE_STATE__END_ERROR__ALREADY_PASSED,
+	EN_RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW,
+	EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR,
 } EN_RESERVE_STATE;
 
 
@@ -123,6 +126,8 @@ public:
 //TODO 適当クリア
 		// clear all
 		memset (this, 0x00, sizeof(CRecReserve));
+		start_time.clear();
+		end_time.clear();
 		state = EN_RESERVE_STATE__INIT;
 		is_used = false;
 	}
@@ -155,12 +160,13 @@ public:
 	virtual ~CRecManager (void);
 
 
-	void moduleUp (CThreadMgrIf *pIf);
-	void moduleDown (CThreadMgrIf *pIf);
-	void checkLoop (CThreadMgrIf *pIf);
-	void startRecording (CThreadMgrIf *pIf);
-	void setReserveCurrentEvent (CThreadMgrIf *pIf);
-	void setReserveManual (CThreadMgrIf *pIf);
+	void onModuleUp (CThreadMgrIf *pIf);
+	void onModuleDown (CThreadMgrIf *pIf);
+	void onCheckLoop (CThreadMgrIf *pIf);
+	void onStartRecording (CThreadMgrIf *pIf);
+	void onSetReserve_currentEvent (CThreadMgrIf *pIf);
+	void onSetReserve_manual (CThreadMgrIf *pIf);
+	void onDumpReserves (CThreadMgrIf *pIf);
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
@@ -181,6 +187,13 @@ private:
 	CRecReserve *findEmptyReserve (void);
 	bool isDuplicateReserve (CRecReserve* p_reserve);
 	bool isOverrapTimeReserve (CRecReserve* p_reserve);
+	void checkReserves (void);
+	void refreshReserves (void);
+	bool pickReqStartRecordingReserve (void);
+	void setError (CRecReserve *p_error, EN_RESERVE_STATE enErrorState);
+	void dumpReserves (void);
+	void dumpErrors (void);
+	void clearReserves (void);
 
 
 
@@ -202,6 +215,11 @@ private:
 	EN_REC_STATE m_recState;
 
 	CRecReserve m_reserves [RESERVE_NUM_MAX];
+	CRecReserve m_errors [ERROR_NUM_MAX];
+	CRecReserve m_recording;
+
+	PSISI_SERVICE_INFO m_serviceInfos [10];
+	PSISI_EVENT_INFO m_presentEventInfo;
 
 };
 

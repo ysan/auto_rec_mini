@@ -67,7 +67,9 @@ public:
 	_program_info (void) {
 		clear ();
 	}
-	~_program_info (void) {}
+	~_program_info (void) {
+		clear ();
+	}
 
 	uint8_t table_id;
 	uint16_t transport_stream_id;
@@ -105,7 +107,9 @@ public:
 	_event_pf_info (void) {
 		clear();
 	}
-	~_event_pf_info (void) {}
+	~_event_pf_info (void) {
+		clear();
+	}
 
 	uint8_t table_id;
 	uint16_t transport_stream_id;
@@ -128,6 +132,8 @@ public:
 //TODO 適当クリア
 		// clear all
 		memset (this, 0x00, sizeof(struct _event_pf_info));
+		start_time.clear();
+		end_time.clear();
 		state = EN_EVENT_PF_STATE__INIT;
 		is_used = false;
 	}
@@ -160,7 +166,9 @@ public:
 	_service_info (void) {
 		clear ();
 	}
-	~_service_info (void) {}
+	~_service_info (void) {
+		clear ();
+	}
 
 	uint8_t table_id;
 	uint16_t transport_stream_id;
@@ -187,6 +195,7 @@ public:
 		memset (this, 0x00, sizeof(struct _event_pf_info));
 		is_tune_target = false;
 		eventFollowInfo.clear();
+		last_update.clear();
 		is_used = false;
 	}
 
@@ -275,6 +284,7 @@ private:
 	void assignFollowEventToServiceInfos (void);
 	void checkFollowEventAtServiceInfos (CThreadMgrIf *pIf);
 	void dumpServiceInfos (void);
+	void clearServiceInfos (void);
 	void clearServiceInfos (bool is_atTuning);
 
 	// serviceInfo for request

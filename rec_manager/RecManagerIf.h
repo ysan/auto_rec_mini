@@ -17,9 +17,10 @@ enum {
 	EN_SEQ_REC_MANAGER_MODULE_UP = 0,
 	EN_SEQ_REC_MANAGER_MODULE_DOWN,
 	EN_SEQ_REC_MANAGER_CHECK_LOOP,				// inner
-	EN_SEQ_REC_MANAGER_START_REC,				// inner
+	EN_SEQ_REC_MANAGER_START_RECORDING,			// inner
 	EN_SEQ_REC_MANAGER_SET_RESERVE_CURRENT_EVENT,
 	EN_SEQ_REC_MANAGER_SET_RESERVE_MANUAL,
+	EN_SEQ_REC_MANAGER_DUMP_RESERVES,
 
 	EN_SEQ_REC_MANAGER_NUM,
 };
@@ -47,6 +48,15 @@ public:
 		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_SET_RESERVE_CURRENT_EVENT);
 	};
 
+	bool reqDumpReserves (int type) {
+		int _type = type;
+		return requestAsync (
+					EN_MODULE_REC_MANAGER,
+					EN_SEQ_REC_MANAGER_DUMP_RESERVES,
+					(uint8_t*)&_type,
+					sizeof(_type)
+				);
+	};
 
 };
 

@@ -11,7 +11,7 @@ CEtime::CEtime (void)
 {
 	memset (&m_time, 0x00, sizeof(m_time));
 	memset (&m_time_str, 0x00, sizeof(m_time_str));
-	setCurrentTime ();
+//	setCurrentTime ();
 }
 
 CEtime::CEtime (time_t epoch)
@@ -192,4 +192,10 @@ void CEtime::getString (char *pszOut, size_t nSize)
 		pstTmLocal->tm_sec
 	);
 #endif
+}
+
+void CEtime::clear (void)
+{
+	memset (&m_time, 0x00, sizeof(m_time));
+	memset (&m_time_str, 0x00, sizeof(m_time_str));
 }
