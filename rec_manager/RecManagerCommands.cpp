@@ -26,6 +26,23 @@ static void setReserveCurrentEvent (int argc, char* argv[], CThreadMgrBase *pBas
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void stop (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_UTL_LOG_W ("ignore arguments.\n");
+	}
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CRecManagerIf mgr(pBase->getExternalIf());
+	mgr.reqStopRecording ();
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
 static void dump_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
@@ -43,7 +60,7 @@ static void dump_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
-static void dump_errors (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_results (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_UTL_LOG_W ("ignore arguments.\n");
@@ -70,15 +87,21 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 		NULL,
 	},
 	{
+		"stop",
+		"force stop recording",
+		stop,
+		NULL,
+	},
+	{
 		"dr",
 		"dump reserves",
 		dump_reserves,
 		NULL,
 	},
 	{
-		"de",
-		"dump errors",
-		dump_errors,
+		"drr",
+		"dump results",
+		dump_results,
 		NULL,
 	},
 	//-- term --//

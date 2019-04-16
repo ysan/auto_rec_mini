@@ -518,7 +518,7 @@ void CTunerControl::getState (CThreadMgrIf *pIf)
 
 
 	// reply msgに乗せます
-	bool r = pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&mState, sizeof(mState));
+	pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&mState, sizeof(mState));
 
 
 	sectId = THM_SECT_ID_INIT;

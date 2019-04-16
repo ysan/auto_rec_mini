@@ -27,13 +27,15 @@ using namespace ThreadManager;
 
 
 #define RESERVE_NUM_MAX		(64)
-#define ERROR_NUM_MAX		(64)
+#define RESULT_NUM_MAX		(64)
 
 
 typedef enum {
 	EN_REC_STATE__INIT = 0,
 	EN_REC_STATE__PRE_PROCESS,
 	EN_REC_STATE__NOW_RECORDING,
+	EN_REC_STATE__END_SUCCESS,
+	EN_REC_STATE__END_ERROR,
 	EN_REC_STATE__POST_PROCESS,
 } EN_REC_STATE;
 
@@ -42,18 +44,30 @@ typedef enum {
 	EN_RESERVE_STATE__REQ_START_RECORDING,
 	EN_RESERVE_STATE__NOW_RECORDING,
 	EN_RESERVE_STATE__END_SUCCESS,
+	EN_RESERVE_STATE__END_ERROR__FORCE_STOP,
 	EN_RESERVE_STATE__END_ERROR__ALREADY_PASSED,
 	EN_RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW,
 	EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR,
 } EN_RESERVE_STATE;
 
+const char *g_reserveState [] = {
+	"INIT",
+	"REQ_START_RECORDING",
+	"NOW_RECORDING",
+	"END_SUCCESS",
+	"END_ERROR__ALREADY_PASSED",
+	"END_ERROR__HDD_FREE_SPACE_LOW",
+	"END_ERROR__INTERNAL_ERR",
+};
 
 class CRecReserve {
 public:
 	CRecReserve (void) {
 		clear ();
 	}
-	~CRecReserve (void) {}
+	~CRecReserve (void) {
+		clear ();
+	}
 
 	bool operator == (const CRecReserve &obj) const {
 		if (
@@ -141,9 +155,10 @@ public:
 			event_id
 		);
 		_UTL_LOG_I (
-			"time:[%s - %s]",
+			"time:[%s - %s] state:[%s]",
 			start_time.toString(),
-			end_time.toString()
+			end_time.toString(),
+			g_reserveState [state]
 		);
 		_UTL_LOG_I ("[%s]", title_name);
 	}
@@ -163,9 +178,11 @@ public:
 	void onModuleUp (CThreadMgrIf *pIf);
 	void onModuleDown (CThreadMgrIf *pIf);
 	void onCheckLoop (CThreadMgrIf *pIf);
+	void onRecordingNotice (CThreadMgrIf *pIf);
 	void onStartRecording (CThreadMgrIf *pIf);
 	void onSetReserve_currentEvent (CThreadMgrIf *pIf);
 	void onSetReserve_manual (CThreadMgrIf *pIf);
+	void onStopRecording (CThreadMgrIf *pIf);
 	void onDumpReserves (CThreadMgrIf *pIf);
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
@@ -190,9 +207,10 @@ private:
 	void checkReserves (void);
 	void refreshReserves (void);
 	bool pickReqStartRecordingReserve (void);
-	void setError (CRecReserve *p_error, EN_RESERVE_STATE enErrorState);
+	void setResult (CRecReserve *p_error, EN_RESERVE_STATE enState);
+	void dumpRecordingEnd (void);
 	void dumpReserves (void);
-	void dumpErrors (void);
+	void dumpResults (void);
 	void clearReserves (void);
 
 
@@ -207,19 +225,23 @@ private:
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_REC_MANAGER_NUM]; // entity
 
+
 	uint8_t m_tunerNotify_clientId;
 	int m_tsReceive_handlerId;
 	uint8_t m_patDetectNotify_clientId;
 	uint8_t m_eventChangeNotify_clientId;
 
-	EN_REC_STATE m_recState;
+	EN_REC_STATE m_recState; // tuneThreadと共有する とりあえず排他はいれません
 
 	CRecReserve m_reserves [RESERVE_NUM_MAX];
-	CRecReserve m_errors [ERROR_NUM_MAX];
+	CRecReserve m_results [RESULT_NUM_MAX];
 	CRecReserve m_recording;
 
 	PSISI_SERVICE_INFO m_serviceInfos [10];
 	PSISI_EVENT_INFO m_presentEventInfo;
+
+
+	struct OutputBuffer *mp_outputBuffer;
 
 };
 

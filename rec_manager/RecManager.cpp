@@ -24,6 +24,11 @@ extern "C" {
 #include "aribstr.h"
 
 
+typedef struct {
+	EN_REC_STATE rec_state;
+	EN_RESERVE_STATE reserve_state;
+} _RECORDING_NOTICE;
+
 
 CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
@@ -32,16 +37,21 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	,m_patDetectNotify_clientId (0xff)
 	,m_eventChangeNotify_clientId (0xff)
 	,m_recState (EN_REC_STATE__INIT)
+	,mp_outputBuffer (NULL)
 {
 	mSeqs [EN_SEQ_REC_MANAGER_MODULE_UP]   = {(PFN_SEQ_BASE)&CRecManager::onModuleUp,   (char*)"onModuleUp"};
 	mSeqs [EN_SEQ_REC_MANAGER_MODULE_DOWN] = {(PFN_SEQ_BASE)&CRecManager::onModuleDown, (char*)"onModuleDown"};
 	mSeqs [EN_SEQ_REC_MANAGER_CHECK_LOOP]  = {(PFN_SEQ_BASE)&CRecManager::onCheckLoop,  (char*)"onCheckLoop"};
+	mSeqs [EN_SEQ_REC_MANAGER_RECORDING_NOTICE] =
+		{(PFN_SEQ_BASE)&CRecManager::onRecordingNotice,  (char*)"onRecordingNotice"};
 	mSeqs [EN_SEQ_REC_MANAGER_START_RECORDING] =
 		{(PFN_SEQ_BASE)&CRecManager::onStartRecording, (char*)"onStartRecording"};
 	mSeqs [EN_SEQ_REC_MANAGER_SET_RESERVE_CURRENT_EVENT] =
 		{(PFN_SEQ_BASE)&CRecManager::onSetReserve_currentEvent, (char*)"onSetReserve_currentEvent"};
 	mSeqs [EN_SEQ_REC_MANAGER_SET_RESERVE_MANUAL] =
 		{(PFN_SEQ_BASE)&CRecManager::onSetReserve_manual, (char*)"onSetReserve_manual"};
+	mSeqs [EN_SEQ_REC_MANAGER_STOP_RECORDING] =
+		{(PFN_SEQ_BASE)&CRecManager::onStopRecording, (char*)"onStopRecording"};
 	mSeqs [EN_SEQ_REC_MANAGER_DUMP_RESERVES] =
 		{(PFN_SEQ_BASE)&CRecManager::onDumpReserves, (char*)"onDumpReserves"};
 	setSeqs (mSeqs, EN_SEQ_REC_MANAGER_NUM);
@@ -251,8 +261,8 @@ void CRecManager::onCheckLoop (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_CHECK_RESERVE,
-		SECTID_CHECK_RESERVE_WAIT,
+		SECTID_CHECK,
+		SECTID_CHECK_WAIT,
 		SECTID_REQ_START_RECORDING,
 		SECTID_WAIT_START_RECORDING,
 		SECTID_END,
@@ -269,47 +279,64 @@ void CRecManager::onCheckLoop (CThreadMgrIf *pIf)
 		// 先にreplyしておく
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
-		sectId = SECTID_CHECK_RESERVE;
+		sectId = SECTID_CHECK;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_CHECK_RESERVE:
+	case SECTID_CHECK:
 
 		pIf->setTimeout (1000); // 1sec
 
-		sectId = SECTID_CHECK_RESERVE_WAIT;
+		sectId = SECTID_CHECK_WAIT;
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
-	case SECTID_CHECK_RESERVE_WAIT:
+	case SECTID_CHECK_WAIT:
 
 		// reserve check
 		checkReserves ();
 		refreshReserves ();
 
-		if (pickReqStartRecordingReserve ()) {
-
-			// request start recording
-			requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_START_RECORDING);
-			sectId = SECTID_WAIT_START_RECORDING;
-			enAct = EN_THM_ACT_WAIT;
+		if ((!m_recState == EN_REC_STATE__INIT) || m_recording.is_used) {
+			_UTL_LOG_W ("wait pickReqStartRecordingReserve");
+			sectId = SECTID_CHECK;
+			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			sectId = SECTID_CHECK_RESERVE;
-			enAct = EN_THM_ACT_CONTINUE;
+
+			if (pickReqStartRecordingReserve ()) {
+
+				// request start recording
+				requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_START_RECORDING);
+
+				sectId = SECTID_WAIT_START_RECORDING;
+				enAct = EN_THM_ACT_WAIT;
+
+			} else {
+				sectId = SECTID_CHECK;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
 		}
+
+
+		// recording end check
+
 
 		break;
 
 	case SECTID_WAIT_START_RECORDING:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
+//TODO imple
+
 
 		} else {
+//TODO imple
+
 
 		}
 
-		sectId = SECTID_CHECK_RESERVE;
+		sectId = SECTID_CHECK;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
@@ -325,7 +352,7 @@ void CRecManager::onCheckLoop (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onStartRecording (CThreadMgrIf *pIf)
+void CRecManager::onRecordingNotice (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -337,15 +364,133 @@ void CRecManager::onStartRecording (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
+	static EN_RESERVE_STATE _tmp_reserve_state = EN_RESERVE_STATE__INIT;
 
 
+	_RECORDING_NOTICE _notice = *(_RECORDING_NOTICE*)(pIf->getSrcInfo()->msg.pMsg);
+	switch (_notice.rec_state) {
+	case EN_REC_STATE__INIT:
+		break;
 
+	case EN_REC_STATE__PRE_PROCESS:
+		if (_notice.reserve_state != EN_RESERVE_STATE__INIT) {
+			_tmp_reserve_state = _notice.reserve_state;
+		}
+		break;
 
+	case EN_REC_STATE__NOW_RECORDING:
+		if (_notice.reserve_state != EN_RESERVE_STATE__INIT) {
+			_tmp_reserve_state = _notice.reserve_state;
+		}
+		break;
+
+	case EN_REC_STATE__END_SUCCESS:
+		if (_notice.reserve_state != EN_RESERVE_STATE__INIT) {
+			_tmp_reserve_state = _notice.reserve_state;
+		}
+		break;
+
+	case EN_REC_STATE__END_ERROR:
+		if (_notice.reserve_state != EN_RESERVE_STATE__INIT) {
+			_tmp_reserve_state = _notice.reserve_state;
+		}
+		break;
+
+	case EN_REC_STATE__POST_PROCESS:
+		if (_notice.reserve_state != EN_RESERVE_STATE__INIT) {
+			_tmp_reserve_state = _notice.reserve_state;
+		}
+
+		setResult (&m_recording, _tmp_reserve_state);
+		m_recording.clear ();
+		_tmp_reserve_state = EN_RESERVE_STATE__INIT;
+		_UTL_LOG_I ("recording end...");
+		break;
+
+	default:
+		break;
+	};
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+
+}
+
+void CRecManager::onStartRecording (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_TUNE,
+		SECTID_WAIT_TUNE,
+		SECTID_START_RECORDING,
+		SECTID_END_SUCCESS,
+		SECTID_END_ERROR,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+		sectId = SECTID_REQ_TUNE;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_TUNE:
+//TODO imple
+
+
+		sectId = SECTID_WAIT_TUNE;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_WAIT_TUNE:
+//TODO imple
+
+
+		sectId = SECTID_START_RECORDING;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_START_RECORDING:
+
+		if (m_recState == EN_REC_STATE__INIT) {
+
+			_UTL_LOG_I ("start recording (on tune thread)");
+			m_recState = EN_REC_STATE__PRE_PROCESS;
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("m_recState != EN_REC_STATE__INIT ???  -> not start recording");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		break;
+
+	case SECTID_END_SUCCESS:
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	case SECTID_END_ERROR:
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
 	pIf->setSectId (sectId, enAct);
 }
 
@@ -389,6 +534,7 @@ void CRecManager::onSetReserve_currentEvent (CThreadMgrIf *pIf)
 		} break;
 
 	case SECTID_WAIT_GET_TUNER_STATE: {
+
 		enRslt = pIf->getSrcInfo()->enRslt;
         if (enRslt == EN_THM_RSLT_SUCCESS) {
 			EN_TUNER_STATE _state = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
@@ -551,6 +697,39 @@ void CRecManager::onSetReserve_manual (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CRecManager::onStopRecording (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	if (m_recState == EN_REC_STATE__NOW_RECORDING &&
+			m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
+
+		// エラー終了
+		m_recState = EN_REC_STATE__END_ERROR;
+		m_recording.state = EN_RESERVE_STATE__END_ERROR__FORCE_STOP;
+
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	} else {
+
+		_UTL_LOG_E ("invalid rec state");
+		pIf->reply (EN_THM_RSLT_ERROR);
+	}
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CRecManager::onDumpReserves (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -571,7 +750,7 @@ void CRecManager::onDumpReserves (CThreadMgrIf *pIf)
 		break;
 
 	case 1:
-		dumpErrors();
+		dumpResults();
 		break;
 
 	default:
@@ -885,17 +1064,22 @@ void CRecManager::checkReserves (void)
 
 		if (m_reserves [i].start_time < current_time && m_reserves [i].end_time <= current_time) {
 			m_reserves [i].state = EN_RESERVE_STATE__END_ERROR__ALREADY_PASSED;
-			setError (&m_reserves[i], EN_RESERVE_STATE__END_ERROR__ALREADY_PASSED);
+			setResult (&m_reserves[i], EN_RESERVE_STATE__END_ERROR__ALREADY_PASSED);
 			continue;
 		}
 
 		if (m_reserves [i].start_time <= current_time && m_reserves [i].end_time > current_time) {
+
 			// request start recording
 			m_reserves [i].state = EN_RESERVE_STATE__REQ_START_RECORDING;
+
 		}
 	}
 }
 
+/**
+ * reservesのエラーのものをを除去します
+ */
 void CRecManager::refreshReserves (void)
 {
 	for (int i = RESERVE_NUM_MAX -1; i < 0; -- i) {
@@ -939,36 +1123,60 @@ bool CRecManager::pickReqStartRecordingReserve (void)
 	return false;
 }
 
-void CRecManager::setError (CRecReserve *p_error, EN_RESERVE_STATE enErrorState)
+void CRecManager::setResult (CRecReserve *p_error, EN_RESERVE_STATE enState)
 {
 	if (!p_error) {
 		return ;
 	}
 
 
-	for (int i = 0; i < ERROR_NUM_MAX; ++ i) {
-		if (!m_errors [i].is_used) {
-			m_errors [i] = *p_error;
-			m_errors [i].state = enErrorState;
+	for (int i = 0; i < RESULT_NUM_MAX; ++ i) {
+		if (!m_results [i].is_used) {
+			m_results [i] = *p_error;
+			m_results [i].state = enState;
 			return ;
 		}
 	}
 
-	// m_errors full
+	// m_results full
 	// 最古のものを消します
-	for (int i = ERROR_NUM_MAX -1; i < 0; -- i) {
-		m_errors [i-1] = m_errors [i] ;		
+	for (int i = RESULT_NUM_MAX -1; i < 0; -- i) {
+		m_results [i-1] = m_results [i] ;		
 	}
 
-	m_errors [ERROR_NUM_MAX -1].clear ();
-	m_errors [ERROR_NUM_MAX -1] = *p_error;
-	m_errors [ERROR_NUM_MAX -1].state = enErrorState;
+	m_results [RESULT_NUM_MAX -1].clear ();
+	m_results [RESULT_NUM_MAX -1] = *p_error;
+	m_results [RESULT_NUM_MAX -1].state = enState;
+}
+
+void CRecManager::dumpRecordingEnd (void)
+{
+	if (!m_recording.is_used) {
+		return ;
+	}
+
+	if (m_recording.state != EN_RESERVE_STATE__NOW_RECORDING) {
+		return ;
+	}
+
+	CEtime current_time ;
+	current_time.setCurrentTime();
+
+	if (m_recording.end_time <= current_time) {
+		// 正常終了します
+		m_recState = EN_REC_STATE__END_SUCCESS;
+	}
+
 }
 
 void CRecManager::dumpReserves (void)
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
+	if (m_recording.is_used) {
+		_UTL_LOG_I ("-----------   now recording  ------------");
+		m_recording.dump();
+	}
 	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
 		if (m_reserves [i].is_used) {
 			_UTL_LOG_I ("-----------------------------------------");
@@ -977,14 +1185,14 @@ void CRecManager::dumpReserves (void)
 	}
 }
 
-void CRecManager::dumpErrors (void)
+void CRecManager::dumpResults (void)
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
-	for (int i = 0; i < ERROR_NUM_MAX; ++ i) {
-		if (m_errors [i].is_used) {
+	for (int i = 0; i < RESULT_NUM_MAX; ++ i) {
+		if (m_results [i].is_used) {
 			_UTL_LOG_I ("-----------------------------------------");
-			m_errors [i].dump();
+			m_results [i].dump();
 		}
 	}
 }
@@ -995,8 +1203,8 @@ void CRecManager::clearReserves (void)
 		m_reserves [i].clear();
 	}
 
-	for (int i = 0; i < ERROR_NUM_MAX; ++ i) {
-		m_errors [i].clear();
+	for (int i = 0; i < RESULT_NUM_MAX; ++ i) {
+		m_results [i].clear();
 	}
 
 	m_recording.clear ();
@@ -1035,21 +1243,123 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 {
 	switch (m_recState) {
 	case EN_REC_STATE__PRE_PROCESS:
+
+		mp_outputBuffer = create_FileBufferedWriter (768 * 1024, "tmp.m2ts");
+		if (!mp_outputBuffer) {
+			_UTL_LOG_E ("failed to init FileBufferedWriter.");
+
+			_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR};
+			requestAsync (
+				EN_MODULE_REC_MANAGER,
+				EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+				(uint8_t*)&_notice,
+				sizeof(_notice)
+			);
+
+			// next
+			m_recState = EN_REC_STATE__END_ERROR;
+
+		} else {
+
+			struct OutputBuffer * const pFileBufferedWriter = mp_outputBuffer;
+			mp_outputBuffer = create_TSParser( 8192, pFileBufferedWriter, 1);
+			if (!mp_outputBuffer) {
+				_UTL_LOG_E ("failed to init TS Parser.");
+				OutputBuffer_release (pFileBufferedWriter);
+
+				_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR};
+				requestAsync (
+					EN_MODULE_REC_MANAGER,
+					EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+					(uint8_t*)&_notice,
+					sizeof(_notice)
+				);
+
+				// next
+				m_recState = EN_REC_STATE__END_ERROR;
+
+			}
+
+
+			_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__INIT};
+			requestAsync (
+				EN_MODULE_REC_MANAGER,
+				EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+				(uint8_t*)&_notice,
+				sizeof(_notice)
+			);
+
+			// next
+			m_recState = EN_REC_STATE__NOW_RECORDING;
+
+		}
+
 		break;
 
-	case EN_REC_STATE__NOW_RECORDING:
+	case EN_REC_STATE__NOW_RECORDING: {
 
-		OutputBuffer_put (NULL, p_ts_data, length);
+		// recording
+		int r = OutputBuffer_put (NULL, p_ts_data, length);
+		if (r < 0) {
+			_UTL_LOG_W ("TS write failed");
+		}
 
-		break;
+		} break;
 
-	case EN_REC_STATE__POST_PROCESS:
-		break;
+	case EN_REC_STATE__END_SUCCESS: {
+
+		_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__END_SUCCESS};
+		requestAsync (
+			EN_MODULE_REC_MANAGER,
+			EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+			(uint8_t*)&_notice,
+			sizeof(_notice)
+		);
+
+		// next
+		m_recState = EN_REC_STATE__POST_PROCESS;
+
+		} break;
+
+	case EN_REC_STATE__END_ERROR: {
+
+		_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__INIT};
+		requestAsync (
+			EN_MODULE_REC_MANAGER,
+			EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+			(uint8_t*)&_notice,
+			sizeof(_notice)
+		);
+
+		// next
+		m_recState = EN_REC_STATE__POST_PROCESS;
+
+		} break;
+
+	case EN_REC_STATE__POST_PROCESS: {
+
+		if (mp_outputBuffer) {
+			OutputBuffer_flush (mp_outputBuffer);
+			OutputBuffer_release (mp_outputBuffer);
+			mp_outputBuffer = NULL;
+		}
+
+		_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__INIT};
+		requestAsync (
+			EN_MODULE_REC_MANAGER,
+			EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+			(uint8_t*)&_notice,
+			sizeof(_notice)
+		);
+
+		// next
+		m_recState = EN_REC_STATE__INIT;
+
+		} break;
 
 	default:
 		break;
 	}
-
 
 	return true;
 }
