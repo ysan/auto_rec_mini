@@ -82,8 +82,8 @@ public:
 	bool is_used;
 
 	void clear (void) {
-//TODO 適当クリア
 		memset (this, 0x00, sizeof(struct _program_info));
+		p_orgTable = NULL;
 		is_used = false;
 	}
 
@@ -129,12 +129,12 @@ public:
 	bool is_used;
 
 	void clear () {
-//TODO 適当クリア
 		// clear all
 		memset (this, 0x00, sizeof(struct _event_pf_info));
 		start_time.clear();
 		end_time.clear();
 		state = EN_EVENT_PF_STATE__INIT;
+		p_orgTable = NULL;
 		is_used = false;
 	}
 
@@ -190,12 +190,12 @@ public:
 	bool is_used;
 
 	void clear (void) {
-//TODO 適当クリア
 		// clear all
 		memset (this, 0x00, sizeof(struct _event_pf_info));
 		is_tune_target = false;
 		eventFollowInfo.clear();
 		last_update.clear();
+		p_orgTable = NULL;
 		is_used = false;
 	}
 
@@ -241,21 +241,21 @@ public:
 	virtual ~CPsisiManager (void);
 
 
-	void moduleUp (CThreadMgrIf *pIf);
-	void moduleDown (CThreadMgrIf *pIf);
-	void checkLoop (CThreadMgrIf *pIf);
-	void parserNotice (CThreadMgrIf *pIf);
-	void stabilizationAfterTuning (CThreadMgrIf *pIf);
-	void registerPatDetectNotify (CThreadMgrIf *pIf);
-	void unregisterPatDetectNotify (CThreadMgrIf *pIf);
-	void registerEventChangeNotify (CThreadMgrIf *pIf);
-	void unregisterEventChangeNotify (CThreadMgrIf *pIf);
-	void getPatDetectState (CThreadMgrIf *pIf);
-	void getCurrentServiceInfos (CThreadMgrIf *pIf);
-	void getPresentEventInfo (CThreadMgrIf *pIf);
-	void getFollowEventInfo (CThreadMgrIf *pIf);
-	void dumpCaches (CThreadMgrIf *pIf);
-	void dumpTables (CThreadMgrIf *pIf);
+	void onModuleUp (CThreadMgrIf *pIf);
+	void onModuleDown (CThreadMgrIf *pIf);
+	void onCheckLoop (CThreadMgrIf *pIf);
+	void onParserNotice (CThreadMgrIf *pIf);
+	void onStabilizationAfterTuning (CThreadMgrIf *pIf);
+	void onRegisterPatDetectNotify (CThreadMgrIf *pIf);
+	void onUnregisterPatDetectNotify (CThreadMgrIf *pIf);
+	void onRegisterEventChangeNotify (CThreadMgrIf *pIf);
+	void onUnregisterEventChangeNotify (CThreadMgrIf *pIf);
+	void onGetPatDetectState (CThreadMgrIf *pIf);
+	void onGetCurrentServiceInfos (CThreadMgrIf *pIf);
+	void onGetPresentEventInfo (CThreadMgrIf *pIf);
+	void onGetFollowEventInfo (CThreadMgrIf *pIf);
+	void onDumpCaches (CThreadMgrIf *pIf);
+	void onDumpTables (CThreadMgrIf *pIf);
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
 

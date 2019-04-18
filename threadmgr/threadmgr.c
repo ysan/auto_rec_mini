@@ -464,6 +464,7 @@ static bool notifyInner (
 	size_t msgSize
 );
 static bool notify (uint8_t nCategory, uint8_t *pMsg, size_t msgSize);
+static void dumpNotifyClientInfo (void);
 static void clearNotifyClientInfo (ST_NOTIFY_CLIENT_INFO *p);
 static void setSectId (uint8_t nSectId, EN_THM_ACT enAct);
 static void setSectIdInner (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t nSectId, EN_THM_ACT enAct);
@@ -1249,6 +1250,10 @@ static void dumpQueWorker (uint8_t nThreadIdx)
 
 	THM_LOG_I ("####  dumpQue [%s]  ####\n", gstInnerInfo [nThreadIdx].pszName);
 	for (i = 0; i < nQueWorkerNum; ++ i) {
+		if (!pstQueWorker->isUsed) {
+			continue;
+		}
+
 		THM_LOG_I (
 			" %d: %s (%s %d-%d) -> %d-%d 0x%x %s 0x%x %s\n",
 			i,
@@ -1840,6 +1845,7 @@ static void *baseThread (void *pArg)
 				dumpRequestIdInfo ();
 				dumpExtInfoList ();
 				dumpQueAllThread ();
+				dumpNotifyClientInfo ();
 				break;
 
 			default:
@@ -4012,6 +4018,34 @@ static bool notify (uint8_t nCategory, uint8_t *pMsg, size_t msgSize)
 	}
 
 	return true;
+}
+
+/**
+ * dumpNotifyClientInfo
+ */
+static void dumpNotifyClientInfo (void)
+{
+	uint32_t i = 0;
+
+//TODO 参照だけ ログだけだからmutexしない
+
+	THM_LOG_I ("####  dumpNotifyClientInfo  ####\n");
+
+	for (i = 0; i < NOTIFY_CLIENT_ID_MAX; ++ i) {
+		if (!gstNotifyClientInfo [i].isUsed) {
+			continue;
+		}
+
+		THM_LOG_I (
+			" %d: server:[0x%02x][%-15s] client:[0x%02x][%-15s] category:[0x%02x]\n",
+			i,
+			gstNotifyClientInfo [i].nSrcThreadIdx,
+			gstInnerInfo [gstNotifyClientInfo [i].nSrcThreadIdx].pszName,
+			gstNotifyClientInfo [i].nDestThreadIdx,
+			gstInnerInfo [gstNotifyClientInfo [i].nDestThreadIdx].pszName,
+			gstNotifyClientInfo [i].nCategory
+		);
+	}
 }
 
 /**

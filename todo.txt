@@ -1,6 +1,5 @@
 log エスケープシーケンス 色つけ方
 chennel scan
-event rec
 event chenge notify
   cacheEventPfInfos -> checkEventPfInfosで印付け -> followsが空だったら follow eventをcopy
   followsをloopcheck -> start_timeで notify -> follows clear
@@ -12,4 +11,4 @@ command serverのstack テンプレートクラス化
 eit scheduleはsectionのリスト管理しないで 派生クラスでテーブル管理する
     p/f はsectionリスト管理して重複はチェックする
     -->バッファサイズとfifo数はそんなに必要ないはず
-notify clientのdump threadmgr
+psisi structs のclear関数 必要かどうか

@@ -26,18 +26,18 @@
 using namespace ThreadManager;
 
 
-#define RESERVE_NUM_MAX		(64)
-#define RESULT_NUM_MAX		(64)
+#define RESERVE_NUM_MAX		(4)
+#define RESULT_NUM_MAX		(4)
 
 
 typedef enum {
-	EN_REC_STATE__INIT = 0,
-	EN_REC_STATE__PRE_PROCESS,
-	EN_REC_STATE__NOW_RECORDING,
-	EN_REC_STATE__END_SUCCESS,
-	EN_REC_STATE__END_ERROR,
-	EN_REC_STATE__POST_PROCESS,
-} EN_REC_STATE;
+	EN_REC_PROGRESS__INIT = 0,
+	EN_REC_PROGRESS__PRE_PROCESS,
+	EN_REC_PROGRESS__NOW_RECORDING,
+	EN_REC_PROGRESS__END_SUCCESS,
+	EN_REC_PROGRESS__END_ERROR,
+	EN_REC_PROGRESS__POST_PROCESS,
+} EN_REC_PROGRESS;
 
 typedef enum {
 	EN_RESERVE_STATE__INIT = 0,
@@ -55,6 +55,7 @@ const char *g_reserveState [] = {
 	"REQ_START_RECORDING",
 	"NOW_RECORDING",
 	"END_SUCCESS",
+	"END_ERROR__FORCE_STOP",
 	"END_ERROR__ALREADY_PASSED",
 	"END_ERROR__HDD_FREE_SPACE_LOW",
 	"END_ERROR__INTERNAL_ERR",
@@ -160,7 +161,7 @@ public:
 			end_time.toString(),
 			g_reserveState [state]
 		);
-		_UTL_LOG_I ("[%s]", title_name);
+		_UTL_LOG_I ("title:[%s]", title_name);
 	}
 
 };
@@ -208,7 +209,7 @@ private:
 	void refreshReserves (void);
 	bool pickReqStartRecordingReserve (void);
 	void setResult (CRecReserve *p_error, EN_RESERVE_STATE enState);
-	void dumpRecordingEnd (void);
+	void checkRecordingEnd (void);
 	void dumpReserves (void);
 	void dumpResults (void);
 	void clearReserves (void);
@@ -231,7 +232,7 @@ private:
 	uint8_t m_patDetectNotify_clientId;
 	uint8_t m_eventChangeNotify_clientId;
 
-	EN_REC_STATE m_recState; // tuneThreadと共有する とりあえず排他はいれません
+	EN_REC_PROGRESS m_recProgress; // tuneThreadと共有する とりあえず排他はいれません
 
 	CRecReserve m_reserves [RESERVE_NUM_MAX];
 	CRecReserve m_results [RESULT_NUM_MAX];

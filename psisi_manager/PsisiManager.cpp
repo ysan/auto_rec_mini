@@ -28,30 +28,30 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	,mPAT (16)
 	,mEIT_H (4096*100, 100)
 {
-	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_UP]     = {(PFN_SEQ_BASE)&CPsisiManager::moduleUp,    (char*)"moduleUp"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_DOWN]   = {(PFN_SEQ_BASE)&CPsisiManager::moduleDown,  (char*)"moduleDown"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_CHECK_LOOP]    = {(PFN_SEQ_BASE)&CPsisiManager::checkLoop,   (char*)"checkLoop"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_PARSER_NOTICE] = {(PFN_SEQ_BASE)&CPsisiManager::parserNotice,(char*)"parserNotice"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_UP]     = {(PFN_SEQ_BASE)&CPsisiManager::onModuleUp,    (char*)"onModuleUp"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_MODULE_DOWN]   = {(PFN_SEQ_BASE)&CPsisiManager::onModuleDown,  (char*)"onModuleDown"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_CHECK_LOOP]    = {(PFN_SEQ_BASE)&CPsisiManager::onCheckLoop,   (char*)"onCheckLoop"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_PARSER_NOTICE] = {(PFN_SEQ_BASE)&CPsisiManager::onParserNotice,(char*)"onParserNotice"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_STABILIZATION_AFTER_TUNING] =
-		{(PFN_SEQ_BASE)&CPsisiManager::stabilizationAfterTuning, (char*)"stabilizationAfterTuning,"};
+		{(PFN_SEQ_BASE)&CPsisiManager::onStabilizationAfterTuning, (char*)"onStabilizationAfterTuning,"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_REG_PAT_DETECT_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::registerPatDetectNotify, (char*)"registerPatDetectNotify"};
+		{(PFN_SEQ_BASE)&CPsisiManager::onRegisterPatDetectNotify, (char*)"onRegisterPatDetectNotify"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_UNREG_PAT_DETECT_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::unregisterPatDetectNotify, (char*)"unregisterPatDetectNotify"};
+		{(PFN_SEQ_BASE)&CPsisiManager::onUnregisterPatDetectNotify, (char*)"onUnregisterPatDetectNotify"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_REG_EVENT_CHANGE_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::registerEventChangeNotify, (char*)"registerEventChangeNotify"};
+		{(PFN_SEQ_BASE)&CPsisiManager::onRegisterEventChangeNotify, (char*)"onRegisterEventChangeNotify"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_UNREG_EVENT_CHANGE_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::unregisterEventChangeNotify, (char*)"unregisterEventChangeNotify"};
+		{(PFN_SEQ_BASE)&CPsisiManager::onUnregisterEventChangeNotify, (char*)"onUnregisterEventChangeNotify"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_GET_PAT_DETECT_STATE] =
-		{(PFN_SEQ_BASE)&CPsisiManager::getPatDetectState,  (char*)"getPatDetectState"};
+		{(PFN_SEQ_BASE)&CPsisiManager::onGetPatDetectState,  (char*)"onGetPatDetectState"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_GET_CURRENT_SERVICE_INFOS] =
-		{(PFN_SEQ_BASE)&CPsisiManager::getCurrentServiceInfos,  (char*)"getCurrentServiceInfos"};
+		{(PFN_SEQ_BASE)&CPsisiManager::onGetCurrentServiceInfos,  (char*)"onGetCurrentServiceInfos"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_GET_PRESENT_EVENT_INFO] =
-		{(PFN_SEQ_BASE)&CPsisiManager::getPresentEventInfo,  (char*)"getPresentEventInfo"};
+		{(PFN_SEQ_BASE)&CPsisiManager::onGetPresentEventInfo,  (char*)"onGetPresentEventInfo"};
 	mSeqs [EN_SEQ_PSISI_MANAGER_GET_FOLLOW_EVENT_INFO] =
-		{(PFN_SEQ_BASE)&CPsisiManager::getFollowEventInfo,  (char*)"getFollowEventInfo"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_CACHES]   = {(PFN_SEQ_BASE)&CPsisiManager::dumpCaches,  (char*)"dumpCaches"};
-	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_TABLES]   = {(PFN_SEQ_BASE)&CPsisiManager::dumpTables,  (char*)"dumpTables"};
+		{(PFN_SEQ_BASE)&CPsisiManager::onGetFollowEventInfo,  (char*)"onGetFollowEventInfo"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_CACHES]   = {(PFN_SEQ_BASE)&CPsisiManager::onDumpCaches,  (char*)"onDumpCaches"};
+	mSeqs [EN_SEQ_PSISI_MANAGER_DUMP_TABLES]   = {(PFN_SEQ_BASE)&CPsisiManager::onDumpTables,  (char*)"onDumpTables"};
 	setSeqs (mSeqs, EN_SEQ_PSISI_MANAGER_NUM);
 
 
@@ -80,7 +80,7 @@ CPsisiManager::~CPsisiManager (void)
 }
 
 
-void CPsisiManager::moduleUp (CThreadMgrIf *pIf)
+void CPsisiManager::onModuleUp (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -196,7 +196,7 @@ void CPsisiManager::moduleUp (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::moduleDown (CThreadMgrIf *pIf)
+void CPsisiManager::onModuleDown (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -219,7 +219,7 @@ void CPsisiManager::moduleDown (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
+void CPsisiManager::onCheckLoop (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -328,7 +328,7 @@ void CPsisiManager::checkLoop (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
+void CPsisiManager::onParserNotice (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -402,7 +402,7 @@ void CPsisiManager::parserNotice (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::stabilizationAfterTuning (CThreadMgrIf *pIf)
+void CPsisiManager::onStabilizationAfterTuning (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -458,7 +458,7 @@ void CPsisiManager::stabilizationAfterTuning (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::registerPatDetectNotify (CThreadMgrIf *pIf)
+void CPsisiManager::onRegisterPatDetectNotify (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -491,7 +491,7 @@ void CPsisiManager::registerPatDetectNotify (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::unregisterPatDetectNotify (CThreadMgrIf *pIf)
+void CPsisiManager::onUnregisterPatDetectNotify (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -524,7 +524,7 @@ void CPsisiManager::unregisterPatDetectNotify (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::registerEventChangeNotify (CThreadMgrIf *pIf)
+void CPsisiManager::onRegisterEventChangeNotify (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -557,7 +557,7 @@ void CPsisiManager::registerEventChangeNotify (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::unregisterEventChangeNotify (CThreadMgrIf *pIf)
+void CPsisiManager::onUnregisterEventChangeNotify (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -590,7 +590,7 @@ void CPsisiManager::unregisterEventChangeNotify (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::getPatDetectState (CThreadMgrIf *pIf)
+void CPsisiManager::onGetPatDetectState (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -614,7 +614,7 @@ void CPsisiManager::getPatDetectState (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::getCurrentServiceInfos (CThreadMgrIf *pIf)
+void CPsisiManager::onGetCurrentServiceInfos (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -642,7 +642,7 @@ void CPsisiManager::getCurrentServiceInfos (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::getPresentEventInfo (CThreadMgrIf *pIf)
+void CPsisiManager::onGetPresentEventInfo (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -697,7 +697,7 @@ void CPsisiManager::getPresentEventInfo (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::getFollowEventInfo (CThreadMgrIf *pIf)
+void CPsisiManager::onGetFollowEventInfo (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -752,7 +752,7 @@ void CPsisiManager::getFollowEventInfo (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::dumpCaches (CThreadMgrIf *pIf)
+void CPsisiManager::onDumpCaches (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -791,7 +791,7 @@ void CPsisiManager::dumpCaches (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::dumpTables (CThreadMgrIf *pIf)
+void CPsisiManager::onDumpTables (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;

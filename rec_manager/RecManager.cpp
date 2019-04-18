@@ -25,7 +25,7 @@ extern "C" {
 
 
 typedef struct {
-	EN_REC_STATE rec_state;
+	EN_REC_PROGRESS rec_progress;
 	EN_RESERVE_STATE reserve_state;
 } _RECORDING_NOTICE;
 
@@ -36,7 +36,7 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	,m_tsReceive_handlerId (-1)
 	,m_patDetectNotify_clientId (0xff)
 	,m_eventChangeNotify_clientId (0xff)
-	,m_recState (EN_REC_STATE__INIT)
+	,m_recProgress (EN_REC_PROGRESS__INIT)
 	,mp_outputBuffer (NULL)
 {
 	mSeqs [EN_SEQ_REC_MANAGER_MODULE_UP]   = {(PFN_SEQ_BASE)&CRecManager::onModuleUp,   (char*)"onModuleUp"};
@@ -293,34 +293,24 @@ void CRecManager::onCheckLoop (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_WAIT:
 
+		// recording end check
+		checkRecordingEnd ();
+
 		// reserve check
 		checkReserves ();
 		refreshReserves ();
 
-		if ((!m_recState == EN_REC_STATE__INIT) || m_recording.is_used) {
-			_UTL_LOG_W ("wait pickReqStartRecordingReserve");
-			sectId = SECTID_CHECK;
-			enAct = EN_THM_ACT_CONTINUE;
+		if (pickReqStartRecordingReserve ()) {
+			// request start recording
+			requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_START_RECORDING);
+
+			sectId = SECTID_WAIT_START_RECORDING;
+			enAct = EN_THM_ACT_WAIT;
 
 		} else {
-
-			if (pickReqStartRecordingReserve ()) {
-
-				// request start recording
-				requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_START_RECORDING);
-
-				sectId = SECTID_WAIT_START_RECORDING;
-				enAct = EN_THM_ACT_WAIT;
-
-			} else {
-				sectId = SECTID_CHECK;
-				enAct = EN_THM_ACT_CONTINUE;
-			}
+			sectId = SECTID_CHECK;
+			enAct = EN_THM_ACT_CONTINUE;
 		}
-
-
-		// recording end check
-
 
 		break;
 
@@ -368,35 +358,35 @@ void CRecManager::onRecordingNotice (CThreadMgrIf *pIf)
 
 
 	_RECORDING_NOTICE _notice = *(_RECORDING_NOTICE*)(pIf->getSrcInfo()->msg.pMsg);
-	switch (_notice.rec_state) {
-	case EN_REC_STATE__INIT:
+	switch (_notice.rec_progress) {
+	case EN_REC_PROGRESS__INIT:
 		break;
 
-	case EN_REC_STATE__PRE_PROCESS:
+	case EN_REC_PROGRESS__PRE_PROCESS:
 		if (_notice.reserve_state != EN_RESERVE_STATE__INIT) {
 			_tmp_reserve_state = _notice.reserve_state;
 		}
 		break;
 
-	case EN_REC_STATE__NOW_RECORDING:
+	case EN_REC_PROGRESS__NOW_RECORDING:
 		if (_notice.reserve_state != EN_RESERVE_STATE__INIT) {
 			_tmp_reserve_state = _notice.reserve_state;
 		}
 		break;
 
-	case EN_REC_STATE__END_SUCCESS:
+	case EN_REC_PROGRESS__END_SUCCESS:
 		if (_notice.reserve_state != EN_RESERVE_STATE__INIT) {
 			_tmp_reserve_state = _notice.reserve_state;
 		}
 		break;
 
-	case EN_REC_STATE__END_ERROR:
+	case EN_REC_PROGRESS__END_ERROR:
 		if (_notice.reserve_state != EN_RESERVE_STATE__INIT) {
 			_tmp_reserve_state = _notice.reserve_state;
 		}
 		break;
 
-	case EN_REC_STATE__POST_PROCESS:
+	case EN_REC_PROGRESS__POST_PROCESS:
 		if (_notice.reserve_state != EN_RESERVE_STATE__INIT) {
 			_tmp_reserve_state = _notice.reserve_state;
 		}
@@ -460,15 +450,18 @@ void CRecManager::onStartRecording (CThreadMgrIf *pIf)
 
 	case SECTID_START_RECORDING:
 
-		if (m_recState == EN_REC_STATE__INIT) {
+		// ここはm_recProgressで判断いれとく
+		if (m_recProgress == EN_REC_PROGRESS__INIT) {
 
 			_UTL_LOG_I ("start recording (on tune thread)");
-			m_recState = EN_REC_STATE__PRE_PROCESS;
+			m_recProgress = EN_REC_PROGRESS__PRE_PROCESS;
+			m_recording.state = EN_RESERVE_STATE__NOW_RECORDING;
+
 			sectId = SECTID_END_SUCCESS;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			_UTL_LOG_E ("m_recState != EN_REC_STATE__INIT ???  -> not start recording");
+			_UTL_LOG_E ("m_recProgress != EN_REC_PROGRESS__INIT ???  -> not start recording");
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -686,11 +679,26 @@ void CRecManager::onSetReserve_manual (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
+	_MANUAL_RESERVE_PARAM _param = *(_MANUAL_RESERVE_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
 
 
+// サービス存在チェック
 
+	bool r = setReserve (
+					_param.transport_stream_id,
+					_param .original_network_id,
+					_param.service_id,
+					0x00,
+					&_param.start_time,
+					&_param.end_time,
+					NULL
+				);
+	if (r) {
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+	} else {
+		pIf->reply (EN_THM_RSLT_ERROR);
+	}
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
@@ -710,11 +718,11 @@ void CRecManager::onStopRecording (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	if (m_recState == EN_REC_STATE__NOW_RECORDING &&
-			m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
+	if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
 
 		// エラー終了
-		m_recState = EN_REC_STATE__END_ERROR;
+		_UTL_LOG_W ("m_recProgress = EN_REC_PROGRESS__END_ERROR");
+		m_recProgress = EN_REC_PROGRESS__END_ERROR;
 		m_recording.state = EN_RESERVE_STATE__END_ERROR__FORCE_STOP;
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
@@ -848,6 +856,11 @@ bool CRecManager::setReserve (
 		return false;
 	}
 
+	if (*p_start_time >= *p_end_time) {
+		_UTL_LOG_E ("invalid reserve time");
+		return false;
+	}
+
 
 	CRecReserve tmp;
 	tmp.set (
@@ -872,7 +885,7 @@ bool CRecManager::setReserve (
 	}
 
 	if (isOverrapTimeReserve (&tmp)) {
-		_UTL_LOG_E ("reserve time is Overrap.");
+		_UTL_LOG_E ("reserve time is overrap.");
 		return false;
 	}
 
@@ -1003,45 +1016,16 @@ bool CRecManager::isOverrapTimeReserve (CRecReserve* p_reserve)
 			continue;
 		}
 
-		if (
-			m_reserves [i].start_time <= p_reserve->start_time &&
-			m_reserves [i].end_time >= p_reserve->end_time
-		) {
-			// start        end
-			// |------------|
-			//   |-------|
-			return true;
+		if (m_reserves [i].start_time > p_reserve->start_time && m_reserves [i].start_time > p_reserve->end_time) {
+			continue;
 		}
 
-		if (
-			m_reserves [i].start_time >= p_reserve->start_time &&
-			m_reserves [i].end_time <= p_reserve->end_time
-		) {
-			//   start   end
-			//   |-------|
-			// |-----------|
-			return true;
+		if (m_reserves [i].end_time < p_reserve->start_time && m_reserves [i].end_time < p_reserve->end_time) {
+			continue;
 		}
 
-		if (
-			m_reserves [i].start_time <= p_reserve->start_time &&
-			m_reserves [i].end_time <= p_reserve->end_time
-		) {
-			// start        end
-			// |------------|
-			//   |-------------|
-			return true;
-		}
-
-		if (
-			m_reserves [i].start_time >= p_reserve->start_time &&
-			m_reserves [i].end_time >= p_reserve->end_time
-		) {
-			//    start        end
-			//    |------------|
-			// |-----------|
-			return true;
-		}
+		// overrap
+		return true;
 	}
 
 	return false;
@@ -1082,7 +1066,8 @@ void CRecManager::checkReserves (void)
  */
 void CRecManager::refreshReserves (void)
 {
-	for (int i = RESERVE_NUM_MAX -1; i < 0; -- i) {
+	// 逆から見てエラーのものを詰めます
+	for (int i = RESERVE_NUM_MAX -1; i >= 0; -- i) {
 		if (!m_reserves [i].is_used) {
 			continue;
 		}
@@ -1091,7 +1076,6 @@ void CRecManager::refreshReserves (void)
 			continue;
 		}
 
-		// 逆から見てエラーのものを詰めます
 		for (int j = i; j < RESERVE_NUM_MAX -1; ++ j) {
 			m_reserves [j] = m_reserves [j+1];
 		}
@@ -1101,6 +1085,10 @@ void CRecManager::refreshReserves (void)
 
 bool CRecManager::pickReqStartRecordingReserve (void)
 {
+	if (m_recording.is_used) {
+		return false;
+	}
+
 	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
 		if (!m_reserves [i].is_used) {
 			continue;
@@ -1140,8 +1128,8 @@ void CRecManager::setResult (CRecReserve *p_error, EN_RESERVE_STATE enState)
 
 	// m_results full
 	// 最古のものを消します
-	for (int i = RESULT_NUM_MAX -1; i < 0; -- i) {
-		m_results [i-1] = m_results [i] ;		
+	for (int i = 0; i < RESULT_NUM_MAX -1; ++ i) {
+		m_results [i] = m_results [i + 1] ;		
 	}
 
 	m_results [RESULT_NUM_MAX -1].clear ();
@@ -1149,7 +1137,7 @@ void CRecManager::setResult (CRecReserve *p_error, EN_RESERVE_STATE enState)
 	m_results [RESULT_NUM_MAX -1].state = enState;
 }
 
-void CRecManager::dumpRecordingEnd (void)
+void CRecManager::checkRecordingEnd (void)
 {
 	if (!m_recording.is_used) {
 		return ;
@@ -1163,8 +1151,12 @@ void CRecManager::dumpRecordingEnd (void)
 	current_time.setCurrentTime();
 
 	if (m_recording.end_time <= current_time) {
+
 		// 正常終了します
-		m_recState = EN_REC_STATE__END_SUCCESS;
+		if (m_recProgress == EN_REC_PROGRESS__NOW_RECORDING) {
+			_UTL_LOG_I ("m_recProgress = EN_REC_PROGRESS__END_SUCCESS");
+			m_recProgress = EN_REC_PROGRESS__END_SUCCESS;
+		}
 	}
 
 }
@@ -1241,14 +1233,15 @@ bool CRecManager::onCheckTsReceiveLoop (void)
 
 bool CRecManager::onTsReceived (void *p_ts_data, int length)
 {
-	switch (m_recState) {
-	case EN_REC_STATE__PRE_PROCESS:
+	switch (m_recProgress) {
+	case EN_REC_PROGRESS__PRE_PROCESS:
+		_UTL_LOG_I ("EN_REC_PROGRESS__PRE_PROCESS");
 
 		mp_outputBuffer = create_FileBufferedWriter (768 * 1024, "tmp.m2ts");
 		if (!mp_outputBuffer) {
 			_UTL_LOG_E ("failed to init FileBufferedWriter.");
 
-			_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR};
+			_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR};
 			requestAsync (
 				EN_MODULE_REC_MANAGER,
 				EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
@@ -1257,7 +1250,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 			);
 
 			// next
-			m_recState = EN_REC_STATE__END_ERROR;
+			m_recProgress = EN_REC_PROGRESS__END_ERROR;
 
 		} else {
 
@@ -1267,7 +1260,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 				_UTL_LOG_E ("failed to init TS Parser.");
 				OutputBuffer_release (pFileBufferedWriter);
 
-				_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR};
+				_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR};
 				requestAsync (
 					EN_MODULE_REC_MANAGER,
 					EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
@@ -1276,12 +1269,12 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 				);
 
 				// next
-				m_recState = EN_REC_STATE__END_ERROR;
+				m_recProgress = EN_REC_PROGRESS__END_ERROR;
 
 			}
 
 
-			_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__INIT};
+			_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__INIT};
 			requestAsync (
 				EN_MODULE_REC_MANAGER,
 				EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
@@ -1290,25 +1283,26 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 			);
 
 			// next
-			m_recState = EN_REC_STATE__NOW_RECORDING;
+			m_recProgress = EN_REC_PROGRESS__NOW_RECORDING;
 
 		}
 
 		break;
 
-	case EN_REC_STATE__NOW_RECORDING: {
+	case EN_REC_PROGRESS__NOW_RECORDING: {
 
 		// recording
-		int r = OutputBuffer_put (NULL, p_ts_data, length);
+		int r = OutputBuffer_put (mp_outputBuffer, p_ts_data, length);
 		if (r < 0) {
 			_UTL_LOG_W ("TS write failed");
 		}
 
 		} break;
 
-	case EN_REC_STATE__END_SUCCESS: {
+	case EN_REC_PROGRESS__END_SUCCESS: {
+		_UTL_LOG_I ("EN_REC_PROGRESS__END_SUCCESS");
 
-		_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__END_SUCCESS};
+		_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__END_SUCCESS};
 		requestAsync (
 			EN_MODULE_REC_MANAGER,
 			EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
@@ -1317,13 +1311,14 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 		);
 
 		// next
-		m_recState = EN_REC_STATE__POST_PROCESS;
+		m_recProgress = EN_REC_PROGRESS__POST_PROCESS;
 
 		} break;
 
-	case EN_REC_STATE__END_ERROR: {
+	case EN_REC_PROGRESS__END_ERROR: {
+		_UTL_LOG_I ("EN_REC_PROGRESS__END_ERROR");
 
-		_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__INIT};
+		_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__INIT};
 		requestAsync (
 			EN_MODULE_REC_MANAGER,
 			EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
@@ -1332,11 +1327,12 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 		);
 
 		// next
-		m_recState = EN_REC_STATE__POST_PROCESS;
+		m_recProgress = EN_REC_PROGRESS__POST_PROCESS;
 
 		} break;
 
-	case EN_REC_STATE__POST_PROCESS: {
+	case EN_REC_PROGRESS__POST_PROCESS: {
+		_UTL_LOG_I ("EN_REC_PROGRESS__POST_PROCESS");
 
 		if (mp_outputBuffer) {
 			OutputBuffer_flush (mp_outputBuffer);
@@ -1344,7 +1340,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 			mp_outputBuffer = NULL;
 		}
 
-		_RECORDING_NOTICE _notice = {m_recState, EN_RESERVE_STATE__INIT};
+		_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__INIT};
 		requestAsync (
 			EN_MODULE_REC_MANAGER,
 			EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
@@ -1353,7 +1349,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 		);
 
 		// next
-		m_recState = EN_REC_STATE__INIT;
+		m_recProgress = EN_REC_PROGRESS__INIT;
 
 		} break;
 
