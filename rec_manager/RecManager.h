@@ -208,7 +208,7 @@ private:
 	void checkReserves (void);
 	void refreshReserves (void);
 	bool pickReqStartRecordingReserve (void);
-	void setResult (CRecReserve *p_error, EN_RESERVE_STATE enState);
+	void setResult (CRecReserve *p);
 	void checkRecordingEnd (void);
 	void dumpReserves (void);
 	void dumpResults (void);

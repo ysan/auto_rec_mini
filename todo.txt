@@ -12,3 +12,4 @@ eit scheduleはsectionのリスト管理しないで 派生クラスでテーブ
     p/f はsectionリスト管理して重複はチェックする
     -->バッファサイズとfifo数はそんなに必要ないはず
 psisi structs のclear関数 必要かどうか
+json.hpp cereal
