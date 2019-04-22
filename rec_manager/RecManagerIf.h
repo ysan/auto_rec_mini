@@ -20,8 +20,9 @@ enum {
 	EN_SEQ_REC_MANAGER_CHECK_LOOP,				// inner
 	EN_SEQ_REC_MANAGER_RECORDING_NOTICE,		// inner
 	EN_SEQ_REC_MANAGER_START_RECORDING,			// inner
-	EN_SEQ_REC_MANAGER_SET_RESERVE_CURRENT_EVENT,
-	EN_SEQ_REC_MANAGER_SET_RESERVE_MANUAL,
+	EN_SEQ_REC_MANAGER_ADD_RESERVE_CURRENT_EVENT,
+	EN_SEQ_REC_MANAGER_ADD_RESERVE_MANUAL,
+	EN_SEQ_REC_MANAGER_REMOVE_RESERVE,
 	EN_SEQ_REC_MANAGER_STOP_RECORDING,
 	EN_SEQ_REC_MANAGER_DUMP_RESERVES,
 
@@ -68,20 +69,33 @@ public:
 		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_MODULE_DOWN);
 	};
 
-	bool reqSetReserve_currentEvent (void) {
-		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_SET_RESERVE_CURRENT_EVENT);
+	bool reqAddReserve_currentEvent (void) {
+		return requestAsync (
+					EN_MODULE_REC_MANAGER,
+					EN_SEQ_REC_MANAGER_ADD_RESERVE_CURRENT_EVENT
+				);
 	};
 
-	bool reqSetReserve_manual (_MANUAL_RESERVE_PARAM *p_param) {
+	bool reqAddReserve_manual (_MANUAL_RESERVE_PARAM *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
 		return requestAsync (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER_SET_RESERVE_MANUAL,
+					EN_SEQ_REC_MANAGER_ADD_RESERVE_MANUAL,
 					(uint8_t*)p_param,
 					sizeof (_MANUAL_RESERVE_PARAM)
+				);
+	};
+
+	bool reqRemoveReserve (int index) {
+		int _idx = index;
+		return requestAsync (
+					EN_MODULE_REC_MANAGER,
+					EN_SEQ_REC_MANAGER_REMOVE_RESERVE,
+					(uint8_t*)&_idx,
+					sizeof (int)
 				);
 	};
 

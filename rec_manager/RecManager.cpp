@@ -46,10 +46,12 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CRecManager::onRecordingNotice,  (char*)"onRecordingNotice"};
 	mSeqs [EN_SEQ_REC_MANAGER_START_RECORDING] =
 		{(PFN_SEQ_BASE)&CRecManager::onStartRecording, (char*)"onStartRecording"};
-	mSeqs [EN_SEQ_REC_MANAGER_SET_RESERVE_CURRENT_EVENT] =
-		{(PFN_SEQ_BASE)&CRecManager::onSetReserve_currentEvent, (char*)"onSetReserve_currentEvent"};
-	mSeqs [EN_SEQ_REC_MANAGER_SET_RESERVE_MANUAL] =
-		{(PFN_SEQ_BASE)&CRecManager::onSetReserve_manual, (char*)"onSetReserve_manual"};
+	mSeqs [EN_SEQ_REC_MANAGER_ADD_RESERVE_CURRENT_EVENT] =
+		{(PFN_SEQ_BASE)&CRecManager::onAddReserve_currentEvent, (char*)"onAddReserve_currentEvent"};
+	mSeqs [EN_SEQ_REC_MANAGER_ADD_RESERVE_MANUAL] =
+		{(PFN_SEQ_BASE)&CRecManager::onAddReserve_manual, (char*)"onAddReserve_manual"};
+	mSeqs [EN_SEQ_REC_MANAGER_REMOVE_RESERVE] =
+		{(PFN_SEQ_BASE)&CRecManager::onRemoveReserve, (char*)"onRemoveReserve"};
 	mSeqs [EN_SEQ_REC_MANAGER_STOP_RECORDING] =
 		{(PFN_SEQ_BASE)&CRecManager::onStopRecording, (char*)"onStopRecording"};
 	mSeqs [EN_SEQ_REC_MANAGER_DUMP_RESERVES] =
@@ -58,11 +60,15 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 
 
 	clearReserves ();
+	clearResults ();
+	m_recording.clear();
 }
 
 CRecManager::~CRecManager (void)
 {
 	clearReserves ();
+	clearResults ();
+	m_recording.clear();
 }
 
 
@@ -472,7 +478,7 @@ void CRecManager::onStartRecording (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onSetReserve_currentEvent (CThreadMgrIf *pIf)
+void CRecManager::onAddReserve_currentEvent (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -614,8 +620,8 @@ m_serviceInfos[0].dump();
         if (enRslt == EN_THM_RSLT_SUCCESS) {
 m_presentEventInfo.dump();
 
-			// set reserve
-			if (setReserve (&m_presentEventInfo)) {
+			// add reserve
+			if (addReserve (&m_presentEventInfo)) {
 				sectId = SECTID_END_SUCCESS;
 				enAct = EN_THM_ACT_CONTINUE;
 
@@ -651,7 +657,7 @@ m_presentEventInfo.dump();
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onSetReserve_manual (CThreadMgrIf *pIf)
+void CRecManager::onAddReserve_manual (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -667,9 +673,9 @@ void CRecManager::onSetReserve_manual (CThreadMgrIf *pIf)
 	_MANUAL_RESERVE_PARAM _param = *(_MANUAL_RESERVE_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
 
 
-// サービス存在チェック
+//TODO サービス存在チェック
 
-	bool r = setReserve (
+	bool r = addReserve (
 					_param.transport_stream_id,
 					_param .original_network_id,
 					_param.service_id,
@@ -679,6 +685,33 @@ void CRecManager::onSetReserve_manual (CThreadMgrIf *pIf)
 					NULL
 				);
 	if (r) {
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+	} else {
+		pIf->reply (EN_THM_RSLT_ERROR);
+	}
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CRecManager::onRemoveReserve (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	int index = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+
+	if (removeReserve (index)) {
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 	} else {
 		pIf->reply (EN_THM_RSLT_ERROR);
@@ -808,13 +841,13 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 }
 
-bool CRecManager::setReserve (PSISI_EVENT_INFO *p_info)
+bool CRecManager::addReserve (PSISI_EVENT_INFO *p_info)
 {
 	if (!p_info) {
 		return false;
 	}
 
-	bool r = setReserve (
+	bool r = addReserve (
 					p_info->transport_stream_id,
 					p_info->original_network_id,
 					p_info->service_id,
@@ -827,7 +860,7 @@ bool CRecManager::setReserve (PSISI_EVENT_INFO *p_info)
 	return r;
 }
 
-bool CRecManager::setReserve (
+bool CRecManager::addReserve (
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
 	uint16_t _service_id,
@@ -890,6 +923,25 @@ bool CRecManager::setReserve (
 				p_end_time,
 				psz_title_name
 			);
+
+	return true;
+}
+
+/**
+ * indexで指定したものを削除します
+ * 0始まり
+ */
+bool CRecManager::removeReserve (int index)
+{
+	if (index >= RESERVE_NUM_MAX) {
+		return false;
+	}
+
+	// 間詰め
+	for (int i = index; i < RESERVE_NUM_MAX -1; ++ i) {
+		m_reserves [i] = m_reserves [i+1];
+	}
+	m_reserves [RESERVE_NUM_MAX -1].clear();
 
 	return true;
 }
@@ -1151,10 +1203,12 @@ void CRecManager::dumpReserves (void)
 	if (m_recording.is_used) {
 		_UTL_LOG_I ("-----------   now recording  ------------");
 		m_recording.dump();
+		_UTL_LOG_I ("\n");
 	}
 	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
 		if (m_reserves [i].is_used) {
 			_UTL_LOG_I ("-----------------------------------------");
+			_UTL_LOG_I ("-- index=[%d] --", i);
 			m_reserves [i].dump();
 		}
 	}
@@ -1177,12 +1231,13 @@ void CRecManager::clearReserves (void)
 	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
 		m_reserves [i].clear();
 	}
+}
 
+void CRecManager::clearResults (void)
+{
 	for (int i = 0; i < RESULT_NUM_MAX; ++ i) {
 		m_results [i].clear();
 	}
-
-	m_recording.clear ();
 }
 
 
@@ -1267,7 +1322,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 
 			// next
 			m_recProgress = EN_REC_PROGRESS__NOW_RECORDING;
-
+			_UTL_LOG_I ("next  EN_REC_PROGRESS__NOW_RECORDING");
 		}
 
 		break;

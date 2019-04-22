@@ -181,8 +181,9 @@ public:
 	void onCheckLoop (CThreadMgrIf *pIf);
 	void onRecordingNotice (CThreadMgrIf *pIf);
 	void onStartRecording (CThreadMgrIf *pIf);
-	void onSetReserve_currentEvent (CThreadMgrIf *pIf);
-	void onSetReserve_manual (CThreadMgrIf *pIf);
+	void onAddReserve_currentEvent (CThreadMgrIf *pIf);
+	void onAddReserve_manual (CThreadMgrIf *pIf);
+	void onRemoveReserve (CThreadMgrIf *pIf);
 	void onStopRecording (CThreadMgrIf *pIf);
 	void onDumpReserves (CThreadMgrIf *pIf);
 
@@ -190,8 +191,8 @@ public:
 
 
 private:
-	bool setReserve (PSISI_EVENT_INFO *p_info);
-	bool setReserve (
+	bool addReserve (PSISI_EVENT_INFO *p_info);
+	bool addReserve (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id,
@@ -200,6 +201,7 @@ private:
 		CEtime* p_end_time,
 		char *psz_title_name
 	);
+	bool removeReserve (int index);
 	CRecReserve* searchAscendingOrderReserve (CEtime *p_start_time_rf);
 	bool isExistEmptyReserve (void);
 	CRecReserve *findEmptyReserve (void);
@@ -213,6 +215,7 @@ private:
 	void dumpReserves (void);
 	void dumpResults (void);
 	void clearReserves (void);
+	void clearResults (void);
 
 
 
