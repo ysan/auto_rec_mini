@@ -84,7 +84,7 @@ typedef struct {
 			start_time.toString(),
 			end_time.toString()
 		);
-		_UTL_LOG_I ("[%s]", event_name_char);
+		_UTL_LOG_I ("event_name:[%s]", event_name_char);
 	}
 
 } PSISI_EVENT_INFO;

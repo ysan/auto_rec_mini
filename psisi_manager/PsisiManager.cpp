@@ -1571,9 +1571,11 @@ _EVENT_PF_INFO* CPsisiManager::findEventPfInfo (
 			continue;
 		}
 
+#ifndef _DUMMY_TUNER // デバッグ中はp/f関係なしに
 		if (m_eventPfInfos [i].state != state) {
 			continue;
 		}
+#endif
 
 		if (
 			(m_eventPfInfos [i].table_id == _table_id) &&

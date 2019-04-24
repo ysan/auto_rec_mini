@@ -94,37 +94,37 @@ static time_t dateString2epoch (char *pszDate)
 
 static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 {
-	if (argc != 5) {
+	if (argc != 6) {
 		_UTL_LOG_E ("invalid arguments.");
 		return;
 	}
 
-	uint16_t _ts_id = 0;
-	std::regex regex_ts_id ("^[0-9]+$");
-	if (!std::regex_match (argv[0], regex_ts_id)) {
-		std::regex regex_ts_id ("^0x([0-9]|[a-f]|[A-F])+$");
-		if (!std::regex_match (argv[0], regex_ts_id)) {
+	uint16_t _tsid = 0;
+	std::regex regex_tsid ("^[0-9]+$");
+	if (!std::regex_match (argv[0], regex_tsid)) {
+		std::regex regex_tsid ("^0x([0-9]|[a-f]|[A-F])+$");
+		if (!std::regex_match (argv[0], regex_tsid)) {
 			_UTL_LOG_E ("invalid arguments.");
 			return;
 		} else {
-			_ts_id = strtol (argv[0], NULL, 16);
+			_tsid = strtol (argv[0], NULL, 16);
 		}
 	} else {
-		_ts_id = atoi (argv[0]);
+		_tsid = atoi (argv[0]);
 	}
 
-	uint16_t _n_id = 0;
-	std::regex regex_n_id ("^[0-9]+$");
-	if (!std::regex_match (argv[1], regex_n_id)) {
-		std::regex regex_n_id ("^0x([0-9]|[a-f]|[A-F])+$");
-		if (!std::regex_match (argv[1], regex_n_id)) {
+	uint16_t _org_nid = 0;
+	std::regex regex_org_nid ("^[0-9]+$");
+	if (!std::regex_match (argv[1], regex_org_nid)) {
+		std::regex regex_org_nid ("^0x([0-9]|[a-f]|[A-F])+$");
+		if (!std::regex_match (argv[1], regex_org_nid)) {
 			_UTL_LOG_E ("invalid arguments.");
 			return;
 		} else {
-			_n_id = strtol (argv[1], NULL, 16);
+			_org_nid = strtol (argv[1], NULL, 16);
 		}
 	} else {
-		_n_id = atoi (argv[1]);
+		_org_nid = atoi (argv[1]);
 	}
 
 	uint16_t _svc_id = 0;
@@ -173,12 +173,21 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 	CEtime s (_start);
 	CEtime e (_end);
 
+	std::regex regex_repeat("^[0-2]$");
+	if (!std::regex_match (argv[5], regex_repeat)) {
+		_UTL_LOG_E ("invalid arguments.");
+		return;
+	}
+	EN_RESERVE_REPEATABILITY r = (EN_RESERVE_REPEATABILITY) atoi (argv[5]);
+
+
 	_MANUAL_RESERVE_PARAM _param;
-	_param.transport_stream_id = _ts_id ;
-	_param.original_network_id = _n_id;
+	_param.transport_stream_id = _tsid ;
+	_param.original_network_id = _org_nid;
 	_param.service_id = _svc_id;
 	_param.start_time = s;
 	_param.end_time = e;
+	_param.repeatablity = r;
 
 	_param.dump();
 
@@ -281,14 +290,14 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 	},
 	{
 		"m",
-		"add reserve - Manual (usage: m {ts_id} {n_id} {service_id} {start_time} {end_time}\n\
-                                                         start_time, end_time format is \"yyyyMMddHHmmss\")",
+		"add reserve - Manual (usage: m {tsid} {org_nid} {svcid} {start_time} {end_time} {repeat}\n\
+                                           start_time, end_time format is \"yyyyMMddHHmmss\")",
 		addReserve_manual,
 		NULL,
 	},
 	{
 		"r",
-		"remove reserve (udage: r {idx})",
+		"remove reserve (usage: r {index})",
 		removeReserve,
 		NULL,
 	},

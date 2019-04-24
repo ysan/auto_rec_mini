@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <string>
+
 #include "threadmgr_if.h"
 #include "threadmgr_util.h"
 
@@ -61,6 +63,7 @@ const char *g_reserveState [] = {
 	"END_ERROR__INTERNAL_ERR",
 };
 
+
 class CRecReserve {
 public:
 	CRecReserve (void) {
@@ -108,7 +111,9 @@ public:
 	CEtime start_time;
 	CEtime end_time;
 
-	char title_name [1024];
+	std::string title_name;
+
+	EN_RESERVE_REPEATABILITY repeatability;
 
 	EN_RESERVE_STATE state;
 	bool is_used;
@@ -121,7 +126,8 @@ public:
 		uint16_t _event_id,
 		CEtime* p_start_time,
 		CEtime* p_end_time,
-		char *psz_title_name
+		char *psz_title_name,
+		EN_RESERVE_REPEATABILITY _repeatability
 	)
 	{
 		this->transport_stream_id = _transport_stream_id;
@@ -131,18 +137,23 @@ public:
 		this->start_time = *p_start_time;
 		this->end_time = *p_end_time;
 		if (psz_title_name) {
-			strncpy (this->title_name, psz_title_name, strlen(psz_title_name));
+			this->title_name = psz_title_name ;
 		}
+		this->repeatability = _repeatability;
+		
 		this->state = EN_RESERVE_STATE__INIT;
 		this->is_used = true;
 	}
 
 	void clear (void) {
-//TODO 適当クリア
-		// clear all
-		memset (this, 0x00, sizeof(CRecReserve));
+		transport_stream_id = 0;
+		original_network_id = 0;
+		service_id = 0;
+		event_id = 0;
 		start_time.clear();
-		end_time.clear();
+		end_time.clear();	
+		title_name.clear();
+		repeatability = EN_RESERVE_REPEATABILITY__NONE;
 		state = EN_RESERVE_STATE__INIT;
 		is_used = false;
 	}
@@ -156,12 +167,13 @@ public:
 			event_id
 		);
 		_UTL_LOG_I (
-			"time:[%s - %s] state:[%s]",
+			"time:[%s - %s] repeat:[%d] state:[%s]",
 			start_time.toString(),
 			end_time.toString(),
+			repeatability,
 			g_reserveState [state]
 		);
-		_UTL_LOG_I ("title:[%s]", title_name);
+		_UTL_LOG_I ("title:[%s]", title_name.c_str());
 	}
 
 };
@@ -199,7 +211,8 @@ private:
 		uint16_t _event_id,
 		CEtime* p_start_time,
 		CEtime* p_end_time,
-		char *psz_title_name
+		char *psz_title_name,
+		EN_RESERVE_REPEATABILITY repeatability=EN_RESERVE_REPEATABILITY__NONE
 	);
 	bool removeReserve (int index);
 	CRecReserve* searchAscendingOrderReserve (CEtime *p_start_time_rf);

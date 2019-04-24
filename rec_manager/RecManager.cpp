@@ -867,7 +867,8 @@ bool CRecManager::addReserve (
 	uint16_t _event_id,
 	CEtime* p_start_time,
 	CEtime* p_end_time,
-	char *psz_title_name
+	char *psz_title_name,
+	EN_RESERVE_REPEATABILITY repeatabilitiy
 )
 {
 	if (!p_start_time || !p_end_time) {
@@ -888,7 +889,8 @@ bool CRecManager::addReserve (
 		_event_id,
 		p_start_time,
 		p_end_time,
-		psz_title_name
+		psz_title_name,
+		repeatabilitiy
 	);
 
 
@@ -921,7 +923,8 @@ bool CRecManager::addReserve (
 				_event_id,
 				p_start_time,
 				p_end_time,
-				psz_title_name
+				psz_title_name,
+				repeatabilitiy
 			);
 
 	return true;

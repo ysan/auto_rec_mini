@@ -55,10 +55,12 @@ public:
 
 	void clear (void);
 
+	// cerel 非侵入型対応のため やむなくpublicに 
+	struct timespec m_time;
+
 private:
 	void getString (char *pszOut, size_t nSize);
 
-	struct timespec m_time;
 	char m_time_str [64];
 };
 

@@ -156,7 +156,7 @@ public:
 			start_time.toString(),
 			end_time.toString()
 		);
-		_UTL_LOG_I ("  [%s]", event_name_char);
+		_UTL_LOG_I ("  event_name:[%s]", event_name_char);
 	}
 
 } _EVENT_PF_INFO;
@@ -217,7 +217,7 @@ public:
 			service_type
 		);
 		_UTL_LOG_I (
-			"  %s [%s] last_update:[%s]",
+			"  %s service_name:[%s] last_update:[%s]",
 			is_tune_target ? "*" : " ",
 			service_name_char,
 			last_update.toString()

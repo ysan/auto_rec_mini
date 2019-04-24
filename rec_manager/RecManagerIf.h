@@ -29,6 +29,12 @@ enum {
 	EN_SEQ_REC_MANAGER_NUM,
 };
 
+typedef enum {
+	EN_RESERVE_REPEATABILITY__NONE,
+	EN_RESERVE_REPEATABILITY__DAYLY,
+	EN_RESERVE_REPEATABILITY__WEEKLY,
+} EN_RESERVE_REPEATABILITY;
+
 typedef struct {
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
@@ -37,14 +43,17 @@ typedef struct {
 	CEtime start_time;
 	CEtime end_time;
 
+	EN_RESERVE_REPEATABILITY repeatablity;
+
 	void dump (void) {
 		_UTL_LOG_I (
-			"tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] time:[%s - %s]",
+			"tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] time:[%s - %s] repeat:[%d]",
 			transport_stream_id,
 			original_network_id,
 			service_id,
 			start_time.toString(),
-			end_time.toString()
+			end_time.toString(),
+			repeatablity
 		);
 	}
 
