@@ -458,101 +458,21 @@ void CCommandServer::ignoreSigpipe (void)
 }
 
 
-//-------------------------------------------------------//
-#define N (16)
-static ST_COMMAND_INFO *stack [N];
-static int sp = 0;
-static void push (ST_COMMAND_INFO *p)
-{
-	if (!p) {
-		return;
-	}
-	if (sp == N) {
-		return;
-	}
 
-	stack [sp] = p;
-	//printf ("push %d %p\n", sp, stack [sp]);
-	++ sp;
-}
-
-static ST_COMMAND_INFO *pop (void)
-{
-	if (sp == 0) {
-		return NULL;
-	}
-
-	ST_COMMAND_INFO *r = stack [sp -1];
-	//printf ("pop %d %p\n", sp -1, stack [sp -1]);
-	stack [sp -1] = NULL;
-	-- sp; 
-	return r;
-}
-
-static ST_COMMAND_INFO *peep (void)
-{
-	if (sp == 0) {
-		return NULL;
-	}
-	return stack [sp -1];
-}
-
-static ST_COMMAND_INFO *stack_sub [N];
-static int sp_sub = 0;
-static void push_sub (ST_COMMAND_INFO *p)
-{
-	if (!p) {
-		return;
-	}
-	if (sp_sub == N) {
-		return;
-	}
-
-	stack_sub [sp_sub] = p;
-	++ sp_sub;
-}
-
-static ST_COMMAND_INFO *pop_sub (void)
-{
-	if (sp_sub == 0) {
-		return NULL;
-	}
-
-	ST_COMMAND_INFO *r = stack_sub [sp_sub -1];
-	stack_sub [sp_sub -1] = NULL;
-	-- sp_sub; 
-	return r;
-}
-
-static ST_COMMAND_INFO *peep_sub (void)
-{
-	if (sp_sub == 0) {
-		return NULL;
-	}
-	return stack_sub [sp_sub -1];
-}
-
-static void clear_stacks (void)
-{
-	for (int i =0; i < N; ++i) {
-		stack [i] = NULL;
-		stack_sub [i] = NULL;	
-	}
-	sp = 0;
-	sp_sub = 0;
-}
-//-------------------------------------------------------//
-
+static CStack <ST_COMMAND_INFO> m_stack;
+static CStack <ST_COMMAND_INFO> m_stack_sub;
 
 void CCommandServer::printSubTables (void)
 {
-	if (sp_sub < 1) {
+	int sp = m_stack_sub.get_sp();
+	if (sp < 1) {
 		fprintf (gp_fptr_inner, "/");
 		return;
 	}
 
-	for (int i = 0; i < sp_sub; ++ i) {
-		fprintf (gp_fptr_inner, "/%s", stack_sub[i]->pszDesc);
+	for (int i = 0; i < sp; ++ i) {
+		ST_COMMAND_INFO *p = m_stack_sub.ref (i);
+		fprintf (gp_fptr_inner, "/%s", p->pszDesc);
 	}
 }
 
@@ -582,15 +502,15 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 			return;
 		}
 
-		ST_COMMAND_INFO *p = pop ();
-		pop_sub();
+		ST_COMMAND_INFO *p = m_stack.pop ();
+		m_stack_sub.pop();
 		if (p) {
 			gp_current_command_table = p;
 
 			if (gp_current_command_table == g_rootCommandTable) {
 				showList ("root tables");
 			} else{
-				showList (peep_sub()->pszDesc);
+				showList (m_stack_sub.peep()->pszDesc);
 			}
 		}
 
@@ -604,7 +524,7 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 		if (gp_current_command_table == g_rootCommandTable) {
 			showList ("root tables");
 		} else{
-			showList (peep_sub()->pszDesc);
+			showList (m_stack_sub.peep()->pszDesc);
 		}
 
 	} else {
@@ -627,8 +547,8 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 				} else {
 					// 下位テーブルに移る
 					if (pWorkTable->pNext) {
-						push (gp_current_command_table);
-						push_sub (pWorkTable);
+						m_stack.push (gp_current_command_table);
+						m_stack_sub.push (pWorkTable);
 						gp_current_command_table = pWorkTable->pNext;
 						showList (pWorkTable->pszDesc);
 					}
@@ -648,7 +568,8 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 
 void CCommandServer::onCommandWaitBegin (void)
 {
-	clear_stacks ();
+	m_stack.clear();
+	m_stack_sub.clear();
 
 	fprintf (gp_fptr_inner, "###  command line  begin. ###\n");
 
@@ -672,5 +593,6 @@ void CCommandServer::onCommandWaitEnd (void)
 {
 	fprintf (gp_fptr_inner, "\n###  command line  exit. ###\n");
 
-	clear_stacks ();
+	m_stack.clear();
+	m_stack_sub.clear();
 }

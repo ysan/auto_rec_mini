@@ -63,6 +63,12 @@ const char *g_reserveState [] = {
 	"END_ERROR__INTERNAL_ERR",
 };
 
+const char *g_repeatability [] = {
+	"NONE",
+	"DAYLY",
+	"WEEKLY",
+};
+
 
 class CRecReserve {
 public:
@@ -126,7 +132,7 @@ public:
 		uint16_t _event_id,
 		CEtime* p_start_time,
 		CEtime* p_end_time,
-		char *psz_title_name,
+		const char *psz_title_name,
 		EN_RESERVE_REPEATABILITY _repeatability
 	)
 	{
@@ -167,10 +173,10 @@ public:
 			event_id
 		);
 		_UTL_LOG_I (
-			"time:[%s - %s] repeat:[%d] state:[%s]",
+			"time:[%s - %s] repeat:[%s] state:[%s]",
 			start_time.toString(),
 			end_time.toString(),
-			repeatability,
+			g_repeatability [repeatability],
 			g_reserveState [state]
 		);
 		_UTL_LOG_I ("title:[%s]", title_name.c_str());
@@ -211,20 +217,21 @@ private:
 		uint16_t _event_id,
 		CEtime* p_start_time,
 		CEtime* p_end_time,
-		char *psz_title_name,
+		const char *psz_title_name,
 		EN_RESERVE_REPEATABILITY repeatability=EN_RESERVE_REPEATABILITY__NONE
 	);
 	bool removeReserve (int index);
 	CRecReserve* searchAscendingOrderReserve (CEtime *p_start_time_rf);
-	bool isExistEmptyReserve (void);
+	bool isExistEmptyReserve (void) const;
 	CRecReserve *findEmptyReserve (void);
-	bool isDuplicateReserve (CRecReserve* p_reserve);
-	bool isOverrapTimeReserve (CRecReserve* p_reserve);
+	bool isDuplicateReserve (const CRecReserve* p_reserve) const;
+	bool isOverrapTimeReserve (const CRecReserve* p_reserve) const;
 	void checkReserves (void);
 	void refreshReserves (void);
 	bool pickReqStartRecordingReserve (void);
 	void setResult (CRecReserve *p);
 	void checkRecordingEnd (void);
+	void checkRepeatability (const CRecReserve *p_reserve);
 	void dumpReserves (void);
 	void dumpResults (void);
 	void clearReserves (void);

@@ -20,6 +20,7 @@
 
 #include "Utils.h"
 #include "modules.h"
+#include "Settings.h"
 
 
 using namespace ThreadManager;
@@ -27,6 +28,9 @@ using namespace ThreadManager;
 
 int main (void)
 {
+	CSettings *set = CSettings::getInstance ();
+	set->load ();
+
 	initLogStdout();
 
 

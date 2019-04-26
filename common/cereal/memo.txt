@@ -1,0 +1,4 @@
+git clone 後
+git checkout -b v1.2.2 refs/tags/v1.2.2
+
+v1.2.2を使用します

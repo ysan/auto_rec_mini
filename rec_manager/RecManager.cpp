@@ -867,7 +867,7 @@ bool CRecManager::addReserve (
 	uint16_t _event_id,
 	CEtime* p_start_time,
 	CEtime* p_end_time,
-	char *psz_title_name,
+	const char *psz_title_name,
 	EN_RESERVE_REPEATABILITY repeatabilitiy
 )
 {
@@ -991,7 +991,7 @@ CRecReserve* CRecManager::searchAscendingOrderReserve (CEtime *p_start_time_ref)
 	}
 }
 
-bool CRecManager::isExistEmptyReserve (void)
+bool CRecManager::isExistEmptyReserve (void) const
 {
 	int i = 0;
 	for (i = 0; i < RESERVE_NUM_MAX; ++ i) {
@@ -1025,7 +1025,7 @@ CRecReserve* CRecManager::findEmptyReserve (void)
 	return &m_reserves [i];
 }
 
-bool CRecManager::isDuplicateReserve (CRecReserve* p_reserve)
+bool CRecManager::isDuplicateReserve (const CRecReserve* p_reserve) const
 {
 	if (!p_reserve) {
 		return false;
@@ -1045,7 +1045,7 @@ bool CRecManager::isDuplicateReserve (CRecReserve* p_reserve)
 	return false;
 }
 
-bool CRecManager::isOverrapTimeReserve (CRecReserve* p_reserve)
+bool CRecManager::isOverrapTimeReserve (const CRecReserve* p_reserve) const
 {
 	if (!p_reserve) {
 		return false;
@@ -1089,6 +1089,7 @@ void CRecManager::checkReserves (void)
 		if (m_reserves [i].start_time < current_time && m_reserves [i].end_time <= current_time) {
 			m_reserves [i].state = EN_RESERVE_STATE__END_ERROR__ALREADY_PASSED;
 			setResult (&m_reserves[i]);
+			checkRepeatability (&m_reserves[i]);
 			continue;
 		}
 
@@ -1135,6 +1136,7 @@ bool CRecManager::pickReqStartRecordingReserve (void)
 		}
 
 		if (m_reserves[i].state == EN_RESERVE_STATE__REQ_START_RECORDING) {
+			// 次に録画する予約の取り出し
 
 			m_recording = m_reserves[i];
 
@@ -1144,11 +1146,64 @@ bool CRecManager::pickReqStartRecordingReserve (void)
 			}
 			m_reserves [RESERVE_NUM_MAX -1].clear();
 
+
+			checkRepeatability (&m_recording);
+
 			return true;
 		}
 	}
 
 	return false;
+}
+
+/**
+ * Repeatabilityの確認して
+ * 予約入れるべきものは予約します
+ */
+void CRecManager::checkRepeatability (const CRecReserve *p_reserve)
+{
+	if (!p_reserve) {
+		return ;
+	}
+
+	CEtime s;
+	CEtime e;
+	s = p_reserve->start_time;
+	e = p_reserve->end_time;
+
+	switch (p_reserve->repeatability) {
+	case EN_RESERVE_REPEATABILITY__DAYLY:
+		s.addDay(1);
+		e.addDay(1);
+		break;
+
+	case EN_RESERVE_REPEATABILITY__WEEKLY:
+		s.addWeek(1);
+		e.addWeek(1);
+		break;
+
+	default:
+		_UTL_LOG_W ("invalid repeatability");
+		return ;
+		break;
+	}
+
+	bool r = addReserve (
+				p_reserve->transport_stream_id,
+				p_reserve->original_network_id,
+				p_reserve->service_id,
+				p_reserve->event_id,
+				&s,
+				&e,
+				p_reserve->title_name.c_str(),
+				p_reserve->repeatability
+			);
+
+	if (r) {
+		_UTL_LOG_I ("addReserve by repeatability success.");
+	} else {
+		_UTL_LOG_W ("addReserve by repeatability failure.");
+	}
 }
 
 void CRecManager::setResult (CRecReserve *p)
@@ -1196,7 +1251,6 @@ void CRecManager::checkRecordingEnd (void)
 			m_recProgress = EN_REC_PROGRESS__END_SUCCESS;
 		}
 	}
-
 }
 
 void CRecManager::dumpReserves (void)

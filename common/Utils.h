@@ -30,6 +30,7 @@
 
 #include "Defs.h"
 #include "Etime.h"
+#include "Stack.h"
 
 
 #ifndef _LOG_COLOR_OFF

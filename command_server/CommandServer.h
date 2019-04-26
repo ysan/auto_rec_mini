@@ -63,6 +63,7 @@ private:
 
 	int mClientfd;
 	bool m_isConnectionClose;
+
 };
 
 #endif
