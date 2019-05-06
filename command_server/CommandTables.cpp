@@ -13,6 +13,7 @@
 #include "TunerControlCommands.h"
 #include "PsisiManagerCommands.h"
 #include "RecManagerCommands.h"
+#include "ChannelManagerCommands.h"
 
 
 const char *g_szLogLevels [] = {
@@ -129,8 +130,12 @@ ST_COMMAND_INFO g_rootCommandTable [] = { // extern
 		NULL,
 		g_recManagerCommands,
 	},
-
-
+	{
+		"ch",
+		"channel manager commands",
+		NULL,
+		g_chManagerCommands,
+	},
 
 	//-- term --//
 	{

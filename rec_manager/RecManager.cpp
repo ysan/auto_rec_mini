@@ -39,24 +39,27 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	,m_recProgress (EN_REC_PROGRESS__INIT)
 	,mp_outputBuffer (NULL)
 {
-	mSeqs [EN_SEQ_REC_MANAGER_MODULE_UP]   = {(PFN_SEQ_BASE)&CRecManager::onModuleUp,   (char*)"onModuleUp"};
-	mSeqs [EN_SEQ_REC_MANAGER_MODULE_DOWN] = {(PFN_SEQ_BASE)&CRecManager::onModuleDown, (char*)"onModuleDown"};
-	mSeqs [EN_SEQ_REC_MANAGER_CHECK_LOOP]  = {(PFN_SEQ_BASE)&CRecManager::onCheckLoop,  (char*)"onCheckLoop"};
-	mSeqs [EN_SEQ_REC_MANAGER_RECORDING_NOTICE] =
-		{(PFN_SEQ_BASE)&CRecManager::onRecordingNotice,  (char*)"onRecordingNotice"};
-	mSeqs [EN_SEQ_REC_MANAGER_START_RECORDING] =
-		{(PFN_SEQ_BASE)&CRecManager::onStartRecording, (char*)"onStartRecording"};
-	mSeqs [EN_SEQ_REC_MANAGER_ADD_RESERVE_CURRENT_EVENT] =
-		{(PFN_SEQ_BASE)&CRecManager::onAddReserve_currentEvent, (char*)"onAddReserve_currentEvent"};
-	mSeqs [EN_SEQ_REC_MANAGER_ADD_RESERVE_MANUAL] =
-		{(PFN_SEQ_BASE)&CRecManager::onAddReserve_manual, (char*)"onAddReserve_manual"};
-	mSeqs [EN_SEQ_REC_MANAGER_REMOVE_RESERVE] =
-		{(PFN_SEQ_BASE)&CRecManager::onRemoveReserve, (char*)"onRemoveReserve"};
-	mSeqs [EN_SEQ_REC_MANAGER_STOP_RECORDING] =
-		{(PFN_SEQ_BASE)&CRecManager::onStopRecording, (char*)"onStopRecording"};
-	mSeqs [EN_SEQ_REC_MANAGER_DUMP_RESERVES] =
-		{(PFN_SEQ_BASE)&CRecManager::onDumpReserves, (char*)"onDumpReserves"};
-	setSeqs (mSeqs, EN_SEQ_REC_MANAGER_NUM);
+	mSeqs [EN_SEQ_REC_MANAGER__MODULE_UP] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUp,                (char*)"onReq_moduleUp"};
+	mSeqs [EN_SEQ_REC_MANAGER__MODULE_DOWN] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleDown,              (char*)"onReq_moduleDown"};
+	mSeqs [EN_SEQ_REC_MANAGER__CHECK_LOOP] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_checkLoop,               (char*)"onReq_checkLoop"};
+	mSeqs [EN_SEQ_REC_MANAGER__RECORDING_NOTICE] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_recordingNotice,         (char*)"onReq_recordingNotice"};
+	mSeqs [EN_SEQ_REC_MANAGER__START_RECORDING] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_startRecording,          (char*)"onReq_startRecording"};
+	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_currentEvent, (char*)"onReq_addReserve_currentEvent"};
+	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_manual,       (char*)"onReq_addReserve_manual"};
+	mSeqs [EN_SEQ_REC_MANAGER__REMOVE_RESERVE] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve,           (char*)"onReq_removeReserve"};
+	mSeqs [EN_SEQ_REC_MANAGER__STOP_RECORDING] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_stopRecording,           (char*)"onReq_stopRecording"};
+	mSeqs [EN_SEQ_REC_MANAGER__DUMP_RESERVES] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_dumpReserves,            (char*)"onReq_dumpReserves"};
+	setSeqs (mSeqs, EN_SEQ_REC_MANAGER__NUM);
 
 
 	clearReserves ();
@@ -72,7 +75,7 @@ CRecManager::~CRecManager (void)
 }
 
 
-void CRecManager::onModuleUp (CThreadMgrIf *pIf)
+void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -199,7 +202,7 @@ void CRecManager::onModuleUp (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_REQ_CHECK_LOOP:
-		requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_CHECK_LOOP);
+		requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__CHECK_LOOP);
 
 		sectId = SECTID_WAIT_CHECK_LOOP;
 		enAct = EN_THM_ACT_WAIT;
@@ -238,7 +241,7 @@ void CRecManager::onModuleUp (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onModuleDown (CThreadMgrIf *pIf)
+void CRecManager::onReq_moduleDown (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -261,7 +264,7 @@ void CRecManager::onModuleDown (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onCheckLoop (CThreadMgrIf *pIf)
+void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -308,7 +311,7 @@ void CRecManager::onCheckLoop (CThreadMgrIf *pIf)
 
 		if (pickReqStartRecordingReserve ()) {
 			// request start recording
-			requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_START_RECORDING);
+			requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__START_RECORDING);
 
 			sectId = SECTID_WAIT_START_RECORDING;
 			enAct = EN_THM_ACT_WAIT;
@@ -348,7 +351,7 @@ void CRecManager::onCheckLoop (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onRecordingNotice (CThreadMgrIf *pIf)
+void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -400,7 +403,7 @@ void CRecManager::onRecordingNotice (CThreadMgrIf *pIf)
 
 }
 
-void CRecManager::onStartRecording (CThreadMgrIf *pIf)
+void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -478,7 +481,7 @@ void CRecManager::onStartRecording (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onAddReserve_currentEvent (CThreadMgrIf *pIf)
+void CRecManager::onReq_addReserve_currentEvent (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -657,7 +660,7 @@ m_presentEventInfo.dump();
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onAddReserve_manual (CThreadMgrIf *pIf)
+void CRecManager::onReq_addReserve_manual (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -696,7 +699,7 @@ void CRecManager::onAddReserve_manual (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onRemoveReserve (CThreadMgrIf *pIf)
+void CRecManager::onReq_removeReserve (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -723,7 +726,7 @@ void CRecManager::onRemoveReserve (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onStopRecording (CThreadMgrIf *pIf)
+void CRecManager::onReq_stopRecording (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -756,7 +759,7 @@ void CRecManager::onStopRecording (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onDumpReserves (CThreadMgrIf *pIf)
+void CRecManager::onReq_dumpReserves (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -1339,7 +1342,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 			_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR};
 			requestAsync (
 				EN_MODULE_REC_MANAGER,
-				EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
 				(uint8_t*)&_notice,
 				sizeof(_notice)
 			);
@@ -1358,7 +1361,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 				_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR};
 				requestAsync (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+					EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
 					(uint8_t*)&_notice,
 					sizeof(_notice)
 				);
@@ -1372,7 +1375,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 			_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__INIT};
 			requestAsync (
 				EN_MODULE_REC_MANAGER,
-				EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
 				(uint8_t*)&_notice,
 				sizeof(_notice)
 			);
@@ -1400,7 +1403,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 		_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__INIT};
 		requestAsync (
 			EN_MODULE_REC_MANAGER,
-			EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+			EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
 		);
@@ -1416,7 +1419,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 		_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__INIT};
 		requestAsync (
 			EN_MODULE_REC_MANAGER,
-			EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+			EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
 		);
@@ -1438,7 +1441,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 		_RECORDING_NOTICE _notice = {m_recProgress, EN_RESERVE_STATE__INIT};
 		requestAsync (
 			EN_MODULE_REC_MANAGER,
-			EN_SEQ_REC_MANAGER_RECORDING_NOTICE,
+			EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
 		);

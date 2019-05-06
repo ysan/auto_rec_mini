@@ -17,6 +17,7 @@
 #include "TunerControlIf.h"
 #include "PsisiManagerIf.h"
 #include "RecManagerIf.h"
+#include "ChannelManagerIf.h"
 
 #include "Utils.h"
 #include "modules.h"
@@ -35,7 +36,6 @@ int main (void)
 
 
 	CThreadMgr *p_mgr = CThreadMgr::getInstance();
-
 	if (!p_mgr->setup (getModules(), EN_MODULE_NUM)) {
 		exit (EXIT_FAILURE);
 	}
@@ -47,6 +47,7 @@ int main (void)
 	CTunerControlIf *p_tunerCtlIf = new CTunerControlIf (p_mgr->getExternalIf());
 	CPsisiManagerIf *p_psisiMgrIf = new CPsisiManagerIf (p_mgr->getExternalIf());
 	CRecManagerIf *p_recMgrIf = new CRecManagerIf (p_mgr->getExternalIf());
+	CChannelManagerIf *p_chMgrIf = new CChannelManagerIf (p_mgr->getExternalIf());
 
 
 	uint32_t opt = p_mgr->getExternalIf()->getRequestOption ();
@@ -56,10 +57,13 @@ int main (void)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	p_mgr->getExternalIf()->setRequestOption (opt);
 
+
+	// modules up
 	p_comSvrIf-> reqModuleUp ();
 	p_tunerCtlIf-> reqModuleUp ();
 	p_psisiMgrIf->reqModuleUp();
 	p_recMgrIf->reqModuleUp();
+	p_chMgrIf->reqModuleUp();
 
 
 

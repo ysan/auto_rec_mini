@@ -53,7 +53,7 @@ static void ch_tune (int argc, char* argv[], CThreadMgrBase *pBase)
 		return;
 	}
 
-	uint32_t ch = atoi (argv[0]);
+	uint16_t ch = atoi (argv[0]);
 	if (ch < UHF_PHYSICAL_CHANNEL_MIN || ch > UHF_PHYSICAL_CHANNEL_MAX) {
 		_UTL_LOG_E ("out of range. (physical channel is %d~%d)",
 						UHF_PHYSICAL_CHANNEL_MIN, UHF_PHYSICAL_CHANNEL_MAX);
@@ -62,7 +62,7 @@ static void ch_tune (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	_UTL_LOG_I ("ch=[%d]\n", ch);
 
-	uint32_t freq = CTsAribCommon::ch2freqKHz (ch);
+	uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
 	_UTL_LOG_I ("freq=[%d]kHz\n", freq);
 
 	CTunerControlIf ctl(pBase->getExternalIf());

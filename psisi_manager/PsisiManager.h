@@ -120,7 +120,7 @@ public:
 	CEtime start_time;
 	CEtime end_time;
 
-	char event_name_char [1024];
+	char event_name_char [MAXSECLEN];
 
 	EN_EVENT_PF_STATE state;
 
@@ -229,6 +229,33 @@ public:
 
 } _SERVICE_INFO;
 
+typedef struct _network_info {
+public:
+	_network_info (void) {
+		clear ();
+	}
+	~_network_info (void) {
+		clear ();
+	}
+
+	uint8_t table_id;
+	uint16_t network_id;
+
+	CNetworkInformationTable::CTable* p_orgTable;
+
+	bool is_used;
+
+	void clear (void) {
+		// clear all
+		memset (this, 0x00, sizeof(struct _event_pf_info));
+		p_orgTable = NULL;
+		is_used = false;
+	}
+
+	void dump (void) {
+	}
+
+} _NETWORK_INFO;
 
 
 class CPsisiManager
@@ -241,21 +268,21 @@ public:
 	virtual ~CPsisiManager (void);
 
 
-	void onModuleUp (CThreadMgrIf *pIf);
-	void onModuleDown (CThreadMgrIf *pIf);
-	void onCheckLoop (CThreadMgrIf *pIf);
-	void onParserNotice (CThreadMgrIf *pIf);
-	void onStabilizationAfterTuning (CThreadMgrIf *pIf);
-	void onRegisterPatDetectNotify (CThreadMgrIf *pIf);
-	void onUnregisterPatDetectNotify (CThreadMgrIf *pIf);
-	void onRegisterEventChangeNotify (CThreadMgrIf *pIf);
-	void onUnregisterEventChangeNotify (CThreadMgrIf *pIf);
-	void onGetPatDetectState (CThreadMgrIf *pIf);
-	void onGetCurrentServiceInfos (CThreadMgrIf *pIf);
-	void onGetPresentEventInfo (CThreadMgrIf *pIf);
-	void onGetFollowEventInfo (CThreadMgrIf *pIf);
-	void onDumpCaches (CThreadMgrIf *pIf);
-	void onDumpTables (CThreadMgrIf *pIf);
+	void onReq_moduleUp (CThreadMgrIf *pIf);
+	void onReq_moduleDown (CThreadMgrIf *pIf);
+	void onReq_checkLoop (CThreadMgrIf *pIf);
+	void onReq_parserNotice (CThreadMgrIf *pIf);
+	void onReq_stabilizationAfterTuning (CThreadMgrIf *pIf);
+	void onReq_registerPatDetectNotify (CThreadMgrIf *pIf);
+	void onReq_unregisterPatDetectNotify (CThreadMgrIf *pIf);
+	void onReq_registerEventChangeNotify (CThreadMgrIf *pIf);
+	void onReq_unregisterEventChangeNotify (CThreadMgrIf *pIf);
+	void onReq_getPatDetectState (CThreadMgrIf *pIf);
+	void onReq_getCurrentServiceInfos (CThreadMgrIf *pIf);
+	void onReq_getPresentEventInfo (CThreadMgrIf *pIf);
+	void onReq_getFollowEventInfo (CThreadMgrIf *pIf);
+	void onReq_dumpCaches (CThreadMgrIf *pIf);
+	void onReq_dumpTables (CThreadMgrIf *pIf);
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
@@ -329,7 +356,7 @@ private:
 
 
 
-	ST_SEQ_BASE mSeqs [EN_SEQ_PSISI_MANAGER_NUM]; // entity
+	ST_SEQ_BASE mSeqs [EN_SEQ_PSISI_MANAGER__NUM]; // entity
 
 	CTsParser m_parser;
 

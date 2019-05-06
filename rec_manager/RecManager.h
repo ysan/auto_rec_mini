@@ -194,16 +194,16 @@ public:
 	virtual ~CRecManager (void);
 
 
-	void onModuleUp (CThreadMgrIf *pIf);
-	void onModuleDown (CThreadMgrIf *pIf);
-	void onCheckLoop (CThreadMgrIf *pIf);
-	void onRecordingNotice (CThreadMgrIf *pIf);
-	void onStartRecording (CThreadMgrIf *pIf);
-	void onAddReserve_currentEvent (CThreadMgrIf *pIf);
-	void onAddReserve_manual (CThreadMgrIf *pIf);
-	void onRemoveReserve (CThreadMgrIf *pIf);
-	void onStopRecording (CThreadMgrIf *pIf);
-	void onDumpReserves (CThreadMgrIf *pIf);
+	void onReq_moduleUp (CThreadMgrIf *pIf);
+	void onReq_moduleDown (CThreadMgrIf *pIf);
+	void onReq_checkLoop (CThreadMgrIf *pIf);
+	void onReq_recordingNotice (CThreadMgrIf *pIf);
+	void onReq_startRecording (CThreadMgrIf *pIf);
+	void onReq_addReserve_currentEvent (CThreadMgrIf *pIf);
+	void onReq_addReserve_manual (CThreadMgrIf *pIf);
+	void onReq_removeReserve (CThreadMgrIf *pIf);
+	void onReq_stopRecording (CThreadMgrIf *pIf);
+	void onReq_dumpReserves (CThreadMgrIf *pIf);
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
@@ -247,7 +247,7 @@ private:
 
 
 
-	ST_SEQ_BASE mSeqs [EN_SEQ_REC_MANAGER_NUM]; // entity
+	ST_SEQ_BASE mSeqs [EN_SEQ_REC_MANAGER__NUM]; // entity
 
 
 	uint8_t m_tunerNotify_clientId;

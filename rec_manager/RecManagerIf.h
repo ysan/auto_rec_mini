@@ -15,18 +15,18 @@
 using namespace ThreadManager;
 
 enum {
-	EN_SEQ_REC_MANAGER_MODULE_UP = 0,
-	EN_SEQ_REC_MANAGER_MODULE_DOWN,
-	EN_SEQ_REC_MANAGER_CHECK_LOOP,				// inner
-	EN_SEQ_REC_MANAGER_RECORDING_NOTICE,		// inner
-	EN_SEQ_REC_MANAGER_START_RECORDING,			// inner
-	EN_SEQ_REC_MANAGER_ADD_RESERVE_CURRENT_EVENT,
-	EN_SEQ_REC_MANAGER_ADD_RESERVE_MANUAL,
-	EN_SEQ_REC_MANAGER_REMOVE_RESERVE,
-	EN_SEQ_REC_MANAGER_STOP_RECORDING,
-	EN_SEQ_REC_MANAGER_DUMP_RESERVES,
+	EN_SEQ_REC_MANAGER__MODULE_UP = 0,
+	EN_SEQ_REC_MANAGER__MODULE_DOWN,
+	EN_SEQ_REC_MANAGER__CHECK_LOOP,				// inner
+	EN_SEQ_REC_MANAGER__RECORDING_NOTICE,		// inner
+	EN_SEQ_REC_MANAGER__START_RECORDING,		// inner
+	EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT,
+	EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL,
+	EN_SEQ_REC_MANAGER__REMOVE_RESERVE,
+	EN_SEQ_REC_MANAGER__STOP_RECORDING,
+	EN_SEQ_REC_MANAGER__DUMP_RESERVES,
 
-	EN_SEQ_REC_MANAGER_NUM,
+	EN_SEQ_REC_MANAGER__NUM,
 };
 
 typedef enum {
@@ -71,17 +71,17 @@ public:
 
 
 	bool reqModuleUp (void) {
-		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_MODULE_UP);
+		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__MODULE_UP);
 	};
 
 	bool reqModuleDown (void) {
-		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_MODULE_DOWN);
+		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__MODULE_DOWN);
 	};
 
 	bool reqAddReserve_currentEvent (void) {
 		return requestAsync (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER_ADD_RESERVE_CURRENT_EVENT
+					EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT
 				);
 	};
 
@@ -92,7 +92,7 @@ public:
 
 		return requestAsync (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER_ADD_RESERVE_MANUAL,
+					EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL,
 					(uint8_t*)p_param,
 					sizeof (_MANUAL_RESERVE_PARAM)
 				);
@@ -102,21 +102,21 @@ public:
 		int _idx = index;
 		return requestAsync (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER_REMOVE_RESERVE,
+					EN_SEQ_REC_MANAGER__REMOVE_RESERVE,
 					(uint8_t*)&_idx,
 					sizeof (int)
 				);
 	};
 
 	bool reqStopRecording (void) {
-		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER_STOP_RECORDING);
+		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__STOP_RECORDING);
 	};
 
 	bool reqDumpReserves (int type) {
 		int _type = type;
 		return requestAsync (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER_DUMP_RESERVES,
+					EN_SEQ_REC_MANAGER__DUMP_RESERVES,
 					(uint8_t*)&_type,
 					sizeof(_type)
 				);

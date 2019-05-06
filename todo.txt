@@ -1,4 +1,3 @@
-log エスケープシーケンス 色つけ方
 chennel scan
 event chenge notify
   cacheEventPfInfos -> checkEventPfInfosで印付け -> followsが空だったら follow eventをcopy
@@ -7,9 +6,188 @@ event chenge notify
 ts_parser_test main.cpp に TsParser_test.cppを統合
 adaptation_fieldの処理
 it9175のlog
-command serverのstack テンプレートクラス化
 eit scheduleはsectionのリスト管理しないで 派生クラスでテーブル管理する
     p/f はsectionリスト管理して重複はチェックする
     -->バッファサイズとfifo数はそんなに必要ないはず
 psisi structs のclear関数 必要かどうか
 json.hpp cereal
+requestOptionで重複キューチェック
+
+
+/psisi manager commands/dump psisi-tables > nit
+[PsisiManag] I 05/04 00:10:27.380  void CNetworkInformationTable::dumpTable(const CNetworkInformationTable::CTable*) const
+[PsisiManag] I 05/04 00:10:27.380  SectHeader: tbl_id:[0x40] syntax:[0x01] priv:[0x01] len:[141] tbl_ext:[0x7fe0] ver:[0x00] next:[0x01] num:[0x00] last:[0x00]
+[PsisiManag] I 05/04 00:10:27.380  ========================================
+[PsisiManag] I 05/04 00:10:27.380  table_id                         [0x40]
+[PsisiManag] I 05/04 00:10:27.380  network_id                       [0x7fe0]
+[PsisiManag] I 05/04 00:10:27.380  network_descriptors_length       [16]
+[PsisiManag] I 05/04 00:10:27.380  
+[PsisiManag] I 05/04 00:10:27.380  --  descriptor  --
+[PsisiManag] I 05/04 00:10:27.380  virtual void CNetworkNameDescriptor::dump() const
+[PsisiManag] I 05/04 00:10:27.381  tag    [0x40]
+[PsisiManag] I 05/04 00:10:27.381  length [10]
+[PsisiManag] I 05/04 00:10:27.381    0x00000000: 34 58 45 6c 39 2d 30 68  23 30                    |4XEl9-0h#0      |
+[PsisiManag] I 05/04 00:10:27.381  name_char [関東広域０]
+[PsisiManag] I 05/04 00:10:27.381  
+[PsisiManag] I 05/04 00:10:27.381  --  descriptor  --
+[PsisiManag] I 05/04 00:10:27.381  tag    [0xfe]
+[PsisiManag] I 05/04 00:10:27.381  length [2]
+[PsisiManag] I 05/04 00:10:27.381    0x00000000: 03 01                                             |..              |
+[PsisiManag] I 05/04 00:10:27.381  
+[PsisiManag] I 05/04 00:10:27.381  transport_stream_loop_length     [112]
+[PsisiManag] I 05/04 00:10:27.381  
+[PsisiManag] I 05/04 00:10:27.381  --  stream  --
+[PsisiManag] I 05/04 00:10:27.381  transport_stream_id          [0x7fe0]
+[PsisiManag] I 05/04 00:10:27.381  original_network_id          [0x7fe0]
+[PsisiManag] I 05/04 00:10:27.381  transport_descriptors_length [106]
+[PsisiManag] I 05/04 00:10:27.381  
+[PsisiManag] I 05/04 00:10:27.381  --  descriptor  --
+[PsisiManag] I 05/04 00:10:27.381  virtual void CServiceListDescriptor::dump() const
+[PsisiManag] I 05/04 00:10:27.381  tag    [0x41]
+[PsisiManag] I 05/04 00:10:27.381  length [12]
+[PsisiManag] I 05/04 00:10:27.382    0x00000000: 04 00 01 04 01 01 05 80  c0 ff f0 a4              |............    |
+[PsisiManag] I 05/04 00:10:27.382  
+[PsisiManag] I 05/04 00:10:27.382  --  service  --
+[PsisiManag] I 05/04 00:10:27.382  service_id   [0x0400]
+[PsisiManag] I 05/04 00:10:27.382  service_type [0x01]
+[PsisiManag] I 05/04 00:10:27.382  
+[PsisiManag] I 05/04 00:10:27.382  --  service  --
+[PsisiManag] I 05/04 00:10:27.382  service_id   [0x0401]
+[PsisiManag] I 05/04 00:10:27.382  service_type [0x01]
+[PsisiManag] I 05/04 00:10:27.382  
+[PsisiManag] I 05/04 00:10:27.382  --  service  --
+[PsisiManag] I 05/04 00:10:27.382  service_id   [0x0580]
+[PsisiManag] I 05/04 00:10:27.382  service_type [0xc0]
+[PsisiManag] I 05/04 00:10:27.382  
+[PsisiManag] I 05/04 00:10:27.382  --  service  --
+[PsisiManag] I 05/04 00:10:27.382  service_id   [0xfff0]
+[PsisiManag] I 05/04 00:10:27.382  service_type [0xa4]
+[PsisiManag] I 05/04 00:10:27.382  
+[PsisiManag] I 05/04 00:10:27.382  --  descriptor  --
+[PsisiManag] I 05/04 00:10:27.382  virtual void CTerrestrialDeliverySystemDescriptor::dump() const
+[PsisiManag] I 05/04 00:10:27.382  tag    [0xfa]
+[PsisiManag] I 05/04 00:10:27.382  length [54]
+[PsisiManag] I 05/04 00:10:27.382    0x00000000: 5a 5a 0c f0 0d 6e 0d ec  0e 16 0f 3c 0f 66 0f 90  |ZZ...n.....<.f..|
+[PsisiManag] I 05/04 00:10:27.382    0x00000010: 0f ba 0f e4 10 0e 10 38  10 62 10 8c 10 b6 10 e0  |.......8.b......|
+[PsisiManag] I 05/04 00:10:27.382    0x00000020: 11 34 11 5e 11 88 11 b2  12 06 12 5a 12 84 12 d8  |.4.^.......Z....|
+[PsisiManag] I 05/04 00:10:27.383    0x00000030: 13 02 13 2c 13 56                                 |...,.V          |
+[PsisiManag] I 05/04 00:10:27.383  area_code         [0x05a5]
+[PsisiManag] I 05/04 00:10:27.383  guard_interval    [0x02]
+[PsisiManag] I 05/04 00:10:27.383  transmission_mode [0x02]
+[PsisiManag] I 05/04 00:10:27.383  
+[PsisiManag] I 05/04 00:10:27.383  --  freq  --
+[PsisiManag] I 05/04 00:10:27.383  frequency [473.000]
+[PsisiManag] I 05/04 00:10:27.383  
+[PsisiManag] I 05/04 00:10:27.383  --  freq  --
+[PsisiManag] I 05/04 00:10:27.383  frequency [491.000]
+[PsisiManag] I 05/04 00:10:27.383  
+[PsisiManag] I 05/04 00:10:27.383  --  freq  --
+[PsisiManag] I 05/04 00:10:27.383  frequency [509.000]
+[PsisiManag] I 05/04 00:10:27.383  
+[PsisiManag] I 05/04 00:10:27.383  --  freq  --
+[PsisiManag] I 05/04 00:10:27.383  frequency [515.000]
+[PsisiManag] I 05/04 00:10:27.383  
+[PsisiManag] I 05/04 00:10:27.383  --  freq  --
+[PsisiManag] I 05/04 00:10:27.383  frequency [557.000]
+[PsisiManag] I 05/04 00:10:27.383  
+[PsisiManag] I 05/04 00:10:27.383  --  freq  --
+[PsisiManag] I 05/04 00:10:27.383  frequency [563.000]
+[PsisiManag] I 05/04 00:10:27.383  
+[PsisiManag] I 05/04 00:10:27.383  --  freq  --
+[PsisiManag] I 05/04 00:10:27.383  frequency [569.000]
+[PsisiManag] I 05/04 00:10:27.384  
+[PsisiManag] I 05/04 00:10:27.384  --  freq  --
+[PsisiManag] I 05/04 00:10:27.384  frequency [575.000]
+[PsisiManag] I 05/04 00:10:27.384  
+[PsisiManag] I 05/04 00:10:27.384  --  freq  --
+[PsisiManag] I 05/04 00:10:27.384  frequency [581.000]
+[PsisiManag] I 05/04 00:10:27.384  
+[PsisiManag] I 05/04 00:10:27.384  --  freq  --
+[PsisiManag] I 05/04 00:10:27.384  frequency [587.000]
+[PsisiManag] I 05/04 00:10:27.384  
+[PsisiManag] I 05/04 00:10:27.384  --  freq  --
+[PsisiManag] I 05/04 00:10:27.384  frequency [593.000]
+[PsisiManag] I 05/04 00:10:27.384  
+[PsisiManag] I 05/04 00:10:27.384  --  freq  --
+[PsisiManag] I 05/04 00:10:27.384  frequency [599.000]
+[PsisiManag] I 05/04 00:10:27.384  
+[PsisiManag] I 05/04 00:10:27.384  --  freq  --
+[PsisiManag] I 05/04 00:10:27.384  frequency [605.000]
+[PsisiManag] I 05/04 00:10:27.384  
+[PsisiManag] I 05/04 00:10:27.384  --  freq  --
+[PsisiManag] I 05/04 00:10:27.384  frequency [611.000]
+[PsisiManag] I 05/04 00:10:27.384  
+[PsisiManag] I 05/04 00:10:27.384  --  freq  --
+[PsisiManag] I 05/04 00:10:27.384  frequency [617.000]
+[PsisiManag] I 05/04 00:10:27.384  
+[PsisiManag] I 05/04 00:10:27.384  --  freq  --
+[PsisiManag] I 05/04 00:10:27.384  frequency [629.000]
+[PsisiManag] I 05/04 00:10:27.384  
+[PsisiManag] I 05/04 00:10:27.384  --  freq  --
+[PsisiManag] I 05/04 00:10:27.384  frequency [635.000]
+[PsisiManag] I 05/04 00:10:27.385  
+[PsisiManag] I 05/04 00:10:27.385  --  freq  --
+[PsisiManag] I 05/04 00:10:27.385  frequency [641.000]
+[PsisiManag] I 05/04 00:10:27.385  
+[PsisiManag] I 05/04 00:10:27.385  --  freq  --
+[PsisiManag] I 05/04 00:10:27.385  frequency [647.000]
+[PsisiManag] I 05/04 00:10:27.385  
+[PsisiManag] I 05/04 00:10:27.385  --  freq  --
+[PsisiManag] I 05/04 00:10:27.385  frequency [659.000]
+[PsisiManag] I 05/04 00:10:27.385  
+[PsisiManag] I 05/04 00:10:27.385  --  freq  --
+[PsisiManag] I 05/04 00:10:27.385  frequency [671.000]
+[PsisiManag] I 05/04 00:10:27.385  
+[PsisiManag] I 05/04 00:10:27.385  --  freq  --
+[PsisiManag] I 05/04 00:10:27.385  frequency [677.000]
+[PsisiManag] I 05/04 00:10:27.385  
+[PsisiManag] I 05/04 00:10:27.385  --  freq  --
+[PsisiManag] I 05/04 00:10:27.385  frequency [689.000]
+[PsisiManag] I 05/04 00:10:27.385  
+[PsisiManag] I 05/04 00:10:27.385  --  freq  --
+[PsisiManag] I 05/04 00:10:27.385  frequency [695.000]
+[PsisiManag] I 05/04 00:10:27.385  
+[PsisiManag] I 05/04 00:10:27.385  --  freq  --
+[PsisiManag] I 05/04 00:10:27.385  frequency [701.000]
+[PsisiManag] I 05/04 00:10:27.385  
+[PsisiManag] I 05/04 00:10:27.385  --  freq  --
+[PsisiManag] I 05/04 00:10:27.385  frequency [707.000]
+[PsisiManag] I 05/04 00:10:27.385  
+[PsisiManag] I 05/04 00:10:27.385  --  descriptor  --
+[PsisiManag] I 05/04 00:10:27.385  tag    [0xfb]
+[PsisiManag] I 05/04 00:10:27.385  length [2]
+[PsisiManag] I 05/04 00:10:27.386    0x00000000: 05 80                                             |..              |
+[PsisiManag] I 05/04 00:10:27.386  
+[PsisiManag] I 05/04 00:10:27.386  --  descriptor  --
+[PsisiManag] I 05/04 00:10:27.386  virtual void CTSInformationDescriptor::dump() const
+[PsisiManag] I 05/04 00:10:27.386  tag    [0xcd]
+[PsisiManag] I 05/04 00:10:27.386  length [30]
+[PsisiManag] I 05/04 00:10:27.386    0x00000000: 01 42 23 4e 23 48 23 4b  41 6d 39 67 21 26 45 6c  |.B#N#H#KAm9g!&El|
+[PsisiManag] I 05/04 00:10:27.386    0x00000010: 35 7e 0f 03 04 00 04 01  ff f0 af 01 05 80        |5~............  |
+[PsisiManag] I 05/04 00:10:27.386  remote_control_key_id   [0x01]
+[PsisiManag] I 05/04 00:10:27.386  length_of_ts_name       [0x10]
+[PsisiManag] I 05/04 00:10:27.386  transmission_type_count [0x02]
+[PsisiManag] I 05/04 00:10:27.386  ts_name_char            [ＮＨＫ総合・東京]
+[PsisiManag] I 05/04 00:10:27.386  
+[PsisiManag] I 05/04 00:10:27.386  --  transmission  --
+[PsisiManag] I 05/04 00:10:27.386  transmission_type_info [0x0f]
+[PsisiManag] I 05/04 00:10:27.386  num_of_service         [0x03]
+[PsisiManag] I 05/04 00:10:27.386  
+[PsisiManag] I 05/04 00:10:27.386  --  service  --
+[PsisiManag] I 05/04 00:10:27.386  service_id [0x0400]
+[PsisiManag] I 05/04 00:10:27.386  
+[PsisiManag] I 05/04 00:10:27.386  --  service  --
+[PsisiManag] I 05/04 00:10:27.387  service_id [0x0401]
+[PsisiManag] I 05/04 00:10:27.387  
+[PsisiManag] I 05/04 00:10:27.387  --  service  --
+[PsisiManag] I 05/04 00:10:27.387  service_id [0xfff0]
+[PsisiManag] I 05/04 00:10:27.387  
+[PsisiManag] I 05/04 00:10:27.387  --  transmission  --
+[PsisiManag] I 05/04 00:10:27.387  transmission_type_info [0xaf]
+[PsisiManag] I 05/04 00:10:27.387  num_of_service         [0x01]
+[PsisiManag] I 05/04 00:10:27.387  
+[PsisiManag] I 05/04 00:10:27.387  --  service  --
+[PsisiManag] I 05/04 00:10:27.387  service_id [0x0580]
+[PsisiManag] I 05/04 00:10:27.387  
+
+

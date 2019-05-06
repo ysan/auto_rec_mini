@@ -9,15 +9,17 @@
 #include "TunerControl.h"
 #include "PsisiManager.h"
 #include "RecManager.h"
+#include "ChannelManager.h"
 
 #include "modules.h"
 
 
-static CCommandServer g_commandServer ((char*)"CommandServer", 10);
-static CTunerControl  g_tunerControl  ((char*)"TunerControl",  10);
-static CTuneThread    g_tuneThread    ((char*)"TuneThread",    10);
-static CPsisiManager  g_psisiManager  ((char*)"PsisiManager",  50);
-static CRecManager    g_recManager    ((char*)"RecManager",    10);
+static CCommandServer   g_commandServer ((char*)"CommandServer" , 10);
+static CTunerControl    g_tunerControl  ((char*)"TunerControl"  , 10);
+static CTuneThread      g_tuneThread    ((char*)"TuneThread"    , 10);
+static CPsisiManager    g_psisiManager  ((char*)"PsisiManager"  , 50);
+static CRecManager      g_recManager    ((char*)"RecManager"    , 10);
+static CChannelManager  g_chManager     ((char*)"ChannelManager", 10);
 
 
 static CThreadMgrBase *gp_modules [] = {
@@ -26,6 +28,7 @@ static CThreadMgrBase *gp_modules [] = {
 	&g_tunerControl,
 	&g_psisiManager,
 	&g_recManager,
+	&g_chManager,
 
 };
 

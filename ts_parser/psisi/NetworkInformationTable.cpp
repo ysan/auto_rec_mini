@@ -190,7 +190,7 @@ void CNetworkInformationTable::dumpTable (const CTable* pTable) const
 		CDescriptorCommon::dump (iter_desc->tag, *iter_desc);
 	}
 
-	_UTL_LOG_I ("transport_stream_loop_length     [%d]\n", pTable->transport_stream_loop_length);
+	_UTL_LOG_I ("\ntransport_stream_loop_length     [%d]\n", pTable->transport_stream_loop_length);
 
 	std::vector<CTable::CStream>::const_iterator iter_strm = pTable->streams.begin();
 	for (; iter_strm != pTable->streams.end(); ++ iter_strm) {
