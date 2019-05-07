@@ -74,6 +74,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	clearProgramInfos ();
 	clearServiceInfos ();
 	clearEventPfInfos ();
+	clearNetworkInfo ();
 }
 
 CPsisiManager::~CPsisiManager (void)
@@ -83,6 +84,7 @@ CPsisiManager::~CPsisiManager (void)
 	clearProgramInfos ();
 	clearServiceInfos ();
 	clearEventPfInfos ();
+	clearNetworkInfo ();
 }
 
 
@@ -367,6 +369,10 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 		if (_notice.is_new_ts_section) {
 //			mNIT.dumpTables();
 			_UTL_LOG_I ("notice new NIT");
+
+			// ここにくるってことは選局したとゆうこと
+			clearNetworkInfo();
+			cacheNetworkInfo();
 		}
 
 		break;
@@ -380,6 +386,7 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 			clearServiceInfos (true);
 			cacheServiceInfos (true);
 
+			// eventInfo もcacheし直し
 			clearEventPfInfos();
 			cacheEventPfInfos();
 			checkEventPfInfos();
@@ -758,6 +765,69 @@ void CPsisiManager::onReq_getFollowEventInfo (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CPsisiManager::onReq_getCurrentNetworkInfo (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt;
+
+	REQ_NETWORK_INFO_PARAM param = *(REQ_NETWORK_INFO_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+	if (!param.p_out_networkInfo) {
+		enRslt = EN_THM_RSLT_ERROR;
+
+	} else {
+		if (m_networkInfo.is_used) {
+			param.p_out_networkInfo->table_id = m_networkInfo.table_id;
+			param.p_out_networkInfo->network_id = m_networkInfo.network_id;
+
+			strncpy (
+				param.p_out_networkInfo->network_name_char,
+				m_networkInfo.network_name_char,
+				strlen(m_networkInfo.network_name_char)
+			);
+
+			param.p_out_networkInfo->transport_stream_id = m_networkInfo.transport_stream_id;
+			param.p_out_networkInfo->original_network_id = m_networkInfo.original_network_id;
+
+			for (int i = 0; i < m_networkInfo.services_num; ++ i) {
+				param.p_out_networkInfo->services[i].service_id = m_networkInfo.services[i].service_id;
+				param.p_out_networkInfo->services[i].service_type = m_networkInfo.services[i].service_type;
+			}
+			param.p_out_networkInfo->services_num = m_networkInfo.services_num;
+
+			param.p_out_networkInfo->area_code = m_networkInfo.area_code;
+			param.p_out_networkInfo->guard_interval = m_networkInfo.guard_interval;
+			param.p_out_networkInfo->transmission_mode = m_networkInfo.transmission_mode;
+			param.p_out_networkInfo->remote_control_key_id = m_networkInfo.remote_control_key_id;
+			strncpy (
+				param.p_out_networkInfo->ts_name_char,
+				m_networkInfo.ts_name_char,
+				strlen(m_networkInfo.ts_name_char)
+			);
+
+			enRslt = EN_THM_RSLT_SUCCESS;
+
+		} else {
+			enRslt = EN_THM_RSLT_ERROR;
+		}
+	}
+
+	pIf->reply (enRslt);
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CPsisiManager::onReq_dumpCaches (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -783,6 +853,10 @@ void CPsisiManager::onReq_dumpCaches (CThreadMgrIf *pIf)
 
 	case 2:
 		dumpEventPfInfos();
+		break;
+
+	case 3:
+		dumpNetworkInfo();
 		break;
 
 	default:
@@ -1453,59 +1527,6 @@ _EVENT_PF_INFO* CPsisiManager::findEmptyEventPfInfo (void)
 	return &m_eventPfInfos [i];
 }
 
-/*
-bool CPsisiManager::checkEventPfInfos (CThreadMgrIf *pIf)
-{
-	bool r = false;
-
-	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
-		if (m_eventPfInfos [i].is_used) {
-
-			CEtime cur_time;
-			cur_time.setCurrentTime();
-
-			if (m_eventPfInfos [i].start_time <= cur_time && m_eventPfInfos [i].end_time >= cur_time) {
-
-				if (m_eventPfInfos [i].state == EN_EVENT_PF_STATE__FOLLOW) {
-					// event changed
-					_UTL_LOG_I ("event changed");
-					m_eventPfInfos [i].dump();
-					r = true;
-
-					if (pIf) {
-						PSISI_NOTIFY_EVENT_INFO _info;
-						_info.table_id = m_eventPfInfos [i].table_id;
-						_info.transport_stream_id = m_eventPfInfos [i].transport_stream_id;
-						_info.original_network_id = m_eventPfInfos [i].original_network_id;
-						_info.service_id = m_eventPfInfos [i].service_id;
-						_info.event_id = m_eventPfInfos [i].event_id;
-
-						// fire notify
-						pIf->notify (NOTIFY_CAT__EVENT_CHANGE, (uint8_t*)&_info, sizeof(PSISI_NOTIFY_EVENT_INFO));
-					}
-
-				}
-				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__PRESENT;
-
-			} else if (m_eventPfInfos [i].start_time > cur_time) {
-
-				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__FOLLOW;
-
-			} else if (m_eventPfInfos [i].end_time < cur_time) {
-
-				m_eventPfInfos [i].state = EN_EVENT_PF_STATE__ALREADY_PASSED;
-				r = true;
-
-			} else {
-				_UTL_LOG_E ("BUG: checkEventPfInfos");
-			}
-		}
-	}
-
-	return r;
-}
-*/
-
 void CPsisiManager::checkEventPfInfos (void)
 {
 	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
@@ -1604,6 +1625,122 @@ _EVENT_PF_INFO* CPsisiManager::findEventPfInfo (
 	}
 
 	return &m_eventPfInfos[i];
+}
+
+void CPsisiManager::cacheNetworkInfo (void)
+{
+	std::lock_guard<std::mutex> lock (*mNIT_ref.mpMutex);
+
+	std::vector<CNetworkInformationTable::CTable*>::const_iterator iter = mNIT_ref.mpTables->begin();
+	for (; iter != mNIT_ref.mpTables->end(); ++ iter) {
+
+		CNetworkInformationTable::CTable *pTable = *iter;
+		uint8_t tbl_id = pTable->header.table_id;
+		uint16_t network_id = pTable->header.table_id_extension;
+
+		// 自ストリームのみ
+		if (tbl_id != TBLID_NIT_A) {
+			continue;
+		}
+
+		m_networkInfo.table_id = tbl_id;
+		m_networkInfo.network_id = network_id;
+
+		std::vector<CDescriptor>::const_iterator iter_desc = pTable->descriptors.begin();
+		for (; iter_desc != pTable->descriptors.end(); ++ iter_desc) {
+
+			if (iter_desc->tag == DESC_TAG__NETWORK_NAME_DESCRIPTOR) {
+				CNetworkNameDescriptor nnd (*iter_desc);
+				if (!nnd.isValid) {
+					_UTL_LOG_W ("invalid NetworkNameDescriptor");
+					continue;
+				}
+
+				char aribstr [MAXSECLEN];
+				memset (aribstr, 0x00, MAXSECLEN);
+				memset (m_networkInfo.network_name_char, 0x00, 64);
+				AribToString (aribstr, (const char*)nnd.name_char, (int)nnd.length);
+				strncpy (m_networkInfo.network_name_char, aribstr, 64);
+			}
+		} // loop descriptors
+
+		std::vector<CNetworkInformationTable::CTable::CStream>::const_iterator iter_strm = pTable->streams.begin();
+		for (; iter_strm != pTable->streams.end(); ++ iter_strm) {
+
+			m_networkInfo.transport_stream_id = iter_strm->transport_stream_id;
+			m_networkInfo.original_network_id = iter_strm->original_network_id;
+
+			std::vector<CDescriptor>::const_iterator iter_desc = iter_strm->descriptors.begin();
+			for (; iter_desc != iter_strm->descriptors.end(); ++ iter_desc) {
+
+				if (iter_desc->tag == DESC_TAG__SERVICE_LIST_DESCRIPTOR) {
+					CServiceListDescriptor sld (*iter_desc);
+					if (!sld.isValid) {
+						_UTL_LOG_W ("invalid ServiceListDescriptor");
+						continue;
+					}
+
+					int n = 0;
+					std::vector<CServiceListDescriptor::CService>::const_iterator iter_sv = sld.services.begin();
+					for (; iter_sv != sld.services.end(); ++ iter_sv) {
+						if (n >= 16) {
+							break;
+						}
+						m_networkInfo.services[n].service_id = iter_sv->service_id;
+						m_networkInfo.services[n].service_type = iter_sv->service_type;
+						++ n;
+					}
+					m_networkInfo.services_num = n;
+
+				} else if (iter_desc->tag == DESC_TAG__TERRESTRIAL_DELIVERY_SYSTEM_DESCRIPTOR) {
+					CTerrestrialDeliverySystemDescriptor tdsd (*iter_desc);
+					if (!tdsd.isValid) {
+						_UTL_LOG_W ("invalid TerrestrialDeliverySystemDescriptor");
+						continue;
+					}
+
+					m_networkInfo.area_code = tdsd.area_code;
+					m_networkInfo.guard_interval = tdsd.guard_interval;
+					m_networkInfo.transmission_mode = tdsd.transmission_mode;
+
+				} else if (iter_desc->tag == DESC_TAG__TS_INFORMATION_DESCRIPTOR) {
+					CTSInformationDescriptor tsid (*iter_desc);
+					if (!tsid.isValid) {
+						_UTL_LOG_W ("invalid TSInformationDescriptor");
+						continue;
+					}
+
+					m_networkInfo.remote_control_key_id = tsid.remote_control_key_id;
+
+					char aribstr [MAXSECLEN];
+					memset (aribstr, 0x00, MAXSECLEN);
+					memset (m_networkInfo.ts_name_char, 0x00, 64);
+					AribToString (aribstr, (const char*)tsid.ts_name_char, (int)tsid.length_of_ts_name);
+					strncpy (m_networkInfo.ts_name_char, aribstr, 64);
+				}
+
+			} // loop descriptors
+
+			// streamは基本１つだろうことを期待
+			break;
+
+		} // loop streams
+
+		// tableも基本１つだろうことを期待
+		break;
+
+	} // loop tables
+}
+
+void CPsisiManager::dumpNetworkInfo (void)
+{
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+	m_networkInfo.dump();
+}
+
+void CPsisiManager::clearNetworkInfo (void)
+{
+	m_networkInfo.clear();
 }
 
 

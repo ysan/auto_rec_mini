@@ -21,6 +21,9 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_channelScan, (char*)"onReq_channelScan"};
 	setSeqs (mSeqs, EN_SEQ_CHANNEL_MANAGER__NUM);
 
+
+	m_scanReultTable.clear ();
+
 }
 
 CChannelManager::~CChannelManager (void)
@@ -127,7 +130,9 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		SECTID_REQ_TUNE,
 		SECTID_WAIT_TUNE,
 		SECTID_WAIT_AFTER_TUNE,
-		SECTID_CHECK_SERVICE,
+		SECTID_REQ_GET_NETWORK_INFO,
+		SECTID_WAIT_GET_NETWORK_INFO,
+		SECTID_NEXT,
 		SECTID_END,
 	};
 
@@ -135,14 +140,18 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	static uint16_t s_ch = UHF_PHYSICAL_CHANNEL_MIN;	
+	static PSISI_NETWORK_INFO s_network_info = {0};	
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
 
 	switch (sectId) {
 	case SECTID_ENTRY:
+		pIf->lock();
 
 		// 先にreplyしとく
 		pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		m_scanReultTable.clear ();
 
 		sectId = SECTID_SET_FREQ;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -182,30 +191,60 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 		} else {
 			_UTL_LOG_W ("skip");
-			sectId = SECTID_SET_FREQ;
+			sectId = SECTID_NEXT;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 		break;
 
 	case SECTID_WAIT_AFTER_TUNE:
-		sectId = SECTID_CHECK_SERVICE;
+		sectId = SECTID_REQ_GET_NETWORK_INFO;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_CHECK_SERVICE:
+	case SECTID_REQ_GET_NETWORK_INFO: {
 
+		CPsisiManagerIf _if (getExternalIf());
+		_if.reqGetCurrentNetworkInfo (&s_network_info);
 
+		sectId = SECTID_WAIT_GET_NETWORK_INFO;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_GET_NETWORK_INFO:
+		enRslt = pIf->getSrcInfo()->enRslt;
+        if (enRslt == EN_THM_RSLT_SUCCESS) {
+
+			m_scanReultTable.insert (pair<uint16_t, PSISI_NETWORK_INFO>(s_ch, s_network_info));
+
+			sectId = SECTID_NEXT;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_W ("skip");
+			sectId = SECTID_NEXT;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_NEXT:
 
 		// inc pysical ch
 		++ s_ch;
 
-		sectId = SECTID_SET_FREQ;
+		memset (&s_network_info, 0x00, sizeof (s_network_info));
+
+		sectId = SECTID_NEXT;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
 	case SECTID_END:
+		pIf->unlock();
+
 		// reset pysical ch
 		s_ch = UHF_PHYSICAL_CHANNEL_MIN;
+
+		memset (&s_network_info, 0x00, sizeof (s_network_info));
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;

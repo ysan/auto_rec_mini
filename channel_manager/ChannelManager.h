@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <map>
+
 #include "threadmgr_if.h"
 #include "threadmgr_util.h"
 
@@ -45,6 +47,8 @@ private:
 
 
 	uint8_t m_tunerNotify_clientId;
+
+	std::map <uint16_t, PSISI_NETWORK_INFO> m_scanReultTable; // <pysical channel, PSISI_NETWORK_INFO>
 
 };
 

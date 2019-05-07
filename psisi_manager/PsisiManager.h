@@ -241,21 +241,80 @@ public:
 	uint8_t table_id;
 	uint16_t network_id;
 
+	// CNetworkNameDescriptor
+	char network_name_char [64];
+
+
+	//----- transport_stream_loop -----
+
+	uint16_t transport_stream_id;
+	uint16_t original_network_id;
+
+	// CServiceListDescriptor
+	struct service {
+		uint16_t service_id;
+		uint8_t service_type;
+	} services [16];
+	int services_num;
+
+	// CTerrestrialDeliverySystemDescriptor
+	uint16_t area_code;
+	uint8_t guard_interval;
+	uint8_t transmission_mode;
+
+	// CTSInformationDescriptor
+	uint8_t remote_control_key_id;
+	char ts_name_char  [64];
+
+	//----- transport_stream_loop ------
+
+
 	CNetworkInformationTable::CTable* p_orgTable;
 
 	bool is_used;
 
 	void clear (void) {
 		// clear all
-		memset (this, 0x00, sizeof(struct _event_pf_info));
+		memset (this, 0x00, sizeof(struct _network_info));
 		p_orgTable = NULL;
 		is_used = false;
 	}
 
 	void dump (void) {
+		if (p_orgTable) {
+			p_orgTable->header.dump();
+		}
+		_UTL_LOG_I (
+			"  tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x]",
+			table_id,
+			transport_stream_id,
+			original_network_id
+		);
+		_UTL_LOG_I ("  network_name:[%s]", network_name_char);
+		_UTL_LOG_I ("  ----------");
+		for (int i = 0; i < services_num; ++ i) {
+			_UTL_LOG_I (
+				"  svcid:[0x%04x] svctype:[0x%02x]",
+				services[i].service_id,
+				services[i].service_type
+			);
+		}
+		_UTL_LOG_I ("  ----------");
+		_UTL_LOG_I (
+			"  area_code:[0x%04x] guard:[0x%02x] trans_mode:[0x%02x]",
+			area_code,
+			guard_interval,
+			transmission_mode
+		);
+		_UTL_LOG_I (
+			"  remote_control_key_id:[0x%04x] ts_name:[%s]",
+			remote_control_key_id,
+			ts_name_char
+		);
 	}
 
 } _NETWORK_INFO;
+
 
 
 class CPsisiManager
@@ -281,19 +340,20 @@ public:
 	void onReq_getCurrentServiceInfos (CThreadMgrIf *pIf);
 	void onReq_getPresentEventInfo (CThreadMgrIf *pIf);
 	void onReq_getFollowEventInfo (CThreadMgrIf *pIf);
+	void onReq_getCurrentNetworkInfo (CThreadMgrIf *pIf);
 	void onReq_dumpCaches (CThreadMgrIf *pIf);
 	void onReq_dumpTables (CThreadMgrIf *pIf);
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
 private:
-	// programInfo
+	//-- programInfo --
 	void cacheProgramInfos (void);
 	void dumpProgramInfos (void);
 	void clearProgramInfos (void);
 
 
-	// serviceInfo
+	//-- serviceInfo --
 	void cacheServiceInfos (bool is_atTuning);
 	_SERVICE_INFO* findServiceInfo (
 		uint8_t _table_id,
@@ -314,11 +374,11 @@ private:
 	void clearServiceInfos (void);
 	void clearServiceInfos (bool is_atTuning);
 
-	// serviceInfo for request
+	// for request
 	int getCurrentServiceInfos (PSISI_SERVICE_INFO *p_out_serviceInfos, int num);
 
 
-	// eventPfInfo
+	//-- eventPfInfo --
 	void cacheEventPfInfos (void);
 	bool cacheEventPfInfos (
 		uint8_t _table_id,
@@ -327,14 +387,13 @@ private:
 		uint16_t _service_id
 	);
 	_EVENT_PF_INFO* findEmptyEventPfInfo (void);
-//	bool checkEventPfInfos (CThreadMgrIf *pIf);
 	void checkEventPfInfos (void);
 	void refreshEventPfInfos (void);
 	void dumpEventPfInfos (void);
 	void clearEventPfInfo (_EVENT_PF_INFO *pInfo);
 	void clearEventPfInfos (void);
 
-	// eventPfInfo for request
+	// for request
 	_EVENT_PF_INFO* findEventPfInfo (
 		uint8_t _table_id,
 		uint16_t _transport_stream_id,
@@ -342,6 +401,12 @@ private:
 		uint16_t _service_id,
 		EN_EVENT_PF_STATE state
 	);
+
+
+	//-- networkInfo --
+	void cacheNetworkInfo (void);
+	void dumpNetworkInfo (void);
+	void clearNetworkInfo (void);
 
 
 
@@ -387,6 +452,7 @@ private:
 	_PROGRAM_INFO m_programInfos [PROGRAM_INFOS_MAX];
 	_SERVICE_INFO m_serviceInfos [SERVICE_INFOS_MAX];
 	_EVENT_PF_INFO m_eventPfInfos [EVENT_PF_INFOS_MAX];
+	_NETWORK_INFO m_networkInfo ;
 
 };
 

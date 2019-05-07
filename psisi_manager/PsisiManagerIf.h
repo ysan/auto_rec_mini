@@ -29,6 +29,7 @@ enum {
 	EN_SEQ_PSISI_MANAGER__GET_CURRENT_SERVICE_INFOS,
 	EN_SEQ_PSISI_MANAGER__GET_PRESENT_EVENT_INFO,
 	EN_SEQ_PSISI_MANAGER__GET_FOLLOW_EVENT_INFO,
+	EN_SEQ_PSISI_MANAGER__GET_CURRENT_NETWORK_INFO,
 	EN_SEQ_PSISI_MANAGER__DUMP_CACHES,
 	EN_SEQ_PSISI_MANAGER__DUMP_TABLES,
 
@@ -159,6 +160,20 @@ public:
 		return requestAsync (
 					EN_MODULE_PSISI_MANAGER,
 					EN_SEQ_PSISI_MANAGER__GET_FOLLOW_EVENT_INFO,
+					(uint8_t*)&param,
+					sizeof(param)
+				);
+	};
+
+	bool reqGetCurrentNetworkInfo (PSISI_NETWORK_INFO *p_out_networkInfo) {
+		if (!p_out_networkInfo) {
+			return false;
+		}
+
+		REQ_NETWORK_INFO_PARAM param = {p_out_networkInfo};
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER,
+					EN_SEQ_PSISI_MANAGER__GET_CURRENT_NETWORK_INFO,
 					(uint8_t*)&param,
 					sizeof(param)
 				);
