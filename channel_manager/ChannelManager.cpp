@@ -14,15 +14,17 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 	,m_tunerNotify_clientId (0xff)
 {
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleUp,    (char*)"onReq_moduleUp"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleUp,        (char*)"onReq_moduleUp"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleDown,  (char*)"onReq_moduleDown"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleDown,      (char*)"onReq_moduleDown"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__CHANNEL_SCAN] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_channelScan, (char*)"onReq_channelScan"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_channelScan,     (char*)"onReq_channelScan"};
+	mSeqs [EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS] =
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpScanResults, (char*)"onReq_dumpScanResults"};
 	setSeqs (mSeqs, EN_SEQ_CHANNEL_MANAGER__NUM);
 
 
-	m_scanReultTable.clear ();
+	m_scanReults.clear ();
 
 }
 
@@ -51,7 +53,9 @@ void CChannelManager::onReq_moduleUp (CThreadMgrIf *pIf)
 
 	switch (sectId) {
 	case SECTID_ENTRY:
-		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
+//		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
+//TODO
+sectId = SECTID_END_SUCCESS;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
@@ -151,7 +155,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		// 先にreplyしとく
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
-		m_scanReultTable.clear ();
+		m_scanReults.clear ();
 
 		sectId = SECTID_SET_FREQ;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -190,7 +194,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_WAIT;
 
 		} else {
-			_UTL_LOG_W ("skip");
+			_UTL_LOG_W ("tune is failure -> skip");
 			sectId = SECTID_NEXT;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -215,13 +219,27 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		enRslt = pIf->getSrcInfo()->enRslt;
         if (enRslt == EN_THM_RSLT_SUCCESS) {
 
-			m_scanReultTable.insert (pair<uint16_t, PSISI_NETWORK_INFO>(s_ch, s_network_info));
+			CScanResult r;
+			r.set (
+				s_network_info.transport_stream_id,
+				s_network_info.original_network_id,
+				(const char*)s_network_info.network_name_char,
+				s_network_info.area_code,
+				s_network_info.remote_control_key_id,
+				(const char*)s_network_info.ts_name_char,
+				(CScanResult::service*)s_network_info.services, // このキャストはどうなの
+				s_network_info.services_num
+			);
+
+			r.dump();
+
+			m_scanReults.insert (pair<uint16_t, CScanResult>(s_ch, r));
 
 			sectId = SECTID_NEXT;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			_UTL_LOG_W ("skip");
+			_UTL_LOG_W ("network info is not found -> skip");
 			sectId = SECTID_NEXT;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -234,7 +252,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 		memset (&s_network_info, 0x00, sizeof (s_network_info));
 
-		sectId = SECTID_NEXT;
+		sectId = SECTID_SET_FREQ;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
@@ -255,4 +273,40 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 	}
 
 	pIf->setSectId (sectId, enAct);
+}
+
+void CChannelManager::onReq_dumpScanResults (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	dumpScanResults ();
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CChannelManager::dumpScanResults (void)
+{
+	std::map <uint16_t, CScanResult>::iterator iter = m_scanReults.begin();
+	for (; iter != m_scanReults.end(); ++ iter) {
+		uint16_t ch = iter->first;
+		CScanResult *p_rslt = &(iter->second);
+		if (p_rslt) {
+			_UTL_LOG_I ("-------------  pysical channel:[%d]  -------------", ch);
+			p_rslt ->dump ();
+		}
+	}
 }

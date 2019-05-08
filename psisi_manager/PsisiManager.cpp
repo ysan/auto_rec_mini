@@ -54,6 +54,8 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getPresentEventInfo,         (char*)"onReq_getPresentEventInfo"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__GET_FOLLOW_EVENT_INFO] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getFollowEventInfo,          (char*)"onReq_getFollowEventInfo"};
+	mSeqs [EN_SEQ_PSISI_MANAGER__GET_CURRENT_NETWORK_INFO] =
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getCurrentNetworkInfo,       (char*)"onReq_getCurrentNetworkInfo"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__DUMP_CACHES] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_dumpCaches,                  (char*)"onReq_dumpCaches"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__DUMP_TABLES] =

@@ -28,12 +28,35 @@ static void _scan (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void _dump_scan_results (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_UTL_LOG_W ("ignore arguments.\n");
+	}
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CChannelManagerIf mgr(pBase->getExternalIf());
+	mgr.reqDumpScanResults ();
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
 
 ST_COMMAND_INFO g_chManagerCommands [] = { // extern
 	{
 		"s",
 		"channel scan",
 		_scan,
+		NULL,
+	},
+	{
+		"ds",
+		"dump channel scan results",
+		_dump_scan_results,
 		NULL,
 	},
 	//-- term --//
