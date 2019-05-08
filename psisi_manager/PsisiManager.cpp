@@ -1645,6 +1645,8 @@ void CPsisiManager::cacheNetworkInfo (void)
 			continue;
 		}
 
+		m_networkInfo.is_used = true;
+
 		m_networkInfo.table_id = tbl_id;
 		m_networkInfo.network_id = network_id;
 

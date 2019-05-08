@@ -10,6 +10,8 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <iostream>
+#include <fstream>
 
 #include "threadmgr_if.h"
 #include "threadmgr_util.h"
@@ -26,6 +28,11 @@
 
 #include "TunerControlIf.h"
 #include "PsisiManagerIf.h"
+
+#include "cereal/cereal.hpp"
+#include "cereal/types/map.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/archives/json.hpp"
 
 
 using namespace ThreadManager;
@@ -136,6 +143,8 @@ public:
 
 
 private:
+	void saveScanResults (void);
+	void loadScanResults (void);
 	void dumpScanResults (void);
 
 

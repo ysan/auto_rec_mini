@@ -1,0 +1,397 @@
+{
+    "m_scanReults": [
+        {
+            "key": 16,
+            "value": {
+                "transport_stream_id": 32391,
+                "original_network_id": 32391,
+                "network_name": "東京７",
+                "area_code": 3242,
+                "remote_control_key_id": 9,
+                "ts_name": "ＴＯＫＹＯ　ＭＸ",
+                "services": [
+                    {
+                        "service_id": 23608,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 23609,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 23610,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 23615,
+                        "service_type": 161
+                    },
+                    {
+                        "service_id": 23992,
+                        "service_type": 192
+                    },
+                    {
+                        "service_id": 23993,
+                        "service_type": 192
+                    }
+                ]
+            }
+        },
+        {
+            "key": 18,
+            "value": {
+                "transport_stream_id": 32375,
+                "original_network_id": 32375,
+                "network_name": "神奈川７",
+                "area_code": 3237,
+                "remote_control_key_id": 3,
+                "ts_name": "ｔｖｋ",
+                "services": [
+                    {
+                        "service_id": 24632,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 24633,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 24634,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 25016,
+                        "service_type": 192
+                    },
+                    {
+                        "service_id": 25017,
+                        "service_type": 192
+                    }
+                ]
+            }
+        },
+        {
+            "key": 21,
+            "value": {
+                "transport_stream_id": 32740,
+                "original_network_id": 32740,
+                "network_name": "関東広域４",
+                "area_code": 1445,
+                "remote_control_key_id": 8,
+                "ts_name": "フジテレビジョン",
+                "services": [
+                    {
+                        "service_id": 1056,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1057,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1058,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1440,
+                        "service_type": 192
+                    }
+                ]
+            }
+        },
+        {
+            "key": 22,
+            "value": {
+                "transport_stream_id": 32739,
+                "original_network_id": 32739,
+                "network_name": "関東広域３",
+                "area_code": 1445,
+                "remote_control_key_id": 6,
+                "ts_name": "ＴＢＳ",
+                "services": [
+                    {
+                        "service_id": 1048,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1049,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1432,
+                        "service_type": 192
+                    },
+                    {
+                        "service_id": 1183,
+                        "service_type": 192
+                    }
+                ]
+            }
+        },
+        {
+            "key": 23,
+            "value": {
+                "transport_stream_id": 32742,
+                "original_network_id": 32742,
+                "network_name": "関東広域６",
+                "area_code": 1445,
+                "remote_control_key_id": 7,
+                "ts_name": "テレビ東京",
+                "services": [
+                    {
+                        "service_id": 1072,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1073,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1074,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1456,
+                        "service_type": 192
+                    },
+                    {
+                        "service_id": 1078,
+                        "service_type": 161
+                    }
+                ]
+            }
+        },
+        {
+            "key": 24,
+            "value": {
+                "transport_stream_id": 32741,
+                "original_network_id": 32741,
+                "network_name": "関東広域５",
+                "area_code": 1445,
+                "remote_control_key_id": 5,
+                "ts_name": "テレビ朝日",
+                "services": [
+                    {
+                        "service_id": 1064,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1065,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1066,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1448,
+                        "service_type": 192
+                    }
+                ]
+            }
+        },
+        {
+            "key": 25,
+            "value": {
+                "transport_stream_id": 32738,
+                "original_network_id": 32738,
+                "network_name": "関東広域２",
+                "area_code": 1445,
+                "remote_control_key_id": 4,
+                "ts_name": "日本テレビ",
+                "services": [
+                    {
+                        "service_id": 1040,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1041,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1424,
+                        "service_type": 192
+                    },
+                    {
+                        "service_id": 1044,
+                        "service_type": 161
+                    }
+                ]
+            }
+        },
+        {
+            "key": 26,
+            "value": {
+                "transport_stream_id": 32737,
+                "original_network_id": 32737,
+                "network_name": "関東広域１",
+                "area_code": 1445,
+                "remote_control_key_id": 2,
+                "ts_name": "ＮＨＫＥテレ東京",
+                "services": [
+                    {
+                        "service_id": 1032,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1033,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1034,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1416,
+                        "service_type": 192
+                    }
+                ]
+            }
+        },
+        {
+            "key": 27,
+            "value": {
+                "transport_stream_id": 32736,
+                "original_network_id": 32736,
+                "network_name": "関東広域０",
+                "area_code": 1445,
+                "remote_control_key_id": 1,
+                "ts_name": "ＮＨＫ総合・東京",
+                "services": [
+                    {
+                        "service_id": 1024,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1025,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1408,
+                        "service_type": 192
+                    },
+                    {
+                        "service_id": 65520,
+                        "service_type": 164
+                    }
+                ]
+            }
+        },
+        {
+            "key": 28,
+            "value": {
+                "transport_stream_id": 32736,
+                "original_network_id": 32736,
+                "network_name": "関東広域０",
+                "area_code": 1445,
+                "remote_control_key_id": 1,
+                "ts_name": "ＮＨＫ総合・東京",
+                "services": [
+                    {
+                        "service_id": 1024,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1025,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 1408,
+                        "service_type": 192
+                    },
+                    {
+                        "service_id": 65520,
+                        "service_type": 164
+                    }
+                ]
+            }
+        },
+        {
+            "key": 32,
+            "value": {
+                "transport_stream_id": 32295,
+                "original_network_id": 32295,
+                "network_name": "テレビ埼玉",
+                "area_code": 2982,
+                "remote_control_key_id": 3,
+                "ts_name": "テレ玉",
+                "services": [
+                    {
+                        "service_id": 29752,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 29753,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 29754,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 30136,
+                        "service_type": 192
+                    }
+                ]
+            }
+        },
+        {
+            "key": 41,
+            "value": {
+                "transport_stream_id": 32295,
+                "original_network_id": 32295,
+                "network_name": "テレビ埼玉",
+                "area_code": 2982,
+                "remote_control_key_id": 3,
+                "ts_name": "テレ玉",
+                "services": [
+                    {
+                        "service_id": 29752,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 29753,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 29754,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 30136,
+                        "service_type": 192
+                    }
+                ]
+            }
+        },
+        {
+            "key": 46,
+            "value": {
+                "transport_stream_id": 32295,
+                "original_network_id": 32295,
+                "network_name": "テレビ埼玉",
+                "area_code": 2982,
+                "remote_control_key_id": 3,
+                "ts_name": "テレ玉",
+                "services": [
+                    {
+                        "service_id": 29752,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 29753,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 29754,
+                        "service_type": 1
+                    },
+                    {
+                        "service_id": 30136,
+                        "service_type": 192
+                    }
+                ]
+            }
+        }
+    ]
+}
