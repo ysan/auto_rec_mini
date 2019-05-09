@@ -15,6 +15,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/ts_parser \
 	-I$(BASEDIR)/ts_parser/aribstr \
 	-I$(BASEDIR)/psisi_manager \
+	-I$(BASEDIR)/channel_manager \
 	-I./ \
 	-I../ \
 

@@ -30,7 +30,7 @@ enum {
 };
 
 typedef enum {
-	EN_RESERVE_REPEATABILITY__NONE,
+	EN_RESERVE_REPEATABILITY__NONE = 0,
 	EN_RESERVE_REPEATABILITY__DAYLY,
 	EN_RESERVE_REPEATABILITY__WEEKLY,
 } EN_RESERVE_REPEATABILITY;
@@ -58,6 +58,11 @@ typedef struct {
 	}
 
 } _MANUAL_RESERVE_PARAM;
+
+typedef struct {
+	int index;
+	bool isConsiderRepeatability;
+} _REMOVE_RESERVE_PARAM;
 
 
 class CRecManagerIf : public CThreadMgrExternalIf
@@ -98,13 +103,16 @@ public:
 				);
 	};
 
-	bool reqRemoveReserve (int index) {
-		int _idx = index;
+	bool reqRemoveReserve (_REMOVE_RESERVE_PARAM *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
 		return requestAsync (
 					EN_MODULE_REC_MANAGER,
 					EN_SEQ_REC_MANAGER__REMOVE_RESERVE,
-					(uint8_t*)&_idx,
-					sizeof (int)
+					(uint8_t*)p_param,
+					sizeof (_REMOVE_RESERVE_PARAM)
 				);
 	};
 

@@ -14,13 +14,15 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 	,m_tunerNotify_clientId (0xff)
 {
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleUp,        (char*)"onReq_moduleUp"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleUp,                     (char*)"onReq_moduleUp"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleDown,      (char*)"onReq_moduleDown"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleDown,                   (char*)"onReq_moduleDown"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__CHANNEL_SCAN] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_channelScan,     (char*)"onReq_channelScan"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_channelScan,                  (char*)"onReq_channelScan"};
+	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_SERVICE_ID] =
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByServiceId, (char*)"onReq_getPysicalChannelByServiceId"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpScanResults, (char*)"onReq_dumpScanResults"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpScanResults,              (char*)"onReq_dumpScanResults"};
 	setSeqs (mSeqs, EN_SEQ_CHANNEL_MANAGER__NUM);
 
 
@@ -57,7 +59,7 @@ void CChannelManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		loadScanResults ();
 
 //		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
-//TODO
+//TODO TUNER_NOTIFYは特にいらない
 sectId = SECTID_END_SUCCESS;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
@@ -179,7 +181,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 	case SECTID_REQ_TUNE: {
 
 		uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (s_ch);
-		_UTL_LOG_I ("(%s) ##########  pysical channel:[%d] -> freq:[%d]kHz", pIf->getSeqName(), s_ch, freq);
+		_UTL_LOG_I ("(%s) ------  pysical channel:[%d] -> freq:[%d]kHz", pIf->getSeqName(), s_ch, freq);
 
 		CTunerControlIf _if (getExternalIf());
 		_if.reqTune (freq);
@@ -283,6 +285,44 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CChannelManager::onReq_getPysicalChannelByServiceId (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	_SERVICE_ID_PARAM param = *(_SERVICE_ID_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+
+	uint16_t _ch = getPysicalChannelByServiceId (
+						param.transport_stream_id,
+						param.original_network_id,
+						param.service_id
+					);
+	if (_ch == 0xffff) {
+
+		_UTL_LOG_E ("getPysicalChannelByServiceId is failure.");
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else {
+
+		// リプライmsgに結果を乗せます
+		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&_ch, sizeof(_ch));
+
+	}
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CChannelManager::onReq_dumpScanResults (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -305,6 +345,51 @@ void CChannelManager::onReq_dumpScanResults (CThreadMgrIf *pIf)
 	enAct = EN_THM_ACT_DONE;
 	pIf->setSectId (sectId, enAct);
 }
+
+uint16_t CChannelManager::getPysicalChannelByServiceId (
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id,
+	uint16_t _service_id
+)
+{
+	std::map <uint16_t, CScanResult>::iterator iter = m_scanReults.begin();
+	for (; iter != m_scanReults.end(); ++ iter) {
+		uint16_t ch = iter->first;
+		CScanResult *p_rslt = &(iter->second);
+		if (p_rslt) {
+
+			if (
+				(p_rslt->transport_stream_id == _transport_stream_id) &&
+				(p_rslt->original_network_id == _original_network_id)
+			) {
+				std::vector<CScanResult::service>::iterator iter = p_rslt->services.begin();
+				for (; iter != p_rslt->services.end(); ++ iter) {
+					if (_service_id == iter->service_id) {
+						return ch;
+					}
+				}
+			}
+		}
+	}
+
+	// not found
+	return 0xffff;
+}
+
+void CChannelManager::dumpScanResults (void)
+{
+	std::map <uint16_t, CScanResult>::iterator iter = m_scanReults.begin();
+	for (; iter != m_scanReults.end(); ++ iter) {
+		uint16_t ch = iter->first;
+		CScanResult *p_rslt = &(iter->second);
+		if (p_rslt) {
+			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
+			_UTL_LOG_I ("-------------  pysical channel:[%d] ([%d]kHz) -------------", ch, freq);
+			p_rslt ->dump ();
+		}
+	}
+}
+
 
 template <class Archive>
 void serialize (Archive &archive, CScanResult::service &s)
@@ -358,18 +443,4 @@ void CChannelManager::loadScanResults (void)
 
 	ifs.close();
 	ss.clear();
-}
-
-void CChannelManager::dumpScanResults (void)
-{
-	std::map <uint16_t, CScanResult>::iterator iter = m_scanReults.begin();
-	for (; iter != m_scanReults.end(); ++ iter) {
-		uint16_t ch = iter->first;
-		CScanResult *p_rslt = &(iter->second);
-		if (p_rslt) {
-			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
-			_UTL_LOG_I ("-------------  pysical channel:[%d] ([%d]kHz) -------------", ch, freq);
-			p_rslt ->dump ();
-		}
-	}
 }

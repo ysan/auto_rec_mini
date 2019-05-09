@@ -60,7 +60,7 @@
 #define REQUEST_TIMEOUT_60				(60000) // msec
 #define REQUEST_TIMEOUT_FIX				REQUEST_TIMEOUT_30
 
-#define MSG_SIZE						(0x80) // 128
+#define MSG_SIZE						(256)
 
 #define NOTIFY_CATEGORY_MAX				(0x20) // 32  notifyを登録できるカテゴリ数 (notifyの種別)
 #define NOTIFY_CATEGORY_BLANK			(0x80) // 128
@@ -1166,7 +1166,9 @@ static bool enQueWorker (
 			pstQueWorker->enRslt = enRslt;
 			pstQueWorker->nClientId = nClientId;
 			if (pMsg && msgSize > 0) {
-//TODO size truncate
+				if (msgSize > MSG_SIZE) {
+					THM_INNER_FORCE_LOG_W ("truncate request message. size:[%d]->[%d] thIdx:[%d]\n", msgSize, MSG_SIZE, nThreadIdx);
+				}
 				memcpy (pstQueWorker->msg.msg, pMsg, msgSize < MSG_SIZE ? msgSize : MSG_SIZE);
 				pstQueWorker->msg.size = msgSize < MSG_SIZE ? msgSize : MSG_SIZE;
 				pstQueWorker->msg.isUsed = true;
@@ -3729,7 +3731,9 @@ static bool cashSyncReplyInfo (uint8_t nThreadIdx, EN_THM_RSLT enRslt, uint8_t *
 
 	/* message 保存 */
 	if (pMsg && msgSize > 0) {
-//TODO msg truncate
+		if (msgSize > MSG_SIZE) {
+			THM_INNER_FORCE_LOG_W ("truncate request message. size:[%d]->[%d]\n", msgSize, MSG_SIZE);
+		}
 		memcpy (gstSyncReplyInfo [nThreadIdx].msg.msg, pMsg, msgSize < MSG_SIZE ? msgSize : MSG_SIZE);
 		gstSyncReplyInfo [nThreadIdx].msg.size = msgSize < MSG_SIZE ? msgSize : MSG_SIZE;
 		gstSyncReplyInfo [nThreadIdx].msg.isUsed = true;

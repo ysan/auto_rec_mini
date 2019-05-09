@@ -20,9 +20,11 @@
 
 #include "Utils.h"
 #include "RecManagerIf.h"
+#include "TsAribCommon.h"
 
 #include "TunerControlIf.h"
 #include "PsisiManagerIf.h"
+#include "ChannelManagerIf.h"
 
 
 using namespace ThreadManager;
@@ -50,6 +52,7 @@ typedef enum {
 	EN_RESERVE_STATE__END_ERROR__ALREADY_PASSED,
 	EN_RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW,
 	EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR,
+	EN_RESERVE_STATE__END_ERROR__REMOVE_RESERVE,
 } EN_RESERVE_STATE;
 
 const char *g_reserveState [] = {
@@ -61,6 +64,7 @@ const char *g_reserveState [] = {
 	"END_ERROR__ALREADY_PASSED",
 	"END_ERROR__HDD_FREE_SPACE_LOW",
 	"END_ERROR__INTERNAL_ERR",
+	"END_ERROR__REMOVE_RESERVE",
 };
 
 const char *g_repeatability [] = {
@@ -220,7 +224,7 @@ private:
 		const char *psz_title_name,
 		EN_RESERVE_REPEATABILITY repeatability=EN_RESERVE_REPEATABILITY__NONE
 	);
-	bool removeReserve (int index);
+	bool removeReserve (int index, bool isConsiderRepeatability);
 	CRecReserve* searchAscendingOrderReserve (CEtime *p_start_time_rf);
 	bool isExistEmptyReserve (void) const;
 	CRecReserve *findEmptyReserve (void);
@@ -260,9 +264,6 @@ private:
 	CRecReserve m_reserves [RESERVE_NUM_MAX];
 	CRecReserve m_results [RESULT_NUM_MAX];
 	CRecReserve m_recording;
-
-	PSISI_SERVICE_INFO m_serviceInfos [10];
-	PSISI_EVENT_INFO m_presentEventInfo;
 
 
 	struct OutputBuffer *mp_outputBuffer;

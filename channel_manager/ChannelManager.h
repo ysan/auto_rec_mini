@@ -113,7 +113,7 @@ public:
 			remote_control_key_id,
 			ts_name.c_str()
 		);
-		_UTL_LOG_I ("----------");
+		_UTL_LOG_I ("----- services -----");
 		std::vector<service>::iterator iter = services.begin();
 		for (; iter != services.end(); ++ iter) {
 			_UTL_LOG_I (
@@ -122,7 +122,6 @@ public:
 				iter->service_type
 			);
 		}
-		_UTL_LOG_I ("----------");
 	}
 
 };
@@ -138,14 +137,21 @@ public:
 	void onReq_moduleUp (CThreadMgrIf *pIf);
 	void onReq_moduleDown (CThreadMgrIf *pIf);
 	void onReq_channelScan (CThreadMgrIf *pIf);
+	void onReq_getPysicalChannelByServiceId (CThreadMgrIf *pIf);
 	void onReq_dumpScanResults (CThreadMgrIf *pIf);
 
 
 
 private:
+	uint16_t getPysicalChannelByServiceId (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id
+	);
+	void dumpScanResults (void);
+
 	void saveScanResults (void);
 	void loadScanResults (void);
-	void dumpScanResults (void);
 
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_CHANNEL_MANAGER__NUM]; // entity
