@@ -27,10 +27,17 @@
 using namespace ThreadManager;
 
 
-int main (void)
+int main (int argc, char *argv[])
 {
-	CSettings *set = CSettings::getInstance ();
-	set->load ();
+	if (argc != 2) {
+		printf ("[main] unexpexted arguments.\n");
+		exit (EXIT_FAILURE);
+	}
+
+	std::string settings_json = argv[1];
+	CSettings *s = CSettings::getInstance ();
+	s->load (settings_json);
+	s->getParams()->dump ();
 
 	initLogStdout();
 

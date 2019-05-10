@@ -159,6 +159,12 @@ char* CEtime::toString (void)
 	return m_time_str;
 }
 
+char* CEtime::toString2 (void)
+{
+	getString2 (m_time_str, sizeof(m_time_str));
+	return m_time_str;
+}
+
 void CEtime::getString (char *pszOut, size_t nSize)
 {
 	struct tm *pstTmLocal = NULL;
@@ -184,6 +190,41 @@ void CEtime::getString (char *pszOut, size_t nSize)
 		pszOut,
 		nSize,
 		"%d/%02d/%02d %02d:%02d:%02d",
+		pstTmLocal->tm_year+1900,
+		pstTmLocal->tm_mon+1,
+		pstTmLocal->tm_mday,
+		pstTmLocal->tm_hour,
+		pstTmLocal->tm_min,
+		pstTmLocal->tm_sec
+	);
+#endif
+}
+
+void CEtime::getString2 (char *pszOut, size_t nSize)
+{
+	struct tm *pstTmLocal = NULL;
+	struct tm stTmLocalTmp;
+
+	pstTmLocal = localtime_r (&m_time.tv_sec, &stTmLocalTmp);
+
+#ifdef ENABLE_AFTER_DECIAML_POINT
+	snprintf (
+		pszOut,
+		nSize,
+		"%d%02d%02d%02d%02d%02d%03ld",
+		pstTmLocal->tm_year+1900,
+		pstTmLocal->tm_mon+1,
+		pstTmLocal->tm_mday,
+		pstTmLocal->tm_hour,
+		pstTmLocal->tm_min,
+		pstTmLocal->tm_sec,
+		m_time.tv_nsec/1000000
+	);
+#else
+	snprintf (
+		pszOut,
+		nSize,
+		"%d%02d%02d%02d%02d%02d",
 		pstTmLocal->tm_year+1900,
 		pstTmLocal->tm_mon+1,
 		pstTmLocal->tm_mday,

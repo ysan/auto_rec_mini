@@ -52,6 +52,7 @@ public:
 	void addWeek (int week);
 
 	char * toString (void);
+	char * toString2 (void);
 
 	void clear (void);
 
@@ -60,6 +61,7 @@ public:
 
 private:
 	void getString (char *pszOut, size_t nSize);
+	void getString2 (char *pszOut, size_t nSize);
 
 	char m_time_str [64];
 };

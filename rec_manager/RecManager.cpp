@@ -103,6 +103,10 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 
 	switch (sectId) {
 	case SECTID_ENTRY:
+
+		loadReserves ();
+		loadResults ();
+
 		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
@@ -310,7 +314,7 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		refreshReserves ();
 
 
-		if (m_recording.is_used && m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
+		if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
 
 			// recording end check
 			checkRecordingEnd ();
@@ -355,7 +359,7 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 	case SECTID_REQ_GET_PRESENT_EVENT_INFO: {
 
 		PSISI_SERVICE_INFO _svc_info ;
-		// 以下３つの要素があればOK
+		// 以下３つの要素が入っていればOK
 		_svc_info.transport_stream_id = m_recording.transport_stream_id;
 		_svc_info.original_network_id = m_recording.original_network_id;
 		_svc_info.service_id = m_recording.service_id;
@@ -372,8 +376,10 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 	case SECTID_WAIT_GET_PRESENT_EVENT_INFO:
 		enRslt = pIf->getSrcInfo()->enRslt;
         if (enRslt == EN_THM_RSLT_SUCCESS) {
-s_presentEventInfo.dump();
-			m_recording.title_name = s_presentEventInfo.event_name_char;
+//s_presentEventInfo.dump();
+			if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
+				m_recording.title_name = s_presentEventInfo.event_name_char;
+			}
 
 		} else {
 			_UTL_LOG_E ("reqGetPresentEventInfo err");
@@ -435,8 +441,15 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 		setResult (&m_recording);
 
 		// rename
-		char newfile [64] = {0};
-		snprintf (newfile, sizeof(newfile), "%s.m2ts", (char*)m_recording.title_name.c_str());
+		char newfile [256] = {0};
+		snprintf (
+			newfile,
+			sizeof(newfile),
+			"%s_%s-%s.m2ts",
+			(char*)m_recording.title_name.c_str(),
+			m_recording.start_time.toString2(),
+			m_recording.end_time.toString2()
+		);
 //TODO tmp.m2ts
 		rename ("tmp.m2ts", newfile) ;
 
@@ -929,7 +942,7 @@ void CRecManager::onReq_stopRecording (CThreadMgrIf *pIf)
 
 	if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
 
-		// stopRecording はエラー終了にしておきます
+		// stopRecording が呼ばれたらエラー終了にしておきます
 		_UTL_LOG_W ("m_recProgress = EN_REC_PROGRESS__END_ERROR");
 		m_recProgress = EN_REC_PROGRESS__END_ERROR;
 		m_recording.state = EN_RESERVE_STATE__END_ERROR__FORCE_STOP;
@@ -1012,13 +1025,29 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 	} else if (pIf->getSrcInfo()->nClientId == m_patDetectNotify_clientId) {
 
 		EN_PAT_DETECT_STATE _state = *(EN_PAT_DETECT_STATE*)(pIf->getSrcInfo()->msg.pMsg);
-		_UTL_LOG_I ("!!! event chenged !!!");
 		if (_state == EN_PAT_DETECT_STATE__DETECTED) {
 			_UTL_LOG_I ("EN_PAT_DETECT_STATE__DETECTED");
 
 		} else if (_state == EN_PAT_DETECT_STATE__NOT_DETECTED) {
 			_UTL_LOG_E ("EN_PAT_DETECT_STATE__NOT_DETECTED");
 
+			// PAT途絶したら録画中止します
+			if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
+				m_recProgress = EN_REC_PROGRESS__POST_PROCESS;
+				m_recording.state = EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+
+
+				uint32_t opt = getRequestOption ();
+				opt |= REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+
+				// 自ら呼び出します
+				this->onTsReceived (NULL, 0);
+
+				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+
+			}
 		}
 
 	} else if (pIf->getSrcInfo()->nClientId == m_eventChangeNotify_clientId) {
@@ -1107,21 +1136,26 @@ bool CRecManager::addReserve (
 	}
 
 	p_reserve->set (
-				_transport_stream_id,
-				_original_network_id,
-				_service_id,
-				_event_id,
-				p_start_time,
-				p_end_time,
-				psz_title_name,
-				repeatabilitiy
-			);
+		_transport_stream_id,
+		_original_network_id,
+		_service_id,
+		_event_id,
+		p_start_time,
+		p_end_time,
+		psz_title_name,
+		repeatabilitiy
+	);
+
+
+	// 毎回書き込み
+	saveReserves ();
+
 
 	return true;
 }
 
 /**
- * indexで指定したものを削除します
+ * indexで指定した予約を削除します
  * 0始まり
  */
 bool CRecManager::removeReserve (int index, bool isConsiderRepeatability)
@@ -1142,6 +1176,11 @@ bool CRecManager::removeReserve (int index, bool isConsiderRepeatability)
 		m_reserves [i] = m_reserves [i+1];
 	}
 	m_reserves [RESERVE_NUM_MAX -1].clear();
+
+
+	// 毎回書き込み
+	saveReserves ();
+
 
 	return true;
 }
@@ -1317,7 +1356,10 @@ void CRecManager::refreshReserves (void)
 		for (int j = i; j < RESERVE_NUM_MAX -1; ++ j) {
 			m_reserves [j] = m_reserves [j+1];
 		}
+
 		m_reserves [RESERVE_NUM_MAX -1].clear();
+
+		saveReserves ();
 	}
 }
 
@@ -1344,8 +1386,9 @@ bool CRecManager::pickReqStartRecordingReserve (void)
 			}
 			m_reserves [RESERVE_NUM_MAX -1].clear();
 
-
 			checkRepeatability (&m_recording);
+
+			saveReserves ();
 
 			return true;
 		}
@@ -1408,6 +1451,9 @@ void CRecManager::checkRepeatability (const CRecReserve *p_reserve)
 	}
 }
 
+/**
+ * 録画結果をリストに保存します
+ */
 void CRecManager::setResult (CRecReserve *p)
 {
 	if (!p) {
@@ -1418,6 +1464,10 @@ void CRecManager::setResult (CRecReserve *p)
 	for (int i = 0; i < RESULT_NUM_MAX; ++ i) {
 		if (!m_results [i].is_used) {
 			m_results [i] = *p;
+
+			// 毎回書き込み
+			saveResults ();
+
 			return ;
 		}
 	}
@@ -1430,6 +1480,10 @@ void CRecManager::setResult (CRecReserve *p)
 
 	m_results [RESULT_NUM_MAX -1].clear ();
 	m_results [RESULT_NUM_MAX -1] = *p;
+
+
+	// 毎回書き込み
+	saveResults ();
 }
 
 void CRecManager::checkRecordingEnd (void)
@@ -1660,4 +1714,102 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 	}
 
 	return true;
+}
+
+
+//--------------------------------------------------------------------------------
+
+template <class Archive>
+void serialize (Archive &archive, struct timespec &t)
+{
+	archive (cereal::make_nvp("tv_sec", t.tv_sec), cereal::make_nvp("tv_nsec", t.tv_nsec));
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEtime &t)
+{
+	archive (cereal::make_nvp("m_time", t.m_time));
+}
+
+template <class Archive>
+void serialize (Archive &archive, CRecReserve &r)
+{
+	archive (
+		cereal::make_nvp("transport_stream_id", r.transport_stream_id),
+		cereal::make_nvp("original_network_id", r.original_network_id),
+		cereal::make_nvp("service_id", r.service_id),
+		cereal::make_nvp("event_id", r.event_id),
+		cereal::make_nvp("start_time", r.start_time),
+		cereal::make_nvp("end_time", r.end_time),
+		cereal::make_nvp("title_name", r.title_name),
+		cereal::make_nvp("repeatability", r.repeatability),
+		cereal::make_nvp("state", r.state),
+		cereal::make_nvp("is_used", r.is_used)
+	);
+}
+
+void CRecManager::saveReserves (void)
+{
+	std::stringstream ss;
+	{
+		cereal::JSONOutputArchive out_archive (ss);
+		out_archive (CEREAL_NVP(m_reserves), sizeof(CRecReserve) * RESERVE_NUM_MAX);
+	}
+
+	std::ofstream ofs ("./rec_reserves.json", std::ios::out);
+	ofs << ss.str();
+
+	ofs.close();
+	ss.clear();
+}
+
+void CRecManager::loadReserves (void)
+{
+	std::ifstream ifs ("./rec_reserves.json", std::ios::in);
+	if (!ifs.is_open()) {
+		_UTL_LOG_I("rec_reserves.json is not found.");
+		return;
+	}
+
+	std::stringstream ss;
+	ss << ifs.rdbuf();
+
+	cereal::JSONInputArchive in_archive (ss);
+	in_archive (CEREAL_NVP(m_reserves), sizeof(CRecReserve) * RESERVE_NUM_MAX);
+
+	ifs.close();
+	ss.clear();
+}
+
+void CRecManager::saveResults (void)
+{
+	std::stringstream ss;
+	{
+		cereal::JSONOutputArchive out_archive (ss);
+		out_archive (CEREAL_NVP(m_results), sizeof(CRecReserve) * RESULT_NUM_MAX);
+	}
+
+	std::ofstream ofs ("./rec_results.json", std::ios::out);
+	ofs << ss.str();
+
+	ofs.close();
+	ss.clear();
+}
+
+void CRecManager::loadResults (void)
+{
+	std::ifstream ifs ("./rec_results.json", std::ios::in);
+	if (!ifs.is_open()) {
+		_UTL_LOG_I("rec_results.json is not found.");
+		return;
+	}
+
+	std::stringstream ss;
+	ss << ifs.rdbuf();
+
+	cereal::JSONInputArchive in_archive (ss);
+	in_archive (CEREAL_NVP(m_results), sizeof(CRecReserve) * RESULT_NUM_MAX);
+
+	ifs.close();
+	ss.clear();
 }

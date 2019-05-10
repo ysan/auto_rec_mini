@@ -391,6 +391,8 @@ void CChannelManager::dumpScanResults (void)
 }
 
 
+//--------------------------------------------------------------------------------
+
 template <class Archive>
 void serialize (Archive &archive, CScanResult::service &s)
 {
@@ -431,7 +433,7 @@ void CChannelManager::loadScanResults (void)
 {
 	std::ifstream ifs ("./scan.json", std::ios::in);
 	if (!ifs.is_open()) {
-		_UTL_LOG_I("scan results json is not found.");
+		_UTL_LOG_I("scan.json is not found.");
 		return;
 	}
 

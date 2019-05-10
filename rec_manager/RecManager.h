@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <iostream>
+#include <fstream>
 #include <string>
 
 #include "threadmgr_if.h"
@@ -25,6 +27,9 @@
 #include "TunerControlIf.h"
 #include "PsisiManagerIf.h"
 #include "ChannelManagerIf.h"
+
+#include "cereal/cereal.hpp"
+#include "cereal/archives/json.hpp"
 
 
 using namespace ThreadManager;
@@ -242,13 +247,17 @@ private:
 	void clearResults (void);
 
 
-
 	// CTunerControlIf::ITsReceiveHandler
 	bool onPreTsReceive (void) override;
 	void onPostTsReceive (void) override;
 	bool onCheckTsReceiveLoop (void) override;
 	bool onTsReceived (void *p_ts_data, int length) override;
 
+
+	void saveReserves (void);
+	void loadReserves (void);
+	void saveResults (void);
+	void loadResults (void);
 
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_REC_MANAGER__NUM]; // entity

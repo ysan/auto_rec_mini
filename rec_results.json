@@ -1,0 +1,93 @@
+{
+    "m_results": {
+        "value0": {
+            "transport_stream_id": 32738,
+            "original_network_id": 32738,
+            "service_id": 1040,
+            "event_id": 0,
+            "start_time": {
+                "m_time": {
+                    "tv_sec": 1557468120,
+                    "tv_nsec": 0
+                }
+            },
+            "end_time": {
+                "m_time": {
+                    "tv_sec": 1557468130,
+                    "tv_nsec": 0
+                }
+            },
+            "title_name": "日テレナビ",
+            "repeatability": 0,
+            "state": 7,
+            "is_used": true
+        },
+        "value1": {
+            "transport_stream_id": 32738,
+            "original_network_id": 32738,
+            "service_id": 1040,
+            "event_id": 0,
+            "start_time": {
+                "m_time": {
+                    "tv_sec": 1557468120,
+                    "tv_nsec": 0
+                }
+            },
+            "end_time": {
+                "m_time": {
+                    "tv_sec": 1557468130,
+                    "tv_nsec": 0
+                }
+            },
+            "title_name": "",
+            "repeatability": 0,
+            "state": 5,
+            "is_used": true
+        },
+        "value2": {
+            "transport_stream_id": 32738,
+            "original_network_id": 32738,
+            "service_id": 1040,
+            "event_id": 0,
+            "start_time": {
+                "m_time": {
+                    "tv_sec": 1557468780,
+                    "tv_nsec": 0
+                }
+            },
+            "end_time": {
+                "m_time": {
+                    "tv_sec": 1557468790,
+                    "tv_nsec": 0
+                }
+            },
+            "title_name": "日テレナビ",
+            "repeatability": 0,
+            "state": 7,
+            "is_used": true
+        },
+        "value3": {
+            "transport_stream_id": 32738,
+            "original_network_id": 32738,
+            "service_id": 1040,
+            "event_id": 0,
+            "start_time": {
+                "m_time": {
+                    "tv_sec": 1557469320,
+                    "tv_nsec": 0
+                }
+            },
+            "end_time": {
+                "m_time": {
+                    "tv_sec": 1557469330,
+                    "tv_nsec": 0
+                }
+            },
+            "title_name": "日テレナビ",
+            "repeatability": 0,
+            "state": 7,
+            "is_used": true
+        }
+    },
+    "value0": 928
+}
