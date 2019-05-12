@@ -1,9 +1,9 @@
 {
     "m_params": {
         "m_command_server_port": 20001,
-        "m_channel_scan_data_path": "./data/scan.json",
-        "m_rec_reserve_data_path": "./data/rec_reserve.json",
-        "m_rec_result_data_path": "./data/rec_result.json",
+        "m_channel_scan_json_path": "./data/scan.json",
+        "m_rec_reserve_json_path": "./data/rec_reserve.json",
+        "m_rec_result_json_path": "./data/rec_result.json",
         "m_rec_ts_path": "./data/",
         "m_dummy_tuner_ts_path": "../test.m2ts"
     }
