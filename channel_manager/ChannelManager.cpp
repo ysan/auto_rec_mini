@@ -422,7 +422,7 @@ void CChannelManager::saveScanResults (void)
 		out_archive (CEREAL_NVP(m_scanReults));
 	}
 
-	std::ofstream ofs ("./scan.json", std::ios::out);
+	std::ofstream ofs ("./data/scan.json", std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -431,9 +431,9 @@ void CChannelManager::saveScanResults (void)
 
 void CChannelManager::loadScanResults (void)
 {
-	std::ifstream ifs ("./scan.json", std::ios::in);
+	std::ifstream ifs ("./data/scan.json", std::ios::in);
 	if (!ifs.is_open()) {
-		_UTL_LOG_I("scan.json is not found.");
+		_UTL_LOG_I ("scan.json is not found.");
 		return;
 	}
 

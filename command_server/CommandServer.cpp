@@ -547,10 +547,20 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 				} else {
 					// 下位テーブルに移る
 					if (pWorkTable->pNext) {
-						m_stack.push (gp_current_command_table);
-						m_stack_sub.push (pWorkTable);
-						gp_current_command_table = pWorkTable->pNext;
-						showList (pWorkTable->pszDesc);
+						if (argc > 0) {
+							fprintf (gp_fptr_inner, "invalid arguments...\n");
+							fflush (gp_fptr_inner);
+
+						} else {
+							m_stack.push (gp_current_command_table);
+							m_stack_sub.push (pWorkTable);
+							gp_current_command_table = pWorkTable->pNext;
+							showList (pWorkTable->pszDesc);
+						}
+
+					} else {
+						fprintf (gp_fptr_inner, "command table registration is invalid...\n");
+						fflush (gp_fptr_inner);
 					}
 				}
 				break;

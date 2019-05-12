@@ -378,6 +378,7 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
         if (enRslt == EN_THM_RSLT_SUCCESS) {
 //s_presentEventInfo.dump();
 			if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
+				m_recording.event_id = s_presentEventInfo.event_id;
 				m_recording.title_name = s_presentEventInfo.event_name_char;
 			}
 
@@ -442,16 +443,21 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 
 		// rename
 		char newfile [256] = {0};
+		char *p_name = (char*)"rec";
+		if (m_recording.title_name.c_str()) {
+			p_name = (char*)m_recording.title_name.c_str();
+		}
 		snprintf (
 			newfile,
 			sizeof(newfile),
-			"%s_%s-%s.m2ts",
-			(char*)m_recording.title_name.c_str(),
+			"%s%s_%s-%s.m2ts",
+			"./data/",
+			p_name,
 			m_recording.start_time.toString2(),
 			m_recording.end_time.toString2()
 		);
 //TODO tmp.m2ts
-		rename ("tmp.m2ts", newfile) ;
+		rename ("./data/tmp.m2ts", newfile) ;
 
 		m_recording.clear ();
 		_UTL_LOG_I ("recording end...");
@@ -1589,7 +1595,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 		_UTL_LOG_I ("EN_REC_PROGRESS__PRE_PROCESS");
 
 //TODO tmp.m2ts
-		mp_outputBuffer = create_FileBufferedWriter (768 * 1024, "tmp.m2ts");
+		mp_outputBuffer = create_FileBufferedWriter (768 * 1024, "./data/tmp.m2ts");
 		if (!mp_outputBuffer) {
 			_UTL_LOG_E ("failed to init FileBufferedWriter.");
 
@@ -1756,7 +1762,7 @@ void CRecManager::saveReserves (void)
 		out_archive (CEREAL_NVP(m_reserves), sizeof(CRecReserve) * RESERVE_NUM_MAX);
 	}
 
-	std::ofstream ofs ("./rec_reserves.json", std::ios::out);
+	std::ofstream ofs ("./data/rec_reserves.json", std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -1765,7 +1771,7 @@ void CRecManager::saveReserves (void)
 
 void CRecManager::loadReserves (void)
 {
-	std::ifstream ifs ("./rec_reserves.json", std::ios::in);
+	std::ifstream ifs ("./data/rec_reserves.json", std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I("rec_reserves.json is not found.");
 		return;
@@ -1789,7 +1795,7 @@ void CRecManager::saveResults (void)
 		out_archive (CEREAL_NVP(m_results), sizeof(CRecReserve) * RESULT_NUM_MAX);
 	}
 
-	std::ofstream ofs ("./rec_results.json", std::ios::out);
+	std::ofstream ofs ("./data/rec_results.json", std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -1798,7 +1804,7 @@ void CRecManager::saveResults (void)
 
 void CRecManager::loadResults (void)
 {
-	std::ifstream ifs ("./rec_results.json", std::ios::in);
+	std::ifstream ifs ("./data/rec_results.json", std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I("rec_results.json is not found.");
 		return;

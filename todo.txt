@@ -1,4 +1,3 @@
-chennel scan
 event chenge notify
   cacheEventPfInfos -> checkEventPfInfosで印付け -> followsが空だったら follow eventをcopy
   followsをloopcheck -> start_timeで notify -> follows clear
@@ -10,8 +9,8 @@ eit scheduleはsectionのリスト管理しないで 派生クラスでテーブ
     p/f はsectionリスト管理して重複はチェックする
     -->バッファサイズとfifo数はそんなに必要ないはず
 psisi structs のclear関数 必要かどうか
-json.hpp cereal
 requestOptionで重複キューチェック
-
-
-
+commoand_serverのログ出力
+rec終了時 tune stopしとく
+rec中にPAT途絶したら再選局したい retryx3
+rec reserveにnetwork_nameいれるか
