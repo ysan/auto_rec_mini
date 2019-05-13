@@ -374,22 +374,28 @@ void putsLog (
 
 	case EN_LOG_TYPE_W:
 		type = 'W';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, THM_TEXT_BOLD_TYPE);
 		fprintf (pFp, THM_TEXT_YELLOW);
+#endif
 		break;
 
 	case EN_LOG_TYPE_E:
 		type = 'E';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, THM_TEXT_UNDER_LINE);
 		fprintf (pFp, THM_TEXT_BOLD_TYPE);
 		fprintf (pFp, THM_TEXT_RED);
+#endif
 		break;
 
 	case EN_LOG_TYPE_PE:
 		type = 'E';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, THM_TEXT_REVERSE);
 		fprintf (pFp, THM_TEXT_BOLD_TYPE);
 		fprintf (pFp, THM_TEXT_MAGENTA);
+#endif
 		pszPerror = strerror_r(errno, szPerror, sizeof (szPerror));
 		break;
 
@@ -486,7 +492,9 @@ void putsLog (
 	}
 #endif
 
+#ifndef _LOG_COLOR_OFF
 	fprintf (pFp, THM_TEXT_ATTR_RESET);
+#endif
 	fflush (pFp);
 }
 
@@ -587,22 +595,28 @@ void putsLogLW (
 
 	case EN_LOG_TYPE_W:
 		type = 'W';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, THM_TEXT_BOLD_TYPE);
 		fprintf (pFp, THM_TEXT_YELLOW);
+#endif
 		break;
 
 	case EN_LOG_TYPE_E:
 		type = 'E';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, THM_TEXT_UNDER_LINE);
 		fprintf (pFp, THM_TEXT_BOLD_TYPE);
 		fprintf (pFp, THM_TEXT_RED);
+#endif
 		break;
 
 	case EN_LOG_TYPE_PE:
 		type = 'E';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, THM_TEXT_REVERSE);
 		fprintf (pFp, THM_TEXT_BOLD_TYPE);
 		fprintf (pFp, THM_TEXT_MAGENTA);
+#endif
 		pszPerror = strerror_r(errno, szPerror, sizeof (szPerror));
 		break;
 
@@ -687,7 +701,9 @@ void putsLogLW (
 	}
 #endif
 
+#ifndef _LOG_COLOR_OFF
 	fprintf (pFp, THM_TEXT_ATTR_RESET);
+#endif
 	fflush (pFp);
 }
 

@@ -27,8 +27,6 @@ static ST_COMMAND_INFO *gp_current_command_table = NULL;
 static FILE *gp_fptr_inner = NULL;
 
 
-const uint16_t CCommandServer::SERVER_PORT = 20001;
-
 CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,mClientfd (0)
@@ -66,6 +64,7 @@ void CCommandServer::moduleUp (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
+
 
 	// mask SIGPIPE
 	ignoreSigpipe ();
@@ -151,7 +150,7 @@ void CCommandServer::serverLoop (void)
 	memset (&stAddrSv, 0x00, sizeof(struct sockaddr_in));
 	memset (&stAddrCl, 0x00, sizeof(struct sockaddr_in));
 
-	port = SERVER_PORT;
+	port = CSettings::getInstance()->getParams()->getCommandServerPort();
 	stAddrSv.sin_family = AF_INET;
 	stAddrSv.sin_addr.s_addr = htonl (INADDR_ANY);
 	stAddrSv.sin_port = htons (port);
@@ -198,6 +197,7 @@ void CCommandServer::serverLoop (void)
 			mClientfd
 		);
 
+		// 接続してきたsocketにログ出力をつなぎます
 		int fd_copy = dup (mClientfd);
 		FILE *fp = fdopen (fd_copy, "w");
 		CUtils::setLogFileptr (fp);
@@ -223,6 +223,7 @@ void CCommandServer::serverLoop (void)
 		}
 
 
+		// socket切断にともなってログ出力をstdoutにもどします
 		CUtils::setLogFileptr (stdout);
 		setLogFileptr (stdout);
 		gp_fptr_inner = stdout;

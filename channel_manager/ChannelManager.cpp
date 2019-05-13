@@ -7,6 +7,7 @@
 #include "ChannelManager.h"
 #include "modules.h"
 
+#include "Settings.h"
 
 
 CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
@@ -26,7 +27,7 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 	setSeqs (mSeqs, EN_SEQ_CHANNEL_MANAGER__NUM);
 
 
-	m_scanReults.clear ();
+	m_scanResults.clear ();
 
 }
 
@@ -57,6 +58,8 @@ void CChannelManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	case SECTID_ENTRY:
 
 		loadScanResults ();
+		dumpScanResults_simple ();
+
 
 //		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
 //TODO TUNER_NOTIFYは特にいらない
@@ -160,7 +163,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		// 先にreplyしとく
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
-		m_scanReults.clear ();
+		m_scanResults.clear ();
 
 		sectId = SECTID_SET_FREQ;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -238,7 +241,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 			r.dump();
 
-			m_scanReults.insert (pair<uint16_t, CScanResult>(s_ch, r));
+			m_scanResults.insert (pair<uint16_t, CScanResult>(s_ch, r));
 
 			sectId = SECTID_NEXT;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -352,8 +355,8 @@ uint16_t CChannelManager::getPysicalChannelByServiceId (
 	uint16_t _service_id
 )
 {
-	std::map <uint16_t, CScanResult>::iterator iter = m_scanReults.begin();
-	for (; iter != m_scanReults.end(); ++ iter) {
+	std::map <uint16_t, CScanResult>::iterator iter = m_scanResults.begin();
+	for (; iter != m_scanResults.end(); ++ iter) {
 		uint16_t ch = iter->first;
 		CScanResult *p_rslt = &(iter->second);
 		if (p_rslt) {
@@ -378,8 +381,8 @@ uint16_t CChannelManager::getPysicalChannelByServiceId (
 
 void CChannelManager::dumpScanResults (void)
 {
-	std::map <uint16_t, CScanResult>::iterator iter = m_scanReults.begin();
-	for (; iter != m_scanReults.end(); ++ iter) {
+	std::map <uint16_t, CScanResult>::iterator iter = m_scanResults.begin();
+	for (; iter != m_scanResults.end(); ++ iter) {
 		uint16_t ch = iter->first;
 		CScanResult *p_rslt = &(iter->second);
 		if (p_rslt) {
@@ -389,6 +392,18 @@ void CChannelManager::dumpScanResults (void)
 		}
 	}
 }
+
+void CChannelManager::dumpScanResults_simple (void)
+{
+	std::map <uint16_t, CScanResult>::iterator iter = m_scanResults.begin();
+	for (; iter != m_scanResults.end(); ++ iter) {
+		CScanResult *p_rslt = &(iter->second);
+		if (p_rslt) {
+			p_rslt ->dump_simple ();
+		}
+	}
+}
+
 
 
 //--------------------------------------------------------------------------------
@@ -419,10 +434,11 @@ void CChannelManager::saveScanResults (void)
 	std::stringstream ss;
 	{
 		cereal::JSONOutputArchive out_archive (ss);
-		out_archive (CEREAL_NVP(m_scanReults));
+		out_archive (CEREAL_NVP(m_scanResults));
 	}
 
-	std::ofstream ofs ("./data/scan.json", std::ios::out);
+	std::string *p_path = CSettings::getInstance()->getParams()->getChannelScanJsonPath();
+	std::ofstream ofs (p_path->c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -431,7 +447,8 @@ void CChannelManager::saveScanResults (void)
 
 void CChannelManager::loadScanResults (void)
 {
-	std::ifstream ifs ("./data/scan.json", std::ios::in);
+	std::string *p_path = CSettings::getInstance()->getParams()->getChannelScanJsonPath();
+	std::ifstream ifs (p_path->c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I ("scan.json is not found.");
 		return;
@@ -441,7 +458,7 @@ void CChannelManager::loadScanResults (void)
 	ss << ifs.rdbuf();
 
 	cereal::JSONInputArchive in_archive (ss);
-	in_archive (CEREAL_NVP(m_scanReults));
+	in_archive (CEREAL_NVP(m_scanResults));
 
 	ifs.close();
 	ss.clear();

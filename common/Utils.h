@@ -33,7 +33,6 @@
 #include "Stack.h"
 
 
-#ifndef _LOG_COLOR_OFF
 #define _UTL_TEXT_ATTR_RESET			"\x1B[0m"
 #define _UTL_TEXT_BOLD_TYPE				"\x1B[1m"
 #define _UTL_TEXT_UNDER_LINE			"\x1B[4m"
@@ -47,21 +46,7 @@
 #define _UTL_TEXT_CYAN					"\x1B[36m"
 #define _UTL_TEXT_WHITE					"\x1B[37m"
 #define _UTL_TEXT_STANDARD_COLOR		"\x1B[39m"
-#else
-#define _UTL_TEXT_ATTR_RESET			""
-#define _UTL_TEXT_BOLD_TYPE				""
-#define _UTL_TEXT_UNDER_LINE			""
-#define _UTL_TEXT_REVERSE				""
-#define _UTL_TEXT_BLACK					""
-#define _UTL_TEXT_RED					""
-#define _UTL_TEXT_GREEN					""
-#define _UTL_TEXT_YELLOW				""
-#define _UTL_TEXT_BLUE					""
-#define _UTL_TEXT_MAGENTA				""
-#define _UTL_TEXT_CYAN					""
-#define _UTL_TEXT_WHITE					""
-#define _UTL_TEXT_STANDARD_COLOR		""
-#endif
+
 
 #define LOG_PATH	"./"
 #define LOG_NAME	"trace"

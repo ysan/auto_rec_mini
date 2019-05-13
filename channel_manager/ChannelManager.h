@@ -124,6 +124,27 @@ public:
 		}
 	}
 
+	void dump_simple (void) {
+		char s [256] = {0};
+		int n = 0;
+		std::vector<service>::iterator iter = services.begin();
+		for (; iter != services.end(); ++ iter) {
+			n += snprintf (
+				s + n,
+				sizeof(s),
+				"0x%04x,",
+				iter->service_id
+			);
+		}
+
+		_UTL_LOG_I (
+			"tsid:[0x%04x] org_nid:[0x%04x] ts_name:[%s] svc_id[%s]",
+			transport_stream_id,
+			original_network_id,
+			ts_name.c_str(),
+			s
+		);
+	}
 };
 
 
@@ -149,6 +170,7 @@ private:
 		uint16_t _service_id
 	);
 	void dumpScanResults (void);
+	void dumpScanResults_simple (void);
 
 	void saveScanResults (void);
 	void loadScanResults (void);
@@ -159,7 +181,7 @@ private:
 
 	uint8_t m_tunerNotify_clientId;
 
-	std::map <uint16_t, CScanResult> m_scanReults; // <pysical channel, CScanResult>
+	std::map <uint16_t, CScanResult> m_scanResults; // <pysical channel, CScanResult>
 
 };
 

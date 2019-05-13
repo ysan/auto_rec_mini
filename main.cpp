@@ -30,7 +30,7 @@ using namespace ThreadManager;
 int main (int argc, char *argv[])
 {
 	if (argc != 2) {
-		printf ("[main] unexpexted arguments.\n");
+		printf ("[main] unexpected arguments.\n");
 		exit (EXIT_FAILURE);
 	}
 
@@ -39,6 +39,8 @@ int main (int argc, char *argv[])
 	s->load (settings_json);
 	s->getParams()->dump ();
 
+
+	// threadmgr log set
 	initLogStdout();
 
 

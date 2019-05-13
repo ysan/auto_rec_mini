@@ -20,6 +20,7 @@
 #include "Utils.h"
 #include "CommandServerIf.h"
 #include "CommandTables.h"
+#include "Settings.h"
 
 
 using namespace ThreadManager;
@@ -27,9 +28,6 @@ using namespace ThreadManager;
 
 class CCommandServer : public CThreadMgrBase
 {
-public:
-	static const uint16_t SERVER_PORT;
-
 public:
 	CCommandServer (char *pszName, uint8_t nQueNum);
 	virtual ~CCommandServer (void);

@@ -277,6 +277,8 @@ void CUtils::getTimeOfDay (struct timeval *p)
 	gettimeofday (p, NULL);
 }
 
+
+//--------------------------  log methods  --------------------------
 // default stdout
 FILE *CUtils::mpfpLog = stdout;
 
@@ -399,22 +401,28 @@ void CUtils::putsLog (
 
 	case EN_LOG_LEVEL_W:
 		type = 'W';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
 		fprintf (pFp, _UTL_TEXT_YELLOW);
+#endif
 		break;
 
 	case EN_LOG_LEVEL_E:
 		type = 'E';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, _UTL_TEXT_UNDER_LINE);
 		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
 		fprintf (pFp, _UTL_TEXT_RED);
+#endif
 		break;
 
 	case EN_LOG_LEVEL_PE:
 		type = 'E';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, _UTL_TEXT_REVERSE);
 		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
 		fprintf (pFp, _UTL_TEXT_MAGENTA);
+#endif
 #ifndef _ANDROID_BUILD
 		pszPerror = strerror_r(errno, szPerror, sizeof (szPerror));
 #else
@@ -514,7 +522,9 @@ void CUtils::putsLog (
 	}
 #endif
 
+#ifndef _LOG_COLOR_OFF
 	fprintf (pFp, _UTL_TEXT_ATTR_RESET);
+#endif
 	fflush (pFp);
 }
 
@@ -663,22 +673,28 @@ void CUtils::putsLogLW (
 
 	case EN_LOG_LEVEL_W:
 		type = 'W';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
 		fprintf (pFp, _UTL_TEXT_YELLOW);
+#endif
 		break;
 
 	case EN_LOG_LEVEL_E:
 		type = 'E';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, _UTL_TEXT_UNDER_LINE);
 		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
 		fprintf (pFp, _UTL_TEXT_RED);
+#endif
 		break;
 
 	case EN_LOG_LEVEL_PE:
 		type = 'E';
+#ifndef _LOG_COLOR_OFF
 		fprintf (pFp, _UTL_TEXT_REVERSE);
 		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
 		fprintf (pFp, _UTL_TEXT_MAGENTA);
+#endif
 #ifndef _ANDROID_BUILD
 		pszPerror = strerror_r(errno, szPerror, sizeof (szPerror));
 #else
@@ -765,7 +781,9 @@ void CUtils::putsLogLW (
 	}
 #endif
 
+#ifndef _LOG_COLOR_OFF
 	fprintf (pFp, _UTL_TEXT_ATTR_RESET);
+#endif
 	fflush (pFp);
 }
 

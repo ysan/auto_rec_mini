@@ -14,3 +14,4 @@ commoand_serverのログ出力
 rec終了時 tune stopしとく
 rec中にPAT途絶したら再選局したい retryx3
 rec reserveにnetwork_nameいれるか
+log ファイル出力どうする

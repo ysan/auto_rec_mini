@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <limits.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,6 +20,8 @@ extern "C" {
 
 #include "RecManager.h"
 #include "RecManagerIf.h"
+
+#include "Settings.h"
 
 #include "modules.h"
 
@@ -441,8 +445,19 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 	case EN_REC_PROGRESS__POST_PROCESS: {
 		setResult (&m_recording);
 
+
 		// rename
-		char newfile [256] = {0};
+		std::string *p_path = CSettings::getInstance()->getParams()->getRecTsPath();
+
+		char tmpfile [PATH_MAX] = {0};
+		snprintf (
+			tmpfile,
+			sizeof(tmpfile),
+			"%s/tmp.m2ts",
+			p_path->c_str()
+		);
+
+		char newfile [PATH_MAX] = {0};
 		char *p_name = (char*)"rec";
 		if (m_recording.title_name.c_str()) {
 			p_name = (char*)m_recording.title_name.c_str();
@@ -450,14 +465,14 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 		snprintf (
 			newfile,
 			sizeof(newfile),
-			"%s%s_%s-%s.m2ts",
-			"./data/",
+			"%s/%s_%s-%s.m2ts",
+			p_path->c_str(),
 			p_name,
 			m_recording.start_time.toString2(),
 			m_recording.end_time.toString2()
 		);
-//TODO tmp.m2ts
-		rename ("./data/tmp.m2ts", newfile) ;
+
+		rename (tmpfile, newfile) ;
 
 		m_recording.clear ();
 		_UTL_LOG_I ("recording end...");
@@ -1591,11 +1606,19 @@ bool CRecManager::onCheckTsReceiveLoop (void)
 bool CRecManager::onTsReceived (void *p_ts_data, int length)
 {
 	switch (m_recProgress) {
-	case EN_REC_PROGRESS__PRE_PROCESS:
+	case EN_REC_PROGRESS__PRE_PROCESS: {
 		_UTL_LOG_I ("EN_REC_PROGRESS__PRE_PROCESS");
 
-//TODO tmp.m2ts
-		mp_outputBuffer = create_FileBufferedWriter (768 * 1024, "./data/tmp.m2ts");
+		char tmpfile [PATH_MAX] = {0};
+		std::string *p_path = CSettings::getInstance()->getParams()->getRecTsPath();
+		snprintf (
+			tmpfile,
+			sizeof(tmpfile),
+			"%s/tmp.m2ts",
+			p_path->c_str()
+		);
+
+		mp_outputBuffer = create_FileBufferedWriter (768 * 1024, tmpfile);
 		if (!mp_outputBuffer) {
 			_UTL_LOG_E ("failed to init FileBufferedWriter.");
 
@@ -1645,6 +1668,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 			_UTL_LOG_I ("next  EN_REC_PROGRESS__NOW_RECORDING");
 		}
 
+		}
 		break;
 
 	case EN_REC_PROGRESS__NOW_RECORDING: {
@@ -1762,7 +1786,8 @@ void CRecManager::saveReserves (void)
 		out_archive (CEREAL_NVP(m_reserves), sizeof(CRecReserve) * RESERVE_NUM_MAX);
 	}
 
-	std::ofstream ofs ("./data/rec_reserves.json", std::ios::out);
+	std::string *p_path = CSettings::getInstance()->getParams()->getRecReserveJsonPath();
+	std::ofstream ofs (p_path->c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -1771,7 +1796,8 @@ void CRecManager::saveReserves (void)
 
 void CRecManager::loadReserves (void)
 {
-	std::ifstream ifs ("./data/rec_reserves.json", std::ios::in);
+	std::string *p_path = CSettings::getInstance()->getParams()->getRecReserveJsonPath();
+	std::ifstream ifs (p_path->c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I("rec_reserves.json is not found.");
 		return;
@@ -1795,7 +1821,8 @@ void CRecManager::saveResults (void)
 		out_archive (CEREAL_NVP(m_results), sizeof(CRecReserve) * RESULT_NUM_MAX);
 	}
 
-	std::ofstream ofs ("./data/rec_results.json", std::ios::out);
+	std::string *p_path = CSettings::getInstance()->getParams()->getRecResultJsonPath();
+	std::ofstream ofs (p_path->c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -1804,7 +1831,8 @@ void CRecManager::saveResults (void)
 
 void CRecManager::loadResults (void)
 {
-	std::ifstream ifs ("./data/rec_results.json", std::ios::in);
+	std::string *p_path = CSettings::getInstance()->getParams()->getRecResultJsonPath();
+	std::ifstream ifs (p_path->c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I("rec_results.json is not found.");
 		return;
