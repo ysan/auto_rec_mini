@@ -352,7 +352,9 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-//TODO imple
+			m_recording.state = EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+			setResult (&m_recording);
+			m_recording.clear();
 
 			sectId = SECTID_CHECK;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -476,6 +478,20 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 
 		m_recording.clear ();
 		_UTL_LOG_I ("recording end...");
+
+
+
+		uint32_t opt = getRequestOption ();
+		opt |= REQUEST_OPTION__WITHOUT_REPLY;
+		setRequestOption (opt);
+
+		// 選局を停止しときます tune stop
+		// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
+		CTunerControlIf _if (getExternalIf());
+		_if.reqTuneStop ();
+
+		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+		setRequestOption (opt);
 
 		}
 		break;
@@ -1063,6 +1079,8 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 				setRequestOption (opt);
 
 				// 自ら呼び出します
+				// 内部で自リクエストするので
+				// REQUEST_OPTION__WITHOUT_REPLY を入れときます
 				this->onTsReceived (NULL, 0);
 
 				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;

@@ -359,15 +359,18 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 		}
 
 		if (chkcnt < 20) {
+			_UTL_LOG_I ("success tune stop.");
 			mFreq = 0;
 			it9175_close ();
 			pIf->reply (EN_THM_RSLT_SUCCESS);
 		} else {
-			_UTL_LOG_E ("transition failure. (EN_IT9175_STATE__TUNED -> EN_IT9175_STATE__TUNE_ENDED)");
+			_UTL_LOG_E ("tune stop transition failure. (EN_IT9175_STATE__TUNED -> EN_IT9175_STATE__TUNE_ENDED)");
 			pIf->reply (EN_THM_RSLT_ERROR);
 		}
 
 	} else {
+		_UTL_LOG_I ("already tune stoped.");
+
 		it9175_close ();
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 	}
