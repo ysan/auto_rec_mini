@@ -20,6 +20,8 @@
 #include <sys/prctl.h>
 #include <sys/socket.h>
 
+#include <syslog.h>
+
 #ifndef _ANDROID_BUILD
 #include <execinfo.h>
 #endif
@@ -177,6 +179,9 @@ public:
 	static bool initLog (void);
 	static void finalizLog (void);
 
+	static void initSyslog (void);
+	static void finalizSyslog (void);
+
 	static void setLogFileptr (FILE *p);
 	static FILE* getLogFileptr (void);
 
@@ -262,14 +267,16 @@ private:
 		const char *pszFunc,
 		int nLine,
 		const char *pszFormat,
-		va_list va
+		va_list va,
+		bool isUseSyslog=false
 	);
 
 	static void putsLogLW (
 		FILE *pFp,
 		EN_LOG_LEVEL enLogLevel,
 		const char *pszFormat,
-		va_list va
+		va_list va,
+		bool isUseSyslog=false
 	);
 
 	static void putsLogFprintf (
@@ -286,7 +293,20 @@ private:
 		bool isNeedLF=true
 	);
 
-	static void putsLogFprintf (
+	static void putsSyslog (
+		EN_LOG_LEVEL enLogLevel,
+		const char *pszThreadName,
+		char type,
+		const char *pszTime,
+		const char *pszBuf,
+		const char *pszPerror,
+		const char *pszFile,
+		const char *pszFunc,
+		int nLine,
+		bool isNeedLF=true
+	);
+
+	static void putsLogFprintfLW (
 		FILE *pFp,
 		EN_LOG_LEVEL enLogLevel,
 		const char *pszThreadName,
@@ -296,6 +316,19 @@ private:
 		const char *pszPerror,
 		bool isNeedLF=true
 	);
+
+	static void putsSyslogLW (
+		EN_LOG_LEVEL enLogLevel,
+		const char *pszThreadName,
+		char type,
+		const char *pszTime,
+		const char *pszBuf,
+		const char *pszPerror,
+		bool isNeedLF=true
+	);
+
+
+	static bool m_is_use_syslog;
 
 };
 

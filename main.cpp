@@ -37,11 +37,14 @@ int main (int argc, char *argv[])
 	std::string settings_json = argv[1];
 	CSettings *s = CSettings::getInstance ();
 	s->load (settings_json);
+
+
+	initLogStdout(); // threadmgr
+	initSyslog(); // threadmgr syslog output
+	CUtils::initSyslog();
+
+
 	s->getParams()->dump ();
-
-
-	// threadmgr log set
-	initLogStdout();
 
 
 	CThreadMgr *p_mgr = CThreadMgr::getInstance();

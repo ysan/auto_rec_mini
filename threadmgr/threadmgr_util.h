@@ -1,6 +1,23 @@
 #ifndef _THREADMGR_UTIL_H_
 #define _THREADMGR_UTIL_H_
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+
+#include <pthread.h>
+#include <stdbool.h>
+#include <time.h>
+#include <sys/time.h>
+#include <stdarg.h>
+#include <sys/syscall.h>
+#include <sys/stat.h>
+
+#include <syslog.h>
+
+#include "threadmgr_if.h"
 
 /*
  * Constant define
@@ -115,6 +132,8 @@ extern void getTimeOfDay (struct timeval *p);
 extern bool initLog (void);
 extern void initLogStdout (void);
 extern void finalizLog (void);
+extern void initSyslog (void);
+extern void finalizSyslog (void);
 extern void setLogFileptr (FILE *p);
 extern FILE* getLogFileptr (void);
 extern void putsLog (

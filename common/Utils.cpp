@@ -281,6 +281,7 @@ void CUtils::getTimeOfDay (struct timeval *p)
 //--------------------------  log methods  --------------------------
 // default stdout
 FILE *CUtils::mpfpLog = stdout;
+bool CUtils::m_is_use_syslog = false;
 
 /**
  * ファイル出力用
@@ -343,6 +344,28 @@ void CUtils::finalizLog (void)
 }
 
 /**
+ * syslog初期化
+ */
+void CUtils::initSyslog (void)
+{
+	if (!m_is_use_syslog) {
+		openlog (NULL, 0, LOG_USER);
+		m_is_use_syslog = true;
+	}
+}
+
+/**
+ * syslog終了
+ */
+void CUtils::finalizSyslog (void)
+{
+	if (m_is_use_syslog) {
+		closelog ();
+		m_is_use_syslog = false;
+	}
+}
+
+/**
  * ログ出力用 FP切り替え
  */
 void CUtils::setLogFileptr (FILE *p)
@@ -361,6 +384,65 @@ FILE* CUtils::getLogFileptr (void)
 }
 
 /**
+ * putsLog インターフェース
+ * ログ出力 loglevel判定なし
+ */
+void CUtils::putsLog (
+	FILE *pFp,
+	EN_LOG_LEVEL enLogLevel,
+	const char *pszFile,
+	const char *pszFunc,
+	int nLine,
+	const char *pszFormat,
+	...
+)
+{
+	va_list va;
+	va_start (va, pszFormat);
+	putsLog (pFp, enLogLevel, pszFile, pszFunc, nLine, pszFormat, va);
+	va_end (va);
+
+	if (m_is_use_syslog) {
+		va_list va;
+		va_start (va, pszFormat);
+		putsLog (pFp, enLogLevel, pszFile, pszFunc, nLine, pszFormat, va, true);
+		va_end (va);
+	}
+}
+
+/**
+ * putsLog インターフェース
+ * ログ出力 loglevel判定あり
+ */
+void CUtils::putsLog (
+	FILE *pFp,
+	EN_LOG_LEVEL enCurLogLevel,
+	EN_LOG_LEVEL enLogLevel,
+	const char *pszFile,
+	const char *pszFunc,
+	int nLine,
+	const char *pszFormat,
+	...
+)
+{
+	if (enCurLogLevel > enLogLevel) {
+		return ;
+	}
+
+	va_list va;
+	va_start (va, pszFormat);
+	putsLog (pFp, enLogLevel, pszFile, pszFunc, nLine, pszFormat, va);
+	va_end (va);
+
+	if (m_is_use_syslog) {
+		va_list va;
+		va_start (va, pszFormat);
+		putsLog (pFp, enLogLevel, pszFile, pszFunc, nLine, pszFormat, va, true);
+		va_end (va);
+	}
+}
+
+/**
  * putsLog
  * ログ出力 本体
  */
@@ -371,7 +453,8 @@ void CUtils::putsLog (
 	const char *pszFunc,
 	int nLine,
 	const char *pszFormat,
-	va_list va
+	va_list va,
+	bool isUseSyslog
 )
 {
 	if (!pFp || !pszFile || !pszFunc || !pszFormat) {
@@ -402,26 +485,32 @@ void CUtils::putsLog (
 	case EN_LOG_LEVEL_W:
 		type = 'W';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
-		fprintf (pFp, _UTL_TEXT_YELLOW);
+		if (!isUseSyslog) {
+			fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
+			fprintf (pFp, _UTL_TEXT_YELLOW);
+		}
 #endif
 		break;
 
 	case EN_LOG_LEVEL_E:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, _UTL_TEXT_UNDER_LINE);
-		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
-		fprintf (pFp, _UTL_TEXT_RED);
+		if (!isUseSyslog) {
+			fprintf (pFp, _UTL_TEXT_UNDER_LINE);
+			fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
+			fprintf (pFp, _UTL_TEXT_RED);
+		}
 #endif
 		break;
 
 	case EN_LOG_LEVEL_PE:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, _UTL_TEXT_REVERSE);
-		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
-		fprintf (pFp, _UTL_TEXT_MAGENTA);
+		if (!isUseSyslog) {
+			fprintf (pFp, _UTL_TEXT_REVERSE);
+			fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
+			fprintf (pFp, _UTL_TEXT_MAGENTA);
+		}
 #endif
 #ifndef _ANDROID_BUILD
 		pszPerror = strerror_r(errno, szPerror, sizeof (szPerror));
@@ -488,34 +577,62 @@ void CUtils::putsLog (
 		token = strtok_r_impl (s, "\n", &saveptr, NULL);
 		if (token == NULL) {
 			if (n == 0 && (int)strlen(szBufVa) > 0) {
-				putsLogFprintf (
-					pFp,
-					enLogLevel,
-					szThreadName,
-					type,
-					szTime,
-					szBufVa,
-					pszPerror,
-					pszFile,
-					pszFunc,
-					nLine
-				);
+				if (!isUseSyslog) {
+					putsLogFprintf (
+						pFp,
+						enLogLevel,
+						szThreadName,
+						type,
+						szTime,
+						szBufVa,
+						pszPerror,
+						pszFile,
+						pszFunc,
+						nLine
+					);
+				} else {
+					putsSyslog (
+						enLogLevel,
+						szThreadName,
+						type,
+						szTime,
+						szBufVa,
+						pszPerror,
+						pszFile,
+						pszFunc,
+						nLine
+					);
+				}
 			}
 			break;
 		}
 
-		putsLogFprintf (
-			pFp,
-			enLogLevel,
-			szThreadName,
-			type,
-			szTime,
-			token,
-			pszPerror,
-			pszFile,
-			pszFunc,
-			nLine
-		);
+		if (!isUseSyslog) {
+			putsLogFprintf (
+				pFp,
+				enLogLevel,
+				szThreadName,
+				type,
+				szTime,
+				token,
+				pszPerror,
+				pszFile,
+				pszFunc,
+				nLine
+			);
+		} else {
+			putsSyslog (
+				enLogLevel,
+				szThreadName,
+				type,
+				szTime,
+				token,
+				pszPerror,
+				pszFile,
+				pszFunc,
+				nLine
+			);
+		}
 
 		s = NULL;
 		++ n;
@@ -523,13 +640,16 @@ void CUtils::putsLog (
 #endif
 
 #ifndef _LOG_COLOR_OFF
-	fprintf (pFp, _UTL_TEXT_ATTR_RESET);
+	if (!isUseSyslog) {
+		fprintf (pFp, _UTL_TEXT_ATTR_RESET);
+	}
 #endif
 	fflush (pFp);
 }
 
 /**
  * putsLogFprintf
+ * 根っこのfpritfするところ
  */
 void CUtils::putsLogFprintf (
 	FILE *pFp,
@@ -590,36 +710,98 @@ void CUtils::putsLogFprintf (
 }
 
 /**
- * putsLog
- * ログ出力 loglevel判定なし
+ * putsSyslog
+ * 根っこのsyslogするところ
  */
-void CUtils::putsLog (
-	FILE *pFp,
+void CUtils::putsSyslog (
 	EN_LOG_LEVEL enLogLevel,
+	const char *pszThreadName,
+	char type,
+	const char *pszTime,
+	const char *pszBuf,
+	const char *pszPerror,
 	const char *pszFile,
 	const char *pszFunc,
 	int nLine,
+	bool isNeedLF
+)
+{
+	if (!pszTime || !pszBuf || !pszFile || !pszFunc) {
+		return ;
+	}
+
+	switch (enLogLevel) {
+	case EN_LOG_LEVEL_PE:
+		syslog (
+			LOG_INFO,
+			isNeedLF ? "[%s] %c %s  %s: %s   src=[%s %s()] line=[%d]\n" :
+						"[%s] %c %s  %s: %s   src=[%s %s()] line=[%d]",
+			pszThreadName,
+			type,
+			pszTime,
+			pszBuf,
+			pszPerror,
+			pszFile,
+			pszFunc,
+			nLine
+		);
+		break;
+
+	case EN_LOG_LEVEL_D:
+	case EN_LOG_LEVEL_I:
+	case EN_LOG_LEVEL_W:
+	case EN_LOG_LEVEL_E:
+	default:
+		syslog (
+			LOG_INFO,
+			isNeedLF ? "[%s] %c %s  %s   src=[%s %s()] line=[%d]\n":
+						"[%s] %c %s  %s   src=[%s %s()] line=[%d]",
+			pszThreadName,
+			type,
+			pszTime,
+			pszBuf,
+			pszFile,
+			pszFunc,
+			nLine
+		);
+		break;
+	}
+}
+
+/**
+ * putsLog インターフェース
+ * ログ出力 loglevel判定なし
+ * (src,lineなし)
+ */
+void CUtils::putsLogLW (
+	FILE *pFp,
+	EN_LOG_LEVEL enLogLevel,
 	const char *pszFormat,
 	...
 )
 {
 	va_list va;
 	va_start (va, pszFormat);
-	putsLog (pFp, enLogLevel, pszFile, pszFunc, nLine, pszFormat, va);
+	putsLogLW (pFp, enLogLevel, pszFormat, va);
 	va_end (va);
+
+	if (m_is_use_syslog) {
+		va_list va;
+		va_start (va, pszFormat);
+		putsLogLW (pFp, enLogLevel, pszFormat, va, true);
+		va_end (va);
+	}
 }
 
 /**
- * putsLog
+ * putsLog インターフェース
  * ログ出力 loglevel判定あり
+ * (src,lineなし)
  */
-void CUtils::putsLog (
+void CUtils::putsLogLW (
 	FILE *pFp,
 	EN_LOG_LEVEL enCurLogLevel,
 	EN_LOG_LEVEL enLogLevel,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine,
 	const char *pszFormat,
 	...
 )
@@ -630,10 +812,16 @@ void CUtils::putsLog (
 
 	va_list va;
 	va_start (va, pszFormat);
-	putsLog (pFp, enLogLevel, pszFile, pszFunc, nLine, pszFormat, va);
+	putsLogLW (pFp, enLogLevel, pszFormat, va);
 	va_end (va);
-}
 
+	if (m_is_use_syslog) {
+		va_list va;
+		va_start (va, pszFormat);
+		putsLogLW (pFp, enLogLevel, pszFormat, va, true);
+		va_end (va);
+	}
+}
 /**
  * putsLW
  * ログ出力 本体
@@ -643,7 +831,8 @@ void CUtils::putsLogLW (
 	FILE *pFp,
 	EN_LOG_LEVEL enLogLevel,
 	const char *pszFormat,
-	va_list va
+	va_list va,
+	bool isUseSyslog
 )
 {
 	if (!pFp || !pszFormat) {
@@ -674,26 +863,32 @@ void CUtils::putsLogLW (
 	case EN_LOG_LEVEL_W:
 		type = 'W';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
-		fprintf (pFp, _UTL_TEXT_YELLOW);
+		if (!isUseSyslog) {
+			fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
+			fprintf (pFp, _UTL_TEXT_YELLOW);
+		}
 #endif
 		break;
 
 	case EN_LOG_LEVEL_E:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, _UTL_TEXT_UNDER_LINE);
-		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
-		fprintf (pFp, _UTL_TEXT_RED);
+		if (!isUseSyslog) {
+			fprintf (pFp, _UTL_TEXT_UNDER_LINE);
+			fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
+			fprintf (pFp, _UTL_TEXT_RED);
+		}
 #endif
 		break;
 
 	case EN_LOG_LEVEL_PE:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, _UTL_TEXT_REVERSE);
-		fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
-		fprintf (pFp, _UTL_TEXT_MAGENTA);
+		if (!isUseSyslog) {
+			fprintf (pFp, _UTL_TEXT_REVERSE);
+			fprintf (pFp, _UTL_TEXT_BOLD_TYPE);
+			fprintf (pFp, _UTL_TEXT_MAGENTA);
+		}
 #endif
 #ifndef _ANDROID_BUILD
 		pszPerror = strerror_r(errno, szPerror, sizeof (szPerror));
@@ -753,28 +948,50 @@ void CUtils::putsLogLW (
 		token = strtok_r_impl (s, "\n", &saveptr, NULL);
 		if (token == NULL) {
 			if (n == 0 && (int)strlen(szBufVa) > 0) {
-				putsLogFprintf (
-					pFp,
-					enLogLevel,
-					szThreadName,
-					type,
-					szTime,
-					szBufVa,
-					pszPerror
-				);
+				if (!isUseSyslog) {
+					putsLogFprintfLW (
+						pFp,
+						enLogLevel,
+						szThreadName,
+						type,
+						szTime,
+						szBufVa,
+						pszPerror
+					);
+				} else {
+					putsSyslogLW (
+						enLogLevel,
+						szThreadName,
+						type,
+						szTime,
+						szBufVa,
+						pszPerror
+					);
+				}
 			}
 			break;
 		}
 
-		putsLogFprintf (
-			pFp,
-			enLogLevel,
-			szThreadName,
-			type,
-			szTime,
-			token,
-			pszPerror
-		);
+		if (!isUseSyslog) {
+			putsLogFprintfLW (
+				pFp,
+				enLogLevel,
+				szThreadName,
+				type,
+				szTime,
+				token,
+				pszPerror
+			);
+		} else {
+			putsSyslogLW (
+				enLogLevel,
+				szThreadName,
+				type,
+				szTime,
+				token,
+				pszPerror
+			);
+		}
 
 		s = NULL;
 		++ n;
@@ -782,16 +999,19 @@ void CUtils::putsLogLW (
 #endif
 
 #ifndef _LOG_COLOR_OFF
-	fprintf (pFp, _UTL_TEXT_ATTR_RESET);
+	if (!isUseSyslog) {
+		fprintf (pFp, _UTL_TEXT_ATTR_RESET);
+	}
 #endif
 	fflush (pFp);
 }
 
 /**
- * putsLogFprintf
+ * putsLogFprintfLW
+ * 根っこのfpritfするところ
  * (src,lineなし)
  */
-void CUtils::putsLogFprintf (
+void CUtils::putsLogFprintfLW (
 	FILE *pFp,
 	EN_LOG_LEVEL enLogLevel,
 	const char *pszThreadName,
@@ -841,45 +1061,57 @@ void CUtils::putsLogFprintf (
 }
 
 /**
- * putsLog
- * ログ出力 loglevel判定なし
+ * putsSyslogLW
+ * 根っこのsyslogするところ
  * (src,lineなし)
  */
-void CUtils::putsLogLW (
-	FILE *pFp,
+void CUtils::putsSyslogLW (
 	EN_LOG_LEVEL enLogLevel,
-	const char *pszFormat,
-	...
+	const char *pszThreadName,
+	char type,
+	const char *pszTime,
+	const char *pszBuf,
+	const char *pszPerror,
+	bool isNeedLF
 )
 {
-	va_list va;
-	va_start (va, pszFormat);
-	putsLogLW (pFp, enLogLevel, pszFormat, va);
-	va_end (va);
-}
-
-/**
- * putsLog
- * ログ出力 loglevel判定あり
- * (src,lineなし)
- */
-void CUtils::putsLogLW (
-	FILE *pFp,
-	EN_LOG_LEVEL enCurLogLevel,
-	EN_LOG_LEVEL enLogLevel,
-	const char *pszFormat,
-	...
-)
-{
-	if (enCurLogLevel > enLogLevel) {
+	if (!pszTime || !pszBuf) {
 		return ;
 	}
 
-	va_list va;
-	va_start (va, pszFormat);
-	putsLogLW (pFp, enLogLevel, pszFormat, va);
-	va_end (va);
+	switch (enLogLevel) {
+	case EN_LOG_LEVEL_PE:
+		syslog (
+			LOG_INFO,
+			isNeedLF ? "[%s] %c %s  %s: %s\n":
+						"[%s] %c %s  %s: %s",
+			pszThreadName,
+			type,
+			pszTime,
+			pszBuf,
+			pszPerror
+		);
+		break;
+
+	case EN_LOG_LEVEL_D:
+	case EN_LOG_LEVEL_I:
+	case EN_LOG_LEVEL_W:
+	case EN_LOG_LEVEL_E:
+	default:
+		syslog (
+			LOG_INFO,
+			isNeedLF ? "[%s] %c %s  %s\n":
+						"[%s] %c %s  %s",
+			pszThreadName,
+			type,
+			pszTime,
+			pszBuf
+		);
+		break;
+	}
 }
+//--------------------------  log methods end --------------------------
+
 
 /**
  * readFile
