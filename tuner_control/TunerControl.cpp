@@ -361,8 +361,17 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 		if (chkcnt < 20) {
 			_UTL_LOG_I ("success tune stop.");
 			mFreq = 0;
+
 			it9175_close ();
+
+			setState (EN_TUNER_STATE__TUNE_STOP);
+
+			// fire notify
+			EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNE_STOP;
+			pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
+
 			pIf->reply (EN_THM_RSLT_SUCCESS);
+
 		} else {
 			_UTL_LOG_E ("tune stop transition failure. (EN_IT9175_STATE__TUNED -> EN_IT9175_STATE__TUNE_ENDED)");
 			pIf->reply (EN_THM_RSLT_ERROR);
@@ -372,16 +381,19 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 		_UTL_LOG_I ("already tune stoped.");
 
 		it9175_close ();
+
+		setState (EN_TUNER_STATE__TUNE_STOP);
+
+#ifdef _DUMMY_TUNER
+		// fire notify
+		EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNE_STOP;
+		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
+#endif
+
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 	}
 
 	chkcnt = 0;
-
-	setState (EN_TUNER_STATE__TUNE_STOP);
-
-	// fire notify
-	EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNE_STOP;
-	pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;

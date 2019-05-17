@@ -952,7 +952,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		m_tunerIsTuned = false;
 
-#ifdef _DUMMY_TUNER
+#ifdef _DUMMY_TUNER // ダミーデバッグ中はここでクリア
 		mPAT.clear();
 		mEIT_H.clear_pf();
 		mNIT.clear();
@@ -984,12 +984,24 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 	case EN_TUNER_STATE__TUNING_ERROR_STOP:
 		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP");
 
+		// tune stopで一連の動作が終わった時の対策
+		clearProgramInfos();
+		clearNetworkInfo();
+		clearServiceInfos (true);
+		clearEventPfInfos();
+
 		m_tunerIsTuned = false;
 
 		break;
 
 	case EN_TUNER_STATE__TUNE_STOP:
 		_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP");
+
+		// tune stopで一連の動作が終わった時の対策
+		clearProgramInfos();
+		clearNetworkInfo();
+		clearServiceInfos (true);
+		clearEventPfInfos();
 
 		m_tunerIsTuned = false;
 
@@ -1739,7 +1751,9 @@ void CPsisiManager::cacheNetworkInfo (void)
 void CPsisiManager::dumpNetworkInfo (void)
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
-	m_networkInfo.dump();
+	if (m_networkInfo.is_used) {
+		m_networkInfo.dump();
+	}
 }
 
 void CPsisiManager::clearNetworkInfo (void)
