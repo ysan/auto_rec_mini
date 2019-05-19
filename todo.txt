@@ -5,13 +5,14 @@ event chenge notify
 ts_parser_test main.cpp に TsParser_test.cppを統合
 adaptation_fieldの処理
 it9175のlog
-eit scheduleはsectionのリスト管理しないで 派生クラスでテーブル管理する
-    p/f はsectionリスト管理して重複はチェックする
-    -->バッファサイズとfifo数はそんなに必要ないはず
 psisi structs のclear関数 必要かどうか
 requestOptionで重複キューチェック
 commoand_serverのログ出力
-rec終了時 tune stopしとく
 rec中にPAT途絶したら再選局したい retryx3
 rec reserveにnetwork_nameいれるか
-log ファイル出力どうする
+eit scheduleはsectionのリスト管理しないで 派生クラスでテーブル管理する
+    p/f はsectionリスト管理して重複はチェックする
+    -->バッファサイズとfifo数はそんなに必要ないはず
+onSectionStarted がfalse return だったらそのsectionは無視する 次のsection開始まで
+eit p/f とscheduleは別クラスで onSectionStartedでtable_idチェックして切りわけ
+scan 結果重複チェック
