@@ -1,0 +1,11 @@
+ifeq ($(DUMMY_TUNER), 1)
+CFLAGS				+=  -D_DUMMY_TUNER
+endif
+
+ifeq ($(LOG_COLOR_OFF), 1)
+CFLAGS				+=	-D_LOG_COLOR_OFF
+endif
+
+
+INSTALLDIR_BASE		:=	atpp
+

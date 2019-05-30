@@ -23,6 +23,6 @@ if [ ! -e $1 -o ! -f $1 ]; then
 	exit 1
 fi
 
-${BASE_DIR}/ts_parser -f $1
-#gdb ${BASE_DIR}/ts_parser
+${BASE_DIR}/tsparser_test -f $1
+#gdb ${BASE_DIR}/tsparser_test
 

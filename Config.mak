@@ -2,6 +2,9 @@
 #   Defines
 #
 
+# add user define
+-include $(BASEDIR)/user.rules
+
 MAKE		:=	/usr/bin/make
 ECHO		:=	echo
 ifeq ($(WITH_CLANG), 1)
@@ -52,19 +55,12 @@ ifeq ($(DEBUG_BUILD), 1)
 CFLAGS		+=	-g -D_DEBUG_BUILD
 endif
 
-ifeq ($(DUMMY_TUNER), 1)
-CFLAGS		+=	-D_DUMMY_TUNER
-endif
-
 ifeq ($(ADDR_SANITIZE), 1)
 CFLAGS		+=	-fsanitize=address -fno-omit-frame-pointer
 endif
 
-ifeq ($(LOG_COLOR_OFF), 1)
-CFLAGS		+=	-D_LOG_COLOR_OFF
-endif
 
-
+# EXIST_SRCS
 EXIST_SRCS		:=	FALSE
 ifneq ($(SRCS),)
 EXIST_SRCS		:=	TRUE
@@ -72,6 +68,8 @@ else ifneq ($(SRCS_CPP),)
 EXIST_SRCS		:=	TRUE
 endif
 
+
+# OBJS/etc
 ifeq ($(EXIST_SRCS), TRUE)
 OBJDIR		:=	./objs/
 OBJS		:=	$(SRCS:%.c=$(OBJDIR)/%.o)
@@ -79,6 +77,8 @@ OBJS		+=	$(SRCS_CPP:%.cpp=$(OBJDIR)/%.o)
 DEPENDS		:=	$(OBJS:%.o=%.d)
 endif
 
+
+# TARGET_OBJ
 ifneq ($(TARGET_NAME),)
 ifeq ($(TARGET_TYPE), EXEC)
 TARGET_OBJ	:=	$(TARGET_NAME)
@@ -98,10 +98,20 @@ endif
 endif
 
 
-INSTALLDIR		?=	$(BASEDIR)
+# INSTALLDIR_xxx
+INSTALLDIR		?=	$(BASEDIR)/local_build
 ifneq ($(INSTALLDIR),)
+ifeq ($(NOT_INSTALL),)
+ifeq ($(INSTALLDIR_BASE),)
 INSTALLDIR_BIN	:=	$(INSTALLDIR)/bin
 INSTALLDIR_LIB	:=	$(INSTALLDIR)/lib
+INSTALLDIR_INC	:=	$(INSTALLDIR)/include
+else
+INSTALLDIR_BIN	:=	$(INSTALLDIR)/bin
+INSTALLDIR_LIB	:=	$(INSTALLDIR)/lib/$(INSTALLDIR_BASE)
+INSTALLDIR_INC	:=	$(INSTALLDIR)/include/$(INSTALLDIR_BASE)
+endif
+endif
 endif
 
 
@@ -278,11 +288,26 @@ endif
 ifneq ($(DEPENDS),)
 	$(RM) -f $(DEPENDS)
 endif
-ifneq ($(TARGET_OBJ),)
+
 ifeq ($(TARGET_TYPE), EXEC)
+ifneq ($(TARGET_OBJ),)
+ifneq ($(INSTALLDIR_BIN),)
 	$(RM) -f $(INSTALLDIR_BIN)/$(TARGET_OBJ)
+endif
+endif
+
 else ifeq ($(TARGET_TYPE), SHARED)
+ifneq ($(TARGET_OBJ),)
+ifneq ($(INSTALLDIR_LIB),)
 	$(RM) -f $(INSTALLDIR_LIB)/$(TARGET_OBJ)
+endif
+endif
+ifneq ($(INSTALL_HEADERS),)
+ifneq ($(INSTALLDIR_INC),)
+	@for h in $(INSTALL_HEADERS) ; do \
+		$(RM) -f $(INSTALLDIR_INC)/$$h ;\
+	done
+endif
 endif
 endif
 	@$(MAKE) post_proc
@@ -294,7 +319,7 @@ install:
 
 install-r:
 	@$(MAKE) install-subdirs
-	@$(MAKE) pre_proc
+#	@$(MAKE) pre_proc
 ifeq ($(TARGET_TYPE), EXEC)
 ifneq ($(TARGET_OBJ),)
 ifneq ($(INSTALLDIR_BIN),)
@@ -315,6 +340,12 @@ ifeq ($(NO_STRIP), 1)
 else
 	@$(INSTALL) -v --strip $(TARGET_OBJ) $(INSTALLDIR_LIB)
 endif
+endif
+endif
+ifneq ($(INSTALL_HEADERS),)
+ifneq ($(INSTALLDIR_INC),)
+	@$(INSTALL) -v -d $(INSTALLDIR_INC)
+	@$(INSTALL) -v --mode=644 $(INSTALL_HEADERS) $(INSTALLDIR_INC)
 endif
 endif
 endif

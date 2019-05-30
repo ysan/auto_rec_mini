@@ -33,6 +33,7 @@ SUBDIRS		:= \
 #   Target object
 #
 TARGET_NAME	:=	tsparser_test
+NOT_INSTALL :=	YES
 
 #
 #   Target type

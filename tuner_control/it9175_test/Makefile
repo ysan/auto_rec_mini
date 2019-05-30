@@ -32,6 +32,7 @@ TARGET_NAME	:=	recfsusb2i
 #     (EXEC/SHARED/STATIC/OBJECT)
 #
 TARGET_TYPE	:=	EXEC
+NOT_INSTALL :=	YES
 
 #
 #   Compile sources
