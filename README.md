@@ -19,7 +19,7 @@ https://github.com/youzaka/ariblib
 https://github.com/arairait/eit_txtout_mod  
   
 流用しているもの:  
-&nbsp;&nbsp;&nbsp;&nbsp;epgdump の aribstr。
+&nbsp;&nbsp;&nbsp;&nbsp;epgdump の aribstr。  
 &nbsp;&nbsp;&nbsp;&nbsp;recfsusb2i&nbsp;チューナー制御。&nbsp;https://github.com/jeeb/recfsusb2i  
   
 チューナーは KTV-FSUSB2/V3 を使用しています。(S/N: K1212以降)
