@@ -12,8 +12,8 @@ INCLUDES	:= \
 	-I$(BASEDIR)/command_server \
 	-I$(BASEDIR)/tuner_control \
 	-I$(BASEDIR)/tuner_control/it9175 \
-	-I$(BASEDIR)/ts_parser \
-	-I$(BASEDIR)/ts_parser/aribstr \
+	-I$(BASEDIR)/parser \
+	-I$(BASEDIR)/parser/aribstr \
 	-I$(BASEDIR)/psisi_manager \
 	-I$(BASEDIR)/channel_manager \
 	-I./ \
@@ -24,8 +24,8 @@ LIBS		:= \
 	-L$(BASEDIR)/threadmgrpp -lthreadmgrpp \
 	-L$(BASEDIR)/common -lcommon \
 	-L$(BASEDIR)/tuner_control -ltunercontrol \
-	-L$(BASEDIR)/ts_parser -ltsparser \
-	-L$(BASEDIR)/ts_parser/aribstr -laribstr \
+	-L$(BASEDIR)/parser -lparser \
+	-L$(BASEDIR)/parser/aribstr -laribstr \
 	-L$(BASEDIR)/psisi_manager -lpsisimanager \
 	-lpthread \
 

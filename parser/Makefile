@@ -32,7 +32,7 @@ SUBDIRS		:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	tsparser
+TARGET_NAME	:=	parser
 
 #
 #   Target type

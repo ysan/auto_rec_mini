@@ -103,52 +103,31 @@ public:
 
 
 	// CSectionParser
+	bool onSectionStarted (const CSectionInfo *pSection) override;
 	void onSectionCompleted (const CSectionInfo *pCompSection) override;
 
-	void dumpTables_pf (void);
-	void dumpTables_pf_simple (void);
-	void dumpTables_sch (void);
-	void dumpTables_sch_simple (void);
+	void dumpTables (void);
+	void dumpTables_simple (void);
 
 	void dumpTable (const CTable* pTable) const;
 	void dumpTable_simple (const CTable* pTable) const;
 
-	void clear_pf (void);
-	void clear_sch (void);
+	void clear (void);
+	void clear (CTable* pErase);
 
-	void clear_pf (CTable* pErase);
-	void clear_sch (CTable* pErase);
-
-	CReference reference_pf (void);
-	CReference reference_sch (void);
-
-	// p/f or schedule
-	int m_type;
+	CReference reference (void);
 
 private:
 	bool parse (const CSectionInfo *pCompSection, CTable* pOutTable);
-
-	void appendTable_pf (CTable *pTable);
-	void appendTable_sch (CTable *pTable);
-
-	void releaseTables_pf (void);
-	void releaseTables_sch (void);
-
-	void releaseTable_pf (CTable* pErase);
-	void releaseTable_sch (CTable* pErase);
-
-	bool refreshTableByVersionNumber_pf (CTable* pNewTable);
-	void refreshTablesByVersionNumber_pf (CTable* pNewTable);
+	void appendTable (CTable *pTable);
+	void releaseTables (void);
+	void releaseTable (CTable* pErase);
+	bool refreshTableByVersionNumber (CTable* pNewTable);
+	void refreshTablesByVersionNumber (CTable* pNewTable);
 
 
-	std::vector <CTable*> mTables_pf;
-	std::recursive_mutex mMutexTables_pf;
-
-	std::vector <CTable*> mTables_sch;
-	std::recursive_mutex mMutexTables_sch;
-
-	bool m_isNeedParseSchedule;	
-
+	std::vector <CTable*> mTables;
+	std::recursive_mutex mMutexTables;
 };
 
 #endif

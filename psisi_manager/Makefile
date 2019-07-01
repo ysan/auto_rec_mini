@@ -11,12 +11,12 @@ INCLUDES	:= \
 	-I$(BASEDIR)/common \
 	-I$(BASEDIR)/command_server \
 	-I$(BASEDIR)/tuner_control \
-	-I$(BASEDIR)/ts_parser \
-	-I$(BASEDIR)/ts_parser/aribstr \
-	-I$(BASEDIR)/ts_parser/psisi \
-	-I$(BASEDIR)/ts_parser/psisi/descriptor \
-	-I$(BASEDIR)/ts_parser/dsmcc \
-	-I$(BASEDIR)/ts_parser/dsmcc/dsmcc_descriptor \
+	-I$(BASEDIR)/parser \
+	-I$(BASEDIR)/parser/aribstr \
+	-I$(BASEDIR)/parser/psisi \
+	-I$(BASEDIR)/parser/psisi/descriptor \
+	-I$(BASEDIR)/parser/dsmcc \
+	-I$(BASEDIR)/parser/dsmcc/dsmcc_descriptor \
 	-I./ \
 	-I../ \
 
@@ -25,9 +25,9 @@ LIBS		:= \
 	-L$(BASEDIR)/threadmgrpp -lthreadmgrpp \
 	-L$(BASEDIR)/common -lcommon \
 	-L$(BASEDIR)/tuner_control -ltunercontrol \
-	-L$(BASEDIR)/ts_parser -ltsparser \
-	-L$(BASEDIR)/ts_parser/aribstr -laribstr \
-	-L$(BASEDIR)/ts_parser/psisi -lpsisiparser \
+	-L$(BASEDIR)/parser -lparser \
+	-L$(BASEDIR)/parser/aribstr -laribstr \
+	-L$(BASEDIR)/parser/psisi -lpsisiparser \
 	-lpthread \
 
 USERDEFS	:= \

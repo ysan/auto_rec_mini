@@ -396,6 +396,7 @@ CSectionParser::CSectionParser (EN_SECTION_TYPE type)
 	,mPoolSize (POOL_SIZE)
 	,mType (EN_SECTION_TYPE__PSISI)
 	,mIsAsyncDelete (false)
+	,mIsIgnoreSection (false)
 {
 	mpPool = new uint8_t [mPoolSize];
 	memset (mpPool, 0x00, mPoolSize);
@@ -414,6 +415,7 @@ CSectionParser::CSectionParser (int fifoNum, EN_SECTION_TYPE type)
 	,mPoolSize (POOL_SIZE)
 	,mType (EN_SECTION_TYPE__PSISI)
 	,mIsAsyncDelete (false)
+	,mIsIgnoreSection (false)
 {
 	mpPool = new uint8_t [mPoolSize];
 	memset (mpPool, 0x00, mPoolSize);
@@ -438,6 +440,7 @@ CSectionParser::CSectionParser (size_t poolSize, EN_SECTION_TYPE type)
 	,mPoolSize (POOL_SIZE)
 	,mType (EN_SECTION_TYPE__PSISI)
 	,mIsAsyncDelete (false)
+	,mIsIgnoreSection (false)
 {
 	mPoolSize = poolSize;
 	mpPool = new uint8_t [mPoolSize];
@@ -457,6 +460,7 @@ CSectionParser::CSectionParser (size_t poolSize ,int fifoNum, EN_SECTION_TYPE ty
 	,mPoolSize (POOL_SIZE)
 	,mType (EN_SECTION_TYPE__PSISI)
 	,mIsAsyncDelete (false)
+	,mIsIgnoreSection (false)
 {
 	mPoolSize = poolSize;
 	mpPool = new uint8_t [mPoolSize];
@@ -490,7 +494,7 @@ CSectionInfo* CSectionParser::attachSectionList (uint8_t *pBuff, size_t size)
 	size_t remain = mPoolSize - mPoolInd;
 	if (remain < size) {
 		// pool full
-		_UTL_LOG_E ("pool full\n");
+		_UTL_LOG_E ("pool full!!  mPoolSize:[%lu] mPoolInd:[%lu] remain:[%lu] attachSize:[%lu]", mPoolSize, mPoolInd, remain, size);
 		return NULL;
 	}
 
@@ -1017,7 +1021,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 	bool isEvenOnceComplete = false;
 
 	// payload_unit_start_indicator == 1 のパケット内に
-	// 複数のts含まれる場合がある そのためのループ
+	// 複数のセクションが含まれる場合がある そのためのループ
 	while ((size > 0) && (*p != 0xff)) {
 
 //TODO mpWorkSectInfo check
@@ -1049,14 +1053,28 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 		}
 
 		if (!onSectionStarted (mpWorkSectInfo)) {
-			r = EN_CHECK_SECTION__CANCELED;
-			size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
-			p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
+			r = EN_CHECK_SECTION__IGNORE;
+			size_t shift = SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
+			if (shift >= size) {
+				// もしパケットをまたいだものだとすると shift分はsizeを超えてくるのでループを抜けるようにします
+				size = 0;
+			} else {
+				size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
+				p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
+			}
 
 			detachSectionList (mpWorkSectInfo);
 			mpWorkSectInfo = NULL;
+
+			// mIsIgnoreSection 開始します
+			mIsIgnoreSection = true;
+
 			continue;
 		}
+
+		// mIsIgnoreSection 解除します
+		mIsIgnoreSection = false;
+
 
 		if (mpWorkSectInfo->isReceiveAll()) {
 			mpWorkSectInfo->mState = EN_SECTION_STATE__RECEIVED;
@@ -1151,6 +1169,10 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
  */
 EN_CHECK_SECTION CSectionParser::checkSectionFollow (uint8_t *pPayload, size_t payloadSize)
 {
+	if (mIsIgnoreSection) {
+		return EN_CHECK_SECTION__IGNORE;
+	}
+
 	if (!pPayload || (payloadSize == 0)) {
 		return EN_CHECK_SECTION__INVALID;
 	}

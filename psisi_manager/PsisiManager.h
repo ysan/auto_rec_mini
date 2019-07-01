@@ -442,8 +442,7 @@ private:
 	CBroadcasterInformationTable mBIT;
 
 	CProgramAssociationTable::CReference mPAT_ref;
-	CEventInformationTable::CReference mEIT_H_pf_ref;
-	CEventInformationTable::CReference mEIT_H_sch_ref;
+	CEventInformationTable::CReference mEIT_H_ref;
 	CNetworkInformationTable::CReference mNIT_ref;
 	CServiceDescriptionTable::CReference mSDT_ref;
 

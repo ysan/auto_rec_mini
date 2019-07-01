@@ -98,6 +98,7 @@ typedef enum {
 	EN_CHECK_SECTION__RECEIVING,
 	EN_CHECK_SECTION__CANCELED,
 	EN_CHECK_SECTION__CRC32_ERR,
+	EN_CHECK_SECTION__IGNORE,
 	EN_CHECK_SECTION__INVALID,
 } EN_CHECK_SECTION;
 
@@ -167,6 +168,7 @@ private:
 	EN_SECTION_TYPE mType;
 
 	bool mIsAsyncDelete;
+	bool mIsIgnoreSection;
 };
 
 #endif

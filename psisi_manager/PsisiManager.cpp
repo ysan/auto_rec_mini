@@ -65,8 +65,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 
 	// references
 	mPAT_ref = mPAT.reference();
-	mEIT_H_pf_ref = mEIT_H.reference_pf();
-	mEIT_H_sch_ref = mEIT_H.reference_sch();
+	mEIT_H_ref = mEIT_H.reference();
 	mNIT_ref =  mNIT.reference();
 	mSDT_ref = mSDT.reference();
 
@@ -451,7 +450,7 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 	case SECTID_CHECK_WAIT:
 
 		mPAT.clear();
-		mEIT_H.clear_pf();
+		mEIT_H.clear();
 		mNIT.clear();
 		mSDT.clear();
 		mRST.clear();
@@ -896,19 +895,19 @@ void CPsisiManager::onReq_dumpTables (CThreadMgrIf *pIf)
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_PF:
-		mEIT_H.dumpTables_pf();
+		mEIT_H.dumpTables();
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_PF_simple:
-		mEIT_H.dumpTables_pf_simple();
+		mEIT_H.dumpTables_simple();
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_SCH:
-		mEIT_H.dumpTables_sch();
+//TODO
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_SCH_simple:
-		mEIT_H.dumpTables_sch_simple();
+//TODO
 		break;
 
 	case EN_PSISI_TYPE__NIT:
@@ -954,7 +953,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 #ifdef _DUMMY_TUNER // ダミーデバッグ中はここでクリア
 		mPAT.clear();
-		mEIT_H.clear_pf();
+		mEIT_H.clear();
 		mNIT.clear();
 		mSDT.clear();
 		mRST.clear();
@@ -1434,10 +1433,10 @@ bool CPsisiManager::cacheEventPfInfos (
 
 	int m = 0;
 
-	std::lock_guard<std::recursive_mutex> lock (*mEIT_H_pf_ref.mpMutex);
+	std::lock_guard<std::recursive_mutex> lock (*mEIT_H_ref.mpMutex);
 
-	std::vector<CEventInformationTable::CTable*>::const_iterator iter = mEIT_H_pf_ref.mpTables->begin();
-	for (; iter != mEIT_H_pf_ref.mpTables->end(); ++ iter) {
+	std::vector<CEventInformationTable::CTable*>::const_iterator iter = mEIT_H_ref.mpTables->begin();
+	for (; iter != mEIT_H_ref.mpTables->end(); ++ iter) {
 
 		CEventInformationTable::CTable *pTable = *iter;
 
@@ -1835,31 +1834,14 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		r = mEIT_H.checkSection (p_ts_header, p_payload, payload_size);
 		if (r == EN_CHECK_SECTION__COMPLETED || r == EN_CHECK_SECTION__COMPLETED_ALREADY) {
-
-			if (mEIT_H.m_type == 0) {
-				// p/f
-
-				_PARSER_NOTICE _notice = {EN_PSISI_TYPE__EIT_H_PF,
-											r == EN_CHECK_SECTION__COMPLETED ? true : false};
-				requestAsync (
-					EN_MODULE_PSISI_MANAGER,
-					EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
-					(uint8_t*)&_notice,
-					sizeof(_notice)
-				);
-
-			} else if (mEIT_H.m_type == 1) {
-				// schedule
-
-				_PARSER_NOTICE _notice = {EN_PSISI_TYPE__EIT_H_SCH,
-											r == EN_CHECK_SECTION__COMPLETED ? true : false};
-				requestAsync (
-					EN_MODULE_PSISI_MANAGER,
-					EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
-					(uint8_t*)&_notice,
-					sizeof(_notice)
-				);
-			}
+			_PARSER_NOTICE _notice = {EN_PSISI_TYPE__EIT_H_PF,
+										r == EN_CHECK_SECTION__COMPLETED ? true : false};
+			requestAsync (
+				EN_MODULE_PSISI_MANAGER,
+				EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
+				(uint8_t*)&_notice,
+				sizeof(_notice)
+			);
 		}
 
 		break;

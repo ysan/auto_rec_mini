@@ -13,11 +13,11 @@ INCLUDES	:= \
 	-I$(BASEDIR)/tuner_control/tune_thread \
 	-I$(BASEDIR)/tuner_control \
 	-I$(BASEDIR)/tuner_control/it9175 \
-	-I$(BASEDIR)/ts_parser \
-	-I$(BASEDIR)/ts_parser/psisi \
-	-I$(BASEDIR)/ts_parser/psisi/descriptor \
-	-I$(BASEDIR)/ts_parser/dsmcc \
-	-I$(BASEDIR)/ts_parser/dsmcc/dsmcc_descriptor \
+	-I$(BASEDIR)/parser \
+	-I$(BASEDIR)/parser/psisi \
+	-I$(BASEDIR)/parser/psisi/descriptor \
+	-I$(BASEDIR)/parser/dsmcc \
+	-I$(BASEDIR)/parser/dsmcc/dsmcc_descriptor \
 	-I$(BASEDIR)/psisi_manager \
 	-I$(BASEDIR)/rec_manager \
 	-I$(BASEDIR)/channel_manager \
@@ -31,9 +31,9 @@ LIBS		:= \
 	-L$(BASEDIR)/tuner_control/tune_thread -ltunethread \
 	-L$(BASEDIR)/tuner_control -ltunercontrol \
 	-L$(BASEDIR)/tuner_control/it9175 -lit9175 \
-	-L$(BASEDIR)/ts_parser -ltsparser \
-	-L$(BASEDIR)/ts_parser/psisi -lpsisiparser \
-	-L$(BASEDIR)/ts_parser/dsmcc -ldsmccparser \
+	-L$(BASEDIR)/parser -lparser \
+	-L$(BASEDIR)/parser/psisi -lpsisiparser \
+	-L$(BASEDIR)/parser/dsmcc -ldsmccparser \
 	-L$(BASEDIR)/psisi_manager -lpsisimanager \
 	-L$(BASEDIR)/rec_manager -lrecmanager \
 	-L$(BASEDIR)/channel_manager -lchannelmanager \
@@ -46,8 +46,8 @@ SUBDIRS		:= \
 	threadmgr \
 	threadmgrpp \
 	common \
-	ts_parser \
-	ts_parser_test \
+	parser \
+	parser_test \
 	tuner_control \
 	psisi_manager \
 	rec_manager \
