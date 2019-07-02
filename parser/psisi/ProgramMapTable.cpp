@@ -39,7 +39,7 @@ void CProgramMapTable::onSectionCompleted (const CSectionInfo *pCompSection)
 		return ;
 	}
 
-	mTables.push_back (pTable);
+	appendTable (pTable);
 
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {

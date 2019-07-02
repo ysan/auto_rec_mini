@@ -47,6 +47,28 @@ public:
 	}
 
 
+	bool operator == (const CScanResult &obj) const {
+		if (
+			this->transport_stream_id == obj.transport_stream_id &&
+			this->original_network_id == obj.original_network_id
+		) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	bool operator != (const CScanResult &obj) const {
+		if (
+			this->transport_stream_id != obj.transport_stream_id ||
+			this->original_network_id != obj.original_network_id
+		) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	std::string network_name;
@@ -60,7 +82,6 @@ public:
 		uint8_t service_type;
 	};
 	std::vector <service> services;
-
 
 	void set (
 		uint16_t _transport_stream_id,
@@ -100,7 +121,7 @@ public:
 		services.clear();
 	}
 
-	void dump (void) {
+	void dump (void) const {
 		_UTL_LOG_I (
 			"tsid:[0x%04x] org_nid:[0x%04x]",
 			transport_stream_id,
@@ -114,7 +135,7 @@ public:
 			ts_name.c_str()
 		);
 		_UTL_LOG_I ("----- services -----");
-		std::vector<service>::iterator iter = services.begin();
+		std::vector<service>::const_iterator iter = services.begin();
 		for (; iter != services.end(); ++ iter) {
 			_UTL_LOG_I (
 				"svcid:[0x%04x] svctype:[0x%02x]",
@@ -124,10 +145,10 @@ public:
 		}
 	}
 
-	void dump_simple (void) {
+	void dump_simple (uint16_t ch) const {
 		char s [256] = {0};
 		int n = 0;
-		std::vector<service>::iterator iter = services.begin();
+		std::vector<service>::const_iterator iter = services.begin();
 		for (; iter != services.end(); ++ iter) {
 			n += snprintf (
 				s + n,
@@ -138,7 +159,8 @@ public:
 		}
 
 		_UTL_LOG_I (
-			"tsid:[0x%04x] org_nid:[0x%04x] ts_name:[%s] svc_id[%s]",
+			"pych:[%d] tsid:[0x%04x] org_nid:[0x%04x] ts_name:[%s] svc_id[%s]",
+			ch,
 			transport_stream_id,
 			original_network_id,
 			ts_name.c_str(),
@@ -159,6 +181,9 @@ public:
 	void onReq_moduleDown (CThreadMgrIf *pIf);
 	void onReq_channelScan (CThreadMgrIf *pIf);
 	void onReq_getPysicalChannelByServiceId (CThreadMgrIf *pIf);
+	void onReq_getPysicalChannelByRemoteControlKeyId (CThreadMgrIf *pIf);
+	void onReq_tuneByServiceId (CThreadMgrIf *pIf);
+	void onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf);
 	void onReq_dumpScanResults (CThreadMgrIf *pIf);
 
 
@@ -168,9 +193,18 @@ private:
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id
-	);
-	void dumpScanResults (void);
-	void dumpScanResults_simple (void);
+	) const ;
+
+	uint16_t getPysicalChannelByRemoteControlKeyId (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint8_t _remote_control_key_id
+	) const;
+
+	bool isDuplicateScanResult (const CScanResult* p_result) const;
+
+	void dumpScanResults (void) const;
+	void dumpScanResults_simple (void) const;
 
 	void saveScanResults (void);
 	void loadScanResults (void);

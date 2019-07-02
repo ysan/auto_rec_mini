@@ -28,6 +28,35 @@ static void _scan (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void _tune (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 1) {
+		_UTL_LOG_E ("invalid arguments.\n");
+		return;
+	}
+
+	std::regex regex_idx ("^[0-9]+$");
+	if (!std::regex_match (argv[0], regex_idx)) {
+		_UTL_LOG_E ("invalid arguments. (id)");
+		return;
+	}
+
+//TODO
+// 暫定remote_control_key_idだけ渡す
+	uint8_t id = atoi(argv[0]);
+	_REMOTE_CONTROL_ID_PARAM param = {0, 0, id};
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CChannelManagerIf mgr(pBase->getExternalIf());
+	mgr.reqTuneByRemoteControlKeyId (&param);
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
 static void _dump_scan_results (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
@@ -51,6 +80,12 @@ ST_COMMAND_INFO g_chManagerCommands [] = { // extern
 		"s",
 		"channel scan",
 		_scan,
+		NULL,
+	},
+	{
+		"tr",
+		"tune by remote_control_key_id (usage: tr {remote_control_key_id} )",
+		_tune,
 		NULL,
 	},
 	{

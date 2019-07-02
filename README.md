@@ -2,6 +2,7 @@ atpp
 ===============
 
 Arib TS Parser and Processer. Like a minimum TV.  
+feasibility study.  
 under development, in progress.  
 
 

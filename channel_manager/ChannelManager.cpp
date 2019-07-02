@@ -15,15 +15,21 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 	,m_tunerNotify_clientId (0xff)
 {
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleUp,                     (char*)"onReq_moduleUp"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleUp,                              (char*)"onReq_moduleUp"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleDown,                   (char*)"onReq_moduleDown"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleDown,                            (char*)"onReq_moduleDown"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__CHANNEL_SCAN] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_channelScan,                  (char*)"onReq_channelScan"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_channelScan,                           (char*)"onReq_channelScan"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_SERVICE_ID] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByServiceId, (char*)"onReq_getPysicalChannelByServiceId"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByServiceId,          (char*)"onReq_getPysicalChannelByServiceId"};
+	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_REMOTE_CONTROL_KEY_ID] =
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByRemoteControlKeyId, (char*)"onReq_getPysicalChannelByRemoteControlKeyId"};
+	mSeqs [EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID] =
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByServiceId,                       (char*)"onReq_tuneByServiceId"};
+	mSeqs [EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID] =
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByRemoteControlKeyId,              (char*)"onReq_tuneByRemoteControlKeyId"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpScanResults,              (char*)"onReq_dumpScanResults"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpScanResults,                       (char*)"onReq_dumpScanResults"};
 	setSeqs (mSeqs, EN_SEQ_CHANNEL_MANAGER__NUM);
 
 
@@ -239,9 +245,10 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 				s_network_info.services_num
 			);
 
-			r.dump();
-
-			m_scanResults.insert (pair<uint16_t, CScanResult>(s_ch, r));
+			if (!isDuplicateScanResult (&r)) {
+				r.dump();
+				m_scanResults.insert (pair<uint16_t, CScanResult>(s_ch, r));
+			}
 
 			sectId = SECTID_NEXT;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -326,6 +333,234 @@ void CChannelManager::onReq_getPysicalChannelByServiceId (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CChannelManager::onReq_getPysicalChannelByRemoteControlKeyId (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	_REMOTE_CONTROL_ID_PARAM param = *(_REMOTE_CONTROL_ID_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+
+	uint16_t _ch = getPysicalChannelByRemoteControlKeyId (
+						param.transport_stream_id,
+						param.original_network_id,
+						param.remote_control_key_id
+					);
+	if (_ch == 0xffff) {
+
+		_UTL_LOG_E ("getPysicalChannelByRemoteControlKeyId is failure.");
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else {
+
+		// リプライmsgに結果を乗せます
+		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&_ch, sizeof(_ch));
+
+	}
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CChannelManager::onReq_tuneByServiceId (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_TUNE,
+		SECTID_WAIT_TUNE,
+		SECTID_END_SUCCESS,
+		SECTID_END_ERROR,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	static _SERVICE_ID_PARAM s_param;
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+		pIf->lock();
+
+		s_param = *(_SERVICE_ID_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+
+		sectId = SECTID_REQ_TUNE;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_TUNE: {
+		uint16_t ch = getPysicalChannelByServiceId (
+							s_param.transport_stream_id,
+							s_param.original_network_id,
+							s_param.service_id
+						);
+		if (ch == 0xffff) {
+			_UTL_LOG_E ("getPysicalChannelByServiceId is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+
+			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
+			_UTL_LOG_I ("freq=[%d]kHz\n", freq);
+
+			CTunerControlIf _if (getExternalIf());
+			_if.reqTune (freq);
+
+			sectId = SECTID_WAIT_TUNE;
+			enAct = EN_THM_ACT_WAIT;
+		}
+
+		}
+		break;
+
+	case SECTID_WAIT_TUNE:
+		enRslt = pIf->getSrcInfo()->enRslt;
+        if (enRslt == EN_THM_RSLT_SUCCESS) {
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_W ("tune is failure");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_END_SUCCESS:
+		pIf->unlock();
+
+		memset (&s_param, 0x00, sizeof(s_param));
+
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	case SECTID_END_ERROR:
+		pIf->unlock();
+
+		memset (&s_param, 0x00, sizeof(s_param));
+
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+	pIf->setSectId (sectId, enAct);
+}
+
+void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_TUNE,
+		SECTID_WAIT_TUNE,
+		SECTID_END_SUCCESS,
+		SECTID_END_ERROR,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	static _REMOTE_CONTROL_ID_PARAM s_param;
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+		pIf->lock();
+
+		s_param = *(_REMOTE_CONTROL_ID_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+
+		sectId = SECTID_REQ_TUNE;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_TUNE: {
+		uint16_t ch = getPysicalChannelByRemoteControlKeyId (
+							s_param.transport_stream_id,
+							s_param.original_network_id,
+							s_param.remote_control_key_id
+						);
+		if (ch == 0xffff) {
+			_UTL_LOG_E ("invalid remote_control_key_id:[%d]", s_param.remote_control_key_id);
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+
+			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
+			_UTL_LOG_I ("freq=[%d]kHz\n", freq);
+
+			CTunerControlIf _if (getExternalIf());
+			_if.reqTune (freq);
+
+			sectId = SECTID_WAIT_TUNE;
+			enAct = EN_THM_ACT_WAIT;
+		}
+
+		}
+		break;
+
+	case SECTID_WAIT_TUNE:
+		enRslt = pIf->getSrcInfo()->enRslt;
+        if (enRslt == EN_THM_RSLT_SUCCESS) {
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_W ("tune is failure");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_END_SUCCESS:
+		pIf->unlock();
+
+		memset (&s_param, 0x00, sizeof(s_param));
+
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	case SECTID_END_ERROR:
+		pIf->unlock();
+
+		memset (&s_param, 0x00, sizeof(s_param));
+
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+	pIf->setSectId (sectId, enAct);
+}
+
 void CChannelManager::onReq_dumpScanResults (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -349,23 +584,23 @@ void CChannelManager::onReq_dumpScanResults (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+
 uint16_t CChannelManager::getPysicalChannelByServiceId (
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
 	uint16_t _service_id
-)
+) const
 {
-	std::map <uint16_t, CScanResult>::iterator iter = m_scanResults.begin();
+	std::map <uint16_t, CScanResult>::const_iterator iter = m_scanResults.begin();
 	for (; iter != m_scanResults.end(); ++ iter) {
 		uint16_t ch = iter->first;
-		CScanResult *p_rslt = &(iter->second);
+		CScanResult const *p_rslt = &(iter->second);
 		if (p_rslt) {
-
 			if (
 				(p_rslt->transport_stream_id == _transport_stream_id) &&
 				(p_rslt->original_network_id == _original_network_id)
 			) {
-				std::vector<CScanResult::service>::iterator iter = p_rslt->services.begin();
+				std::vector<CScanResult::service>::const_iterator iter = p_rslt->services.begin();
 				for (; iter != p_rslt->services.end(); ++ iter) {
 					if (_service_id == iter->service_id) {
 						return ch;
@@ -379,12 +614,59 @@ uint16_t CChannelManager::getPysicalChannelByServiceId (
 	return 0xffff;
 }
 
-void CChannelManager::dumpScanResults (void)
+uint16_t CChannelManager::getPysicalChannelByRemoteControlKeyId (
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id,
+	uint8_t _remote_control_key_id
+) const
 {
-	std::map <uint16_t, CScanResult>::iterator iter = m_scanResults.begin();
+	std::map <uint16_t, CScanResult>::const_iterator iter = m_scanResults.begin();
 	for (; iter != m_scanResults.end(); ++ iter) {
 		uint16_t ch = iter->first;
-		CScanResult *p_rslt = &(iter->second);
+		CScanResult const *p_rslt = &(iter->second);
+		if (p_rslt) {
+			if (
+//TODO
+// 暫定remote_control_key_idだけで判定
+//				(p_rslt->transport_stream_id == _transport_stream_id) &&
+//				(p_rslt->original_network_id == _original_network_id) &&
+				(p_rslt->remote_control_key_id == _remote_control_key_id)
+			) {
+				return ch;
+			}
+		}
+	}
+
+	// not found
+	return 0xffff;
+}
+
+bool CChannelManager::isDuplicateScanResult (const CScanResult* p_result) const
+{
+	if (!p_result) {
+		return false;
+	}
+
+	std::map <uint16_t, CScanResult>::const_iterator iter = m_scanResults.begin();
+	for (; iter != m_scanResults.end(); ++ iter) {
+		CScanResult const *p_rslt = &(iter->second);
+		if (p_rslt) {
+			if (*p_rslt == *p_result) {
+				// duplicate
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void CChannelManager::dumpScanResults (void) const
+{
+	std::map <uint16_t, CScanResult>::const_iterator iter = m_scanResults.begin();
+	for (; iter != m_scanResults.end(); ++ iter) {
+		uint16_t ch = iter->first;
+		CScanResult const *p_rslt = &(iter->second);
 		if (p_rslt) {
 			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
 			_UTL_LOG_I ("-------------  pysical channel:[%d] ([%d]kHz) -------------", ch, freq);
@@ -393,13 +675,14 @@ void CChannelManager::dumpScanResults (void)
 	}
 }
 
-void CChannelManager::dumpScanResults_simple (void)
+void CChannelManager::dumpScanResults_simple (void) const
 {
-	std::map <uint16_t, CScanResult>::iterator iter = m_scanResults.begin();
+	std::map <uint16_t, CScanResult>::const_iterator iter = m_scanResults.begin();
 	for (; iter != m_scanResults.end(); ++ iter) {
-		CScanResult *p_rslt = &(iter->second);
+		uint16_t ch = iter->first;
+		CScanResult const *p_rslt = &(iter->second);
 		if (p_rslt) {
-			p_rslt ->dump_simple ();
+			p_rslt ->dump_simple (ch);
 		}
 	}
 }
