@@ -93,6 +93,10 @@
                         "service_type": 1
                     },
                     {
+                        "service_id": 1060,
+                        "service_type": 161
+                    },
+                    {
                         "service_id": 1440,
                         "service_type": 192
                     }
@@ -278,94 +282,7 @@
             }
         },
         {
-            "key": 28,
-            "value": {
-                "transport_stream_id": 32736,
-                "original_network_id": 32736,
-                "network_name": "関東広域０",
-                "area_code": 1445,
-                "remote_control_key_id": 1,
-                "ts_name": "ＮＨＫ総合・東京",
-                "services": [
-                    {
-                        "service_id": 1024,
-                        "service_type": 1
-                    },
-                    {
-                        "service_id": 1025,
-                        "service_type": 1
-                    },
-                    {
-                        "service_id": 1408,
-                        "service_type": 192
-                    },
-                    {
-                        "service_id": 65520,
-                        "service_type": 164
-                    }
-                ]
-            }
-        },
-        {
             "key": 32,
-            "value": {
-                "transport_stream_id": 32295,
-                "original_network_id": 32295,
-                "network_name": "テレビ埼玉",
-                "area_code": 2982,
-                "remote_control_key_id": 3,
-                "ts_name": "テレ玉",
-                "services": [
-                    {
-                        "service_id": 29752,
-                        "service_type": 1
-                    },
-                    {
-                        "service_id": 29753,
-                        "service_type": 1
-                    },
-                    {
-                        "service_id": 29754,
-                        "service_type": 1
-                    },
-                    {
-                        "service_id": 30136,
-                        "service_type": 192
-                    }
-                ]
-            }
-        },
-        {
-            "key": 41,
-            "value": {
-                "transport_stream_id": 32295,
-                "original_network_id": 32295,
-                "network_name": "テレビ埼玉",
-                "area_code": 2982,
-                "remote_control_key_id": 3,
-                "ts_name": "テレ玉",
-                "services": [
-                    {
-                        "service_id": 29752,
-                        "service_type": 1
-                    },
-                    {
-                        "service_id": 29753,
-                        "service_type": 1
-                    },
-                    {
-                        "service_id": 29754,
-                        "service_type": 1
-                    },
-                    {
-                        "service_id": 30136,
-                        "service_type": 192
-                    }
-                ]
-            }
-        },
-        {
-            "key": 46,
             "value": {
                 "transport_stream_id": 32295,
                 "original_network_id": 32295,
