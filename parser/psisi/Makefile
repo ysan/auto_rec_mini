@@ -42,6 +42,7 @@ SRCS_CPP	:= \
 	ProgramMapTable.cpp \
 	TimeOffsetTable.cpp \
 	EventInformationTable.cpp \
+	EventInformationTable_sch.cpp \
 	NetworkInformationTable.cpp \
 	ServiceDescriptionTable.cpp \
 	RunningStatusTable.cpp \

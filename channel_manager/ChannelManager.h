@@ -129,7 +129,7 @@ public:
 		);
 		_UTL_LOG_I ("network_name:[%s]", network_name.c_str());
 		_UTL_LOG_I (
-			"area_code:[0x%04x] remote_control_key_id:[0x%04x] ts_name:[%s]",
+			"area_code:[0x%04x] remote_control_key_id:[0x%02x] ts_name:[%s]",
 			area_code,
 			remote_control_key_id,
 			ts_name.c_str()
@@ -159,12 +159,15 @@ public:
 		}
 
 		_UTL_LOG_I (
-			"pych:[%d] tsid:[0x%04x] org_nid:[0x%04x] ts_name:[%s] svc_id[%s]",
+//			"pych:[%d] tsid:[0x%04x] org_nid:[0x%04x] ts_name:[%s] remote_control_key_id:[0x%02x] svc_id:[%s]",
+			"pych:[%d] tsid:[0x%04x] org_nid:[0x%04x] ts_name:[%s] remote_control_key_id:[0x%02x]",
 			ch,
 			transport_stream_id,
 			original_network_id,
 			ts_name.c_str(),
-			s
+			remote_control_key_id
+//			remote_control_key_id,
+//			s
 		);
 	}
 };

@@ -25,6 +25,7 @@
 #include "ProgramAssociationTable.h"
 #include "ProgramMapTable.h"
 #include "EventInformationTable.h"
+#include "EventInformationTable_sch.h"
 #include "NetworkInformationTable.h"
 #include "ServiceDescriptionTable.h"
 #include "RunningStatusTable.h"
@@ -436,6 +437,7 @@ private:
 
 	CProgramAssociationTable mPAT;
 	CEventInformationTable mEIT_H;
+	CEventInformationTable_sch mEIT_H_sch;
 	CNetworkInformationTable mNIT;
 	CServiceDescriptionTable mSDT;
 	CRunningStatusTable mRST;

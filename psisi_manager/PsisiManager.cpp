@@ -27,6 +27,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	,m_isDetectedPAT (false)
 	,mPAT (16)
 	,mEIT_H (4096*100, 100)
+	,mEIT_H_sch (4096*100, 100)
 {
 	mSeqs [EN_SEQ_PSISI_MANAGER__MODULE_UP] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_moduleUp,                    (char*)"onReq_moduleUp"};
@@ -903,11 +904,11 @@ void CPsisiManager::onReq_dumpTables (CThreadMgrIf *pIf)
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_SCH:
-//TODO
+		mEIT_H_sch.dumpTables_simple();
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_SCH_simple:
-//TODO
+		mEIT_H_sch.dumpTables_simple();
 		break;
 
 	case EN_PSISI_TYPE__NIT:
@@ -1843,6 +1844,10 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 				sizeof(_notice)
 			);
 		}
+
+//TODO
+		r = mEIT_H_sch.checkSection (p_ts_header, p_payload, payload_size);
+
 
 		break;
 
