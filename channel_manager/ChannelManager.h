@@ -206,6 +206,8 @@ private:
 
 	bool isDuplicateScanResult (const CScanResult* p_result) const;
 
+	const CScanResult* findScanResult (uint16_t pych) const;
+
 	void dumpScanResults (void) const;
 	void dumpScanResults_simple (void) const;
 

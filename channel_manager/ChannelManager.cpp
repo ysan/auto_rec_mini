@@ -413,6 +413,9 @@ void CChannelManager::onReq_tuneByServiceId (CThreadMgrIf *pIf)
 
 		} else {
 
+			const CScanResult *p = findScanResult (ch);
+			p->dump ();
+
 			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
 			_UTL_LOG_I ("freq=[%d]kHz\n", freq);
 
@@ -507,6 +510,9 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
+
+			const CScanResult *p = findScanResult (ch);
+			p->dump ();
 
 			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
 			_UTL_LOG_I ("freq=[%d]kHz\n", freq);
@@ -659,6 +665,17 @@ bool CChannelManager::isDuplicateScanResult (const CScanResult* p_result) const
 	}
 
 	return false;
+}
+
+const CScanResult* CChannelManager::findScanResult (uint16_t pych) const
+{
+	std::map<uint16_t, CScanResult>::const_iterator iter = m_scanResults.find (pych);
+
+	if (iter == m_scanResults.end()) {
+		return NULL;
+	}
+
+	return &(iter->second);
 }
 
 void CChannelManager::dumpScanResults (void) const

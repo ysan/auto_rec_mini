@@ -68,7 +68,7 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 	}
 
 
-	refreshTablesByVersionNumber (pTable) ;
+	refreshSubTables (pTable) ;
 
 	appendTable (pTable);
 
@@ -298,10 +298,10 @@ void CEventInformationTable::dumpTable_simple (const CTable* pTable) const
 		pTable->header.table_id_extension,
 		pTable->header.table_id == 0x4e ? "PF ,A " :
 			pTable->header.table_id == 0x4f ? "PF ,O " :
-			pTable->header.table_id >= 0x50 && pTable->header.table_id < 0x58 ? "Sch,A " :
-			pTable->header.table_id >= 0x58 && pTable->header.table_id < 0x60 ? "Sch,AE" :
-			pTable->header.table_id >= 0x60 && pTable->header.table_id < 0x68 ? "Sch,O " :
-			pTable->header.table_id >= 0x68 && pTable->header.table_id < 0x70 ? "Sch,OE" :
+			pTable->header.table_id >= 0x50 && pTable->header.table_id < 0x58 ? "Sched,A " :
+			pTable->header.table_id >= 0x58 && pTable->header.table_id < 0x60 ? "Sched,AE" :
+			pTable->header.table_id >= 0x60 && pTable->header.table_id < 0x68 ? "Sched,O " :
+			pTable->header.table_id >= 0x68 && pTable->header.table_id < 0x70 ? "Sched,OE" :
 			"unsup ",
 		pTable->transport_stream_id,
 		pTable->original_network_id,
@@ -325,7 +325,7 @@ void CEventInformationTable::clear (CTable *pErase)
 	releaseTable (pErase);
 }
 
-bool CEventInformationTable::refreshTableByVersionNumber (CTable* pNewTable)
+bool CEventInformationTable::refreshSubTablesByVersionNumber (CTable* pNewTable)
 {
 	if (!pNewTable) {
 		return false;
@@ -350,7 +350,7 @@ bool CEventInformationTable::refreshTableByVersionNumber (CTable* pNewTable)
     for (; iter != mTables.end(); ++ iter) {
 		CTable *pTable = *iter;
 
-		// check every sub-table
+		// check every sub-tables
 		if (
 			(new_tblid == pTable->header.table_id) &&
 			(new_svcid == pTable->header.table_id_extension) &&
@@ -396,14 +396,14 @@ bool CEventInformationTable::refreshTableByVersionNumber (CTable* pNewTable)
 	}
 }
 
-void CEventInformationTable::refreshTablesByVersionNumber (CTable* pNewTable)
+void CEventInformationTable::refreshSubTables (CTable* pNewTable)
 {
 	if (!pNewTable) {
 		return ;
 	}
 
 	while (1) {
-		if (!refreshTableByVersionNumber (pNewTable)) {
+		if (!refreshSubTablesByVersionNumber (pNewTable)) {
 			break;
 		}
 	}

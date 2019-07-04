@@ -14,6 +14,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/tuner_control \
 	-I$(BASEDIR)/tuner_control/it9175 \
 	-I$(BASEDIR)/parser \
+	-I$(BASEDIR)/parser/aribstr \
 	-I$(BASEDIR)/parser/psisi \
 	-I$(BASEDIR)/parser/psisi/descriptor \
 	-I$(BASEDIR)/parser/dsmcc \

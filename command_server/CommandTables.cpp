@@ -40,7 +40,7 @@ static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
 	p->connectionClose ();
 }
 
-static void _moni (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _threadmgr_status_dump (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_UTL_LOG_W ("ignore arguments.");
@@ -82,9 +82,9 @@ static ST_COMMAND_INFO g_systemCommands [] = {
 		NULL,
 	},
 	{
-		"moni",
-		"threadmgr debug monitor",
-		_moni,
+		"ts",
+		"threadmgr status dump",
+		_threadmgr_status_dump,
 		NULL,
 	},
 	{
@@ -131,7 +131,7 @@ ST_COMMAND_INFO g_rootCommandTable [] = { // extern
 		g_recManagerCommands,
 	},
 	{
-		"ch",
+		"cm",
 		"channel manager commands",
 		NULL,
 		g_chManagerCommands,

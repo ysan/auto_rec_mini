@@ -1,5 +1,5 @@
-#ifndef _EVENT_INFORMATION_TABLE_SCH_H_
-#define _EVENT_INFORMATION_TABLE_SCH_H_
+#ifndef _EVENT_INFORMATION_TABLE_SCHED_H_
+#define _EVENT_INFORMATION_TABLE_SCHED_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +14,7 @@
 #include "TsAribCommon.h"
 #include "SectionParser.h"
 #include "DescriptorDefs.h"
+#include "aribstr.h"
 
 
 #define EIT_FIX_LEN			(6) // transport_stream_id         16  uimsbf
@@ -29,7 +30,7 @@
 								// descriptors_loop_length  12  uimsbf
 
 
-class CEventInformationTable_sch : public CSectionParser
+class CEventInformationTable_sched : public CSectionParser
 {
 public:
 	class CTable {
@@ -97,9 +98,17 @@ public:
 	};
 
 public:
-	explicit CEventInformationTable_sch (size_t poolSize);
-	CEventInformationTable_sch (size_t poolSize, int fifoNum);
-	virtual ~CEventInformationTable_sch (void);
+	class IEventScheduleHandler {
+	public:
+		virtual ~IEventScheduleHandler (void) {};
+		virtual void onChange (void) = 0;
+	};
+
+public:
+	explicit CEventInformationTable_sched (size_t poolSize);
+	CEventInformationTable_sched (size_t poolSize, int fifoNum);
+	CEventInformationTable_sched (size_t poolSize, int fifoNum, IEventScheduleHandler *p_hander);
+	virtual ~CEventInformationTable_sched (void);
 
 
 	// CSectionParser
@@ -107,9 +116,11 @@ public:
 	void onSectionCompleted (const CSectionInfo *pCompSection) override;
 
 	void dumpTables (void);
+	void dumpTables_event (void);
 	void dumpTables_simple (void);
 
 	void dumpTable (const CTable* pTable) const;
+	void dumpTable_event (const CTable* pTable) const;
 	void dumpTable_simple (const CTable* pTable) const;
 
 	void clear (void);
@@ -122,13 +133,16 @@ private:
 	void appendTable (CTable *pTable);
 	void releaseTables (void);
 	void releaseTable (CTable* pErase);
-	bool isDuplicateTable (CTable* pTable);
-	bool refreshTableByVersionNumber (CTable* pNewTable);
-	void refreshTablesByVersionNumber (CTable* pNewTable);
+
+	bool isDuplicateSubTables (CTable* pTable);
+	bool refreshSubTablesByVersionNumber (CTable* pNewTable);
+	void refreshSubTables (CTable* pNewTable);
 
 
 	std::vector <CTable*> mTables;
 	std::recursive_mutex mMutexTables;
+
+	IEventScheduleHandler *mpEventScheduleHandler;
 };
 
 #endif

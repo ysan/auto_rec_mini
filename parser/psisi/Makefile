@@ -11,6 +11,7 @@ INCLUDES	:= \
 	-I./ \
 	-I./descriptor \
 	-I../ \
+	-I../aribstr \
 
 LIBS		:= \
 	-L$(BASEDIR)/common -lcommon \
@@ -42,7 +43,7 @@ SRCS_CPP	:= \
 	ProgramMapTable.cpp \
 	TimeOffsetTable.cpp \
 	EventInformationTable.cpp \
-	EventInformationTable_sch.cpp \
+	EventInformationTable_sched.cpp \
 	NetworkInformationTable.cpp \
 	ServiceDescriptionTable.cpp \
 	RunningStatusTable.cpp \

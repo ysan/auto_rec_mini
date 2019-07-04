@@ -4,29 +4,68 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "EventInformationTable_sch.h"
+#include <algorithm>
+
+#include "EventInformationTable_sched.h"
 #include "Utils.h"
 
 
-CEventInformationTable_sch::CEventInformationTable_sch (size_t poolSize)
+bool _comp__service_id (const CEventInformationTable_sched::CTable* l, const CEventInformationTable_sched::CTable* r) {
+	return r->header.table_id_extension > l->header.table_id_extension;
+}
+
+bool _comp__table_id (const CEventInformationTable_sched::CTable* l, const CEventInformationTable_sched::CTable* r) {
+	if (r->header.table_id_extension == l->header.table_id_extension) {
+		if (r->header.table_id > l->header.table_id) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool _comp__section_number (const CEventInformationTable_sched::CTable* l, const CEventInformationTable_sched::CTable* r) {
+	if (r->header.table_id_extension == l->header.table_id_extension) {
+		if (r->header.table_id == l->header.table_id) {
+			if (r->header.section_number > l->header.section_number) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+
+CEventInformationTable_sched::CEventInformationTable_sched (size_t poolSize)
 	:CSectionParser (poolSize)
 {
 	mTables.clear();
 }
 
-CEventInformationTable_sch::CEventInformationTable_sch (size_t poolSize, int fifoNum)
+CEventInformationTable_sched::CEventInformationTable_sched (size_t poolSize, int fifoNum)
 	:CSectionParser (poolSize, fifoNum)
 {
 	mTables.clear();
 }
 
-CEventInformationTable_sch::~CEventInformationTable_sch (void)
+CEventInformationTable_sched::CEventInformationTable_sched (size_t poolSize, int fifoNum, IEventScheduleHandler *p_hander)
+	:CSectionParser (poolSize, fifoNum)
+{
+	mTables.clear();
+
+	if (p_hander) {
+		mpEventScheduleHandler = p_hander;
+	}
+}
+
+CEventInformationTable_sched::~CEventInformationTable_sched (void)
 {
 	clear();
 }
 
 
-bool CEventInformationTable_sch::onSectionStarted (const CSectionInfo *pSection)
+bool CEventInformationTable_sched::onSectionStarted (const CSectionInfo *pSection)
 {
 	if (!pSection) {
 		return false;
@@ -52,7 +91,7 @@ bool CEventInformationTable_sch::onSectionStarted (const CSectionInfo *pSection)
 	}
 }
 
-void CEventInformationTable_sch::onSectionCompleted (const CSectionInfo *pCompSection)
+void CEventInformationTable_sched::onSectionCompleted (const CSectionInfo *pCompSection)
 {
 	if (!pCompSection) {
 		return ;
@@ -68,7 +107,7 @@ void CEventInformationTable_sch::onSectionCompleted (const CSectionInfo *pCompSe
 	}
 
 
-	if (isDuplicateTable (pTable)) {
+	if (isDuplicateSubTables (pTable)) {
 		delete pTable;
 		pTable = NULL;
 		detachSectionList (pCompSection);
@@ -76,9 +115,13 @@ void CEventInformationTable_sch::onSectionCompleted (const CSectionInfo *pCompSe
 	}
 
 
-	refreshTablesByVersionNumber (pTable) ;
+	refreshSubTables (pTable) ;
 
 	appendTable (pTable);
+
+	std::stable_sort (mTables.begin(), mTables.end(), _comp__service_id);
+	std::stable_sort (mTables.begin(), mTables.end(), _comp__table_id);
+	std::stable_sort (mTables.begin(), mTables.end(), _comp__section_number);
 
 
 	// debug dump
@@ -92,9 +135,14 @@ void CEventInformationTable_sch::onSectionCompleted (const CSectionInfo *pCompSe
 
 	// EIT schedule is not create section-list
 	detachSectionList (pCompSection);
+
+
+	if (mpEventScheduleHandler) {
+		mpEventScheduleHandler->onChange ();
+	}
 }
 
-bool CEventInformationTable_sch::parse (const CSectionInfo *pCompSection, CTable* pOutTable)
+bool CEventInformationTable_sched::parse (const CSectionInfo *pCompSection, CTable* pOutTable)
 {
 	if (!pCompSection || !pOutTable) {
 		return false;
@@ -158,7 +206,7 @@ bool CEventInformationTable_sch::parse (const CSectionInfo *pCompSection, CTable
 	return true;
 }
 
-void CEventInformationTable_sch::appendTable (CTable *pTable)
+void CEventInformationTable_sched::appendTable (CTable *pTable)
 {
 	if (!pTable) {
 		return ;
@@ -169,7 +217,7 @@ void CEventInformationTable_sch::appendTable (CTable *pTable)
 	mTables.push_back (pTable);
 }
 
-void CEventInformationTable_sch::releaseTables (void)
+void CEventInformationTable_sched::releaseTables (void)
 {
 	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
@@ -186,7 +234,7 @@ void CEventInformationTable_sch::releaseTables (void)
 	mTables.clear();
 }
 
-void CEventInformationTable_sch::releaseTable (CTable *pErase)
+void CEventInformationTable_sched::releaseTable (CTable *pErase)
 {
 	if (!pErase) {
 		return;
@@ -209,7 +257,7 @@ void CEventInformationTable_sch::releaseTable (CTable *pErase)
 	}
 }
 
-void CEventInformationTable_sch::dumpTables (void)
+void CEventInformationTable_sched::dumpTables (void)
 {
 	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
@@ -224,7 +272,24 @@ void CEventInformationTable_sch::dumpTables (void)
 	}
 }
 
-void CEventInformationTable_sch::dumpTables_simple (void)
+void CEventInformationTable_sched::dumpTables_event (void)
+{
+	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
+
+	if (mTables.size() == 0) {
+		return;
+	}
+
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+
+	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
+	for (; iter != mTables.end(); ++ iter) {
+		CTable *pTable = *iter;
+		dumpTable_event (pTable);
+	}
+}
+
+void CEventInformationTable_sched::dumpTables_simple (void)
 {
 	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
@@ -241,7 +306,7 @@ void CEventInformationTable_sch::dumpTables_simple (void)
 	}
 }
 
-void CEventInformationTable_sch::dumpTable (const CTable* pTable) const
+void CEventInformationTable_sched::dumpTable (const CTable* pTable) const
 {
 	if (!pTable) {
 		return;
@@ -284,7 +349,68 @@ void CEventInformationTable_sch::dumpTable (const CTable* pTable) const
 	_UTL_LOG_I ("\n");
 }
 
-void CEventInformationTable_sch::dumpTable_simple (const CTable* pTable) const
+void CEventInformationTable_sched::dumpTable_event (const CTable* pTable) const
+{
+	if (!pTable) {
+		return;
+	}
+	
+//	_UTL_LOG_I (__PRETTY_FUNCTION__);
+//	pTable->header.dump ();
+//	_UTL_LOG_I ("========================================\n");
+
+//	_UTL_LOG_I ("table_id                    [0x%02x]\n", pTable->header.table_id);
+//	_UTL_LOG_I ("service_id                  [0x%04x]\n", pTable->header.table_id_extension);
+//	_UTL_LOG_I ("transport_stream_id         [0x%04x]\n", pTable->transport_stream_id);
+//	_UTL_LOG_I ("original_network_id         [0x%04x]\n", pTable->original_network_id);
+//	_UTL_LOG_I ("segment_last_section_number [0x%02x]\n", pTable->segment_last_section_number);
+//	_UTL_LOG_I ("last_table_id               [0x%02x]\n", pTable->last_table_id);
+
+	std::vector<CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
+
+	if (iter_event != pTable->events.end()) {
+		_UTL_LOG_I ("========================================");
+	}
+
+	for (; iter_event != pTable->events.end(); ++ iter_event) {
+		_UTL_LOG_I ("\n--  event  --\n");
+		_UTL_LOG_I ("event_id                [0x%04x]\n", iter_event->event_id);
+		char szStime [32];
+		memset (szStime, 0x00, sizeof(szStime));
+		CTsAribCommon::getStrEpoch (CTsAribCommon::getEpochFromMJD (iter_event->start_time), "%Y/%m/%d %H:%M:%S", szStime, sizeof(szStime));
+		_UTL_LOG_I ("start_time              [%s]\n", szStime);
+		char szDuration [32];
+		memset (szDuration, 0x00, sizeof(szDuration));
+		CTsAribCommon::getStrSecond (CTsAribCommon::getSecFromBCD (iter_event->duration), szDuration, sizeof(szDuration));
+		_UTL_LOG_I ("duration                [%s]\n", szDuration);
+//		_UTL_LOG_I ("running_status          [0x%02x]\n", iter_event->running_status);
+//		_UTL_LOG_I ("free_CA_mode            [0x%02x]\n", iter_event->free_CA_mode);
+//		_UTL_LOG_I ("descriptors_loop_length [%d]\n", iter_event->descriptors_loop_length);
+
+		std::vector<CDescriptor>::const_iterator iter_desc = iter_event->descriptors.begin();
+		for (; iter_desc != iter_event->descriptors.end(); ++ iter_desc) {
+//			_UTL_LOG_I ("\n--  descriptor  --\n");
+//			CDescriptorCommon::dump (iter_desc->tag, *iter_desc);
+
+			if (iter_desc->tag == DESC_TAG__SHORT_EVENT_DESCRIPTOR) {
+				CShortEventDescriptor sd (*iter_desc);
+				if (!sd.isValid) {
+					_UTL_LOG_W ("invalid ShortEventDescriptor");
+					continue;
+				}
+
+				char aribstr [MAXSECLEN];
+				memset (aribstr, 0x00, MAXSECLEN);
+				AribToString (aribstr, (const char*)sd.event_name_char, (int)sd.event_name_length);
+				_UTL_LOG_I ("event_name_char         [%s]\n", aribstr);
+			}
+		}
+	}
+
+	_UTL_LOG_I ("\n");
+}
+
+void CEventInformationTable_sched::dumpTable_simple (const CTable* pTable) const
 {
 	if (!pTable) {
 		return;
@@ -310,10 +436,10 @@ void CEventInformationTable_sch::dumpTable_simple (const CTable* pTable) const
 //		pTable->header.table_id_extension,
 //		pTable->header.table_id == 0x4e ? "PF ,A " :
 //			pTable->header.table_id == 0x4f ? "PF ,O " :
-//			pTable->header.table_id >= 0x50 && pTable->header.table_id < 0x58 ? "Sch,A " :
-//			pTable->header.table_id >= 0x58 && pTable->header.table_id < 0x60 ? "Sch,AE" :
-//			pTable->header.table_id >= 0x60 && pTable->header.table_id < 0x68 ? "Sch,O " :
-//			pTable->header.table_id >= 0x68 && pTable->header.table_id < 0x70 ? "Sch,OE" :
+//			pTable->header.table_id >= 0x50 && pTable->header.table_id < 0x58 ? "Sched,A " :
+//			pTable->header.table_id >= 0x58 && pTable->header.table_id < 0x60 ? "Sched,AE" :
+//			pTable->header.table_id >= 0x60 && pTable->header.table_id < 0x68 ? "Sched,O " :
+//			pTable->header.table_id >= 0x68 && pTable->header.table_id < 0x70 ? "Sched,OE" :
 //			"unsup ",
 //		pTable->transport_stream_id,
 //		pTable->original_network_id,
@@ -326,10 +452,10 @@ void CEventInformationTable_sch::dumpTable_simple (const CTable* pTable) const
 		pTable->header.table_id,
 		pTable->header.table_id == 0x4e ? "PF ,A " :
 			pTable->header.table_id == 0x4f ? "PF ,O " :
-			pTable->header.table_id >= 0x50 && pTable->header.table_id < 0x58 ? "Sch,A " :
-			pTable->header.table_id >= 0x58 && pTable->header.table_id < 0x60 ? "Sch,AE" :
-			pTable->header.table_id >= 0x60 && pTable->header.table_id < 0x68 ? "Sch,O " :
-			pTable->header.table_id >= 0x68 && pTable->header.table_id < 0x70 ? "Sch,OE" :
+			pTable->header.table_id >= 0x50 && pTable->header.table_id < 0x58 ? "Sched,A " :
+			pTable->header.table_id >= 0x58 && pTable->header.table_id < 0x60 ? "Sched,AE" :
+			pTable->header.table_id >= 0x60 && pTable->header.table_id < 0x68 ? "Sched,O " :
+			pTable->header.table_id >= 0x68 && pTable->header.table_id < 0x70 ? "Sched,OE" :
 			"unsup ",
 		pTable->header.section_syntax_indicator,
 		pTable->header.section_length,
@@ -346,7 +472,7 @@ void CEventInformationTable_sch::dumpTable_simple (const CTable* pTable) const
 	);
 }
 
-void CEventInformationTable_sch::clear (void)
+void CEventInformationTable_sched::clear (void)
 {
 	releaseTables ();
 
@@ -355,12 +481,12 @@ void CEventInformationTable_sch::clear (void)
 	asyncDelete ();
 }
 
-void CEventInformationTable_sch::clear (CTable *pErase)
+void CEventInformationTable_sched::clear (CTable *pErase)
 {
 	releaseTable (pErase);
 }
 
-bool CEventInformationTable_sch::isDuplicateTable (CTable* pTable)
+bool CEventInformationTable_sched::isDuplicateSubTables (CTable* pTable)
 {
 	if (!pTable) {
 		return false;
@@ -382,7 +508,7 @@ bool CEventInformationTable_sch::isDuplicateTable (CTable* pTable)
     for (; iter != mTables.end(); ++ iter) {
 		CTable *p = *iter;
 
-		// check every sub-table
+		// check every sub-tables
 		if (
 			(_tblid == p->header.table_id) &&
 			(_svcid == p->header.table_id_extension) &&
@@ -398,7 +524,7 @@ bool CEventInformationTable_sch::isDuplicateTable (CTable* pTable)
 	return false;
 }
 
-bool CEventInformationTable_sch::refreshTableByVersionNumber (CTable* pNewTable)
+bool CEventInformationTable_sched::refreshSubTablesByVersionNumber (CTable* pNewTable)
 {
 	if (!pNewTable) {
 		return false;
@@ -423,7 +549,7 @@ bool CEventInformationTable_sch::refreshTableByVersionNumber (CTable* pNewTable)
     for (; iter != mTables.end(); ++ iter) {
 		CTable *pTable = *iter;
 
-		// check every sub-table
+		// check every sub-tables
 		if (
 			(new_tblid == pTable->header.table_id) &&
 			(new_svcid == pTable->header.table_id_extension) &&
@@ -469,20 +595,20 @@ bool CEventInformationTable_sch::refreshTableByVersionNumber (CTable* pNewTable)
 	}
 }
 
-void CEventInformationTable_sch::refreshTablesByVersionNumber (CTable* pNewTable)
+void CEventInformationTable_sched::refreshSubTables (CTable* pNewTable)
 {
 	if (!pNewTable) {
 		return ;
 	}
 
 	while (1) {
-		if (!refreshTableByVersionNumber (pNewTable)) {
+		if (!refreshSubTablesByVersionNumber (pNewTable)) {
 			break;
 		}
 	}
 }
 
-CEventInformationTable_sch::CReference CEventInformationTable_sch::reference (void)
+CEventInformationTable_sched::CReference CEventInformationTable_sched::reference (void)
 {
 	CReference ref (&mTables, &mMutexTables);
 	return ref;

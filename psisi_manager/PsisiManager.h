@@ -25,7 +25,7 @@
 #include "ProgramAssociationTable.h"
 #include "ProgramMapTable.h"
 #include "EventInformationTable.h"
-#include "EventInformationTable_sch.h"
+#include "EventInformationTable_sched.h"
 #include "NetworkInformationTable.h"
 #include "ServiceDescriptionTable.h"
 #include "RunningStatusTable.h"
@@ -322,6 +322,7 @@ class CPsisiManager
 	:public CThreadMgrBase
 	,public CTunerControlIf::ITsReceiveHandler
 	,public CTsParser::IParserListener
+	,public CEventInformationTable_sched::IEventScheduleHandler
 {
 public:
 	CPsisiManager (char *pszName, uint8_t nQueNum);
@@ -346,6 +347,10 @@ public:
 	void onReq_dumpTables (CThreadMgrIf *pIf);
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
+
+
+	// やむなくpublicに
+	CEventInformationTable_sched mEIT_H_sched;
 
 private:
 	//-- programInfo --
@@ -420,6 +425,9 @@ private:
 	// CTsParser::IParserListener
 	bool onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size) override;
 
+	// CEventInformationTable_sched::IEventSchedleHandler
+	void onChange (void) override;
+
 
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_PSISI_MANAGER__NUM]; // entity
@@ -437,7 +445,6 @@ private:
 
 	CProgramAssociationTable mPAT;
 	CEventInformationTable mEIT_H;
-	CEventInformationTable_sch mEIT_H_sch;
 	CNetworkInformationTable mNIT;
 	CServiceDescriptionTable mSDT;
 	CRunningStatusTable mRST;

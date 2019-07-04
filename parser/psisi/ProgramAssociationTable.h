@@ -80,8 +80,9 @@ private:
 	void appendTable (CTable *pTable);
 	void releaseTables (void);
 	void releaseTable (CTable* pErase);
-	bool refreshTableByVersionNumber (CTable* pNewTable);
-	void refreshTablesByVersionNumber (CTable* pNewTable);
+
+	bool refreshSubTablesByVersionNumber (CTable* pNewTable);
+	void refreshSubTables (CTable* pNewTable);
 
 
 	std::vector <CTable*> mTables;

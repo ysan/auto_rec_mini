@@ -20,6 +20,7 @@ typedef struct {
 
 CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
+	,mEIT_H_sched (4096*100, 100, this)
 	,m_parser (this)
 	,m_tuner_notify_client_id (0xff)
 	,m_ts_receive_handler_id (-1)
@@ -27,7 +28,6 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	,m_isDetectedPAT (false)
 	,mPAT (16)
 	,mEIT_H (4096*100, 100)
-	,mEIT_H_sch (4096*100, 100)
 {
 	mSeqs [EN_SEQ_PSISI_MANAGER__MODULE_UP] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_moduleUp,                    (char*)"onReq_moduleUp"};
@@ -904,11 +904,15 @@ void CPsisiManager::onReq_dumpTables (CThreadMgrIf *pIf)
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_SCH:
-		mEIT_H_sch.dumpTables_simple();
+		mEIT_H_sched.dumpTables();
+		break;
+
+	case EN_PSISI_TYPE__EIT_H_SCH_event:
+		mEIT_H_sched.dumpTables_event();
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_SCH_simple:
-		mEIT_H_sch.dumpTables_simple();
+		mEIT_H_sched.dumpTables_simple();
 		break;
 
 	case EN_PSISI_TYPE__NIT:
@@ -1846,7 +1850,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		}
 
 //TODO
-		r = mEIT_H_sch.checkSection (p_ts_header, p_payload, payload_size);
+		r = mEIT_H_sched.checkSection (p_ts_header, p_payload, payload_size);
 
 
 		break;
@@ -1900,4 +1904,13 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 
 	return true;
+}
+
+
+//////////  CEventInformationTable_sched::IEventScheDuleHandler  //////////
+
+void CPsisiManager::onChange (void)
+{
+//	_UTL_LOG_I (__PRETTY_FUNCTION__);
+
 }

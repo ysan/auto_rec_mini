@@ -39,7 +39,7 @@ void CProgramAssociationTable::onSectionCompleted (const CSectionInfo *pCompSect
 		return ;
 	}
 
-	refreshTablesByVersionNumber (pTable) ;
+	refreshSubTables (pTable) ;
 
 	appendTable (pTable);
 
@@ -197,7 +197,7 @@ void CProgramAssociationTable::clear (void)
 	asyncDelete ();
 }
 
-bool CProgramAssociationTable::refreshTableByVersionNumber (CTable* pNewTable)
+bool CProgramAssociationTable::refreshSubTablesByVersionNumber (CTable* pNewTable)
 {
 	if (!pNewTable) {
 		return false;
@@ -264,14 +264,14 @@ bool CProgramAssociationTable::refreshTableByVersionNumber (CTable* pNewTable)
 	}
 }
 
-void CProgramAssociationTable::refreshTablesByVersionNumber (CTable* pNewTable)
+void CProgramAssociationTable::refreshSubTables (CTable* pNewTable)
 {
 	if (!pNewTable) {
 		return ;
 	}
 
 	while (1) {
-		if (!refreshTableByVersionNumber (pNewTable)) {
+		if (!refreshSubTablesByVersionNumber (pNewTable)) {
 			break;
 		}
 	}
