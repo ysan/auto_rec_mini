@@ -21,6 +21,7 @@
 
 #include "TunerControlIf.h"
 #include "TsParser.h"
+#include "EventScheduleManagerIf.h"
 
 #include "ProgramAssociationTable.h"
 #include "ProgramMapTable.h"
@@ -349,8 +350,18 @@ public:
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
 
-	// やむなくpublicに
-	CEventInformationTable_sched mEIT_H_sched;
+	CEventInformationTable_sched *getEIT_sched (void) {
+		return &mEIT_H_sched;
+	}
+
+	void enableEIT_sched (void) {
+		m_isEnableEIT_sched = true;
+	}
+
+	void disableEIT_sched (void) {
+		m_isEnableEIT_sched = false;
+	}
+
 
 private:
 	//-- programInfo --
@@ -462,6 +473,9 @@ private:
 	_EVENT_PF_INFO m_eventPfInfos [EVENT_PF_INFOS_MAX];
 	_NETWORK_INFO m_networkInfo ;
 
+
+	CEventInformationTable_sched mEIT_H_sched;
+	bool m_isEnableEIT_sched;
 };
 
 #endif

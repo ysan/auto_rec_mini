@@ -118,8 +118,16 @@ public:
 	void dumpTables (void);
 	void dumpTables_event (void);
 	void dumpTables_simple (void);
+	void dumpSelectTable (
+		uint8_t _table_id,
+		uint16_t _service_id,
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _event_id
+	);
 
 	void dumpTable (const CTable* pTable) const;
+	void dumpTable (const CTable* pTable, uint16_t _event_id) const;
 	void dumpTable_event (const CTable* pTable) const;
 	void dumpTable_simple (const CTable* pTable) const;
 

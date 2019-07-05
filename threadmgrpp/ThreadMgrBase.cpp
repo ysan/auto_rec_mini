@@ -18,10 +18,10 @@ CThreadMgrBase::CThreadMgrBase (const char *pszName, uint8_t nQueNum)
 {
 	if (pszName && (strlen(pszName) > 0)) {
 		memset (mName, 0x00, sizeof(mName));
-		strncpy (mName, pszName, sizeof(mName));
+		strncpy (mName, pszName, sizeof(mName) -1);
 	} else {
 		memset (mName, 0x00, sizeof(mName));
-		strncpy (mName, "-----", sizeof(mName));
+		strncpy (mName, "-----", sizeof(mName) -1);
 	}
 
 	mQueNum = nQueNum;

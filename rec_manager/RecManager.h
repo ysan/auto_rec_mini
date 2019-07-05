@@ -74,7 +74,7 @@ const char *g_reserveState [] = {
 
 const char *g_repeatability [] = {
 	"NONE",
-	"DAYLY",
+	"DAILY",
 	"WEEKLY",
 };
 

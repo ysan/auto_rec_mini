@@ -139,13 +139,13 @@ static void dump_eit_sch (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 
 	CPsisiManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpTables (EN_PSISI_TYPE__EIT_H_SCH);
+	mgr.reqDumpTables (EN_PSISI_TYPE__EIT_H_SCHED);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
-static void dump_eit_sch_event (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_eit_sched_event (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_UTL_LOG_W ("ignore arguments.\n");
@@ -156,13 +156,13 @@ static void dump_eit_sch_event (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 
 	CPsisiManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpTables (EN_PSISI_TYPE__EIT_H_SCH_event);
+	mgr.reqDumpTables (EN_PSISI_TYPE__EIT_H_SCHED_event);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
-static void dump_eit_sch_simple (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_eit_sched_simple (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_UTL_LOG_W ("ignore arguments.\n");
@@ -173,7 +173,7 @@ static void dump_eit_sch_simple (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 
 	CPsisiManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpTables (EN_PSISI_TYPE__EIT_H_SCH_simple);
+	mgr.reqDumpTables (EN_PSISI_TYPE__EIT_H_SCHED_simple);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -274,15 +274,15 @@ ST_COMMAND_INFO g_psisiManagerDumpTables [] = { // extern
 		NULL,
 	},
 	{
-		"eit_sch_e",
+		"eit_sched_e",
 		"dump EIT (schedule) event",
-		dump_eit_sch_event,
+		dump_eit_sched_event,
 		NULL,
 	},
 	{
-		"eit_sch_s",
+		"eit_sched_s",
 		"dump EIT (schedule) simple",
-		dump_eit_sch_simple,
+		dump_eit_sched_simple,
 		NULL,
 	},
 	{

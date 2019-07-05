@@ -77,7 +77,7 @@ static void _dump_scan_results (int argc, char* argv[], CThreadMgrBase *pBase)
 
 ST_COMMAND_INFO g_chManagerCommands [] = { // extern
 	{
-		"s",
+		"scan",
 		"channel scan",
 		_scan,
 		NULL,

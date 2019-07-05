@@ -1456,7 +1456,7 @@ void CRecManager::checkRepeatability (const CRecReserve *p_reserve)
 		return;
 		break;
 
-	case EN_RESERVE_REPEATABILITY__DAYLY:
+	case EN_RESERVE_REPEATABILITY__DAILY:
 		s.addDay(1);
 		e.addDay(1);
 		break;

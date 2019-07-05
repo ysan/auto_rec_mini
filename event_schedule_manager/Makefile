@@ -11,13 +11,11 @@ INCLUDES	:= \
 	-I$(BASEDIR)/common \
 	-I$(BASEDIR)/command_server \
 	-I$(BASEDIR)/tuner_control \
-	-I$(BASEDIR)/event_schedule_manager \
+	-I$(BASEDIR)/tuner_control/it9175 \
 	-I$(BASEDIR)/parser \
 	-I$(BASEDIR)/parser/aribstr \
-	-I$(BASEDIR)/parser/psisi \
-	-I$(BASEDIR)/parser/psisi/descriptor \
-	-I$(BASEDIR)/parser/dsmcc \
-	-I$(BASEDIR)/parser/dsmcc/dsmcc_descriptor \
+	-I$(BASEDIR)/psisi_manager \
+	-I$(BASEDIR)/channel_manager \
 	-I./ \
 	-I../ \
 
@@ -28,7 +26,7 @@ LIBS		:= \
 	-L$(BASEDIR)/tuner_control -ltunercontrol \
 	-L$(BASEDIR)/parser -lparser \
 	-L$(BASEDIR)/parser/aribstr -laribstr \
-	-L$(BASEDIR)/parser/psisi -lpsisiparser \
+	-L$(BASEDIR)/psisi_manager -lpsisimanager \
 	-lpthread \
 
 USERDEFS	:= \
@@ -37,7 +35,7 @@ USERDEFS	:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	psisimanager
+TARGET_NAME	:=	eventschedulemanager
 
 #
 #   Target type
@@ -49,8 +47,8 @@ TARGET_TYPE	:=	SHARED
 #   Compile sources
 #
 SRCS_CPP	:= \
-	PsisiManager.cpp \
-	PsisiManagerCommands.cpp \
+	EventScheduleManager.cpp \
+	EventScheduleManagerCommands.cpp \
 
 
 #

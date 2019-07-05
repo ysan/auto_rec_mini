@@ -303,7 +303,7 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 		"add reserve - Manual\n\
                                 (usage: m {tsid} {org_nid} {svcid} {start_time} {end_time} {repeat} )\n\
                                            - start_time, end_time format is \"yyyyMMddHHmmss\"\n\
-                                           - repeat is 0 (none), 1 (dayly), 2 (weekly)",
+                                           - repeat is 0 (none), 1 (daily), 2 (weekly)",
 		addReserve_manual,
 		NULL,
 	},

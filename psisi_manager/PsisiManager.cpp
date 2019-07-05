@@ -20,7 +20,6 @@ typedef struct {
 
 CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
-	,mEIT_H_sched (4096*100, 100, this)
 	,m_parser (this)
 	,m_tuner_notify_client_id (0xff)
 	,m_ts_receive_handler_id (-1)
@@ -28,6 +27,8 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	,m_isDetectedPAT (false)
 	,mPAT (16)
 	,mEIT_H (4096*100, 100)
+	,mEIT_H_sched (4096*100, 100, this)
+	,m_isEnableEIT_sched (false)
 {
 	mSeqs [EN_SEQ_PSISI_MANAGER__MODULE_UP] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_moduleUp,                    (char*)"onReq_moduleUp"};
@@ -903,15 +904,15 @@ void CPsisiManager::onReq_dumpTables (CThreadMgrIf *pIf)
 		mEIT_H.dumpTables_simple();
 		break;
 
-	case EN_PSISI_TYPE__EIT_H_SCH:
+	case EN_PSISI_TYPE__EIT_H_SCHED:
 		mEIT_H_sched.dumpTables();
 		break;
 
-	case EN_PSISI_TYPE__EIT_H_SCH_event:
+	case EN_PSISI_TYPE__EIT_H_SCHED_event:
 		mEIT_H_sched.dumpTables_event();
 		break;
 
-	case EN_PSISI_TYPE__EIT_H_SCH_simple:
+	case EN_PSISI_TYPE__EIT_H_SCHED_simple:
 		mEIT_H_sched.dumpTables_simple();
 		break;
 
@@ -1849,9 +1850,10 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 			);
 		}
 
-//TODO
-		r = mEIT_H_sched.checkSection (p_ts_header, p_payload, payload_size);
 
+//		if (m_isEnableEIT_sched) {
+			r = mEIT_H_sched.checkSection (p_ts_header, p_payload, payload_size);
+//		}
 
 		break;
 
@@ -1912,5 +1914,15 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 void CPsisiManager::onChange (void)
 {
 //	_UTL_LOG_I (__PRETTY_FUNCTION__);
+
+
+	EN_PSISI_TYPE _type = EN_PSISI_TYPE__EIT_H_SCHED;
+
+	requestAsync (
+		EN_MODULE_EVENT_SCHEDULE_MANAGER,
+		EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE,
+		(uint8_t*)&_type,
+		sizeof(_type)
+	);
 
 }
