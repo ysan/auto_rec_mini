@@ -138,7 +138,7 @@ void CEventInformationTable_sched::onSectionCompleted (const CSectionInfo *pComp
 
 
 	if (mpEventScheduleHandler) {
-		mpEventScheduleHandler->onChange ();
+		mpEventScheduleHandler->onScheduleUpdate ();
 	}
 }
 

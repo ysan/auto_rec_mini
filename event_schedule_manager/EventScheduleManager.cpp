@@ -18,21 +18,33 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,m_tunerNotify_clientId (0xff)
 	,m_eventChangeNotify_clientId (0xff)
+	,mp_EIT_H_sched (NULL)
 {
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp,                (char*)"onReq_moduleUp"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp,                  (char*)"onReq_moduleUp"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleDown,              (char*)"onReq_moduleDown"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleDown,                (char*)"onReq_moduleDown"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop,               (char*)"onReq_checkLoop"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop,                 (char*)"onReq_checkLoop"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice,            (char*)"onReq_parserNotice"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice,              (char*)"onReq_parserNotice"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_CURRENT_SERVICE] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_startCache_currentService, (char*)"onReq_startCache_currentService"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
 
+
+	m_lastUpdate_EITSched.clear();
+	m_startTime_EITSched.clear();
+
+	m_event_map.clear ();
 }
 
 CEventScheduleManager::~CEventScheduleManager (void)
 {
+	m_lastUpdate_EITSched.clear();
+	m_startTime_EITSched.clear();
+
+	m_event_map.clear ();
 }
 
 
@@ -244,6 +256,9 @@ void CEventScheduleManager::onReq_parserNotice (CThreadMgrIf *pIf)
 	switch (_type) {
 	case EN_PSISI_TYPE__EIT_H_SCHED:
 
+		// EITのshceduleの更新時間保存
+		// 受け取り中はかなりの頻度でたたかれるはず
+		m_lastUpdate_EITSched.setCurrentTime ();
 
 		break;
 
@@ -258,6 +273,233 @@ void CEventScheduleManager::onReq_parserNotice (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_GET_TUNER_STATE,
+		SECTID_WAIT_GET_TUNER_STATE,
+		SECTID_REQ_GET_SERVICE_INFOS,
+		SECTID_WAIT_GET_SERVICE_INFOS,
+		SECTID_REQ_ENABLE_PARSE_EIT_SCHED,
+		SECTID_WAIT_ENABLE_PARSE_EIT_SCHED,
+		SECTID_CHECK,
+		SECTID_CHECK_WAIT,
+		SECTID_REQ_DISABLE_PARSE_EIT_SCHED,
+		SECTID_WAIT_DISABLE_PARSE_EIT_SCHED,
+		SECTID_CACHE,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	static PSISI_SERVICE_INFO s_serviceInfos[10];
+
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+
+		// 時間がかかるはずなので先にリプライしときます
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		sectId = SECTID_REQ_GET_TUNER_STATE;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_GET_TUNER_STATE: {
+		CTunerControlIf _if (getExternalIf());
+		_if.reqGetState ();
+
+		sectId = SECTID_WAIT_GET_TUNER_STATE;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_GET_TUNER_STATE: {
+
+		enRslt = pIf->getSrcInfo()->enRslt;
+        if (enRslt == EN_THM_RSLT_SUCCESS) {
+			EN_TUNER_STATE _state = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
+			if (_state == EN_TUNER_STATE__TUNING_SUCCESS) {
+				sectId = SECTID_REQ_GET_SERVICE_INFOS;
+				enAct = EN_THM_ACT_CONTINUE;
+			} else {
+				_UTL_LOG_E ("not EN_TUNER_STATE__TUNING_SUCCESS %d", _state);
+#ifdef _DUMMY_TUNER
+				sectId = SECTID_REQ_GET_SERVICE_INFOS;
+#else
+//TODO 暫定エラー処理なし
+				sectId = SECTID_END;
+#endif
+				enAct = EN_THM_ACT_CONTINUE;
+			}
+
+		} else {
+			// success only
+		}
+
+		}
+		break;
+
+	case SECTID_REQ_GET_SERVICE_INFOS: {
+		CPsisiManagerIf _if (getExternalIf());
+		_if.reqGetCurrentServiceInfos (s_serviceInfos, 10);
+
+		sectId = SECTID_WAIT_GET_SERVICE_INFOS;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_GET_SERVICE_INFOS:
+		enRslt = pIf->getSrcInfo()->enRslt;
+        if (enRslt == EN_THM_RSLT_SUCCESS) {
+			int num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+			if (num > 0) {
+//s_serviceInfos[0].dump();
+				sectId = SECTID_REQ_ENABLE_PARSE_EIT_SCHED;
+				enAct = EN_THM_ACT_CONTINUE;
+
+			} else {
+//TODO 暫定エラー処理なし
+				_UTL_LOG_E ("reqGetCurrentServiceInfos is 0");
+				sectId = SECTID_END;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
+
+		} else {
+//TODO 暫定エラー処理なし
+			_UTL_LOG_E ("reqGetCurrentServiceInfos err");
+			sectId = SECTID_END;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		break;
+
+	case SECTID_REQ_ENABLE_PARSE_EIT_SCHED: {
+		CPsisiManagerIf _if (getExternalIf());
+		_if.reqEnableParseEITSched ();
+
+		sectId = SECTID_WAIT_ENABLE_PARSE_EIT_SCHED;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_ENABLE_PARSE_EIT_SCHED: {
+//		enRslt = pIf->getSrcInfo()->enRslt;
+//		if (enRslt == EN_THM_RSLT_SUCCESS) {
+//
+//		} else {
+//
+//		}
+// EN_THM_RSLT_SUCCESSのみ
+
+		CEventInformationTable_sched *p = (CEventInformationTable_sched*)(pIf->getSrcInfo()->msg.pMsg);
+//p->dumpTables_simple();
+
+		m_startTime_EITSched.setCurrentTime();
+
+		sectId = SECTID_CHECK;
+		enAct = EN_THM_ACT_CONTINUE;
+
+		}
+		break;
+
+	case SECTID_CHECK:
+
+		pIf->setTimeout (1000); // 1sec
+
+		sectId = SECTID_CHECK_WAIT;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_CHECK_WAIT: {
+
+		// 20秒間更新がなかったら完了とします
+		CEtime tcur;
+		tcur.setCurrentTime();
+		CEtime ttmp = m_lastUpdate_EITSched;
+		ttmp.addSec (20);
+
+		if (tcur > ttmp) {
+			_UTL_LOG_I ("EIT schedule complete");
+			sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			// 開始から10分経過していたらタイムアウトします
+			ttmp = m_startTime_EITSched;
+			ttmp.addMin (10);
+			if (tcur > ttmp) {
+				_UTL_LOG_E ("EIT schedule timeout");
+//TODO 暫定エラー処理なし
+				sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
+				enAct = EN_THM_ACT_CONTINUE;
+
+			} else {
+				sectId = SECTID_CHECK;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
+		}
+
+		}
+		break;
+
+	case SECTID_REQ_DISABLE_PARSE_EIT_SCHED: {
+		CPsisiManagerIf _if (getExternalIf());
+		_if.reqDisableParseEITSched ();
+
+		sectId = SECTID_WAIT_DISABLE_PARSE_EIT_SCHED;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_DISABLE_PARSE_EIT_SCHED:
+//		enRslt = pIf->getSrcInfo()->enRslt;
+//		if (enRslt == EN_THM_RSLT_SUCCESS) {
+//
+//		} else {
+//
+//		}
+// EN_THM_RSLT_SUCCESSのみ
+
+		sectId = SECTID_CACHE;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_CACHE:
+
+
+
+
+
+
+
+		sectId = SECTID_END;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_END:
+
+		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
+
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+	pIf->setSectId (sectId, enAct);
+}
 
 void CEventScheduleManager::onReceiveNotify (CThreadMgrIf *pIf)
 {

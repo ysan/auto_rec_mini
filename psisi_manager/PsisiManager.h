@@ -130,7 +130,7 @@ public:
 
 	bool is_used;
 
-	void clear () {
+	void clear (void) {
 		// clear all
 		memset (this, 0x00, sizeof(struct _event_pf_info));
 		start_time.clear();
@@ -344,23 +344,12 @@ public:
 	void onReq_getPresentEventInfo (CThreadMgrIf *pIf);
 	void onReq_getFollowEventInfo (CThreadMgrIf *pIf);
 	void onReq_getCurrentNetworkInfo (CThreadMgrIf *pIf);
+	void onReq_enableParseEITSched (CThreadMgrIf *pIf);
+	void onReq_disableParseEITSched (CThreadMgrIf *pIf);
 	void onReq_dumpCaches (CThreadMgrIf *pIf);
 	void onReq_dumpTables (CThreadMgrIf *pIf);
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
-
-
-	CEventInformationTable_sched *getEIT_sched (void) {
-		return &mEIT_H_sched;
-	}
-
-	void enableEIT_sched (void) {
-		m_isEnableEIT_sched = true;
-	}
-
-	void disableEIT_sched (void) {
-		m_isEnableEIT_sched = false;
-	}
 
 
 private:
@@ -437,7 +426,7 @@ private:
 	bool onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size) override;
 
 	// CEventInformationTable_sched::IEventSchedleHandler
-	void onChange (void) override;
+	void onScheduleUpdate (void) override;
 
 
 
@@ -475,7 +464,8 @@ private:
 
 
 	CEventInformationTable_sched mEIT_H_sched;
-	bool m_isEnableEIT_sched;
+	bool m_isEnableEITSched;
+
 };
 
 #endif

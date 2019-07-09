@@ -14,6 +14,7 @@
 #include "PsisiManagerCommands.h"
 #include "RecManagerCommands.h"
 #include "ChannelManagerCommands.h"
+#include "EventScheduleManagerCommands.h"
 
 
 const char *g_szLogLevels [] = {
@@ -135,6 +136,12 @@ ST_COMMAND_INFO g_rootCommandTable [] = { // extern
 		"channel manager commands",
 		NULL,
 		g_chManagerCommands,
+	},
+	{
+		"ev",
+		"event schedule manager commands",
+		NULL,
+		g_eventScheduleManagerCommands,
 	},
 
 	//-- term --//

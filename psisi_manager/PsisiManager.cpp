@@ -28,7 +28,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	,mPAT (16)
 	,mEIT_H (4096*100, 100)
 	,mEIT_H_sched (4096*100, 100, this)
-	,m_isEnableEIT_sched (false)
+	,m_isEnableEITSched (false)
 {
 	mSeqs [EN_SEQ_PSISI_MANAGER__MODULE_UP] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_moduleUp,                    (char*)"onReq_moduleUp"};
@@ -58,6 +58,10 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getFollowEventInfo,          (char*)"onReq_getFollowEventInfo"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__GET_CURRENT_NETWORK_INFO] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getCurrentNetworkInfo,       (char*)"onReq_getCurrentNetworkInfo"};
+	mSeqs [EN_SEQ_PSISI_MANAGER__ENABLE_PARSE_EIT_SCHED] =
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_enableParseEITSched,         (char*)"onReq_enableParseEITSched"};
+	mSeqs [EN_SEQ_PSISI_MANAGER__DISABLE_PARSE_EIT_SCHED] =
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_disableParseEITSched,        (char*)"onReq_disableParseEITSched"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__DUMP_CACHES] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_dumpCaches,                  (char*)"onReq_dumpCaches"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__DUMP_TABLES] =
@@ -825,6 +829,56 @@ void CPsisiManager::onReq_getCurrentNetworkInfo (CThreadMgrIf *pIf)
 
 	pIf->reply (enRslt);
 
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::onReq_enableParseEITSched (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	m_isEnableEITSched = true;
+
+
+	// reply msgにparserのアドレスを乗せます
+	CEventInformationTable_sched *p = &mEIT_H_sched;
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)p, sizeof(p));
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::onReq_disableParseEITSched (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	m_isEnableEITSched = false;
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
@@ -1851,9 +1905,9 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		}
 
 
-//		if (m_isEnableEIT_sched) {
+		if (m_isEnableEITSched) {
 			r = mEIT_H_sched.checkSection (p_ts_header, p_payload, payload_size);
-//		}
+		}
 
 		break;
 
@@ -1909,9 +1963,9 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 }
 
 
-//////////  CEventInformationTable_sched::IEventScheDuleHandler  //////////
+//////////  CEventInformationTable_sched::IEventScheduleHandler  //////////
 
-void CPsisiManager::onChange (void)
+void CPsisiManager::onScheduleUpdate (void)
 {
 //	_UTL_LOG_I (__PRETTY_FUNCTION__);
 

@@ -756,7 +756,7 @@ s_serviceInfos[0].dump();
 				enAct = EN_THM_ACT_CONTINUE;
 
 			} else {
-				_UTL_LOG_E ("reqGetCurrentServiceInfos err");
+				_UTL_LOG_E ("reqGetCurrentServiceInfos is 0");
 				sectId = SECTID_END_ERROR;
 				enAct = EN_THM_ACT_CONTINUE;
 			}

@@ -101,7 +101,7 @@ public:
 	class IEventScheduleHandler {
 	public:
 		virtual ~IEventScheduleHandler (void) {};
-		virtual void onChange (void) = 0;
+		virtual void onScheduleUpdate (void) = 0;
 	};
 
 public:

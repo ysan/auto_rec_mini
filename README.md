@@ -1,7 +1,7 @@
 atpp
 ===============
 
-Arib TS Parser and Processer. Like a minimum TV.  
+Arib TS Parser and Processer. Like a minimum TV middleware.  
 feasibility study.  
 under development, in progress.  
 
