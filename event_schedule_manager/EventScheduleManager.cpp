@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <algorithm>
+
 #include "EventScheduleManager.h"
 #include "EventScheduleManagerIf.h"
 
@@ -12,6 +14,25 @@
 #include "modules.h"
 
 #include "aribstr.h"
+
+
+bool _comp__table_id (const CEvent* l, const CEvent* r) {
+	if (r->table_id > l->table_id) {
+		return true;
+	}
+
+	return false;
+}
+
+bool _comp__section_number (const CEvent* l, const CEvent* r) {
+	if (r->table_id == l->table_id) {
+		if (r->section_number > l->section_number) {
+			return true;
+		}
+	}
+
+	return false;
+}
 
 
 CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
@@ -36,7 +57,7 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	m_lastUpdate_EITSched.clear();
 	m_startTime_EITSched.clear();
 
-	m_event_map.clear ();
+	m_sched_map.clear ();
 }
 
 CEventScheduleManager::~CEventScheduleManager (void)
@@ -44,7 +65,7 @@ CEventScheduleManager::~CEventScheduleManager (void)
 	m_lastUpdate_EITSched.clear();
 	m_startTime_EITSched.clear();
 
-	m_event_map.clear ();
+	m_sched_map.clear ();
 }
 
 
@@ -298,6 +319,7 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 	static PSISI_SERVICE_INFO s_serviceInfos[10];
+	static int s_num = 0;
 
 
 	switch (sectId) {
@@ -359,8 +381,8 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 	case SECTID_WAIT_GET_SERVICE_INFOS:
 		enRslt = pIf->getSrcInfo()->enRslt;
         if (enRslt == EN_THM_RSLT_SUCCESS) {
-			int num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
-			if (num > 0) {
+			s_num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+			if (s_num > 0) {
 //s_serviceInfos[0].dump();
 				sectId = SECTID_REQ_ENABLE_PARSE_EIT_SCHED;
 				enAct = EN_THM_ACT_CONTINUE;
@@ -400,8 +422,10 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 //		}
 // EN_THM_RSLT_SUCCESSのみ
 
-		CEventInformationTable_sched *p = (CEventInformationTable_sched*)(pIf->getSrcInfo()->msg.pMsg);
-//p->dumpTables_simple();
+		mp_EIT_H_sched = (CEventInformationTable_sched*)(pIf->getSrcInfo()->msg.pMsg);
+//mp_EIT_H_sched->dumpTables_simple();
+		mEIT_H_sched_ref = mp_EIT_H_sched->reference();
+
 
 		m_startTime_EITSched.setCurrentTime();
 
@@ -476,11 +500,26 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 
 	case SECTID_CACHE:
 
+		for (int i = 0; i < s_num; ++ i) {
+			std::vector <CEvent*> *p_sched = new std::vector <CEvent*>;
+			cacheSchedule (
+				s_serviceInfos[i].transport_stream_id,
+				s_serviceInfos[i].original_network_id,
+				s_serviceInfos[i].service_id,
+				p_sched
+			);
 
-
-
-
-
+			if (p_sched->size() > 0) {
+				SERVICE_KEY_t key (
+					s_serviceInfos[i].transport_stream_id,
+					s_serviceInfos[i].original_network_id,
+					s_serviceInfos[i].service_id
+				);
+				addScheduleMap (key, p_sched);
+				key.dump();
+				_UTL_LOG_I ("addScheduleMap -> %d", p_sched->size());
+			}
+		}
 
 		sectId = SECTID_END;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -489,6 +528,8 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 	case SECTID_END:
 
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
+		s_num = 0;
+		mp_EIT_H_sched = NULL;
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -534,5 +575,186 @@ void CEventScheduleManager::onReceiveNotify (CThreadMgrIf *pIf)
 //		_info.dump ();
 
 	}
+}
 
+/**
+ * 引数をキーにテーブル内容を保存します
+ * table_id=0x50,0x51 が対象です
+ * 0x50 本日 〜4日目
+ * 0x51 5日目〜8日目
+ */
+void CEventScheduleManager::cacheSchedule (
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id,
+	uint16_t _service_id,
+	std::vector <CEvent*> *p_out_sched
+)
+{
+	if (
+		(_transport_stream_id == 0) &&
+		(_original_network_id == 0) &&
+		(_service_id == 0)
+	) {
+		return ;
+	}
+
+	if (p_out_sched) {
+		return ;
+	}
+
+
+	std::lock_guard<std::recursive_mutex> lock (*mEIT_H_sched_ref.mpMutex);
+
+	std::vector<CEventInformationTable_sched::CTable*>::const_iterator iter = mEIT_H_sched_ref.mpTables->begin();
+	for (; iter != mEIT_H_sched_ref.mpTables->end(); ++ iter) {
+
+		CEventInformationTable_sched::CTable *pTable = *iter;
+
+		// キーが一致したテーブルをみます
+		if (
+			(_transport_stream_id != pTable->transport_stream_id) ||
+			(_original_network_id != pTable->original_network_id) ||
+			(_service_id != pTable->header.table_id_extension)
+        ) {
+            continue;
+        }
+
+		// table_id=0x50,0x51 が対象です
+		if (
+			(pTable->header.table_id != TBLID_EIT_SCHED_A) &&
+			(pTable->header.table_id != TBLID_EIT_SCHED_A +1)
+		) {
+			continue;
+		}
+
+		// loop events
+		std::vector<CEventInformationTable_sched::CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
+		for (; iter_event != pTable->events.end(); ++ iter_event) {
+			if (iter_event->event_id == 0) {
+				// event情報が付いてない
+				continue;
+			}
+
+			CEvent *p_event = new CEvent ();
+
+			p_event->table_id = pTable->header.table_id;
+			p_event->transport_stream_id = pTable->transport_stream_id;
+			p_event->original_network_id = pTable->original_network_id;
+			p_event->service_id = pTable->header.table_id_extension;
+
+			p_event->event_id = iter_event->event_id;
+
+			time_t stime = CTsAribCommon::getEpochFromMJD (iter_event->start_time);
+			CEtime wk (stime);
+			p_event->start_time = wk;
+
+			int dur_sec = CTsAribCommon::getSecFromBCD (iter_event->duration);
+			wk.addSec (dur_sec);
+			p_event->end_time = wk;
+
+
+			std::vector<CDescriptor>::const_iterator iter_desc = iter_event->descriptors.begin();
+			for (; iter_desc != iter_event->descriptors.end(); ++ iter_desc) {
+
+				if (iter_desc->tag == DESC_TAG__SHORT_EVENT_DESCRIPTOR) {
+					CShortEventDescriptor sd (*iter_desc);
+					if (!sd.isValid) {
+						_UTL_LOG_W ("invalid ShortEventDescriptor");
+						continue;
+					}
+
+					char aribstr [MAXSECLEN];
+					memset (aribstr, 0x00, MAXSECLEN);
+					AribToString (aribstr, (const char*)sd.event_name_char, (int)sd.event_name_length);
+					p_event->event_name = aribstr;
+
+					if (sd.text_length > 0) {
+						memset (aribstr, 0x00, MAXSECLEN);
+						AribToString (aribstr, (const char*)sd.text_char, (int)sd.text_length);
+						p_event->text = aribstr;
+					}
+
+                }
+
+            } // loop descriptors
+
+
+			p_out_sched->push_back (p_event);
+
+
+		} // loop events
+
+	} // loop tables
+
+
+	std::stable_sort (p_out_sched->begin(), p_out_sched->end(), _comp__table_id);
+	std::stable_sort (p_out_sched->begin(), p_out_sched->end(), _comp__section_number);
+
+}
+
+void CEventScheduleManager::clearSchedule (std::vector <CEvent*> *p_sched)
+{
+	if (!p_sched || p_sched->size() == 0) {
+		return;
+	}
+
+	std::vector<CEvent*>::const_iterator iter = p_sched->begin();
+	for (; iter != p_sched->end(); ++ iter) {
+		CEvent* p = *iter;
+		if (p) {
+			p->clear();
+			delete p;
+		}
+	}
+
+	p_sched->clear();
+}
+
+bool CEventScheduleManager::addScheduleMap (SERVICE_KEY_t &key, std::vector <CEvent*> *p_sched)
+{
+	if (!p_sched || p_sched->size() == 0) {
+		return false;
+	}
+
+	if (hasScheduleMap (key)) {
+		deleteScheduleMap (key);
+	}
+
+	m_sched_map.insert (pair<SERVICE_KEY_t, std::vector <CEvent*> *>(key, p_sched));
+
+	return true;
+}
+
+void CEventScheduleManager::deleteScheduleMap (SERVICE_KEY_t &key)
+{
+	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+
+	if (iter == m_sched_map.end()) {
+		return ;
+	}
+
+	std::vector <CEvent*> *p_sched = iter->second;
+
+	clearSchedule (p_sched);
+
+	delete p_sched;
+
+	m_sched_map.erase (iter);
+}
+
+bool CEventScheduleManager::hasScheduleMap (SERVICE_KEY_t &key) const
+{
+	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+
+	if (iter == m_sched_map.end()) {
+		return false;
+
+	} else {
+		std::vector <CEvent*> *p_sched = iter->second;
+		if (p_sched->size() == 0) {
+			return false;
+		}
+	}
+
+	return true;
 }

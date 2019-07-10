@@ -64,10 +64,10 @@
 #define TBLID_BAT						(0x4a)
 #define TBLID_EIT_PF_A					(0x4e) // actual
 #define TBLID_EIT_PF_O					(0x4f) // other
-#define TBLID_EIT_SCH_A					(0x50) // actual
-#define TBLID_EIT_SCH_A_EXT				(0x58) // actual extend
-#define TBLID_EIT_SCH_O					(0x60) // other
-#define TBLID_EIT_SCH_O_EXT				(0x68) // other extend
+#define TBLID_EIT_SCHED_A				(0x50) // actual
+#define TBLID_EIT_SCHED_A_EXT			(0x58) // actual extend
+#define TBLID_EIT_SCHED_O				(0x60) // other
+#define TBLID_EIT_SCHED_O_EXT			(0x68) // other extend
 #define TBLID_TDT						(0x70)
 #define TBLID_RST						(0x71)
 #define TBLID_ST						(0x72)

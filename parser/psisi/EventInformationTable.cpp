@@ -40,8 +40,8 @@ bool CEventInformationTable::onSectionStarted (const CSectionInfo *pSection)
 		return true;
 
 	} else if (
-		(_tbl_id >= TBLID_EIT_SCH_A && _tbl_id <= TBLID_EIT_SCH_A + 0xf) ||
-		(_tbl_id >= TBLID_EIT_SCH_O && _tbl_id <= TBLID_EIT_SCH_O + 0xf)
+		(_tbl_id >= TBLID_EIT_SCHED_A && _tbl_id <= TBLID_EIT_SCHED_A + 0xf) ||
+		(_tbl_id >= TBLID_EIT_SCHED_O && _tbl_id <= TBLID_EIT_SCHED_O + 0xf)
 	) {
 		// schedule  --> ignore
 		return false;
