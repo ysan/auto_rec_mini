@@ -103,6 +103,8 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	// request msgでインスタンスアドレス渡す用
+	static CTunerControlIf::ITsReceiveHandler *s_p = NULL;
 
 
 	switch (sectId) {
@@ -140,9 +142,10 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 
 	case SECTID_REQ_REG_HANDLER: {
 
-		CTunerControlIf::ITsReceiveHandler *p = this;
+		s_p = this;
+		_UTL_LOG_I ("CTunerControlIf::ITsReceiveHandler %p", s_p);
 		CTunerControlIf _if (getExternalIf());
-		_if.reqRegisterTsReceiveHandler (&p);
+		_if.reqRegisterTsReceiveHandler (&s_p);
 
 		sectId = SECTID_WAIT_REG_HANDLER;
 		enAct = EN_THM_ACT_WAIT;
@@ -230,12 +233,14 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_END_SUCCESS:
+		s_p = NULL;
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		break;
 
 	case SECTID_END_ERROR:
+		s_p = NULL;
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -1092,7 +1097,7 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 	} else if (pIf->getSrcInfo()->nClientId == m_eventChangeNotify_clientId) {
 
 		PSISI_NOTIFY_EVENT_INFO _info = *(PSISI_NOTIFY_EVENT_INFO*)(pIf->getSrcInfo()->msg.pMsg);
-		_UTL_LOG_I ("!!! event chenged !!!");
+		_UTL_LOG_I ("!!! event changed !!!");
 		_info.dump ();
 
 	}

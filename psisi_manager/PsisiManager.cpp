@@ -6,6 +6,7 @@
 
 #include "PsisiManager.h"
 #include "PsisiManagerIf.h"
+#include "PsisiManagerStructsAddition.h"
 
 #include "modules.h"
 
@@ -115,6 +116,8 @@ void CPsisiManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	// request msgでインスタンスアドレス渡す用
+	static CTunerControlIf::ITsReceiveHandler *s_p = NULL;
 
 
 	switch (sectId) {
@@ -148,9 +151,10 @@ void CPsisiManager::onReq_moduleUp (CThreadMgrIf *pIf)
 
 	case SECTID_REQ_REG_HANDLER: {
 
-		CTunerControlIf::ITsReceiveHandler *p = this;
+		s_p = this;
+		_UTL_LOG_I ("CTunerControlIf::ITsReceiveHandler %p", s_p);
 		CTunerControlIf _if (getExternalIf());
-		_if.reqRegisterTsReceiveHandler (&p);
+		_if.reqRegisterTsReceiveHandler (&s_p);
 
 		sectId = SECTID_WAIT_REG_HANDLER;
 		enAct = EN_THM_ACT_WAIT;
@@ -192,12 +196,14 @@ void CPsisiManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_END_SUCCESS:
+		s_p = NULL;
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		break;
 
 	case SECTID_END_ERROR:
+		s_p = NULL;
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -852,10 +858,10 @@ void CPsisiManager::onReq_enableParseEITSched (CThreadMgrIf *pIf)
 
 
 	// reply msgにparserのアドレスを乗せます
-	CEventInformationTable_sched *p = &mEIT_H_sched;
+	Enable_PARSE_EIT_SCHED_REPLY_PARAM_t param = {&mEIT_H_sched};
 
 
-	pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)p, sizeof(p));
+	pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&param, sizeof(param));
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
@@ -1905,9 +1911,13 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		}
 
 
+#ifdef _DUMMY_TUNER // デバッグ中は m_isEnableEITSched 関係なしに
+			mEIT_H_sched.checkSection (p_ts_header, p_payload, payload_size);
+#else
 		if (m_isEnableEITSched) {
-			r = mEIT_H_sched.checkSection (p_ts_header, p_payload, payload_size);
+			mEIT_H_sched.checkSection (p_ts_header, p_payload, payload_size);
 		}
+#endif
 
 		break;
 

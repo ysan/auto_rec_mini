@@ -422,7 +422,8 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 //		}
 // EN_THM_RSLT_SUCCESSのみ
 
-		mp_EIT_H_sched = (CEventInformationTable_sched*)(pIf->getSrcInfo()->msg.pMsg);
+		Enable_PARSE_EIT_SCHED_REPLY_PARAM_t param = *(Enable_PARSE_EIT_SCHED_REPLY_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+		mp_EIT_H_sched = param.p_parser;
 //mp_EIT_H_sched->dumpTables_simple();
 		mEIT_H_sched_ref = mp_EIT_H_sched->reference();
 
@@ -437,10 +438,10 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK:
 
-		pIf->setTimeout (1000); // 1sec
+		pIf->setTimeout (2000); // 2sec
 
 		sectId = SECTID_CHECK_WAIT;
-		enAct = EN_THM_ACT_CONTINUE;
+		enAct = EN_THM_ACT_WAIT;
 		break;
 
 	case SECTID_CHECK_WAIT: {
@@ -501,6 +502,8 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 	case SECTID_CACHE:
 
 		for (int i = 0; i < s_num; ++ i) {
+			s_serviceInfos[i].dump ();
+
 			std::vector <CEvent*> *p_sched = new std::vector <CEvent*>;
 			cacheSchedule (
 				s_serviceInfos[i].transport_stream_id,
@@ -518,6 +521,10 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 				addScheduleMap (key, p_sched);
 				key.dump();
 				_UTL_LOG_I ("addScheduleMap -> %d", p_sched->size());
+
+			} else {
+				_UTL_LOG_W ("schedule none.");
+				delete p_sched;
 			}
 		}
 
@@ -571,7 +578,7 @@ void CEventScheduleManager::onReceiveNotify (CThreadMgrIf *pIf)
 	} else if (pIf->getSrcInfo()->nClientId == m_eventChangeNotify_clientId) {
 
 //		PSISI_NOTIFY_EVENT_INFO _info = *(PSISI_NOTIFY_EVENT_INFO*)(pIf->getSrcInfo()->msg.pMsg);
-//		_UTL_LOG_I ("!!! event chenged !!!");
+//		_UTL_LOG_I ("!!! event changed !!!");
 //		_info.dump ();
 
 	}
@@ -598,7 +605,7 @@ void CEventScheduleManager::cacheSchedule (
 		return ;
 	}
 
-	if (p_out_sched) {
+	if (!p_out_sched) {
 		return ;
 	}
 

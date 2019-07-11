@@ -66,7 +66,6 @@ typedef enum {
 } EN_PAT_DETECT_STATE;
 
 
-
 class CPsisiManagerIf : public CThreadMgrExternalIf
 {
 public:

@@ -28,6 +28,7 @@
 #include "PsisiManagerIf.h"
 #include "ChannelManagerIf.h"
 
+#include "PsisiManagerStructsAddition.h"
 #include "EventInformationTable_sched.h"
 
 
