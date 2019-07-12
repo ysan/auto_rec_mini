@@ -51,15 +51,16 @@ public:
 	void addDay (int day);
 	void addWeek (int week);
 
-	char * toString (void);
-	char * toString2 (void);
+	const char * toString (void) const;
+	const char * toString2 (void) const;
 
 	void clear (void);
 
-	// cerel 非侵入型対応のため やむなくpublicに 
+	// cereal 非侵入型対応のため やむなくpublicに 
 	struct timespec m_time;
 
 private:
+	void updateStrings (void);
 	void getString (char *pszOut, size_t nSize);
 	void getString2 (char *pszOut, size_t nSize);
 

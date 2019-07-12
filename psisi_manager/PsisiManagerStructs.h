@@ -73,7 +73,7 @@ typedef struct {
 
 	char event_name_char [1024];
 
-	void dump (void) {
+	void dump (void) const {
 		_UTL_LOG_I (
 			"tblid:[0x%2x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
 			table_id,

@@ -45,7 +45,7 @@ typedef struct {
 
 	EN_RESERVE_REPEATABILITY repeatablity;
 
-	void dump (void) {
+	void dump (void) const {
 		_UTL_LOG_I (
 			"tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] time:[%s - %s] repeat:[%d]",
 			transport_stream_id,

@@ -11,7 +11,6 @@ CEtime::CEtime (void)
 {
 	memset (&m_time, 0x00, sizeof(m_time));
 	memset (&m_time_str, 0x00, sizeof(m_time_str));
-//	setCurrentTime ();
 }
 
 CEtime::CEtime (time_t epoch)
@@ -19,6 +18,8 @@ CEtime::CEtime (time_t epoch)
 	memset (&m_time, 0x00, sizeof(m_time));
 	memset (&m_time_str, 0x00, sizeof(m_time_str));
 	m_time.tv_sec = epoch;
+
+	updateStrings ();
 }
 
 CEtime::CEtime (struct timespec epoch)
@@ -29,6 +30,8 @@ CEtime::CEtime (struct timespec epoch)
 #ifndef ENABLE_AFTER_DECIAML_POINT
 	m_time.tv_nsec = 0;
 #endif
+
+	updateStrings ();
 }
 
 CEtime::~CEtime (void)
@@ -121,48 +124,64 @@ void CEtime::setCurrentTime (void)
 #ifndef ENABLE_AFTER_DECIAML_POINT
 	m_time.tv_nsec = 0;
 #endif
+
+	updateStrings ();
 }
 
 void CEtime::addSec (int sec)
 {
 	// allow minus value
 	m_time.tv_sec += sec;
+
+	updateStrings ();
 }
 
 void CEtime::addMin (int min)
 {
 	// allow minus value
 	m_time.tv_sec += min * 60;
+
+	updateStrings ();
 }
 
 void CEtime::addHour (int hour)
 {
 	// allow minus value
 	m_time.tv_sec += hour * 60 * 60;
+
+	updateStrings ();
 }
 
 void CEtime::addDay (int day)
 {
 	// allow minus value
 	m_time.tv_sec += day * 24 * 60 * 60;
+
+	updateStrings ();
 }
 
 void CEtime::addWeek (int week)
 {
 	// allow minus value
 	m_time.tv_sec += week * 7 * 24 * 60 * 60;
+
+	updateStrings ();
 }
 
-char* CEtime::toString (void)
+const char* CEtime::toString (void) const
+{
+	return m_time_str;
+}
+
+const char* CEtime::toString2 (void) const
+{
+	return m_time_str;
+}
+
+void CEtime::updateStrings (void)
 {
 	getString (m_time_str, sizeof(m_time_str));
-	return m_time_str;
-}
-
-char* CEtime::toString2 (void)
-{
 	getString2 (m_time_str, sizeof(m_time_str));
-	return m_time_str;
 }
 
 void CEtime::getString (char *pszOut, size_t nSize)

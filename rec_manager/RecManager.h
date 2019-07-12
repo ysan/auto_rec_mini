@@ -173,7 +173,7 @@ public:
 		is_used = false;
 	}
 
-	void dump (void) {
+	void dump (void) const {
 		_UTL_LOG_I (
 			"tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
 			transport_stream_id,

@@ -177,7 +177,7 @@ public:
 		text.clear();
 	}
 
-	void dump (void) {
+	void dump (void) const {
 		_UTL_LOG_I (
 			"tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] num:[0x%02x] evtid:[0x%04x]",
 			table_id,

@@ -140,7 +140,7 @@ public:
 		is_used = false;
 	}
 
-	void dump (void) {
+	void dump (void) const{
 		if (p_orgTable) {
 			p_orgTable->header.dump();
 		}
