@@ -65,6 +65,7 @@ private:
 	void getString2 (char *pszOut, size_t nSize);
 
 	char m_time_str [64];
+	char m_time_str2 [64];
 };
 
 #endif

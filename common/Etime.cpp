@@ -9,14 +9,13 @@
 
 CEtime::CEtime (void)
 {
-	memset (&m_time, 0x00, sizeof(m_time));
-	memset (&m_time_str, 0x00, sizeof(m_time_str));
+	clear ();
 }
 
 CEtime::CEtime (time_t epoch)
 {
-	memset (&m_time, 0x00, sizeof(m_time));
-	memset (&m_time_str, 0x00, sizeof(m_time_str));
+	clear ();
+
 	m_time.tv_sec = epoch;
 
 	updateStrings ();
@@ -24,8 +23,8 @@ CEtime::CEtime (time_t epoch)
 
 CEtime::CEtime (struct timespec epoch)
 {
-	memset (&m_time, 0x00, sizeof(m_time));
-	memset (&m_time_str, 0x00, sizeof(m_time_str));
+	clear ();
+
 	m_time = epoch;
 #ifndef ENABLE_AFTER_DECIAML_POINT
 	m_time.tv_nsec = 0;
@@ -36,8 +35,7 @@ CEtime::CEtime (struct timespec epoch)
 
 CEtime::~CEtime (void)
 {
-	memset (&m_time, 0x00, sizeof(m_time));
-	memset (&m_time_str, 0x00, sizeof(m_time_str));
+	clear ();
 }
 
 
@@ -118,7 +116,6 @@ bool CEtime::operator <= (const CEtime &obj) const
 void CEtime::setCurrentTime (void)
 {
 	memset (&m_time, 0x00, sizeof(m_time));
-	memset (&m_time_str, 0x00, sizeof(m_time_str));
 
 	clock_gettime (CLOCK_REALTIME, &m_time);
 #ifndef ENABLE_AFTER_DECIAML_POINT
@@ -175,13 +172,16 @@ const char* CEtime::toString (void) const
 
 const char* CEtime::toString2 (void) const
 {
-	return m_time_str;
+	return m_time_str2;
 }
 
 void CEtime::updateStrings (void)
 {
+	memset (&m_time_str, 0x00, sizeof(m_time_str));
+	memset (&m_time_str2, 0x00, sizeof(m_time_str2));
+
 	getString (m_time_str, sizeof(m_time_str));
-	getString2 (m_time_str, sizeof(m_time_str));
+	getString2 (m_time_str2, sizeof(m_time_str2));
 }
 
 void CEtime::getString (char *pszOut, size_t nSize)
@@ -258,4 +258,5 @@ void CEtime::clear (void)
 {
 	memset (&m_time, 0x00, sizeof(m_time));
 	memset (&m_time_str, 0x00, sizeof(m_time_str));
+	memset (&m_time_str2, 0x00, sizeof(m_time_str2));
 }

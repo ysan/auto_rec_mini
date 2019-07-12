@@ -20,6 +20,7 @@ enum {
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP,				// inner
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE,           // inner
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_CURRENT_SERVICE,
+	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE,
 
 
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM,
@@ -28,6 +29,13 @@ enum {
 
 class CEventScheduleManagerIf : public CThreadMgrExternalIf
 {
+public:
+	typedef struct _service_key {
+		uint16_t transport_stream_id;
+		uint16_t original_network_id;
+		uint16_t service_id;
+	} SERVICE_KEY_t;
+
 public:
 	explicit CEventScheduleManagerIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
 	};
@@ -48,6 +56,19 @@ public:
 		return requestAsync (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
 					EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_CURRENT_SERVICE
+				);
+	};
+
+	bool reqDumpSchedule (SERVICE_KEY_t *p_key) {
+		if (!p_key) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE,
+					(uint8_t*)p_key,
+					sizeof (SERVICE_KEY_t)
 				);
 	};
 

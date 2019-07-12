@@ -51,6 +51,8 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice,              (char*)"onReq_parserNotice"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_CURRENT_SERVICE] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_startCache_currentService, (char*)"onReq_startCache_currentService"};
+    mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE] =
+        {(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule,              (char*)"onReq_dumpSchedule"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
 
 
@@ -549,6 +551,32 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CEventScheduleManager::onReq_dumpSchedule (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	CEventScheduleManagerIf::SERVICE_KEY_t _key = *(CEventScheduleManagerIf::SERVICE_KEY_t*)(pIf->getSrcInfo()->msg.pMsg);
+	SERVICE_KEY_t key (_key);
+
+	dumpScheduleMap (key);
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CEventScheduleManager::onReceiveNotify (CThreadMgrIf *pIf)
 {
 	if (pIf->getSrcInfo()->nClientId == m_tunerNotify_clientId) {
@@ -717,6 +745,21 @@ void CEventScheduleManager::clearSchedule (std::vector <CEvent*> *p_sched)
 	p_sched->clear();
 }
 
+void CEventScheduleManager::dumpSchedule (std::vector <CEvent*> *p_sched) const
+{
+	if (!p_sched || p_sched->size() == 0) {
+		return;
+	}
+
+	std::vector<CEvent*>::const_iterator iter = p_sched->begin();
+	for (; iter != p_sched->end(); ++ iter) {
+		CEvent* p = *iter;
+		if (p) {
+			p->dump();
+		}
+	}
+}
+
 bool CEventScheduleManager::addScheduleMap (SERVICE_KEY_t &key, std::vector <CEvent*> *p_sched)
 {
 	if (!p_sched || p_sched->size() == 0) {
@@ -764,4 +807,26 @@ bool CEventScheduleManager::hasScheduleMap (SERVICE_KEY_t &key) const
 	}
 
 	return true;
+}
+
+void CEventScheduleManager::dumpScheduleMap (SERVICE_KEY_t &key) const
+{
+	if (!hasScheduleMap (key)) {
+		return ;
+	}
+
+	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+
+	if (iter == m_sched_map.end()) {
+		return ;
+
+	} else {
+		std::vector <CEvent*> *p_sched = iter->second;
+		if (p_sched->size() == 0) {
+			return ;
+
+		} else {
+			dumpSchedule (p_sched);
+		}
+	}
 }

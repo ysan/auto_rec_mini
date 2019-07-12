@@ -46,6 +46,12 @@ public:
 		this->original_network_id = _original_network_id;
 		this->service_id = _service_id;
     }
+	_service_key (CEventScheduleManagerIf::SERVICE_KEY_t &_key) {
+		clear ();
+		this->transport_stream_id = _key.transport_stream_id;
+		this->original_network_id = _key.original_network_id;
+		this->service_id = _key.service_id;
+    }
 	~_service_key (void) {
 		clear ();
 	}
@@ -178,6 +184,7 @@ public:
 	}
 
 	void dump (void) const {
+		_UTL_LOG_I ("-----------------------------------");
 		_UTL_LOG_I (
 			"tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] num:[0x%02x] evtid:[0x%04x]",
 			table_id,
@@ -212,6 +219,7 @@ public:
 	void onReq_checkLoop (CThreadMgrIf *pIf);
 	void onReq_parserNotice (CThreadMgrIf *pIf);
 	void onReq_startCache_currentService (CThreadMgrIf *pIf);
+	void onReq_dumpSchedule (CThreadMgrIf *pIf);
 
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
@@ -225,10 +233,12 @@ private:
 		std::vector <CEvent*> *p_out_sched
 	);
 	void clearSchedule (std::vector <CEvent*> *p_sched);
+	void dumpSchedule (std::vector <CEvent*> *p_sched) const;
 
 	bool addScheduleMap (SERVICE_KEY_t &key, std::vector <CEvent*> *p_sched);
 	void deleteScheduleMap (SERVICE_KEY_t &key);
 	bool hasScheduleMap (SERVICE_KEY_t &key) const;
+	void dumpScheduleMap (SERVICE_KEY_t &key) const;
 
 
 
