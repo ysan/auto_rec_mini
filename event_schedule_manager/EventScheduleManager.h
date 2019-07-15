@@ -81,12 +81,26 @@ public:
 	}
 
 	bool operator < (const _service_key &obj) const {
-		if (
-			this->transport_stream_id < obj.transport_stream_id ||
-			this->original_network_id < obj.original_network_id ||
-			this->service_id < obj.service_id
-		) {
+		// map の二分木探査用
+		// networkが一番優先高く 次に内包されるts_id
+		// 更に内包される serviceという観点で比較します
+
+		if (this->original_network_id < obj.original_network_id) {
 			return true;
+		} else if (this->original_network_id == obj.original_network_id) {
+			if (this->transport_stream_id < obj.transport_stream_id) {
+				return true;
+			} else if (this->transport_stream_id == obj.transport_stream_id) {
+				if (this->service_id < obj.service_id) {
+					return true;
+				} else if (this->service_id == obj.service_id) {
+					return false;
+				} else {
+					return false;
+				}
+			} else {
+				return false;
+			}
 		} else {
 			return false;
 		}
@@ -104,7 +118,7 @@ public:
 		service_id = 0;
 	}
 
-	void dump (void) {
+	void dump (void) const {
 		_UTL_LOG_I (
 			"#_service_key# tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x]",
 			transport_stream_id,
@@ -219,6 +233,7 @@ public:
 	void onReq_checkLoop (CThreadMgrIf *pIf);
 	void onReq_parserNotice (CThreadMgrIf *pIf);
 	void onReq_startCache_currentService (CThreadMgrIf *pIf);
+	void onReq_dumpScheduleMap (CThreadMgrIf *pIf);
 	void onReq_dumpSchedule (CThreadMgrIf *pIf);
 
 
@@ -233,12 +248,13 @@ private:
 		std::vector <CEvent*> *p_out_sched
 	);
 	void clearSchedule (std::vector <CEvent*> *p_sched);
-	void dumpSchedule (std::vector <CEvent*> *p_sched) const;
+	void dumpSchedule (const std::vector <CEvent*> *p_sched) const;
 
-	bool addScheduleMap (SERVICE_KEY_t &key, std::vector <CEvent*> *p_sched);
-	void deleteScheduleMap (SERVICE_KEY_t &key);
-	bool hasScheduleMap (SERVICE_KEY_t &key) const;
-	void dumpScheduleMap (SERVICE_KEY_t &key) const;
+	bool addScheduleMap (const SERVICE_KEY_t &key, std::vector <CEvent*> *p_sched);
+	void deleteScheduleMap (const SERVICE_KEY_t &key);
+	bool hasScheduleMap (const SERVICE_KEY_t &key) const;
+	void dumpScheduleMap (void) const;
+	void dumpScheduleMap (const SERVICE_KEY_t &key) const;
 
 
 

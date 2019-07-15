@@ -389,6 +389,8 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
         if (enRslt == EN_THM_RSLT_SUCCESS) {
 //s_presentEventInfo.dump();
 			if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
+//event_typeだったら event_idの確認とtimeの確認
+//event_typeでなかったら(manualだったら) event_name_charの代入 
 				m_recording.event_id = s_presentEventInfo.event_id;
 				m_recording.title_name = s_presentEventInfo.event_name_char;
 			}

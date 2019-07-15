@@ -11,7 +11,7 @@
 #include "Utils.h"
 
 
-static void startCache_currentService (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _startCache_currentService (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_UTL_LOG_W ("ignore arguments.\n");
@@ -28,7 +28,24 @@ static void startCache_currentService (int argc, char* argv[], CThreadMgrBase *p
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
-static void dumpSchedule (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _dump_scheduleMap (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_UTL_LOG_W ("ignore arguments.\n");
+	}
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CEventScheduleManagerIf mgr(pBase->getExternalIf());
+	mgr.reqDumpScheduleMap ();
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
+static void _dump_schedule (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 3) {
 		_UTL_LOG_W ("invalid arguments.\n");
@@ -97,15 +114,22 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	{
 		"e",
 		"start cache - Current services",
-		startCache_currentService,
+		_startCache_currentService,
+		NULL,
+	},
+	{
+		"dm",
+		"dump schedule map",
+		_dump_scheduleMap,
 		NULL,
 	},
 	{
 		"d",
 		"dump schedule (usage: d {tsid} {org_nid} {svcid} )",
-		dumpSchedule,
+		_dump_schedule,
 		NULL,
 	},
+
 	//-- term --//
 	{
 		NULL,

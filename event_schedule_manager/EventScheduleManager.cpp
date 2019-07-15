@@ -51,6 +51,8 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice,              (char*)"onReq_parserNotice"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_CURRENT_SERVICE] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_startCache_currentService, (char*)"onReq_startCache_currentService"};
+    mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP] =
+        {(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,           (char*)"onReq_dumpScheduleMap"};
     mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE] =
         {(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule,              (char*)"onReq_dumpSchedule"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
@@ -440,6 +442,7 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK:
 
+		_UTL_LOG_I ("parse EIT schedule ...");
 		pIf->setTimeout (2000); // 2sec
 
 		sectId = SECTID_CHECK_WAIT;
@@ -455,21 +458,22 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 		ttmp.addSec (20);
 
 		if (tcur > ttmp) {
-			_UTL_LOG_I ("EIT schedule complete");
+			_UTL_LOG_I ("parse EIT schedule : complete");
 			sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			// 開始から10分経過していたらタイムアウトします
 			ttmp = m_startTime_EITSched;
-			ttmp.addMin (10);
+			ttmp.addMin (5);
 			if (tcur > ttmp) {
-				_UTL_LOG_E ("EIT schedule timeout");
+				// 開始から5分経過していたらタイムアウトします
+				_UTL_LOG_E ("parser EIT schedule : timeout");
 //TODO 暫定エラー処理なし
 				sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 				enAct = EN_THM_ACT_CONTINUE;
 
 			} else {
+				_UTL_LOG_I ("m_lastUpdate_EITSched %s", m_lastUpdate_EITSched.toString());
 				sectId = SECTID_CHECK;
 				enAct = EN_THM_ACT_CONTINUE;
 			}
@@ -522,10 +526,10 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 				);
 				addScheduleMap (key, p_sched);
 				key.dump();
-				_UTL_LOG_I ("addScheduleMap -> %d", p_sched->size());
+				_UTL_LOG_I ("addScheduleMap -> %d items", p_sched->size());
 
 			} else {
-				_UTL_LOG_W ("schedule none.");
+				_UTL_LOG_I ("schedule none.");
 				delete p_sched;
 			}
 		}
@@ -548,6 +552,29 @@ void CEventScheduleManager::onReq_startCache_currentService (CThreadMgrIf *pIf)
 		break;
 	}
 
+	pIf->setSectId (sectId, enAct);
+}
+
+void CEventScheduleManager::onReq_dumpScheduleMap (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	dumpScheduleMap ();
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
 	pIf->setSectId (sectId, enAct);
 }
 
@@ -677,6 +704,8 @@ void CEventScheduleManager::cacheSchedule (
 			p_event->original_network_id = pTable->original_network_id;
 			p_event->service_id = pTable->header.table_id_extension;
 
+			p_event->section_number = pTable->header.section_number;
+
 			p_event->event_id = iter_event->event_id;
 
 			time_t stime = CTsAribCommon::getEpochFromMJD (iter_event->start_time);
@@ -745,7 +774,7 @@ void CEventScheduleManager::clearSchedule (std::vector <CEvent*> *p_sched)
 	p_sched->clear();
 }
 
-void CEventScheduleManager::dumpSchedule (std::vector <CEvent*> *p_sched) const
+void CEventScheduleManager::dumpSchedule (const std::vector <CEvent*> *p_sched) const
 {
 	if (!p_sched || p_sched->size() == 0) {
 		return;
@@ -760,13 +789,14 @@ void CEventScheduleManager::dumpSchedule (std::vector <CEvent*> *p_sched) const
 	}
 }
 
-bool CEventScheduleManager::addScheduleMap (SERVICE_KEY_t &key, std::vector <CEvent*> *p_sched)
+bool CEventScheduleManager::addScheduleMap (const SERVICE_KEY_t &key, std::vector <CEvent*> *p_sched)
 {
 	if (!p_sched || p_sched->size() == 0) {
 		return false;
 	}
 
 	if (hasScheduleMap (key)) {
+		_UTL_LOG_I ("hasScheduleMap -> deleteScheduleMap");
 		deleteScheduleMap (key);
 	}
 
@@ -775,7 +805,7 @@ bool CEventScheduleManager::addScheduleMap (SERVICE_KEY_t &key, std::vector <CEv
 	return true;
 }
 
-void CEventScheduleManager::deleteScheduleMap (SERVICE_KEY_t &key)
+void CEventScheduleManager::deleteScheduleMap (const SERVICE_KEY_t &key)
 {
 	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
 
@@ -792,7 +822,7 @@ void CEventScheduleManager::deleteScheduleMap (SERVICE_KEY_t &key)
 	m_sched_map.erase (iter);
 }
 
-bool CEventScheduleManager::hasScheduleMap (SERVICE_KEY_t &key) const
+bool CEventScheduleManager::hasScheduleMap (const SERVICE_KEY_t &key) const
 {
 	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
 
@@ -809,9 +839,29 @@ bool CEventScheduleManager::hasScheduleMap (SERVICE_KEY_t &key) const
 	return true;
 }
 
-void CEventScheduleManager::dumpScheduleMap (SERVICE_KEY_t &key) const
+void CEventScheduleManager::dumpScheduleMap (void) const
+{
+	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.begin ();
+
+	if (iter == m_sched_map.end()) {
+		return ;
+	}
+
+	for (; iter != m_sched_map.end(); ++ iter) {
+		SERVICE_KEY_t key = iter->first;
+		key.dump();
+
+		std::vector <CEvent*> *p_sched = iter->second;
+		if (p_sched) {
+			_UTL_LOG_I ("  [%d] items", p_sched->size());
+		}
+	}
+}
+
+void CEventScheduleManager::dumpScheduleMap (const SERVICE_KEY_t &key) const
 {
 	if (!hasScheduleMap (key)) {
+		_UTL_LOG_I ("not hasScheduleMap...");
 		return ;
 	}
 
