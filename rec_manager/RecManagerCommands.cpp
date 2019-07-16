@@ -181,7 +181,7 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 	EN_RESERVE_REPEATABILITY r = (EN_RESERVE_REPEATABILITY) atoi (argv[5]);
 
 
-	_MANUAL_RESERVE_PARAM _param;
+	CRecManagerIf::ADD_RESERVE_PARAM_t _param;
 	_param.transport_stream_id = _tsid ;
 	_param.original_network_id = _org_nid;
 	_param.service_id = _svc_id;
@@ -229,7 +229,7 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	_REMOVE_RESERVE_PARAM param = {index, isConsiderRepeatability};
+	CRecManagerIf::REMOVE_RESERVE_PARAM_t param = {index, isConsiderRepeatability};
 
 	CRecManagerIf mgr(pBase->getExternalIf());
 	mgr.reqRemoveReserve (&param);

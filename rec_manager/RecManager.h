@@ -128,6 +128,7 @@ public:
 
 	std::string title_name;
 
+	bool is_event_type ;
 	EN_RESERVE_REPEATABILITY repeatability;
 
 	EN_RESERVE_STATE state;
@@ -142,6 +143,7 @@ public:
 		CEtime* p_start_time,
 		CEtime* p_end_time,
 		const char *psz_title_name,
+		bool _is_event_type,
 		EN_RESERVE_REPEATABILITY _repeatability
 	)
 	{
@@ -154,8 +156,8 @@ public:
 		if (psz_title_name) {
 			this->title_name = psz_title_name ;
 		}
+		this->is_event_type = _is_event_type;
 		this->repeatability = _repeatability;
-		
 		this->state = EN_RESERVE_STATE__INIT;
 		this->is_used = true;
 	}
@@ -168,6 +170,7 @@ public:
 		start_time.clear();
 		end_time.clear();	
 		title_name.clear();
+		is_event_type = false;
 		repeatability = EN_RESERVE_REPEATABILITY__NONE;
 		state = EN_RESERVE_STATE__INIT;
 		is_used = false;
@@ -182,9 +185,10 @@ public:
 			event_id
 		);
 		_UTL_LOG_I (
-			"time:[%s - %s] repeat:[%s] state:[%s]",
+			"time:[%s - %s] event_type:[%d] repeat:[%s] state:[%s]",
 			start_time.toString(),
 			end_time.toString(),
+			is_event_type,
 			g_repeatability [repeatability],
 			g_reserveState [state]
 		);
@@ -209,6 +213,7 @@ public:
 	void onReq_recordingNotice (CThreadMgrIf *pIf);
 	void onReq_startRecording (CThreadMgrIf *pIf);
 	void onReq_addReserve_currentEvent (CThreadMgrIf *pIf);
+	void onReq_addReserve_event (CThreadMgrIf *pIf);
 	void onReq_addReserve_manual (CThreadMgrIf *pIf);
 	void onReq_removeReserve (CThreadMgrIf *pIf);
 	void onReq_stopRecording (CThreadMgrIf *pIf);
@@ -218,7 +223,7 @@ public:
 
 
 private:
-	bool addReserve (PSISI_EVENT_INFO *p_info);
+	bool addReserve (PSISI_EVENT_INFO *p_info, bool _is_event_type);
 	bool addReserve (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
@@ -227,6 +232,7 @@ private:
 		CEtime* p_start_time,
 		CEtime* p_end_time,
 		const char *psz_title_name,
+		bool _is_event_type,
 		EN_RESERVE_REPEATABILITY repeatability=EN_RESERVE_REPEATABILITY__NONE
 	);
 	bool removeReserve (int index, bool isConsiderRepeatability);

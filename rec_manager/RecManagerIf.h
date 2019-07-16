@@ -21,6 +21,7 @@ enum {
 	EN_SEQ_REC_MANAGER__RECORDING_NOTICE,		// inner
 	EN_SEQ_REC_MANAGER__START_RECORDING,		// inner
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT,
+	EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT,
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL,
 	EN_SEQ_REC_MANAGER__REMOVE_RESERVE,
 	EN_SEQ_REC_MANAGER__STOP_RECORDING,
@@ -35,38 +36,39 @@ typedef enum {
 	EN_RESERVE_REPEATABILITY__WEEKLY,
 } EN_RESERVE_REPEATABILITY;
 
-typedef struct {
-	uint16_t transport_stream_id;
-	uint16_t original_network_id;
-	uint16_t service_id;
-
-	CEtime start_time;
-	CEtime end_time;
-
-	EN_RESERVE_REPEATABILITY repeatablity;
-
-	void dump (void) const {
-		_UTL_LOG_I (
-			"tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] time:[%s - %s] repeat:[%d]",
-			transport_stream_id,
-			original_network_id,
-			service_id,
-			start_time.toString(),
-			end_time.toString(),
-			repeatablity
-		);
-	}
-
-} _MANUAL_RESERVE_PARAM;
-
-typedef struct {
-	int index;
-	bool isConsiderRepeatability;
-} _REMOVE_RESERVE_PARAM;
-
 
 class CRecManagerIf : public CThreadMgrExternalIf
 {
+public:
+	typedef struct {
+		uint16_t transport_stream_id;
+		uint16_t original_network_id;
+		uint16_t service_id;
+
+		CEtime start_time;
+		CEtime end_time;
+
+		EN_RESERVE_REPEATABILITY repeatablity;
+
+		void dump (void) const {
+		_UTL_LOG_I (
+				"reserve_param_t - tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] time:[%s - %s] repeat:[%d]",
+				transport_stream_id,
+				original_network_id,
+				service_id,
+				start_time.toString(),
+				end_time.toString(),
+				repeatablity
+			);
+		}
+
+	} ADD_RESERVE_PARAM_t;
+
+	typedef struct {
+		int index;
+		bool isConsiderRepeatability;
+	} REMOVE_RESERVE_PARAM_t;
+
 public:
 	explicit CRecManagerIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
 	};
@@ -90,7 +92,20 @@ public:
 				);
 	};
 
-	bool reqAddReserve_manual (_MANUAL_RESERVE_PARAM *p_param) {
+	bool reqAddReserve_event (ADD_RESERVE_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_REC_MANAGER,
+					EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT,
+					(uint8_t*)p_param,
+					sizeof (ADD_RESERVE_PARAM_t)
+				);
+	};
+
+	bool reqAddReserve_manual (ADD_RESERVE_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
@@ -99,11 +114,11 @@ public:
 					EN_MODULE_REC_MANAGER,
 					EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL,
 					(uint8_t*)p_param,
-					sizeof (_MANUAL_RESERVE_PARAM)
+					sizeof (ADD_RESERVE_PARAM_t)
 				);
 	};
 
-	bool reqRemoveReserve (_REMOVE_RESERVE_PARAM *p_param) {
+	bool reqRemoveReserve (REMOVE_RESERVE_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
@@ -112,7 +127,7 @@ public:
 					EN_MODULE_REC_MANAGER,
 					EN_SEQ_REC_MANAGER__REMOVE_RESERVE,
 					(uint8_t*)p_param,
-					sizeof (_REMOVE_RESERVE_PARAM)
+					sizeof (REMOVE_RESERVE_PARAM_t)
 				);
 	};
 

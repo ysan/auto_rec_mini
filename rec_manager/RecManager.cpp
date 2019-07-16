@@ -389,8 +389,9 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
         if (enRslt == EN_THM_RSLT_SUCCESS) {
 //s_presentEventInfo.dump();
 			if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
-//event_typeだったら event_idの確認とtimeの確認
-//event_typeでなかったら(manualだったら) event_name_charの代入 
+//TODO
+//event_typeだったら event_idの確認とend_timeの確認
+//event_typeでなかったら(manualだったら) 下の通りevent_name_charの代入 
 				m_recording.event_id = s_presentEventInfo.event_id;
 				m_recording.title_name = s_presentEventInfo.event_name_char;
 			}
@@ -792,7 +793,7 @@ s_serviceInfos[0].dump();
 s_presentEventInfo.dump();
 
 			// add reserve
-			if (addReserve (&s_presentEventInfo)) {
+			if (addReserve (&s_presentEventInfo, true)) {
 				sectId = SECTID_END_SUCCESS;
 				enAct = EN_THM_ACT_CONTINUE;
 
@@ -836,6 +837,83 @@ s_presentEventInfo.dump();
 	pIf->setSectId (sectId, enAct);
 }
 
+void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ADD_RESERVE,
+		SECTID_END_SUCCESS,
+		SECTID_END_ERROR,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	static CRecManagerIf::ADD_RESERVE_PARAM_t s_param;
+//	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+
+
+    switch (sectId) {
+    case SECTID_ENTRY:
+
+		s_param = *(CRecManagerIf::ADD_RESERVE_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+        sectId = SECTID_ADD_RESERVE;
+        enAct = EN_THM_ACT_CONTINUE;
+        break;
+
+	case SECTID_ADD_RESERVE: {
+
+		bool r = addReserve (
+						s_param.transport_stream_id,
+						s_param .original_network_id,
+						s_param.service_id,
+						0x00, // event_idはこの時点では不明 (s_paramにない)
+						&s_param.start_time,
+						&s_param.end_time,
+						NULL, // タイトル名も不明 (s_paramにない)
+						true, // is_event_type true
+						s_param.repeatablity
+					);
+		if (r) {
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+		} else {
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		}
+		break;
+
+	case SECTID_END_SUCCESS:
+
+		memset (&s_param, 0x00, sizeof(s_param));
+
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	case SECTID_END_ERROR:
+
+		memset (&s_param, 0x00, sizeof(s_param));
+
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+
+	pIf->setSectId (sectId, enAct);
+}
+
 void CRecManager::onReq_addReserve_manual (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -852,14 +930,14 @@ void CRecManager::onReq_addReserve_manual (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-	static _MANUAL_RESERVE_PARAM s_param;
+	static CRecManagerIf::ADD_RESERVE_PARAM_t s_param;
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
 
     switch (sectId) {
     case SECTID_ENTRY:
 
-		s_param = *(_MANUAL_RESERVE_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+		s_param = *(CRecManagerIf::ADD_RESERVE_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
         sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
         enAct = EN_THM_ACT_CONTINUE;
@@ -901,10 +979,11 @@ void CRecManager::onReq_addReserve_manual (CThreadMgrIf *pIf)
 						s_param.transport_stream_id,
 						s_param .original_network_id,
 						s_param.service_id,
-						0x00, // event_idは不明
+						0x00, // event_idはこの時点では不明 (s_paramにない)
 						&s_param.start_time,
 						&s_param.end_time,
-						NULL, // タイトル名も不明
+						NULL, // タイトル名も不明 (s_paramにない)
+						false,
 						s_param.repeatablity
 					);
 		if (r) {
@@ -957,7 +1036,8 @@ void CRecManager::onReq_removeReserve (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	_REMOVE_RESERVE_PARAM param = *(_REMOVE_RESERVE_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+	CRecManagerIf::REMOVE_RESERVE_PARAM_t param =
+			*(CRecManagerIf::REMOVE_RESERVE_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
 	if (removeReserve (param.index, param.isConsiderRepeatability)) {
 		pIf->reply (EN_THM_RSLT_SUCCESS);
@@ -1106,7 +1186,7 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 }
 
-bool CRecManager::addReserve (PSISI_EVENT_INFO *p_info)
+bool CRecManager::addReserve (PSISI_EVENT_INFO *p_info, bool _is_event_type)
 {
 	if (!p_info) {
 		return false;
@@ -1119,7 +1199,8 @@ bool CRecManager::addReserve (PSISI_EVENT_INFO *p_info)
 					p_info->event_id,
 					&(p_info->start_time),
 					&(p_info->end_time),
-					p_info->event_name_char
+					p_info->event_name_char,
+					_is_event_type
 				);
 
 	return r;
@@ -1133,6 +1214,7 @@ bool CRecManager::addReserve (
 	CEtime* p_start_time,
 	CEtime* p_end_time,
 	const char *psz_title_name,
+	bool _is_event_type,
 	EN_RESERVE_REPEATABILITY repeatabilitiy
 )
 {
@@ -1155,6 +1237,7 @@ bool CRecManager::addReserve (
 		p_start_time,
 		p_end_time,
 		psz_title_name,
+		_is_event_type,
 		repeatabilitiy
 	);
 
@@ -1189,6 +1272,7 @@ bool CRecManager::addReserve (
 		p_start_time,
 		p_end_time,
 		psz_title_name,
+		_is_event_type,
 		repeatabilitiy
 	);
 
@@ -1443,6 +1527,7 @@ bool CRecManager::pickReqStartRecordingReserve (void)
 	return false;
 }
 
+//TODO event_typeの場合はどうするか
 /**
  * Repeatabilityの確認して
  * 予約入れるべきものは予約します
@@ -1487,6 +1572,7 @@ void CRecManager::checkRepeatability (const CRecReserve *p_reserve)
 				&s,
 				&e,
 				p_reserve->title_name.c_str(),
+				p_reserve->is_event_type,
 				p_reserve->repeatability
 			);
 
