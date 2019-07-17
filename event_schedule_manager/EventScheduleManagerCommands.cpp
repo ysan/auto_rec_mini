@@ -11,7 +11,7 @@
 #include "Utils.h"
 
 
-static void _startCache_currentService (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _cacheSchedule_currentService (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_UTL_LOG_W ("ignore arguments.\n");
@@ -22,7 +22,7 @@ static void _startCache_currentService (int argc, char* argv[], CThreadMgrBase *
 	pBase->getExternalIf()->setRequestOption (opt);
 
 	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.reqStartCache_currentService ();
+	mgr.reqCacheSchedule_currentService ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -112,9 +112,9 @@ static void _dump_schedule (int argc, char* argv[], CThreadMgrBase *pBase)
 
 ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	{
-		"e",
-		"start cache - Current services",
-		_startCache_currentService,
+		"cs",
+		"cache schedule - current services",
+		_cacheSchedule_currentService,
 		NULL,
 	},
 	{

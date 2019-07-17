@@ -16,6 +16,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/parser/aribstr \
 	-I$(BASEDIR)/psisi_manager \
 	-I$(BASEDIR)/channel_manager \
+	-I$(BASEDIR)/event_schedule_manager \
 	-I./ \
 	-I../ \
 

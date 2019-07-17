@@ -44,7 +44,7 @@ static void _tune (int argc, char* argv[], CThreadMgrBase *pBase)
 //TODO
 // 暫定remote_control_key_idだけ渡す
 	uint8_t id = atoi(argv[0]);
-	_REMOTE_CONTROL_ID_PARAM param = {0, 0, id};
+	CChannelManagerIf::REMOTE_CONTROL_ID_PARAM_t param = {0, 0, id};
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;

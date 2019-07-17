@@ -84,7 +84,7 @@ sectId = SECTID_END_SUCCESS;
 
 	case SECTID_WAIT_REG_TUNER_NOTIFY:
 		enRslt = pIf->getSrcInfo()->enRslt;
-        if (enRslt == EN_THM_RSLT_SUCCESS) {
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
 			m_tunerNotify_clientId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
 			sectId = SECTID_END_SUCCESS;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -202,7 +202,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 	case SECTID_WAIT_TUNE:
 		enRslt = pIf->getSrcInfo()->enRslt;
-        if (enRslt == EN_THM_RSLT_SUCCESS) {
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
 			pIf->setTimeout (7500);
 			sectId = SECTID_WAIT_AFTER_TUNE;
 			enAct = EN_THM_ACT_WAIT;
@@ -231,7 +231,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 	case SECTID_WAIT_GET_NETWORK_INFO:
 		enRslt = pIf->getSrcInfo()->enRslt;
-        if (enRslt == EN_THM_RSLT_SUCCESS) {
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
 
 			CScanResult r;
 			r.set (
@@ -308,7 +308,8 @@ void CChannelManager::onReq_getPysicalChannelByServiceId (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	_SERVICE_ID_PARAM param = *(_SERVICE_ID_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+	CChannelManagerIf::SERVICE_ID_PARAM_t param =
+			*(CChannelManagerIf::SERVICE_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
 	uint16_t _ch = getPysicalChannelByServiceId (
 						param.transport_stream_id,
@@ -346,7 +347,8 @@ void CChannelManager::onReq_getPysicalChannelByRemoteControlKeyId (CThreadMgrIf 
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	_REMOTE_CONTROL_ID_PARAM param = *(_REMOTE_CONTROL_ID_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+	CChannelManagerIf::REMOTE_CONTROL_ID_PARAM_t param =
+			*(CChannelManagerIf::REMOTE_CONTROL_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
 	uint16_t _ch = getPysicalChannelByRemoteControlKeyId (
 						param.transport_stream_id,
@@ -386,7 +388,7 @@ void CChannelManager::onReq_tuneByServiceId (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-	static _SERVICE_ID_PARAM s_param;
+	static CChannelManagerIf::SERVICE_ID_PARAM_t s_param;
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
 
@@ -394,7 +396,7 @@ void CChannelManager::onReq_tuneByServiceId (CThreadMgrIf *pIf)
 	case SECTID_ENTRY:
 		pIf->lock();
 
-		s_param = *(_SERVICE_ID_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+		s_param = *(CChannelManagerIf::SERVICE_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
 		sectId = SECTID_REQ_TUNE;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -431,7 +433,7 @@ void CChannelManager::onReq_tuneByServiceId (CThreadMgrIf *pIf)
 
 	case SECTID_WAIT_TUNE:
 		enRslt = pIf->getSrcInfo()->enRslt;
-        if (enRslt == EN_THM_RSLT_SUCCESS) {
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
 			sectId = SECTID_END_SUCCESS;
 			enAct = EN_THM_ACT_CONTINUE;
 
@@ -484,7 +486,7 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-	static _REMOTE_CONTROL_ID_PARAM s_param;
+	static CChannelManagerIf::REMOTE_CONTROL_ID_PARAM_t s_param;
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
 
@@ -492,7 +494,7 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 	case SECTID_ENTRY:
 		pIf->lock();
 
-		s_param = *(_REMOTE_CONTROL_ID_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+		s_param = *(CChannelManagerIf::REMOTE_CONTROL_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
 		sectId = SECTID_REQ_TUNE;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -529,7 +531,7 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 
 	case SECTID_WAIT_TUNE:
 		enRslt = pIf->getSrcInfo()->enRslt;
-        if (enRslt == EN_THM_RSLT_SUCCESS) {
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
 			sectId = SECTID_END_SUCCESS;
 			enAct = EN_THM_ACT_CONTINUE;
 

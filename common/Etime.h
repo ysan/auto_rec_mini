@@ -64,8 +64,8 @@ private:
 	void getString (char *pszOut, size_t nSize);
 	void getString2 (char *pszOut, size_t nSize);
 
-	char m_time_str [64];
-	char m_time_str2 [64];
+	char m_time_str [32];
+	char m_time_str2 [32];
 };
 
 #endif

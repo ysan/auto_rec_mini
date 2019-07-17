@@ -27,6 +27,7 @@
 #include "TunerControlIf.h"
 #include "PsisiManagerIf.h"
 #include "ChannelManagerIf.h"
+#include "EventScheduleManagerIf.h"
 
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
@@ -76,6 +77,7 @@ const char *g_repeatability [] = {
 	"NONE",
 	"DAILY",
 	"WEEKLY",
+	"AUTO",
 };
 
 
@@ -210,6 +212,7 @@ public:
 	void onReq_moduleUp (CThreadMgrIf *pIf);
 	void onReq_moduleDown (CThreadMgrIf *pIf);
 	void onReq_checkLoop (CThreadMgrIf *pIf);
+	void onReq_checkEventLoop (CThreadMgrIf *pIf);
 	void onReq_recordingNotice (CThreadMgrIf *pIf);
 	void onReq_startRecording (CThreadMgrIf *pIf);
 	void onReq_addReserve_currentEvent (CThreadMgrIf *pIf);
@@ -245,7 +248,7 @@ private:
 	void refreshReserves (void);
 	bool pickReqStartRecordingReserve (void);
 	void setResult (CRecReserve *p);
-	void checkRecordingEnd (void);
+	bool checkRecordingEnd (void);
 	void checkRepeatability (const CRecReserve *p_reserve);
 	void dumpReserves (void);
 	void dumpResults (void);

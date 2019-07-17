@@ -203,6 +203,100 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 5) {
+		_UTL_LOG_E ("invalid arguments.");
+		return;
+	}
+
+	uint16_t _tsid = 0;
+	std::regex regex_tsid ("^[0-9]+$");
+	if (!std::regex_match (argv[0], regex_tsid)) {
+		std::regex regex_tsid ("^0x([0-9]|[a-f]|[A-F])+$");
+		if (!std::regex_match (argv[0], regex_tsid)) {
+			_UTL_LOG_E ("invalid arguments. (tsid)");
+			return;
+		} else {
+			_tsid = strtol (argv[0], NULL, 16);
+		}
+	} else {
+		_tsid = atoi (argv[0]);
+	}
+
+	uint16_t _org_nid = 0;
+	std::regex regex_org_nid ("^[0-9]+$");
+	if (!std::regex_match (argv[1], regex_org_nid)) {
+		std::regex regex_org_nid ("^0x([0-9]|[a-f]|[A-F])+$");
+		if (!std::regex_match (argv[1], regex_org_nid)) {
+			_UTL_LOG_E ("invalid arguments. (org_nid)");
+			return;
+		} else {
+			_org_nid = strtol (argv[1], NULL, 16);
+		}
+	} else {
+		_org_nid = atoi (argv[1]);
+	}
+
+	uint16_t _svc_id = 0;
+	std::regex regex_svc_id("^[0-9]+$");
+	if (!std::regex_match (argv[2], regex_svc_id)) {
+		std::regex regex_svc_id ("^0x([0-9]|[a-f]|[A-F])+$");
+		if (!std::regex_match (argv[2], regex_svc_id)) {
+			_UTL_LOG_E ("invalid arguments. (svc_id)");
+			return;
+		} else {
+			_svc_id = strtol (argv[2], NULL, 16);
+		}
+	} else {
+		_svc_id = atoi (argv[2]);
+	}
+
+	uint16_t _evt_id = 0;
+	std::regex regex_evt_id("^[0-9]+$");
+	if (!std::regex_match (argv[3], regex_evt_id)) {
+		std::regex regex_evt_id ("^0x([0-9]|[a-f]|[A-F])+$");
+		if (!std::regex_match (argv[3], regex_evt_id)) {
+			_UTL_LOG_E ("invalid arguments. (evt_id)");
+			return;
+		} else {
+			_evt_id = strtol (argv[3], NULL, 16);
+		}
+	} else {
+		_evt_id = atoi (argv[3]);
+	}
+
+
+	std::regex regex_repeat("^[0-1]$");
+	if (!std::regex_match (argv[4], regex_repeat)) {
+		_UTL_LOG_E ("invalid arguments. (repeat)");
+		return;
+	}
+	int rpt = atoi (argv[4]);
+	EN_RESERVE_REPEATABILITY r = rpt == 0 ? EN_RESERVE_REPEATABILITY__NONE: EN_RESERVE_REPEATABILITY__AUTO;
+
+
+	CRecManagerIf::ADD_RESERVE_PARAM_t _param;
+	_param.transport_stream_id = _tsid ;
+	_param.original_network_id = _org_nid;
+	_param.service_id = _svc_id;
+	_param.event_id = _evt_id;
+	_param.repeatablity = r;
+
+	_param.dump();
+
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CRecManagerIf mgr(pBase->getExternalIf());
+	mgr.reqAddReserve_event (&_param);
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
 static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 2) {
@@ -293,9 +387,17 @@ static void dump_results (int argc, char* argv[], CThreadMgrBase *pBase)
 
 ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 	{
-		"e",
+		"ce",
 		"add reserve - CurrentEvent",
 		addReserve_currentEvent,
+		NULL,
+	},
+	{
+		"e",
+		"add reserve - event\n\
+                                (usage: m {tsid} {org_nid} {svcid} {evtid} {repeat} )\n\
+                                           - repeat is 0 (none), 1 (auto)",
+		addReserve_event,
 		NULL,
 	},
 	{

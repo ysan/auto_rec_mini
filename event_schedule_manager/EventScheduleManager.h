@@ -232,7 +232,9 @@ public:
 	void onReq_moduleDown (CThreadMgrIf *pIf);
 	void onReq_checkLoop (CThreadMgrIf *pIf);
 	void onReq_parserNotice (CThreadMgrIf *pIf);
-	void onReq_startCache_currentService (CThreadMgrIf *pIf);
+	void onReq_startCacheSchedule (CThreadMgrIf *pIf);
+	void onReq_cacheSchedule_currentService (CThreadMgrIf *pIf);
+	void onReq_getEvent (CThreadMgrIf *pIf);
 	void onReq_dumpScheduleMap (CThreadMgrIf *pIf);
 	void onReq_dumpSchedule (CThreadMgrIf *pIf);
 
@@ -255,6 +257,8 @@ private:
 	bool hasScheduleMap (const SERVICE_KEY_t &key) const;
 	void dumpScheduleMap (void) const;
 	void dumpScheduleMap (const SERVICE_KEY_t &key) const;
+
+	const CEvent *getEvent (const CEventScheduleManagerIf::EVENT_KEY_t &key) const;
 
 
 

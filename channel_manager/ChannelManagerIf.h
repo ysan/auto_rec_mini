@@ -26,21 +26,22 @@ enum {
 	EN_SEQ_CHANNEL_MANAGER__NUM,
 };
 
-typedef struct {
-	uint16_t transport_stream_id;
-	uint16_t original_network_id;
-	uint16_t service_id;
-} _SERVICE_ID_PARAM;
-
-typedef struct {
-	uint16_t transport_stream_id;
-	uint16_t original_network_id;
-	uint8_t remote_control_key_id;
-} _REMOTE_CONTROL_ID_PARAM;
-
 
 class CChannelManagerIf : public CThreadMgrExternalIf
 {
+public:
+	typedef struct {
+		uint16_t transport_stream_id;
+		uint16_t original_network_id;
+		uint16_t service_id;
+	} SERVICE_ID_PARAM_t;
+
+	typedef struct {
+		uint16_t transport_stream_id;
+		uint16_t original_network_id;
+		uint8_t remote_control_key_id;
+	} REMOTE_CONTROL_ID_PARAM_t;
+
 public:
 	explicit CChannelManagerIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
 	};
@@ -61,7 +62,7 @@ public:
 		return requestAsync (EN_MODULE_CHANNEL_MANAGER, EN_SEQ_CHANNEL_MANAGER__CHANNEL_SCAN);
 	};
 
-	bool reqGetPysicalChannelByServiceId (_SERVICE_ID_PARAM *p_param) {
+	bool reqGetPysicalChannelByServiceId (SERVICE_ID_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
@@ -70,11 +71,11 @@ public:
 					EN_MODULE_CHANNEL_MANAGER,
 					EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_SERVICE_ID,
 					(uint8_t*)p_param,
-					sizeof (_SERVICE_ID_PARAM)
+					sizeof (SERVICE_ID_PARAM_t)
 				);
 	};
 
-	bool reqGetPysicalChannelByRemoteControlKeyId (_REMOTE_CONTROL_ID_PARAM *p_param) {
+	bool reqGetPysicalChannelByRemoteControlKeyId (REMOTE_CONTROL_ID_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
@@ -83,11 +84,11 @@ public:
 					EN_MODULE_CHANNEL_MANAGER,
 					EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_REMOTE_CONTROL_KEY_ID,
 					(uint8_t*)p_param,
-					sizeof (_REMOTE_CONTROL_ID_PARAM)
+					sizeof (REMOTE_CONTROL_ID_PARAM_t)
 				);
 	};
 
-	bool reqTuneByServiceId (_SERVICE_ID_PARAM *p_param) {
+	bool reqTuneByServiceId (SERVICE_ID_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
@@ -96,11 +97,11 @@ public:
 					EN_MODULE_CHANNEL_MANAGER,
 					EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID,
 					(uint8_t*)p_param,
-					sizeof (_SERVICE_ID_PARAM)
+					sizeof (SERVICE_ID_PARAM_t)
 				);
 	};
 
-	bool reqTuneByRemoteControlKeyId (_REMOTE_CONTROL_ID_PARAM *p_param) {
+	bool reqTuneByRemoteControlKeyId (REMOTE_CONTROL_ID_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
@@ -109,7 +110,7 @@ public:
 					EN_MODULE_CHANNEL_MANAGER,
 					EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID,
 					(uint8_t*)p_param,
-					sizeof (_REMOTE_CONTROL_ID_PARAM)
+					sizeof (REMOTE_CONTROL_ID_PARAM_t)
 				);
 	};
 

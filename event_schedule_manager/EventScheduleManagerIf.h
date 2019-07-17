@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <string>
+
 #include "ThreadMgrExternalIf.h"
 #include "modules.h"
 #include "Utils.h"
@@ -19,7 +21,9 @@ enum {
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_DOWN,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP,				// inner
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE,           // inner
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_CURRENT_SERVICE,
+	EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,	// inner
+	EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_CURRENT_SERVICE,
+	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE,
 
@@ -37,6 +41,33 @@ public:
 		uint16_t service_id;
 	} SERVICE_KEY_t;
 
+	typedef struct _event_key {
+		uint16_t transport_stream_id;
+		uint16_t original_network_id;
+		uint16_t service_id;
+		uint16_t event_id;
+	} EVENT_KEY_t;
+
+	typedef struct _event {
+		uint8_t table_id;
+		uint16_t transport_stream_id;
+		uint16_t original_network_id;
+		uint16_t service_id;
+
+		uint16_t event_id;
+		CEtime start_time;
+		CEtime end_time;
+
+		std::string *p_event_name;
+		std::string *p_text;
+
+	} EVENT_t;
+
+	typedef struct _req_event_param {
+		EVENT_KEY_t key;
+		EVENT_t *p_out_event;
+	} REQ_EVENT_PARAM_t;
+
 public:
 	explicit CEventScheduleManagerIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
 	};
@@ -53,10 +84,36 @@ public:
 		return requestAsync (EN_MODULE_EVENT_SCHEDULE_MANAGER, EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_DOWN);
 	};
 
-	bool reqStartCache_currentService (void) {
+	bool reqCacheSchedule_currentService (void) {
 		return requestAsync (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_CURRENT_SERVICE
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_CURRENT_SERVICE
+				);
+	};
+
+	bool reqGetEvent (REQ_EVENT_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT,
+					(uint8_t*)p_param,
+					sizeof (REQ_EVENT_PARAM_t)
+				);
+	};
+
+	bool syncGetEvent (REQ_EVENT_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestSync (
+					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT,
+					(uint8_t*)p_param,
+					sizeof (REQ_EVENT_PARAM_t)
 				);
 	};
 

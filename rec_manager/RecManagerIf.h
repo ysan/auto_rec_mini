@@ -18,6 +18,7 @@ enum {
 	EN_SEQ_REC_MANAGER__MODULE_UP = 0,
 	EN_SEQ_REC_MANAGER__MODULE_DOWN,
 	EN_SEQ_REC_MANAGER__CHECK_LOOP,				// inner
+	EN_SEQ_REC_MANAGER__CHECK_EVENT_LOOP,		// inner
 	EN_SEQ_REC_MANAGER__RECORDING_NOTICE,		// inner
 	EN_SEQ_REC_MANAGER__START_RECORDING,		// inner
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT,
@@ -34,6 +35,7 @@ typedef enum {
 	EN_RESERVE_REPEATABILITY__NONE = 0,
 	EN_RESERVE_REPEATABILITY__DAILY,
 	EN_RESERVE_REPEATABILITY__WEEKLY,
+	EN_RESERVE_REPEATABILITY__AUTO,		// for event_type
 } EN_RESERVE_REPEATABILITY;
 
 
@@ -45,6 +47,7 @@ public:
 		uint16_t original_network_id;
 		uint16_t service_id;
 
+		uint16_t event_id;
 		CEtime start_time;
 		CEtime end_time;
 
@@ -52,10 +55,11 @@ public:
 
 		void dump (void) const {
 		_UTL_LOG_I (
-				"reserve_param_t - tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] time:[%s - %s] repeat:[%d]",
+				"reserve_param_t - tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svcid:[0x%04x] time:[%s - %s] repeat:[%d]",
 				transport_stream_id,
 				original_network_id,
 				service_id,
+				event_id,
 				start_time.toString(),
 				end_time.toString(),
 				repeatablity
