@@ -306,42 +306,6 @@ void CEventInformationTable_sched::dumpTables_simple (void)
 	}
 }
 
-void CEventInformationTable_sched::dumpSelectTable (
-	uint8_t _table_id,
-	uint16_t _service_id,
-	uint16_t _transport_stream_id,
-	uint16_t _original_network_id,
-	uint16_t _event_id
-)
-{
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
-
-	if (mTables.size() == 0) {
-		return;
-	}
-
-	std::vector<CTable*>::const_iterator iter = mTables.begin(); 
-	for (; iter != mTables.end(); ++ iter) {
-		CTable *pTable = *iter;
-
-		if (
-			(pTable->header.table_id == _table_id) && 
-			(pTable->header.table_id_extension == _service_id) &&
-			(pTable->transport_stream_id == _transport_stream_id) &&
-			(pTable->original_network_id == _original_network_id)
-		) {
-
-			std::vector<CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
-			for (; iter_event != pTable->events.end(); ++ iter_event) {
-				if (iter_event->event_id == _event_id) {
-					dumpTable (pTable, _event_id);
-					break;
-				}
-			}
-		}
-	}
-}
-
 void CEventInformationTable_sched::dumpTable (const CTable* pTable) const
 {
 	if (!pTable) {
@@ -361,55 +325,6 @@ void CEventInformationTable_sched::dumpTable (const CTable* pTable) const
 
 	std::vector<CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
 	for (; iter_event != pTable->events.end(); ++ iter_event) {
-		_UTL_LOG_I ("\n--  event  --\n");
-		_UTL_LOG_I ("event_id                [0x%04x]\n", iter_event->event_id);
-		char szStime [32];
-		memset (szStime, 0x00, sizeof(szStime));
-		CTsAribCommon::getStrEpoch (CTsAribCommon::getEpochFromMJD (iter_event->start_time), "%Y/%m/%d %H:%M:%S", szStime, sizeof(szStime));
-		_UTL_LOG_I ("start_time              [%s]\n", szStime);
-		char szDuration [32];
-		memset (szDuration, 0x00, sizeof(szDuration));
-		CTsAribCommon::getStrSecond (CTsAribCommon::getSecFromBCD (iter_event->duration), szDuration, sizeof(szDuration));
-		_UTL_LOG_I ("duration                [%s]\n", szDuration);
-		_UTL_LOG_I ("running_status          [0x%02x]\n", iter_event->running_status);
-		_UTL_LOG_I ("free_CA_mode            [0x%02x]\n", iter_event->free_CA_mode);
-		_UTL_LOG_I ("descriptors_loop_length [%d]\n", iter_event->descriptors_loop_length);
-
-		std::vector<CDescriptor>::const_iterator iter_desc = iter_event->descriptors.begin();
-		for (; iter_desc != iter_event->descriptors.end(); ++ iter_desc) {
-			_UTL_LOG_I ("\n--  descriptor  --\n");
-			CDescriptorCommon::dump (iter_desc->tag, *iter_desc);
-		}
-	}
-
-	_UTL_LOG_I ("\n");
-}
-
-void CEventInformationTable_sched::dumpTable (const CTable* pTable, uint16_t _event_id) const
-{
-	if (!pTable) {
-		return;
-	}
-	
-	_UTL_LOG_I (__PRETTY_FUNCTION__);
-
-	std::vector<CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
-	for (; iter_event != pTable->events.end(); ++ iter_event) {
-
-		if (iter_event->event_id != _event_id) {
-			continue;
-		}
-
-		pTable->header.dump ();
-		_UTL_LOG_I ("========================================\n");
-
-		_UTL_LOG_I ("table_id                    [0x%02x]\n", pTable->header.table_id);
-		_UTL_LOG_I ("service_id                  [0x%04x]\n", pTable->header.table_id_extension);
-		_UTL_LOG_I ("transport_stream_id         [0x%04x]\n", pTable->transport_stream_id);
-		_UTL_LOG_I ("original_network_id         [0x%04x]\n", pTable->original_network_id);
-		_UTL_LOG_I ("segment_last_section_number [0x%02x]\n", pTable->segment_last_section_number);
-		_UTL_LOG_I ("last_table_id               [0x%02x]\n", pTable->last_table_id);
-
 		_UTL_LOG_I ("\n--  event  --\n");
 		_UTL_LOG_I ("event_id                [0x%04x]\n", iter_event->event_id);
 		char szStime [32];

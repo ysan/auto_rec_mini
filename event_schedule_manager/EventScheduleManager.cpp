@@ -42,23 +42,25 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	,mp_EIT_H_sched (NULL)
 {
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp,                    (char*)"onReq_moduleUp"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp,                      (char*)"onReq_moduleUp"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleDown,                  (char*)"onReq_moduleDown"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleDown,                    (char*)"onReq_moduleDown"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop,                   (char*)"onReq_checkLoop"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop,                     (char*)"onReq_checkLoop"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice,                (char*)"onReq_parserNotice"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice,                  (char*)"onReq_parserNotice"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_startCacheSchedule,          (char*)"onReq_startCacheSchedule"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_startCacheSchedule,            (char*)"onReq_startCacheSchedule"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_CURRENT_SERVICE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule_currentService,(char*)"onReq_cacheSchedule_currentService"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule_currentService,  (char*)"onReq_cacheSchedule_currentService"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent,                    (char*)"onReq_getEvent"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent,                      (char*)"onReq_getEvent"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT_LATEST_DUMPED_SCHEDULE] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent_latestDumpedSchedule, (char*)"onReq_getEvent_latestDumpedSchedule"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,             (char*)"onReq_dumpScheduleMap"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,               (char*)"onReq_dumpScheduleMap"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule,                (char*)"onReq_dumpSchedule"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule,                  (char*)"onReq_dumpSchedule"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
 
 
@@ -66,6 +68,9 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	m_startTime_EITSched.clear();
 
 	m_sched_map.clear ();
+
+	m_latest_dumped_key.clear();
+
 }
 
 CEventScheduleManager::~CEventScheduleManager (void)
@@ -784,7 +789,60 @@ void CEventScheduleManager::onReq_getEvent (CThreadMgrIf *pIf)
 
 	} else {
 
-		const CEvent *p = getEvent (_param.key);
+		const CEvent *p = getEvent (_param.arg.key);
+		CEvent* p_event = const_cast <CEvent*> (p);
+		if (p_event) {
+
+			_param.p_out_event->table_id = p_event->table_id;
+			_param.p_out_event->transport_stream_id = p_event->transport_stream_id;
+			_param.p_out_event->original_network_id = p_event->original_network_id;
+			_param.p_out_event->service_id = p_event->service_id;
+
+			_param.p_out_event->event_id = p_event->event_id;
+			_param.p_out_event->start_time = p_event->start_time;
+			_param.p_out_event->end_time = p_event->end_time;
+
+			_param.p_out_event->p_event_name = &p_event->event_name;
+			_param.p_out_event->p_text = &p_event->text;
+
+			pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		} else {
+
+			_UTL_LOG_E ("getEvent is null.");
+			pIf->reply (EN_THM_RSLT_ERROR);
+
+		}
+	}
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CEventScheduleManager::onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param =
+			*(CEventScheduleManagerIf::REQ_EVENT_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+	if (!_param.p_out_event) {
+		_UTL_LOG_E ("_param.p_out_event is null.");
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else {
+
+		const CEvent *p = getEvent (m_latest_dumped_key, _param.arg.index);
 		CEvent* p_event = const_cast <CEvent*> (p);
 		if (p_event) {
 
@@ -853,6 +911,7 @@ void CEventScheduleManager::onReq_dumpSchedule (CThreadMgrIf *pIf)
 
 	CEventScheduleManagerIf::SERVICE_KEY_t _key = *(CEventScheduleManagerIf::SERVICE_KEY_t*)(pIf->getSrcInfo()->msg.pMsg);
 	SERVICE_KEY_t key (_key);
+	m_latest_dumped_key = key;
 
 	dumpScheduleMap (key);
 
@@ -1040,11 +1099,18 @@ void CEventScheduleManager::dumpSchedule (const std::vector <CEvent*> *p_sched) 
 		return;
 	}
 
+	int i = 0;
 	std::vector<CEvent*>::const_iterator iter = p_sched->begin();
 	for (; iter != p_sched->end(); ++ iter) {
 		CEvent* p = *iter;
 		if (p) {
+			_UTL_LOG_I ("-----------------------------------");
+			_UTL_LOG_I ("[[[%d]]]", i);
+			_UTL_LOG_I ("-----------------------------------");
+
 			p->dump();
+
+			++ i;
 		}
 	}
 }
@@ -1175,6 +1241,43 @@ const CEvent *CEventScheduleManager::getEvent (const CEventScheduleManagerIf::EV
 					r = p;
 					break;
 				}
+			}
+		}
+	}
+
+	return r;
+}
+
+const CEvent *CEventScheduleManager::getEvent (const SERVICE_KEY_t &key, int index) const
+{
+	if (!hasScheduleMap (key)) {
+		_UTL_LOG_I ("not hasScheduleMap...");
+		return NULL;
+	}
+
+
+	CEvent *r = NULL;
+	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+
+	if (iter == m_sched_map.end()) {
+		return NULL;
+
+	} else {
+		std::vector <CEvent*> *p_sched = iter->second;
+		if (p_sched->size() == 0) {
+			return NULL;
+
+		} else {
+			int _idx = 0;
+			std::vector<CEvent*>::const_iterator iter_event = p_sched->begin();
+			for (; iter_event != p_sched->end(); ++ iter_event) {
+				if (index == _idx) {
+					CEvent* p = *iter_event;
+					r = p;
+					break;
+				}
+
+				++ _idx;
 			}
 		}
 	}

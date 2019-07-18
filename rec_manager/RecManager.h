@@ -217,6 +217,7 @@ public:
 	void onReq_startRecording (CThreadMgrIf *pIf);
 	void onReq_addReserve_currentEvent (CThreadMgrIf *pIf);
 	void onReq_addReserve_event (CThreadMgrIf *pIf);
+	void onReq_addReserve_event_helper (CThreadMgrIf *pIf);
 	void onReq_addReserve_manual (CThreadMgrIf *pIf);
 	void onReq_removeReserve (CThreadMgrIf *pIf);
 	void onReq_stopRecording (CThreadMgrIf *pIf);

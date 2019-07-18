@@ -59,6 +59,8 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_currentEvent, (char*)"onReq_addReserve_currentEvent"};
 	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_event,        (char*)"onReq_addReserve_event"};
+	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_event_helper, (char*)"onReq_addReserve_event_helper"};
 	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_manual,       (char*)"onReq_addReserve_manual"};
 	mSeqs [EN_SEQ_REC_MANAGER__REMOVE_RESERVE] =
@@ -1065,6 +1067,129 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 
 		CEventScheduleManagerIf _if (getExternalIf());
 		_if.reqGetEvent (&param);
+
+		sectId = SECTID_WAIT_GET_EVENT;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_GET_EVENT:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			sectId = SECTID_ADD_RESERVE;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			// 予約に対応するイベントがなかった あらら...
+			_UTL_LOG_E ("reqGetEvent error");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		break;
+
+	case SECTID_ADD_RESERVE: {
+
+		bool r = addReserve (
+						s_event.transport_stream_id,
+						s_event.original_network_id,
+						s_event.service_id,
+						s_event.event_id,
+						&s_event.start_time,
+						&s_event.end_time,
+						s_event.p_event_name->c_str(),
+						true, // is_event_type true
+						s_param.repeatablity
+					);
+		if (r) {
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+		} else {
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		}
+		break;
+
+	case SECTID_END_SUCCESS:
+
+		memset (&s_param, 0x00, sizeof(s_param));
+		memset (&s_event, 0x00, sizeof(s_event));
+
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	case SECTID_END_ERROR:
+
+		memset (&s_param, 0x00, sizeof(s_param));
+		memset (&s_event, 0x00, sizeof(s_event));
+
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+
+	pIf->setSectId (sectId, enAct);
+}
+
+void CRecManager::onReq_addReserve_event_helper (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_GET_EVENT,
+		SECTID_WAIT_GET_EVENT,
+		SECTID_ADD_RESERVE,
+		SECTID_END_SUCCESS,
+		SECTID_END_ERROR,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	static CRecManagerIf::ADD_RESERVE_HELPER_PARAM_t s_param;
+	static CEventScheduleManagerIf::EVENT_t s_event;
+
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+
+		s_param = *(CRecManagerIf::ADD_RESERVE_HELPER_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+
+		// repeatablityのチェック入れときます
+		if (
+			s_param.repeatablity == EN_RESERVE_REPEATABILITY__NONE ||
+			s_param.repeatablity == EN_RESERVE_REPEATABILITY__AUTO
+		) {
+			sectId = SECTID_REQ_GET_EVENT;
+			enAct = EN_THM_ACT_CONTINUE;
+		} else {
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		break;
+
+	case SECTID_REQ_GET_EVENT: {
+
+		CEventScheduleManagerIf::REQ_EVENT_PARAM_t param ;
+		param.arg.index = s_param.index;
+		param.p_out_event = &s_event;
+
+		CEventScheduleManagerIf _if (getExternalIf());
+		_if.reqGetEvent_latestDumpedSchedule (&param);
 
 		sectId = SECTID_WAIT_GET_EVENT;
 		enAct = EN_THM_ACT_WAIT;

@@ -24,6 +24,7 @@ enum {
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,	// inner
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_CURRENT_SERVICE,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT,
+	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT_LATEST_DUMPED_SCHEDULE,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE,
 
@@ -64,7 +65,11 @@ public:
 	} EVENT_t;
 
 	typedef struct _req_event_param {
-		EVENT_KEY_t key;
+		union _arg {
+			// key指定か index指定か
+			EVENT_KEY_t key;
+			int index;
+		} arg;
 		EVENT_t *p_out_event;
 	} REQ_EVENT_PARAM_t;
 
@@ -112,6 +117,32 @@ public:
 		return requestSync (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
 					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT,
+					(uint8_t*)p_param,
+					sizeof (REQ_EVENT_PARAM_t)
+				);
+	};
+
+	bool reqGetEvent_latestDumpedSchedule (REQ_EVENT_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT_LATEST_DUMPED_SCHEDULE,
+					(uint8_t*)p_param,
+					sizeof (REQ_EVENT_PARAM_t)
+				);
+	};
+
+	bool syncGetEvent_latestDumpedSchedule (REQ_EVENT_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestSync (
+					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT_LATEST_DUMPED_SCHEDULE,
 					(uint8_t*)p_param,
 					sizeof (REQ_EVENT_PARAM_t)
 				);

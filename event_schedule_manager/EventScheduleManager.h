@@ -198,7 +198,6 @@ public:
 	}
 
 	void dump (void) const {
-		_UTL_LOG_I ("-----------------------------------");
 		_UTL_LOG_I (
 			"tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] num:[0x%02x] evtid:[0x%04x]",
 			table_id,
@@ -235,6 +234,7 @@ public:
 	void onReq_startCacheSchedule (CThreadMgrIf *pIf);
 	void onReq_cacheSchedule_currentService (CThreadMgrIf *pIf);
 	void onReq_getEvent (CThreadMgrIf *pIf);
+	void onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
 	void onReq_dumpScheduleMap (CThreadMgrIf *pIf);
 	void onReq_dumpSchedule (CThreadMgrIf *pIf);
 
@@ -259,7 +259,7 @@ private:
 	void dumpScheduleMap (const SERVICE_KEY_t &key) const;
 
 	const CEvent *getEvent (const CEventScheduleManagerIf::EVENT_KEY_t &key) const;
-
+	const CEvent *getEvent (const SERVICE_KEY_t &key, int index) const;
 
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM]; // entity
@@ -275,6 +275,8 @@ private:
 	CEtime m_startTime_EITSched;
 
 	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> m_sched_map;
+
+	SERVICE_KEY_t m_latest_dumped_key;
 
 };
 

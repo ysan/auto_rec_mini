@@ -28,6 +28,9 @@ public:
 		virtual ~CParams (void) {}
 
 
+		bool isSyslogOutput (void) {
+			return m_is_syslog_output;
+		}
 		uint16_t getCommandServerPort (void) {
 			return m_command_server_port;
 		}
@@ -50,6 +53,7 @@ public:
 
 		void dump (void) {
 			_UTL_LOG_I ("--  settings  --");
+			_UTL_LOG_I ("m_is_syslog_output:[%d]", m_is_syslog_output);
 			_UTL_LOG_I ("m_command_server_port:[%d]", m_command_server_port);
 			_UTL_LOG_I ("m_channel_scan_json_path:[%s]", m_channel_scan_json_path.c_str());
 			_UTL_LOG_I ("m_rec_reserve_json_path:[%s]", m_rec_reserve_json_path.c_str());
@@ -63,6 +67,7 @@ public:
 		template <class T>
 		void serialize (T & archive) {
 			archive (
+				CEREAL_NVP(m_is_syslog_output),
 				CEREAL_NVP(m_command_server_port),
 				CEREAL_NVP(m_channel_scan_json_path),
 				CEREAL_NVP(m_rec_reserve_json_path),
@@ -75,6 +80,7 @@ public:
 
 	private:
 
+		bool m_is_syslog_output;
 		uint16_t m_command_server_port;
 		std::string m_channel_scan_json_path;
 		std::string m_rec_reserve_json_path;

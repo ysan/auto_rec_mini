@@ -297,6 +297,46 @@ static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void addReserve_event_helper (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 2) {
+		_UTL_LOG_E ("invalid arguments.");
+		return;
+	}
+
+	std::regex regex_idx ("^[0-9]+$");
+	if (!std::regex_match (argv[0], regex_idx)) {
+		_UTL_LOG_E ("invalid arguments. (index)");
+		return;
+	}
+	uint16_t _idx = atoi (argv[0]);
+
+
+	std::regex regex_repeat("^[0-1]$");
+	if (!std::regex_match (argv[1], regex_repeat)) {
+		_UTL_LOG_E ("invalid arguments. (repeat)");
+		return;
+	}
+	int rpt = atoi (argv[1]);
+	EN_RESERVE_REPEATABILITY r = rpt == 0 ? EN_RESERVE_REPEATABILITY__NONE: EN_RESERVE_REPEATABILITY__AUTO;
+
+
+	CRecManagerIf::ADD_RESERVE_HELPER_PARAM_t _param;
+	_param.index = _idx ;
+	_param.repeatablity = r;
+
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CRecManagerIf mgr(pBase->getExternalIf());
+	mgr.reqAddReserve_event_helper (&_param);
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
 static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 2) {
@@ -395,9 +435,17 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 	{
 		"e",
 		"add reserve - event\n\
-                                (usage: m {tsid} {org_nid} {svcid} {evtid} {repeat} )\n\
+                                (usage: e {tsid} {org_nid} {svcid} {evtid} {repeat} )\n\
                                            - repeat is 0 (none), 1 (auto)",
 		addReserve_event,
+		NULL,
+	},
+	{
+		"eh",
+		"add reserve - event (helper)\n\
+                                (usage: eh {index} {repeat} )\n\
+                                           - repeat is 0 (none), 1 (auto)",
+		addReserve_event_helper,
 		NULL,
 	},
 	{

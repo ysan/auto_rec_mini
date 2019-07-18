@@ -40,9 +40,14 @@ int main (int argc, char *argv[])
 	s->load (settings_json);
 
 
-	initLogStdout(); // threadmgr
-	initSyslog(); // threadmgr syslog output
-	CUtils::initSyslog();
+	// threadmgr log init
+	initLogStdout();
+
+	// syslog initialize
+	if (s->getParams()->isSyslogOutput()) {
+		initSyslog(); // threadmgr syslog output
+		CUtils::initSyslog();
+	}
 
 
 	s->getParams()->dump ();
@@ -88,6 +93,13 @@ int main (int argc, char *argv[])
 	p_mgr->teardown();
 	delete p_mgr;
 	p_mgr = NULL;
+
+
+	// syslog finalize
+	if (s->getParams()->isSyslogOutput()) {
+		finalizSyslog(); // threadmgr syslog output
+		CUtils::finalizSyslog();
+	}
 
 
 	exit (EXIT_SUCCESS);

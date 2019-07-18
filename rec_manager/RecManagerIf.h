@@ -23,6 +23,7 @@ enum {
 	EN_SEQ_REC_MANAGER__START_RECORDING,		// inner
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT,
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT,
+	EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER,
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL,
 	EN_SEQ_REC_MANAGER__REMOVE_RESERVE,
 	EN_SEQ_REC_MANAGER__STOP_RECORDING,
@@ -70,6 +71,11 @@ public:
 
 	typedef struct {
 		int index;
+		EN_RESERVE_REPEATABILITY repeatablity;
+	} ADD_RESERVE_HELPER_PARAM_t;
+
+	typedef struct {
+		int index;
 		bool isConsiderRepeatability;
 	} REMOVE_RESERVE_PARAM_t;
 
@@ -106,6 +112,19 @@ public:
 					EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT,
 					(uint8_t*)p_param,
 					sizeof (ADD_RESERVE_PARAM_t)
+				);
+	};
+
+	bool reqAddReserve_event_helper (ADD_RESERVE_HELPER_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_REC_MANAGER,
+					EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER,
+					(uint8_t*)p_param,
+					sizeof (ADD_RESERVE_HELPER_PARAM_t)
 				);
 	};
 
