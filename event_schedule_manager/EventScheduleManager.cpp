@@ -1105,7 +1105,7 @@ void CEventScheduleManager::dumpSchedule (const std::vector <CEvent*> *p_sched) 
 		CEvent* p = *iter;
 		if (p) {
 			_UTL_LOG_I ("-----------------------------------");
-			_UTL_LOG_I ("[[[%d]]]", i);
+			_UTL_LOG_I ("[[[ %d ]]]", i);
 			_UTL_LOG_I ("-----------------------------------");
 
 			p->dump();

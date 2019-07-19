@@ -4,8 +4,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include <limits.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,9 +26,52 @@ extern "C" {
 #include "aribstr.h"
 
 
+
+static const struct reserve_state_pair g_reserveStatePair [] = {
+	{0x00000000, "INIT"},
+	{0x00000001, "REMOVE_RESERVE"},
+	{0x00000002, "START_TIME_PASSED"},
+	{0x00000004, "REQ_START_RECORDING"},
+	{0x00000008, "NOW_RECORDING"},
+	{0x00000010, "FORCE_STOP"},
+	{0x00000020, "END_SUCCESS"},
+	{0x00000040, "END_ERROR__ALREADY_PASSED"},
+	{0x00000080, "END_ERROR__HDD_FREE_SPACE_LOW"},
+	{0x00000100, "END_ERROR__INTERNAL_ERR"},
+
+	{0x00000000, NULL}, // term
+};
+
+static char gsz_reserveState [100];
+
+const char * getReserveState (uint32_t state)
+{
+	memset (gsz_reserveState, 0x00, sizeof(gsz_reserveState));
+	int n = 0;
+	int s = 0;
+
+	while (g_reserveStatePair [n].psz_reserveState != NULL) {
+		if (state & g_reserveStatePair [n].state) {
+			s += snprintf (gsz_reserveState + s, sizeof(gsz_reserveState),
+								"%s,", g_reserveStatePair [n].psz_reserveState);
+		}
+		++ n ;
+	}
+
+	return gsz_reserveState;
+}
+
+const char *g_repeatability [] = {
+	"NONE",
+	"DAILY",
+	"WEEKLY",
+	"AUTO",
+};
+
+
 typedef struct {
 	EN_REC_PROGRESS rec_progress;
-	EN_RESERVE_STATE reserve_state;
+	uint32_t reserve_state;
 } RECORDING_NOTICE_t;
 
 
@@ -75,6 +116,8 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	clearReserves ();
 	clearResults ();
 	m_recording.clear();
+
+	memset (m_recording_tmpfile, 0x00, sizeof (m_recording_tmpfile));
 }
 
 CRecManager::~CRecManager (void)
@@ -82,6 +125,8 @@ CRecManager::~CRecManager (void)
 	clearReserves ();
 	clearResults ();
 	m_recording.clear();
+
+	memset (m_recording_tmpfile, 0x00, sizeof (m_recording_tmpfile));
 }
 
 
@@ -348,10 +393,9 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 		// reserve check
 		checkReserves ();
-		refreshReserves ();
 
 
-		if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
+		if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
 
 			// recording end check
 			if (checkRecordingEnd ()) {
@@ -391,7 +435,7 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			m_recording.state = EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
 			setResult (&m_recording);
 			m_recording.clear();
 
@@ -422,7 +466,7 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 //s_presentEventInfo.dump();
-			if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
+			if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
 
 				if (m_recording.is_event_type) {
 					// event_typeの録画は event_idとend_timeの確認
@@ -439,7 +483,11 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 					} else {
 //TODO
 						// event_idが変わった とりあえずログだしとく
-						_UTL_LOG_W ("#####  recording event_id is update.  #####");
+						_UTL_LOG_W (
+							"#####  recording event_id is update.  [0x%04x] -> [0x%04x]  #####",
+							s_presentEventInfo.event_id,
+							m_recording.event_id
+						);
 						m_recording.dump();
 						s_presentEventInfo.dump();
 					}
@@ -515,7 +563,7 @@ void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 				continue;
 			}
 
-			if (!m_reserves [i].state == EN_RESERVE_STATE__INIT) {
+			if (!m_reserves [i].state == RESERVE_STATE__INIT) {
 				continue;
 			}
 
@@ -612,8 +660,9 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 		break;
 
 	case EN_REC_PROGRESS__PRE_PROCESS:
-		if (_notice.reserve_state != EN_RESERVE_STATE__INIT) {
-			m_recording.state = _notice.reserve_state;
+		// ここでは エラーが起きることがあるのでRESERVE_STATE をチェックします
+		if (_notice.reserve_state != RESERVE_STATE__INIT) {
+			m_recording.state |= _notice.reserve_state;
 		}
 		break;
 
@@ -621,43 +670,40 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 		break;
 
 	case EN_REC_PROGRESS__END_SUCCESS:
-		m_recording.state = EN_RESERVE_STATE__END_SUCCESS;
+		m_recording.state |= RESERVE_STATE__END_SUCCESS;
 		break;
 
 	case EN_REC_PROGRESS__END_ERROR:
 		break;
 
 	case EN_REC_PROGRESS__POST_PROCESS: {
+
+		// NOW_RECORDINGフラグは落としておきます
+		m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
+
 		setResult (&m_recording);
 
 
 		// rename
 		std::string *p_path = CSettings::getInstance()->getParams()->getRecTsPath();
 
-		char tmpfile [PATH_MAX] = {0};
-		snprintf (
-			tmpfile,
-			sizeof(tmpfile),
-			"%s/tmp.m2ts",
-			p_path->c_str()
-		);
-
 		char newfile [PATH_MAX] = {0};
 		char *p_name = (char*)"rec";
 		if (m_recording.title_name.c_str()) {
 			p_name = (char*)m_recording.title_name.c_str();
 		}
+		CEtime t_end;
+		t_end.setCurrentTime();
 		snprintf (
 			newfile,
 			sizeof(newfile),
-			"%s/%s_%s-%s.m2ts",
+			"%s/%s_%s.m2ts",
 			p_path->c_str(),
 			p_name,
-			m_recording.start_time.toString2(),
-			m_recording.end_time.toString2()
+			t_end.toString2()
 		);
 
-		rename (tmpfile, newfile) ;
+		rename (m_recording_tmpfile, newfile) ;
 
 		m_recording.clear ();
 		_UTL_LOG_I ("recording end...");
@@ -775,12 +821,29 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	case SECTID_START_RECORDING:
 
+		// 録画開始
 		// ここはm_recProgressで判断いれとく
 		if (m_recProgress == EN_REC_PROGRESS__INIT) {
 
 			_UTL_LOG_I ("start recording (on tune thread)");
+
+			memset (m_recording_tmpfile, 0x00, sizeof(m_recording_tmpfile));
+			std::string *p_path = CSettings::getInstance()->getParams()->getRecTsPath();
+			snprintf (
+				m_recording_tmpfile,
+				sizeof(m_recording_tmpfile),
+				"%s/tmp.m2ts.%lu",
+				p_path->c_str(),
+				pthread_self()
+			);
+
+
+			// ######################################### //
 			m_recProgress = EN_REC_PROGRESS__PRE_PROCESS;
-			m_recording.state = EN_RESERVE_STATE__NOW_RECORDING;
+			// ######################################### //
+
+
+			m_recording.state |= RESERVE_STATE__NOW_RECORDING;
 
 			sectId = SECTID_END_SUCCESS;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -1425,12 +1488,12 @@ void CRecManager::onReq_stopRecording (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
+	if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
 
 		// stopRecording が呼ばれたらエラー終了にしておきます
 		_UTL_LOG_W ("m_recProgress = EN_REC_PROGRESS__END_ERROR");
 		m_recProgress = EN_REC_PROGRESS__END_ERROR;
-		m_recording.state = EN_RESERVE_STATE__END_ERROR__FORCE_STOP;
+		m_recording.state |= RESERVE_STATE__FORCE_STOP;
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -1517,9 +1580,9 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 			_UTL_LOG_E ("EN_PAT_DETECT_STATE__NOT_DETECTED");
 
 			// PAT途絶したら録画中止します
-			if (m_recording.state == EN_RESERVE_STATE__NOW_RECORDING) {
+			if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
 				m_recProgress = EN_REC_PROGRESS__POST_PROCESS;
-				m_recording.state = EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+				m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
 
 
 				uint32_t opt = getRequestOption ();
@@ -1614,8 +1677,9 @@ bool CRecManager::addReserve (
 	}
 
 	if (isOverrapTimeReserve (&tmp)) {
-		_UTL_LOG_E ("reserve time is overrap.");
-		return false;
+		_UTL_LOG_W ("reserve time is overrap.");
+// 時間被ってるけど予約入れます
+//		return false;
 	}
 
 
@@ -1656,7 +1720,7 @@ bool CRecManager::removeReserve (int index, bool isConsiderRepeatability)
 		return false;
 	}
 
-	m_reserves [index].state = EN_RESERVE_STATE__END_ERROR__REMOVE_RESERVE;
+	m_reserves [index].state |= RESERVE_STATE__REMOVE_RESERVE;
 	setResult (&m_reserves[index]);
 
 	if (isConsiderRepeatability) {
@@ -1810,49 +1874,63 @@ void CRecManager::checkReserves (void)
 			continue;
 		}
 
-		if (!m_reserves [i].state == EN_RESERVE_STATE__INIT) {
+		if (!m_reserves [i].state == RESERVE_STATE__INIT) {
 			continue;
 		}
 
+		// 開始時間/終了時間とも過ぎていたら resultsに入れときます
 		if (m_reserves [i].start_time < current_time && m_reserves [i].end_time <= current_time) {
-			m_reserves [i].state = EN_RESERVE_STATE__END_ERROR__ALREADY_PASSED;
+			m_reserves [i].state |= RESERVE_STATE__END_ERROR__ALREADY_PASSED;
 			setResult (&m_reserves[i]);
 			checkRepeatability (&m_reserves[i]);
 			continue;
 		}
 
+		// 開始時間をみて 時間が来たら 録画要求を立てます
+		// start_time - end_time 範囲内
 		if (m_reserves [i].start_time <= current_time && m_reserves [i].end_time > current_time) {
 
-			// request start recording
-			m_reserves [i].state = EN_RESERVE_STATE__REQ_START_RECORDING;
+			// 開始時間から10秒以上経過していたら フラグたてときます
+			CEtime tmp = m_reserves [i].start_time;
+			tmp.addSec(10);
+			if (tmp <= current_time) {
+				m_reserves [i].state |= RESERVE_STATE__START_TIME_PASSED;
+			}
 
+			if (!m_recording.is_used) {
+				// 録画中でなければ 録画開始フラグ立てます
+				m_reserves [i].state |= RESERVE_STATE__REQ_START_RECORDING;
+			}
 		}
 	}
+
+	refreshReserves (RESERVE_STATE__END_ERROR__ALREADY_PASSED);
 }
 
 /**
- * reservesのエラーのものをを除去します
+ * 引数のstateが立っている予約を除去します
  */
-void CRecManager::refreshReserves (void)
+void CRecManager::refreshReserves (uint32_t state)
 {
-	// 逆から見てエラーのものを詰めます
+	// 逆から見ます
 	for (int i = RESERVE_NUM_MAX -1; i >= 0; -- i) {
 		if (!m_reserves [i].is_used) {
 			continue;
 		}
 
-		if (m_reserves[i].state <= EN_RESERVE_STATE__END_SUCCESS) {
+		if (!(m_reserves[i].state & state)) {
 			continue;
 		}
 
+		// 間詰め
 		for (int j = i; j < RESERVE_NUM_MAX -1; ++ j) {
 			m_reserves [j] = m_reserves [j+1];
 		}
-
 		m_reserves [RESERVE_NUM_MAX -1].clear();
 
-		saveReserves ();
 	}
+
+	saveReserves ();
 }
 
 bool CRecManager::pickReqStartRecordingReserve (void)
@@ -1866,7 +1944,7 @@ bool CRecManager::pickReqStartRecordingReserve (void)
 			continue;
 		}
 
-		if (m_reserves[i].state == EN_RESERVE_STATE__REQ_START_RECORDING) {
+		if (m_reserves[i].state & RESERVE_STATE__REQ_START_RECORDING) {
 
 			// 次に録画する予約を取り出します
 			m_recording = m_reserves[i];
@@ -1986,7 +2064,7 @@ bool CRecManager::checkRecordingEnd (void)
 		return false;
 	}
 
-	if (m_recording.state != EN_RESERVE_STATE__NOW_RECORDING) {
+	if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
 		return false;
 	}
 
@@ -2086,20 +2164,11 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 	case EN_REC_PROGRESS__PRE_PROCESS: {
 		_UTL_LOG_I ("EN_REC_PROGRESS__PRE_PROCESS");
 
-		char tmpfile [PATH_MAX] = {0};
-		std::string *p_path = CSettings::getInstance()->getParams()->getRecTsPath();
-		snprintf (
-			tmpfile,
-			sizeof(tmpfile),
-			"%s/tmp.m2ts",
-			p_path->c_str()
-		);
-
-		mp_outputBuffer = create_FileBufferedWriter (768 * 1024, tmpfile);
+		mp_outputBuffer = create_FileBufferedWriter (768 * 1024, m_recording_tmpfile);
 		if (!mp_outputBuffer) {
 			_UTL_LOG_E ("failed to init FileBufferedWriter.");
 
-			RECORDING_NOTICE_t _notice = {m_recProgress, EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR};
+			RECORDING_NOTICE_t _notice = {m_recProgress, RESERVE_STATE__END_ERROR__INTERNAL_ERR};
 			requestAsync (
 				EN_MODULE_REC_MANAGER,
 				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
@@ -2118,7 +2187,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 				_UTL_LOG_E ("failed to init TS Parser.");
 				OutputBuffer_release (pFileBufferedWriter);
 
-				RECORDING_NOTICE_t _notice = {m_recProgress, EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR};
+				RECORDING_NOTICE_t _notice = {m_recProgress, RESERVE_STATE__END_ERROR__INTERNAL_ERR};
 				requestAsync (
 					EN_MODULE_REC_MANAGER,
 					EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
@@ -2132,7 +2201,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 			}
 
 
-			RECORDING_NOTICE_t _notice = {m_recProgress, EN_RESERVE_STATE__INIT};
+			RECORDING_NOTICE_t _notice = {m_recProgress, RESERVE_STATE__INIT};
 			requestAsync (
 				EN_MODULE_REC_MANAGER,
 				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
@@ -2162,7 +2231,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 	case EN_REC_PROGRESS__END_SUCCESS: {
 		_UTL_LOG_I ("EN_REC_PROGRESS__END_SUCCESS");
 
-		RECORDING_NOTICE_t _notice = {m_recProgress, EN_RESERVE_STATE__INIT};
+		RECORDING_NOTICE_t _notice = {m_recProgress, RESERVE_STATE__INIT};
 		requestAsync (
 			EN_MODULE_REC_MANAGER,
 			EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
@@ -2179,7 +2248,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 	case EN_REC_PROGRESS__END_ERROR: {
 		_UTL_LOG_I ("EN_REC_PROGRESS__END_ERROR");
 
-		RECORDING_NOTICE_t _notice = {m_recProgress, EN_RESERVE_STATE__INIT};
+		RECORDING_NOTICE_t _notice = {m_recProgress, RESERVE_STATE__INIT};
 		requestAsync (
 			EN_MODULE_REC_MANAGER,
 			EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
@@ -2202,7 +2271,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 			mp_outputBuffer = NULL;
 		}
 
-		RECORDING_NOTICE_t _notice = {m_recProgress, EN_RESERVE_STATE__INIT};
+		RECORDING_NOTICE_t _notice = {m_recProgress, RESERVE_STATE__INIT};
 		requestAsync (
 			EN_MODULE_REC_MANAGER,
 			EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
@@ -2229,7 +2298,10 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 template <class Archive>
 void serialize (Archive &archive, struct timespec &t)
 {
-	archive (cereal::make_nvp("tv_sec", t.tv_sec), cereal::make_nvp("tv_nsec", t.tv_nsec));
+	archive (
+		cereal::make_nvp("tv_sec", t.tv_sec),
+		cereal::make_nvp("tv_nsec", t.tv_nsec)
+	);
 }
 
 template <class Archive>
@@ -2249,6 +2321,7 @@ void serialize (Archive &archive, CRecReserve &r)
 		cereal::make_nvp("start_time", r.start_time),
 		cereal::make_nvp("end_time", r.end_time),
 		cereal::make_nvp("title_name", r.title_name),
+		cereal::make_nvp("is_event_type", r.is_event_type),
 		cereal::make_nvp("repeatability", r.repeatability),
 		cereal::make_nvp("state", r.state),
 		cereal::make_nvp("is_used", r.is_used)
@@ -2288,6 +2361,13 @@ void CRecManager::loadReserves (void)
 
 	ifs.close();
 	ss.clear();
+
+
+	// CEtimeの値は直接 tv_sec,tvnsecに書いてるので toString用の文字はここで作ります
+	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
+		m_reserves [i].start_time.updateStrings();
+		m_reserves [i].end_time.updateStrings();
+	}
 }
 
 void CRecManager::saveResults (void)
@@ -2323,4 +2403,11 @@ void CRecManager::loadResults (void)
 
 	ifs.close();
 	ss.clear();
+
+
+	// CEtimeの値は直接 tv_sec,tvnsecに書いてるので toString用の文字はここで作ります
+	for (int i = 0; i < RESULT_NUM_MAX; ++ i) {
+		m_results [i].start_time.updateStrings();
+		m_results [i].end_time.updateStrings();
+	}
 }

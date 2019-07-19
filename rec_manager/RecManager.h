@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <limits.h>
 
 #include <iostream>
 #include <fstream>
@@ -36,8 +37,19 @@
 using namespace ThreadManager;
 
 
-#define RESERVE_NUM_MAX		(4)
-#define RESULT_NUM_MAX		(4)
+#define RESERVE_NUM_MAX		(20)
+#define RESULT_NUM_MAX		(20)
+
+#define RESERVE_STATE__INIT								(0x00000000)
+#define RESERVE_STATE__REMOVE_RESERVE					(0x00000001)
+#define RESERVE_STATE__START_TIME_PASSED				(0x00000002)
+#define RESERVE_STATE__REQ_START_RECORDING				(0x00000004)
+#define RESERVE_STATE__NOW_RECORDING					(0x00000008)
+#define RESERVE_STATE__FORCE_STOP						(0x00000010)
+#define RESERVE_STATE__END_SUCCESS						(0x00000020)
+#define RESERVE_STATE__END_ERROR__ALREADY_PASSED		(0x00000040)
+#define RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW	(0x00000080)
+#define RESERVE_STATE__END_ERROR__INTERNAL_ERR			(0x00000100)
 
 
 typedef enum {
@@ -49,36 +61,13 @@ typedef enum {
 	EN_REC_PROGRESS__POST_PROCESS,
 } EN_REC_PROGRESS;
 
-typedef enum {
-	EN_RESERVE_STATE__INIT = 0,
-	EN_RESERVE_STATE__REQ_START_RECORDING,
-	EN_RESERVE_STATE__NOW_RECORDING,
-	EN_RESERVE_STATE__END_SUCCESS,
-	EN_RESERVE_STATE__END_ERROR__FORCE_STOP,
-	EN_RESERVE_STATE__END_ERROR__ALREADY_PASSED,
-	EN_RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW,
-	EN_RESERVE_STATE__END_ERROR__INTERNAL_ERR,
-	EN_RESERVE_STATE__END_ERROR__REMOVE_RESERVE,
-} EN_RESERVE_STATE;
 
-const char *g_reserveState [] = {
-	"INIT",
-	"REQ_START_RECORDING",
-	"NOW_RECORDING",
-	"END_SUCCESS",
-	"END_ERROR__FORCE_STOP",
-	"END_ERROR__ALREADY_PASSED",
-	"END_ERROR__HDD_FREE_SPACE_LOW",
-	"END_ERROR__INTERNAL_ERR",
-	"END_ERROR__REMOVE_RESERVE",
+struct reserve_state_pair {
+	uint32_t state;
+	const char *psz_reserveState;
 };
 
-const char *g_repeatability [] = {
-	"NONE",
-	"DAILY",
-	"WEEKLY",
-	"AUTO",
-};
+const char * getReserveState (uint32_t state);
 
 
 class CRecReserve {
@@ -133,7 +122,7 @@ public:
 	bool is_event_type ;
 	EN_RESERVE_REPEATABILITY repeatability;
 
-	EN_RESERVE_STATE state;
+	uint32_t state;
 	bool is_used;
 
 
@@ -160,7 +149,7 @@ public:
 		}
 		this->is_event_type = _is_event_type;
 		this->repeatability = _repeatability;
-		this->state = EN_RESERVE_STATE__INIT;
+		this->state = RESERVE_STATE__INIT;
 		this->is_used = true;
 	}
 
@@ -174,7 +163,7 @@ public:
 		title_name.clear();
 		is_event_type = false;
 		repeatability = EN_RESERVE_REPEATABILITY__NONE;
-		state = EN_RESERVE_STATE__INIT;
+		state = RESERVE_STATE__INIT;
 		is_used = false;
 	}
 
@@ -191,12 +180,14 @@ public:
 			start_time.toString(),
 			end_time.toString(),
 			is_event_type,
-			g_repeatability [repeatability],
-			g_reserveState [state]
+			repeatability == 0 ? "NONE" :
+				repeatability == 1 ? "DAILY" :
+					repeatability == 2 ? "WEEKLY" :
+						repeatability == 3 ? "AUTO" : "???",
+			getReserveState (state)
 		);
 		_UTL_LOG_I ("title:[%s]", title_name.c_str());
 	}
-
 };
 
 
@@ -246,7 +237,7 @@ private:
 	bool isDuplicateReserve (const CRecReserve* p_reserve) const;
 	bool isOverrapTimeReserve (const CRecReserve* p_reserve) const;
 	void checkReserves (void);
-	void refreshReserves (void);
+	void refreshReserves (uint32_t state);
 	bool pickReqStartRecordingReserve (void);
 	void setResult (CRecReserve *p);
 	bool checkRecordingEnd (void);
@@ -284,7 +275,7 @@ private:
 	CRecReserve m_results [RESULT_NUM_MAX];
 	CRecReserve m_recording;
 
-
+	char m_recording_tmpfile [PATH_MAX];
 	struct OutputBuffer *mp_outputBuffer;
 
 };

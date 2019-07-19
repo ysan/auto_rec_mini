@@ -125,6 +125,24 @@ void CEtime::setCurrentTime (void)
 	updateStrings ();
 }
 
+// date and time is midnight (0:00:00)
+void CEtime::setCurrentDay (void)
+{
+	memset (&m_time, 0x00, sizeof(m_time));
+
+	clock_gettime (CLOCK_REALTIME, &m_time);
+
+	struct tm *pstTmLocal = NULL;
+	struct tm stTmLocalTmp;
+
+	pstTmLocal = localtime_r (&m_time.tv_sec, &stTmLocalTmp);
+	time_t s = (pstTmLocal->tm_hour * 60 * 60) + (pstTmLocal->tm_min * 60) + pstTmLocal->tm_sec;
+	m_time.tv_sec -= s;
+	m_time.tv_nsec = 0;
+
+	updateStrings ();
+}
+
 void CEtime::addSec (int sec)
 {
 	// allow minus value
@@ -195,7 +213,7 @@ void CEtime::getString (char *pszOut, size_t nSize)
 	snprintf (
 		pszOut,
 		nSize,
-		"%d/%02d/%02d %02d:%02d:%02d.%03ld",
+		"%d-%02d-%02d-%02d%02d%02d.%03ld",
 		pstTmLocal->tm_year+1900,
 		pstTmLocal->tm_mon+1,
 		pstTmLocal->tm_mday,
@@ -208,7 +226,7 @@ void CEtime::getString (char *pszOut, size_t nSize)
 	snprintf (
 		pszOut,
 		nSize,
-		"%d/%02d/%02d %02d:%02d:%02d",
+		"%d-%02d-%02d-%02d%02d%02d",
 		pstTmLocal->tm_year+1900,
 		pstTmLocal->tm_mon+1,
 		pstTmLocal->tm_mday,
