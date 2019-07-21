@@ -68,7 +68,7 @@ static void _dump_scan_results (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 
 	CChannelManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpScanResults ();
+	mgr.reqDumpChannels ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);

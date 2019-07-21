@@ -29,11 +29,11 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID] =
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByRemoteControlKeyId,              (char*)"onReq_tuneByRemoteControlKeyId"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpScanResults,                       (char*)"onReq_dumpScanResults"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpChannels,                       (char*)"onReq_dumpChannels"};
 	setSeqs (mSeqs, EN_SEQ_CHANNEL_MANAGER__NUM);
 
 
-	m_scanResults.clear ();
+	m_channels.clear ();
 
 }
 
@@ -63,8 +63,8 @@ void CChannelManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	switch (sectId) {
 	case SECTID_ENTRY:
 
-		loadScanResults ();
-		dumpScanResults_simple ();
+		loadChannels ();
+		dumpChannels_simple ();
 
 
 //		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
@@ -169,7 +169,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		// 先にreplyしとく
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
-		m_scanResults.clear ();
+		m_channels.clear ();
 
 		sectId = SECTID_SET_FREQ;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -233,7 +233,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 
-			CScanResult r;
+			CChannel r;
 			r.set (
 				s_network_info.transport_stream_id,
 				s_network_info.original_network_id,
@@ -241,13 +241,13 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 				s_network_info.area_code,
 				s_network_info.remote_control_key_id,
 				(const char*)s_network_info.ts_name_char,
-				(CScanResult::service*)s_network_info.services, // このキャストはどうなの
+				(CChannel::service*)s_network_info.services, // このキャストはどうなの
 				s_network_info.services_num
 			);
 
-			if (!isDuplicateScanResult (&r)) {
+			if (!isDuplicateChannel (&r)) {
 				r.dump();
-				m_scanResults.insert (pair<uint16_t, CScanResult>(s_ch, r));
+				m_channels.insert (pair<uint16_t, CChannel>(s_ch, r));
 			}
 
 			sectId = SECTID_NEXT;
@@ -279,8 +279,8 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 		memset (&s_network_info, 0x00, sizeof (s_network_info));
 
-		dumpScanResults ();
-		saveScanResults ();
+		dumpChannels ();
+		saveChannels ();
 
 		_UTL_LOG_I ("channel scan end.");
 
@@ -415,7 +415,7 @@ void CChannelManager::onReq_tuneByServiceId (CThreadMgrIf *pIf)
 
 		} else {
 
-			const CScanResult *p = findScanResult (ch);
+			const CChannel *p = findChannel (ch);
 			p->dump ();
 
 			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
@@ -513,7 +513,7 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 
 		} else {
 
-			const CScanResult *p = findScanResult (ch);
+			const CChannel *p = findChannel (ch);
 			p->dump ();
 
 			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
@@ -569,7 +569,7 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CChannelManager::onReq_dumpScanResults (CThreadMgrIf *pIf)
+void CChannelManager::onReq_dumpChannels (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -582,7 +582,7 @@ void CChannelManager::onReq_dumpScanResults (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	dumpScanResults ();
+	dumpChannels ();
 
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
@@ -599,16 +599,16 @@ uint16_t CChannelManager::getPysicalChannelByServiceId (
 	uint16_t _service_id
 ) const
 {
-	std::map <uint16_t, CScanResult>::const_iterator iter = m_scanResults.begin();
-	for (; iter != m_scanResults.end(); ++ iter) {
+	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
+	for (; iter != m_channels.end(); ++ iter) {
 		uint16_t ch = iter->first;
-		CScanResult const *p_rslt = &(iter->second);
+		CChannel const *p_rslt = &(iter->second);
 		if (p_rslt) {
 			if (
 				(p_rslt->transport_stream_id == _transport_stream_id) &&
 				(p_rslt->original_network_id == _original_network_id)
 			) {
-				std::vector<CScanResult::service>::const_iterator iter = p_rslt->services.begin();
+				std::vector<CChannel::service>::const_iterator iter = p_rslt->services.begin();
 				for (; iter != p_rslt->services.end(); ++ iter) {
 					if (_service_id == iter->service_id) {
 						return ch;
@@ -628,10 +628,10 @@ uint16_t CChannelManager::getPysicalChannelByRemoteControlKeyId (
 	uint8_t _remote_control_key_id
 ) const
 {
-	std::map <uint16_t, CScanResult>::const_iterator iter = m_scanResults.begin();
-	for (; iter != m_scanResults.end(); ++ iter) {
+	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
+	for (; iter != m_channels.end(); ++ iter) {
 		uint16_t ch = iter->first;
-		CScanResult const *p_rslt = &(iter->second);
+		CChannel const *p_rslt = &(iter->second);
 		if (p_rslt) {
 			if (
 //TODO
@@ -649,17 +649,17 @@ uint16_t CChannelManager::getPysicalChannelByRemoteControlKeyId (
 	return 0xffff;
 }
 
-bool CChannelManager::isDuplicateScanResult (const CScanResult* p_result) const
+bool CChannelManager::isDuplicateChannel (const CChannel* p_channel) const
 {
-	if (!p_result) {
+	if (!p_channel) {
 		return false;
 	}
 
-	std::map <uint16_t, CScanResult>::const_iterator iter = m_scanResults.begin();
-	for (; iter != m_scanResults.end(); ++ iter) {
-		CScanResult const *p_rslt = &(iter->second);
+	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
+	for (; iter != m_channels.end(); ++ iter) {
+		CChannel const *p_rslt = &(iter->second);
 		if (p_rslt) {
-			if (*p_rslt == *p_result) {
+			if (*p_rslt == *p_channel) {
 				// duplicate
 				return true;
 			}
@@ -669,23 +669,23 @@ bool CChannelManager::isDuplicateScanResult (const CScanResult* p_result) const
 	return false;
 }
 
-const CScanResult* CChannelManager::findScanResult (uint16_t pych) const
+const CChannel* CChannelManager::findChannel (uint16_t pych) const
 {
-	std::map<uint16_t, CScanResult>::const_iterator iter = m_scanResults.find (pych);
+	std::map<uint16_t, CChannel>::const_iterator iter = m_channels.find (pych);
 
-	if (iter == m_scanResults.end()) {
+	if (iter == m_channels.end()) {
 		return NULL;
 	}
 
 	return &(iter->second);
 }
 
-void CChannelManager::dumpScanResults (void) const
+void CChannelManager::dumpChannels (void) const
 {
-	std::map <uint16_t, CScanResult>::const_iterator iter = m_scanResults.begin();
-	for (; iter != m_scanResults.end(); ++ iter) {
+	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
+	for (; iter != m_channels.end(); ++ iter) {
 		uint16_t ch = iter->first;
-		CScanResult const *p_rslt = &(iter->second);
+		CChannel const *p_rslt = &(iter->second);
 		if (p_rslt) {
 			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
 			_UTL_LOG_I ("-------------  pysical channel:[%d] ([%d]kHz) -------------", ch, freq);
@@ -694,12 +694,12 @@ void CChannelManager::dumpScanResults (void) const
 	}
 }
 
-void CChannelManager::dumpScanResults_simple (void) const
+void CChannelManager::dumpChannels_simple (void) const
 {
-	std::map <uint16_t, CScanResult>::const_iterator iter = m_scanResults.begin();
-	for (; iter != m_scanResults.end(); ++ iter) {
+	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
+	for (; iter != m_channels.end(); ++ iter) {
 		uint16_t ch = iter->first;
-		CScanResult const *p_rslt = &(iter->second);
+		CChannel const *p_rslt = &(iter->second);
 		if (p_rslt) {
 			p_rslt ->dump_simple (ch);
 		}
@@ -711,14 +711,14 @@ void CChannelManager::dumpScanResults_simple (void) const
 //--------------------------------------------------------------------------------
 
 template <class Archive>
-void serialize (Archive &archive, CScanResult::service &s)
+void serialize (Archive &archive, CChannel::service &s)
 {
 	archive (cereal::make_nvp("service_id", s.service_id));
 	archive (cereal::make_nvp("service_type", s.service_type));
 }
 
 template <class Archive>
-void serialize (Archive &archive, CScanResult &r)
+void serialize (Archive &archive, CChannel &r)
 {
 	archive (
 		cereal::make_nvp("transport_stream_id", r.transport_stream_id),
@@ -731,15 +731,15 @@ void serialize (Archive &archive, CScanResult &r)
 	);
 }
 
-void CChannelManager::saveScanResults (void)
+void CChannelManager::saveChannels (void)
 {
 	std::stringstream ss;
 	{
 		cereal::JSONOutputArchive out_archive (ss);
-		out_archive (CEREAL_NVP(m_scanResults));
+		out_archive (CEREAL_NVP(m_channels));
 	}
 
-	std::string *p_path = CSettings::getInstance()->getParams()->getChannelScanJsonPath();
+	std::string *p_path = CSettings::getInstance()->getParams()->getChannelsJsonPath();
 	std::ofstream ofs (p_path->c_str(), std::ios::out);
 	ofs << ss.str();
 
@@ -747,12 +747,12 @@ void CChannelManager::saveScanResults (void)
 	ss.clear();
 }
 
-void CChannelManager::loadScanResults (void)
+void CChannelManager::loadChannels (void)
 {
-	std::string *p_path = CSettings::getInstance()->getParams()->getChannelScanJsonPath();
+	std::string *p_path = CSettings::getInstance()->getParams()->getChannelsJsonPath();
 	std::ifstream ifs (p_path->c_str(), std::ios::in);
 	if (!ifs.is_open()) {
-		_UTL_LOG_I ("scan.json is not found.");
+		_UTL_LOG_I ("channels.json is not found.");
 		return;
 	}
 
@@ -760,7 +760,7 @@ void CChannelManager::loadScanResults (void)
 	ss << ifs.rdbuf();
 
 	cereal::JSONInputArchive in_archive (ss);
-	in_archive (CEREAL_NVP(m_scanResults));
+	in_archive (CEREAL_NVP(m_channels));
 
 	ifs.close();
 	ss.clear();

@@ -34,8 +34,8 @@ public:
 		uint16_t getCommandServerPort (void) {
 			return m_command_server_port;
 		}
-		std::string *getChannelScanJsonPath (void) {
-			return &m_channel_scan_json_path;
+		std::string *getChannelsJsonPath (void) {
+			return &m_channels_json_path;
 		}
 		std::string *getRecReserveJsonPath (void) {
 			return &m_rec_reserve_json_path;
@@ -55,7 +55,7 @@ public:
 			_UTL_LOG_I ("--  settings  --");
 			_UTL_LOG_I ("m_is_syslog_output:[%d]", m_is_syslog_output);
 			_UTL_LOG_I ("m_command_server_port:[%d]", m_command_server_port);
-			_UTL_LOG_I ("m_channel_scan_json_path:[%s]", m_channel_scan_json_path.c_str());
+			_UTL_LOG_I ("m_channels_json_path:[%s]", m_channels_json_path.c_str());
 			_UTL_LOG_I ("m_rec_reserve_json_path:[%s]", m_rec_reserve_json_path.c_str());
 			_UTL_LOG_I ("m_rec_result_json_path:[%s]", m_rec_result_json_path.c_str());
 			_UTL_LOG_I ("m_rec_ts_path:[%s]", m_rec_ts_path.c_str());
@@ -69,7 +69,7 @@ public:
 			archive (
 				CEREAL_NVP(m_is_syslog_output),
 				CEREAL_NVP(m_command_server_port),
-				CEREAL_NVP(m_channel_scan_json_path),
+				CEREAL_NVP(m_channels_json_path),
 				CEREAL_NVP(m_rec_reserve_json_path),
 				CEREAL_NVP(m_rec_result_json_path),
 				CEREAL_NVP(m_rec_ts_path),
@@ -82,7 +82,7 @@ public:
 
 		bool m_is_syslog_output;
 		uint16_t m_command_server_port;
-		std::string m_channel_scan_json_path;
+		std::string m_channels_json_path;
 		std::string m_rec_reserve_json_path;
 		std::string m_rec_result_json_path;
 		std::string m_rec_ts_path;

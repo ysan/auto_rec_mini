@@ -37,17 +37,17 @@
 
 using namespace ThreadManager;
 
-class CScanResult {
+class CChannel {
 public:
-	CScanResult (void) {
+	CChannel (void) {
 		clear ();
 	}
-	~CScanResult (void) {
+	~CChannel (void) {
 		clear ();
 	}
 
 
-	bool operator == (const CScanResult &obj) const {
+	bool operator == (const CChannel &obj) const {
 		if (
 			this->transport_stream_id == obj.transport_stream_id &&
 			this->original_network_id == obj.original_network_id
@@ -58,7 +58,7 @@ public:
 		}
 	}
 
-	bool operator != (const CScanResult &obj) const {
+	bool operator != (const CChannel &obj) const {
 		if (
 			this->transport_stream_id != obj.transport_stream_id ||
 			this->original_network_id != obj.original_network_id
@@ -187,7 +187,7 @@ public:
 	void onReq_getPysicalChannelByRemoteControlKeyId (CThreadMgrIf *pIf);
 	void onReq_tuneByServiceId (CThreadMgrIf *pIf);
 	void onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf);
-	void onReq_dumpScanResults (CThreadMgrIf *pIf);
+	void onReq_dumpChannels (CThreadMgrIf *pIf);
 
 
 
@@ -204,15 +204,15 @@ private:
 		uint8_t _remote_control_key_id
 	) const;
 
-	bool isDuplicateScanResult (const CScanResult* p_result) const;
+	bool isDuplicateChannel (const CChannel* p_channel) const;
 
-	const CScanResult* findScanResult (uint16_t pych) const;
+	const CChannel* findChannel (uint16_t pych) const;
 
-	void dumpScanResults (void) const;
-	void dumpScanResults_simple (void) const;
+	void dumpChannels (void) const;
+	void dumpChannels_simple (void) const;
 
-	void saveScanResults (void);
-	void loadScanResults (void);
+	void saveChannels (void);
+	void loadChannels (void);
 
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_CHANNEL_MANAGER__NUM]; // entity
@@ -220,7 +220,7 @@ private:
 
 	uint8_t m_tunerNotify_clientId;
 
-	std::map <uint16_t, CScanResult> m_scanResults; // <pysical channel, CScanResult>
+	std::map <uint16_t, CChannel> m_channels; // <pysical channel, CChannel>
 
 };
 

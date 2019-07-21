@@ -114,7 +114,7 @@ public:
 				);
 	};
 
-	bool reqDumpScanResults (void) {
+	bool reqDumpChannels (void) {
 		return requestAsync (EN_MODULE_CHANNEL_MANAGER, EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS);
 	};
 

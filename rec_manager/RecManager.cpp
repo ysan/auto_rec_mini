@@ -1492,7 +1492,13 @@ void CRecManager::onReq_stopRecording (CThreadMgrIf *pIf)
 
 		// stopRecording が呼ばれたらエラー終了にしておきます
 		_UTL_LOG_W ("m_recProgress = EN_REC_PROGRESS__END_ERROR");
+
+
+		// ######################################### //
 		m_recProgress = EN_REC_PROGRESS__END_ERROR;
+		// ######################################### //
+
+
 		m_recording.state |= RESERVE_STATE__FORCE_STOP;
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
@@ -1581,7 +1587,12 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 			// PAT途絶したら録画中止します
 			if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
+
+				// ######################################### //
 				m_recProgress = EN_REC_PROGRESS__POST_PROCESS;
+				// ######################################### //
+
+
 				m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
 
 
@@ -1949,6 +1960,9 @@ bool CRecManager::pickReqStartRecordingReserve (void)
 			// 次に録画する予約を取り出します
 			m_recording = m_reserves[i];
 
+			// フラグは落としておきます
+			m_recording.state &= ~RESERVE_STATE__REQ_START_RECORDING;
+
 
 			// 間詰め
 			for (int j = i; j < RESERVE_NUM_MAX -1; ++ j) {
@@ -2064,7 +2078,7 @@ bool CRecManager::checkRecordingEnd (void)
 		return false;
 	}
 
-	if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
+	if (!(m_recording.state & RESERVE_STATE__NOW_RECORDING)) {
 		return false;
 	}
 
@@ -2076,7 +2090,12 @@ bool CRecManager::checkRecordingEnd (void)
 		// 録画 正常終了します
 		if (m_recProgress == EN_REC_PROGRESS__NOW_RECORDING) {
 			_UTL_LOG_I ("m_recProgress = EN_REC_PROGRESS__END_SUCCESS");
+
+
+			// ######################################### //
 			m_recProgress = EN_REC_PROGRESS__END_SUCCESS;
+			// ######################################### //
+
 
 			return true;
 		}

@@ -2,7 +2,7 @@
     "m_params": {
         "m_is_syslog_output": true,
         "m_command_server_port": 20001,
-        "m_channel_scan_json_path": "./data/scan.json",
+        "m_channels_json_path": "./data/channels.json",
         "m_rec_reserve_json_path": "./data/rec_reserve.json",
         "m_rec_result_json_path": "./data/rec_result.json",
         "m_rec_ts_path": "./data/",
