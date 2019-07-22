@@ -499,7 +499,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			_UTL_LOG_W ("tune is failure  -> not start recording");
+			_UTL_LOG_E ("tune is failure");
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -525,9 +525,17 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 				enAct = EN_THM_ACT_CONTINUE;
 
 			} else {
-				_UTL_LOG_E ("reqGetCurrentServiceInfos is 0");
-				sectId = SECTID_END_ERROR;
-				enAct = EN_THM_ACT_CONTINUE;
+				if (s_retry < 10) {
+					_UTL_LOG_E ("reqGetCurrentServiceInfos err --> retry");
+					sectId = SECTID_REQ_GET_SERVICE_INFOS;
+					enAct = EN_THM_ACT_WAIT;
+					pIf->setTimeout (1000);
+					++ s_retry ;
+				} else {
+					_UTL_LOG_E ("reqGetCurrentServiceInfos err --> retry over");
+					sectId = SECTID_END_ERROR;
+					enAct = EN_THM_ACT_CONTINUE;
+				}
 			}
 
 		} else {
