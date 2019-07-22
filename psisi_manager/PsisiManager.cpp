@@ -653,12 +653,14 @@ void CPsisiManager::onReq_getCurrentServiceInfos (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	REQ_SERVICE_INFO_PARAM param = *(REQ_SERVICE_INFO_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
-	if (!param.p_out_serviceInfos || param.num == 0) {
+	REQ_SERVICE_INFOS_PARAM param = *(REQ_SERVICE_INFOS_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+	if (!param.p_out_serviceInfos || param.array_max_num == 0) {
 		pIf->reply (EN_THM_RSLT_ERROR);
 
 	} else {
-		int get_num = getCurrentServiceInfos (param.p_out_serviceInfos, param.num);
+		int get_num = getCurrentServiceInfos (param.p_out_serviceInfos, param.array_max_num);
+
+		// reply msgで格納数を渡します
 		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&get_num, sizeof(get_num));
 	}
 

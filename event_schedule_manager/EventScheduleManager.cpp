@@ -71,6 +71,9 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 
 	m_latest_dumped_key.clear();
 
+
+	m_schedule_cache_next_day.clear();
+	m_schedule_cache_plan.clear();
 }
 
 CEventScheduleManager::~CEventScheduleManager (void)
@@ -79,6 +82,11 @@ CEventScheduleManager::~CEventScheduleManager (void)
 	m_startTime_EITSched.clear();
 
 	m_sched_map.clear ();
+
+	m_latest_dumped_key.clear();
+
+	m_schedule_cache_next_day.clear();
+	m_schedule_cache_plan.clear();
 }
 
 
@@ -106,6 +114,9 @@ void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
 
 	switch (sectId) {
 	case SECTID_ENTRY:
+
+		m_schedule_cache_next_day.setCurrentDay();
+
 
 		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -228,6 +239,8 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_CHECK,
 		SECTID_CHECK_WAIT,
+		SECTID_REQ_GET_CHANNELS,
+		SECTID_WAIT_GET_CHANNELS,
 		SECTID_END,
 	};
 
@@ -235,7 +248,8 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-	static PSISI_EVENT_INFO s_presentEventInfo;
+	static CChannelManagerIf::CHANNEL_t s_channels[20];
+	static int s_ch_num = 0;
 
 
 	switch (sectId) {
@@ -249,16 +263,98 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK:
 
-		pIf->setTimeout (1000); // 1sec
+		pIf->setTimeout (60*1000); // 60sec
 
 		sectId = SECTID_CHECK_WAIT;
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
-	case SECTID_CHECK_WAIT:
+	case SECTID_CHECK_WAIT: {
 
-		sectId = SECTID_CHECK;
-		enAct = EN_THM_ACT_CONTINUE;
+		CEtime t;
+		t.setCurrentDay();
+		if (t == m_schedule_cache_next_day) {
+			m_schedule_cache_plan = t;
+			m_schedule_cache_plan.addHour(19);
+			m_schedule_cache_plan.addMin(14);
+			_UTL_LOG_I ("m_schedule_cache_plan: [%s]", m_schedule_cache_plan.toString());
+
+			m_schedule_cache_next_day.addDay(1); // 毎日取得
+		}
+
+		t.setCurrentTime();
+		if (t >= m_schedule_cache_plan) {
+			m_schedule_cache_plan.addDay(1); // 1回だけトリガするため
+
+			sectId = SECTID_REQ_GET_CHANNELS;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			sectId = SECTID_CHECK;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		}
+		break;
+
+	case SECTID_REQ_GET_CHANNELS: {
+
+		memset (s_channels, 0x00, sizeof(s_channels));
+		s_ch_num = 0;
+
+		CChannelManagerIf::REQ_CHANNELS_PARAM_t param = {s_channels, 20};
+
+		CChannelManagerIf _if (getExternalIf());
+		_if.reqGetChannels (&param);
+
+		sectId = SECTID_WAIT_GET_CHANNELS;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_GET_CHANNELS:
+
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			s_ch_num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+			_UTL_LOG_I ("reqGetChannels s_ch_num:[%d]", s_ch_num);
+
+
+			// 取得したチャネル分で START_CACHE_SCHEDULEキューを入れます
+			// ここはREQUEST_OPTION__WITHOUT_REPLY にしておきます
+			uint32_t opt = getExternalIf()->getRequestOption ();
+			opt |= REQUEST_OPTION__WITHOUT_REPLY;
+			getExternalIf()->setRequestOption (opt);
+
+			for (int i = 0; i < s_ch_num; ++ i) {
+				CEventScheduleManagerIf::SERVICE_KEY_t _key = {
+					s_channels[i].transport_stream_id,
+					s_channels[i].original_network_id,
+					s_channels[i].service_ids[0]	// ここは添字0 でも何でも良いです
+													// (現状ではすべてのチャンネル編成分のスケジュールを取得します
+				};
+				requestAsync (
+					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,
+					(uint8_t*)&_key,
+					sizeof(_key)
+				);
+			}
+
+			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+			getExternalIf()->setRequestOption (opt);
+
+
+			sectId = SECTID_CHECK;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("reqGetChannels is failure.");
+			sectId = SECTID_CHECK;
+			enAct = EN_THM_ACT_CONTINUE;
+        }
+
 		break;
 
 	case SECTID_END:
@@ -338,6 +434,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 	static uint16_t s_ch = 0;
 	static PSISI_SERVICE_INFO s_serviceInfos[10];
 	static int s_num = 0;
+	static int s_retry = 0;
 
 
 	switch (sectId) {
@@ -434,9 +531,17 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 			}
 
 		} else {
-			_UTL_LOG_E ("reqGetCurrentServiceInfos err");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			if (s_retry < 10) {
+				_UTL_LOG_E ("reqGetCurrentServiceInfos err --> retry");
+				sectId = SECTID_REQ_GET_SERVICE_INFOS;
+				enAct = EN_THM_ACT_WAIT;
+				pIf->setTimeout (1000);
+				++ s_retry ;
+			} else {
+				_UTL_LOG_E ("reqGetCurrentServiceInfos err --> retry over");
+				sectId = SECTID_END_ERROR;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
 		}
 
 		break;
@@ -463,6 +568,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		Enable_PARSE_EIT_SCHED_REPLY_PARAM_t param = *(Enable_PARSE_EIT_SCHED_REPLY_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 		mp_EIT_H_sched = param.p_parser;
 //mp_EIT_H_sched->dumpTables_simple();
+		mp_EIT_H_sched->clear();
 		mEIT_H_sched_ref = mp_EIT_H_sched->reference();
 
 
@@ -577,6 +683,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		s_ch = 0;
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
+		s_retry = 0;
 		mp_EIT_H_sched = NULL;
 
 		sectId = THM_SECT_ID_INIT;
@@ -589,6 +696,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		s_ch = 0;
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
+		s_retry = 0;
 		mp_EIT_H_sched = NULL;
 
 		sectId = THM_SECT_ID_INIT;
@@ -628,7 +736,6 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 
 	switch (sectId) {
 	case SECTID_ENTRY:
-
 
 		sectId = SECTID_REQ_GET_TUNER_STATE;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -705,6 +812,7 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 	case SECTID_REQ_START_CACHE_SCHEDULE: {
 
 		// ここは添字0 でも何でも良いです
+		// (現状ではすべてのチャンネル編成分のスケジュールを取得します)
 		CEventScheduleManagerIf::SERVICE_KEY_t _key = {
 			s_serviceInfos[0].transport_stream_id,
 			s_serviceInfos[0].original_network_id,
@@ -909,7 +1017,8 @@ void CEventScheduleManager::onReq_dumpSchedule (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	CEventScheduleManagerIf::SERVICE_KEY_t _key = *(CEventScheduleManagerIf::SERVICE_KEY_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CEventScheduleManagerIf::SERVICE_KEY_t _key =
+					*(CEventScheduleManagerIf::SERVICE_KEY_t*)(pIf->getSrcInfo()->msg.pMsg);
 	SERVICE_KEY_t key (_key);
 	m_latest_dumped_key = key;
 

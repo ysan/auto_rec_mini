@@ -69,6 +69,8 @@ public:
 		}
 	}
 
+	uint16_t pysical_channel;
+
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	std::string network_name;
@@ -84,6 +86,7 @@ public:
 	std::vector <service> services;
 
 	void set (
+		uint16_t _pysical_channel,
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		const char *psz_network_name,
@@ -94,6 +97,7 @@ public:
 		int _services_num
 	)
 	{
+		this->pysical_channel = _pysical_channel;
 		this->transport_stream_id = _transport_stream_id;
 		this->original_network_id = _original_network_id;
 		if (psz_network_name) {
@@ -112,6 +116,7 @@ public:
 	}
 
 	void clear (void) {
+		pysical_channel = 0;
 		transport_stream_id = 0;
 		original_network_id = 0;
 		network_name.clear();
@@ -122,8 +127,11 @@ public:
 	}
 
 	void dump (void) const {
+		uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (pysical_channel);
+		_UTL_LOG_I ("-------------  pysical channel:[%d] ([%d]kHz) -------------", pysical_channel, freq);
 		_UTL_LOG_I (
-			"tsid:[0x%04x] org_nid:[0x%04x]",
+			"pych:[%d] tsid:[0x%04x] org_nid:[0x%04x]",
+			pysical_channel,
 			transport_stream_id,
 			original_network_id
 		);
@@ -145,7 +153,7 @@ public:
 		}
 	}
 
-	void dump_simple (uint16_t ch) const {
+	void dump_simple (void) const {
 		char s [256] = {0};
 		int n = 0;
 		std::vector<service>::const_iterator iter = services.begin();
@@ -161,7 +169,7 @@ public:
 		_UTL_LOG_I (
 //			"pych:[%d] tsid:[0x%04x] org_nid:[0x%04x] ts_name:[%s] remote_control_key_id:[0x%02x] svc_id:[%s]",
 			"pych:[%d] tsid:[0x%04x] org_nid:[0x%04x] ts_name:[%s] remote_control_key_id:[0x%02x]",
-			ch,
+			pysical_channel,
 			transport_stream_id,
 			original_network_id,
 			ts_name.c_str(),
@@ -187,6 +195,7 @@ public:
 	void onReq_getPysicalChannelByRemoteControlKeyId (CThreadMgrIf *pIf);
 	void onReq_tuneByServiceId (CThreadMgrIf *pIf);
 	void onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf);
+	void onReq_getChannels (CThreadMgrIf *pIf);
 	void onReq_dumpChannels (CThreadMgrIf *pIf);
 
 
@@ -207,6 +216,8 @@ private:
 	bool isDuplicateChannel (const CChannel* p_channel) const;
 
 	const CChannel* findChannel (uint16_t pych) const;
+
+	int getChannels (CChannelManagerIf::CHANNEL_t *p_out_channels, int array_max_num) const;
 
 	void dumpChannels (void) const;
 	void dumpChannels_simple (void) const;

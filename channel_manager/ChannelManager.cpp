@@ -28,8 +28,10 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByServiceId,                       (char*)"onReq_tuneByServiceId"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID] =
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByRemoteControlKeyId,              (char*)"onReq_tuneByRemoteControlKeyId"};
+	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS] =
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_getChannels,                           (char*)"onReq_getChannels"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpChannels,                       (char*)"onReq_dumpChannels"};
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpChannels,                          (char*)"onReq_dumpChannels"};
 	setSeqs (mSeqs, EN_SEQ_CHANNEL_MANAGER__NUM);
 
 
@@ -235,6 +237,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 			CChannel r;
 			r.set (
+				s_ch,
 				s_network_info.transport_stream_id,
 				s_network_info.original_network_id,
 				(const char*)s_network_info.network_name_char,
@@ -569,6 +572,37 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CChannelManager::onReq_getChannels (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	CChannelManagerIf::REQ_CHANNELS_PARAM_t _param =
+				*(CChannelManagerIf::REQ_CHANNELS_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+	if (!_param.p_out_channels || _param.array_max_num == 0) {
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else {
+		int n = getChannels (_param.p_out_channels, _param.array_max_num);
+
+		// reply msgで格納数を渡します
+		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&n, sizeof(n));
+	}
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CChannelManager::onReq_dumpChannels (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -680,15 +714,50 @@ const CChannel* CChannelManager::findChannel (uint16_t pych) const
 	return &(iter->second);
 }
 
+int CChannelManager::getChannels (CChannelManagerIf::CHANNEL_t *p_out_channels, int array_max_num) const
+{
+	if (!p_out_channels || array_max_num == 0) {
+		return 0;
+	}
+
+	int n = 0;
+
+	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
+	for (; iter != m_channels.end(); ++ iter) {
+		CChannel const *p_rslt = &(iter->second);
+		if (p_rslt) {
+			p_out_channels->pysical_channel = p_rslt->pysical_channel;
+			p_out_channels->transport_stream_id = p_rslt->transport_stream_id;
+			p_out_channels->original_network_id = p_rslt->original_network_id;
+			p_out_channels->remote_control_key_id = p_rslt->remote_control_key_id;
+
+			int m = 0;
+			std::vector<CChannel::service>::const_iterator iter_svc = p_rslt->services.begin();
+			for (; iter_svc != p_rslt->services.end(); ++ iter_svc) {
+				p_out_channels->service_ids[m] = iter_svc->service_id;
+				++ m;
+			}
+			p_out_channels->service_num = m;
+
+
+			++ p_out_channels;
+
+			++ n;
+			if (array_max_num <= n) {
+				break;
+			}
+		}
+	}
+
+	return n;
+}
+
 void CChannelManager::dumpChannels (void) const
 {
 	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
 	for (; iter != m_channels.end(); ++ iter) {
-		uint16_t ch = iter->first;
 		CChannel const *p_rslt = &(iter->second);
 		if (p_rslt) {
-			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
-			_UTL_LOG_I ("-------------  pysical channel:[%d] ([%d]kHz) -------------", ch, freq);
 			p_rslt ->dump ();
 		}
 	}
@@ -698,10 +767,9 @@ void CChannelManager::dumpChannels_simple (void) const
 {
 	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
 	for (; iter != m_channels.end(); ++ iter) {
-		uint16_t ch = iter->first;
 		CChannel const *p_rslt = &(iter->second);
 		if (p_rslt) {
-			p_rslt ->dump_simple (ch);
+			p_rslt ->dump_simple ();
 		}
 	}
 }
@@ -721,6 +789,7 @@ template <class Archive>
 void serialize (Archive &archive, CChannel &r)
 {
 	archive (
+		cereal::make_nvp("pysical_channel", r.pysical_channel),
 		cereal::make_nvp("transport_stream_id", r.transport_stream_id),
 		cereal::make_nvp("original_network_id", r.original_network_id),
 		cereal::make_nvp("network_name", r.network_name),

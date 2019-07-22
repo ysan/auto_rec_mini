@@ -56,8 +56,8 @@ typedef struct {
 
 typedef struct {
 	PSISI_SERVICE_INFO *p_out_serviceInfos;
-	int num;
-} REQ_SERVICE_INFO_PARAM;
+	int array_max_num;
+} REQ_SERVICE_INFOS_PARAM;
 
 
 //---------------------------------------------------

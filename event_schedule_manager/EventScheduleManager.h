@@ -262,6 +262,7 @@ private:
 	const CEvent *getEvent (const SERVICE_KEY_t &key, int index) const;
 
 
+
 	ST_SEQ_BASE mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM]; // entity
 
 	uint8_t m_tunerNotify_clientId;
@@ -278,6 +279,9 @@ private:
 
 	SERVICE_KEY_t m_latest_dumped_key;
 
+
+	CEtime m_schedule_cache_next_day;
+	CEtime m_schedule_cache_plan;
 };
 
 #endif

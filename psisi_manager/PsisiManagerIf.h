@@ -125,12 +125,12 @@ public:
 				);
 	};
 
-	bool reqGetCurrentServiceInfos (PSISI_SERVICE_INFO *p_out_serviceInfos, int num) {
-		if (!p_out_serviceInfos || num == 0) {
+	bool reqGetCurrentServiceInfos (PSISI_SERVICE_INFO *p_out_serviceInfos, int array_max_num) {
+		if (!p_out_serviceInfos || array_max_num == 0) {
 			return false;
 		}
 
-		REQ_SERVICE_INFO_PARAM param = {p_out_serviceInfos, num};
+		REQ_SERVICE_INFOS_PARAM param = {p_out_serviceInfos, array_max_num};
 		return requestAsync (
 					EN_MODULE_PSISI_MANAGER,
 					EN_SEQ_PSISI_MANAGER__GET_CURRENT_SERVICE_INFOS,

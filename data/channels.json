@@ -3,6 +3,7 @@
         {
             "key": 16,
             "value": {
+                "pysical_channel": 16,
                 "transport_stream_id": 32391,
                 "original_network_id": 32391,
                 "network_name": "東京７",
@@ -40,6 +41,7 @@
         {
             "key": 18,
             "value": {
+                "pysical_channel": 18,
                 "transport_stream_id": 32375,
                 "original_network_id": 32375,
                 "network_name": "神奈川７",
@@ -73,6 +75,7 @@
         {
             "key": 21,
             "value": {
+                "pysical_channel": 21,
                 "transport_stream_id": 32740,
                 "original_network_id": 32740,
                 "network_name": "関東広域４",
@@ -106,6 +109,7 @@
         {
             "key": 22,
             "value": {
+                "pysical_channel": 22,
                 "transport_stream_id": 32739,
                 "original_network_id": 32739,
                 "network_name": "関東広域３",
@@ -135,6 +139,7 @@
         {
             "key": 23,
             "value": {
+                "pysical_channel": 23,
                 "transport_stream_id": 32742,
                 "original_network_id": 32742,
                 "network_name": "関東広域６",
@@ -168,6 +173,7 @@
         {
             "key": 24,
             "value": {
+                "pysical_channel": 24,
                 "transport_stream_id": 32741,
                 "original_network_id": 32741,
                 "network_name": "関東広域５",
@@ -197,6 +203,7 @@
         {
             "key": 25,
             "value": {
+                "pysical_channel": 25,
                 "transport_stream_id": 32738,
                 "original_network_id": 32738,
                 "network_name": "関東広域２",
@@ -226,6 +233,7 @@
         {
             "key": 26,
             "value": {
+                "pysical_channel": 26,
                 "transport_stream_id": 32737,
                 "original_network_id": 32737,
                 "network_name": "関東広域１",
@@ -255,6 +263,7 @@
         {
             "key": 27,
             "value": {
+                "pysical_channel": 27,
                 "transport_stream_id": 32736,
                 "original_network_id": 32736,
                 "network_name": "関東広域０",
@@ -284,6 +293,7 @@
         {
             "key": 32,
             "value": {
+                "pysical_channel": 32,
                 "transport_stream_id": 32295,
                 "original_network_id": 32295,
                 "network_name": "テレビ埼玉",

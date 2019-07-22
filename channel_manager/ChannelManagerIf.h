@@ -21,6 +21,7 @@ enum {
 	EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_REMOTE_CONTROL_KEY_ID,
 	EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID,
 	EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID,
+	EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS,
 	EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS,
 
 	EN_SEQ_CHANNEL_MANAGER__NUM,
@@ -30,17 +31,32 @@ enum {
 class CChannelManagerIf : public CThreadMgrExternalIf
 {
 public:
-	typedef struct {
+	typedef struct _service_id_param {
 		uint16_t transport_stream_id;
 		uint16_t original_network_id;
 		uint16_t service_id;
 	} SERVICE_ID_PARAM_t;
 
-	typedef struct {
+	typedef struct _remote_control_id_param {
 		uint16_t transport_stream_id;
 		uint16_t original_network_id;
 		uint8_t remote_control_key_id;
 	} REMOTE_CONTROL_ID_PARAM_t;
+
+	typedef struct _channel {
+		uint16_t pysical_channel;
+		uint16_t transport_stream_id;
+		uint16_t original_network_id;
+		uint8_t remote_control_key_id;
+		uint16_t service_ids[10];
+		int service_num;
+	} CHANNEL_t;
+
+	typedef struct _req_channels_param {
+		CHANNEL_t *p_out_channels;
+		int array_max_num;
+	} REQ_CHANNELS_PARAM_t;
+
 
 public:
 	explicit CChannelManagerIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
@@ -111,6 +127,19 @@ public:
 					EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID,
 					(uint8_t*)p_param,
 					sizeof (REMOTE_CONTROL_ID_PARAM_t)
+				);
+	};
+
+	bool reqGetChannels (REQ_CHANNELS_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_CHANNEL_MANAGER,
+					EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS,
+					(uint8_t*)p_param,
+					sizeof (REQ_CHANNELS_PARAM_t)
 				);
 	};
 
