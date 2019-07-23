@@ -50,6 +50,7 @@ private:
 	static void printSubTables (void);
 	static void showList (const char *pszDesc);
 	static void findCommand (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase);
+
 	// callbacks
 	static void onCommandWaitBegin (void);
 	static void onCommandLineAvailable (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase);

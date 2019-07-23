@@ -23,6 +23,8 @@ static void (*on_command_wait_begin) (void);
 static void (*on_command_line_through) (void);
 static void (*on_command_line_available)(const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase);
 static void (*on_command_wait_end) (void);
+
+
 static ST_COMMAND_INFO *gp_current_command_table = NULL;
 static FILE *gp_fptr_inner = NULL;
 
@@ -42,6 +44,7 @@ CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
 	on_command_line_through = onCommandLineThrough;
 	on_command_line_available = onCommandLineAvailable;
 	on_command_wait_end = onCommandWaitEnd;
+
 	gp_current_command_table = NULL;
 	gp_fptr_inner = stdout;
 }

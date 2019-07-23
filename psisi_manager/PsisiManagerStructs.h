@@ -38,7 +38,7 @@ typedef struct {
 	uint16_t service_id;
 
 	uint8_t service_type;
-	char *p_service_name_char;
+	const char *p_service_name_char;
 
 	void dump (void) {
 		_UTL_LOG_I (

@@ -40,21 +40,44 @@ public:
 	_service_key (void) {
 		clear ();
     }
-	_service_key (uint16_t _transport_stream_id, uint16_t _original_network_id, uint16_t _service_id) {
+
+	_service_key (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id
+	) {
 		clear ();
 		this->transport_stream_id = _transport_stream_id;
 		this->original_network_id = _original_network_id;
 		this->service_id = _service_id;
     }
-	_service_key (CEventScheduleManagerIf::SERVICE_KEY_t &_key) {
+
+	_service_key (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id,
+		uint8_t _service_type,
+		const char* _p_service_name_char
+	) {
+		clear ();
+		this->transport_stream_id = _transport_stream_id;
+		this->original_network_id = _original_network_id;
+		this->service_id = _service_id;
+		this->service_type = _service_type;
+		this->service_name = _p_service_name_char;
+    }
+
+	explicit _service_key (CEventScheduleManagerIf::SERVICE_KEY_t &_key) {
 		clear ();
 		this->transport_stream_id = _key.transport_stream_id;
 		this->original_network_id = _key.original_network_id;
 		this->service_id = _key.service_id;
     }
+
 	~_service_key (void) {
 		clear ();
 	}
+
 
 	bool operator == (const _service_key &obj) const {
 		if (
@@ -107,23 +130,34 @@ public:
 	}
 
 
-	// keys
+	//// keys ////
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint16_t service_id;
+	//////////////
+
+
+	// additional
+	uint8_t service_type;
+	std::string service_name;
+
 
 	void clear (void) {
 		transport_stream_id = 0;
 		original_network_id = 0;
 		service_id = 0;
+		service_type = 0;
+		service_name.clear();
 	}
 
 	void dump (void) const {
 		_UTL_LOG_I (
-			"#_service_key# tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x]",
+			"#_service_key#  0x%04x 0x%04x 0x%04x  (svctype:0x%02x,%s)",
 			transport_stream_id,
 			original_network_id,
-			service_id
+			service_id,
+			service_type,
+			service_name.c_str()
 		);
 	}
 
@@ -182,6 +216,12 @@ public:
 	std::string event_name;
 	std::string text;
 
+	std::string video_component_type;
+	std::string video_ratio;
+	uint8_t component_tag;
+
+	std::string genre_lvl1;
+	std::string genre_lvl2;
 
 
 	void clear (void) {
@@ -195,6 +235,11 @@ public:
 		end_time.clear();	
 		event_name.clear();
 		text.clear();
+		video_component_type.clear();
+		video_ratio.clear();
+		component_tag = 0;
+		genre_lvl1.clear();
+		genre_lvl2.clear();
 	}
 
 	void dump (void) const {
@@ -214,6 +259,13 @@ public:
 		);
 		_UTL_LOG_I ("event_name:[%s]", event_name.c_str());
 		_UTL_LOG_I ("text:[%s]", text.c_str());
+		_UTL_LOG_I (
+			"vode_component:[%s][%s] component_tag:[0x%02x]",
+			video_component_type.c_str(),
+			video_ratio.c_str(),
+			component_tag
+		);
+		_UTL_LOG_I ("genre:[%s][%s]", genre_lvl1.c_str(), genre_lvl2.c_str());
 	}
 
 };

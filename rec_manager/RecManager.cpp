@@ -2355,7 +2355,7 @@ void CRecManager::saveReserves (void)
 		out_archive (CEREAL_NVP(m_reserves), sizeof(CRecReserve) * RESERVE_NUM_MAX);
 	}
 
-	std::string *p_path = CSettings::getInstance()->getParams()->getRecReserveJsonPath();
+	std::string *p_path = CSettings::getInstance()->getParams()->getRecReservesJsonPath();
 	std::ofstream ofs (p_path->c_str(), std::ios::out);
 	ofs << ss.str();
 
@@ -2365,7 +2365,7 @@ void CRecManager::saveReserves (void)
 
 void CRecManager::loadReserves (void)
 {
-	std::string *p_path = CSettings::getInstance()->getParams()->getRecReserveJsonPath();
+	std::string *p_path = CSettings::getInstance()->getParams()->getRecReservesJsonPath();
 	std::ifstream ifs (p_path->c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I("rec_reserves.json is not found.");
@@ -2397,7 +2397,7 @@ void CRecManager::saveResults (void)
 		out_archive (CEREAL_NVP(m_results), sizeof(CRecReserve) * RESULT_NUM_MAX);
 	}
 
-	std::string *p_path = CSettings::getInstance()->getParams()->getRecResultJsonPath();
+	std::string *p_path = CSettings::getInstance()->getParams()->getRecResultsJsonPath();
 	std::ofstream ofs (p_path->c_str(), std::ios::out);
 	ofs << ss.str();
 
@@ -2407,7 +2407,7 @@ void CRecManager::saveResults (void)
 
 void CRecManager::loadResults (void)
 {
-	std::string *p_path = CSettings::getInstance()->getParams()->getRecResultJsonPath();
+	std::string *p_path = CSettings::getInstance()->getParams()->getRecResultsJsonPath();
 	std::ifstream ifs (p_path->c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I("rec_results.json is not found.");

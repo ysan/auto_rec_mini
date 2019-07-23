@@ -10,31 +10,31 @@
 #include "Utils.h"
 
 
-bool _comp__service_id (const CEventInformationTable_sched::CTable* l, const CEventInformationTable_sched::CTable* r) {
-	return r->header.table_id_extension > l->header.table_id_extension;
-}
+//bool _comp__service_id (const CEventInformationTable_sched::CTable* l, const CEventInformationTable_sched::CTable* r) {
+//	return r->header.table_id_extension > l->header.table_id_extension;
+//}
 
-bool _comp__table_id (const CEventInformationTable_sched::CTable* l, const CEventInformationTable_sched::CTable* r) {
-	if (r->header.table_id_extension == l->header.table_id_extension) {
-		if (r->header.table_id > l->header.table_id) {
-			return true;
-		}
-	}
+//bool _comp__table_id (const CEventInformationTable_sched::CTable* l, const CEventInformationTable_sched::CTable* r) {
+//	if (r->header.table_id_extension == l->header.table_id_extension) {
+//		if (r->header.table_id > l->header.table_id) {
+//			return true;
+//		}
+//	}
+//
+//	return false;
+//}
 
-	return false;
-}
-
-bool _comp__section_number (const CEventInformationTable_sched::CTable* l, const CEventInformationTable_sched::CTable* r) {
-	if (r->header.table_id_extension == l->header.table_id_extension) {
-		if (r->header.table_id == l->header.table_id) {
-			if (r->header.section_number > l->header.section_number) {
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
+//bool _comp__section_number (const CEventInformationTable_sched::CTable* l, const CEventInformationTable_sched::CTable* r) {
+//	if (r->header.table_id_extension == l->header.table_id_extension) {
+//		if (r->header.table_id == l->header.table_id) {
+//			if (r->header.section_number > l->header.section_number) {
+//				return true;
+//			}
+//		}
+//	}
+//
+//	return false;
+//}
 
 
 CEventInformationTable_sched::CEventInformationTable_sched (size_t poolSize)
@@ -119,9 +119,11 @@ void CEventInformationTable_sched::onSectionCompleted (const CSectionInfo *pComp
 
 	appendTable (pTable);
 
-	std::stable_sort (mTables.begin(), mTables.end(), _comp__service_id);
-	std::stable_sort (mTables.begin(), mTables.end(), _comp__table_id);
-	std::stable_sort (mTables.begin(), mTables.end(), _comp__section_number);
+
+// need mutex
+//	std::stable_sort (mTables.begin(), mTables.end(), _comp__service_id);
+//	std::stable_sort (mTables.begin(), mTables.end(), _comp__table_id);
+//	std::stable_sort (mTables.begin(), mTables.end(), _comp__section_number);
 
 
 	// debug dump

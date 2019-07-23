@@ -241,6 +241,7 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		SECTID_CHECK_WAIT,
 		SECTID_REQ_GET_CHANNELS,
 		SECTID_WAIT_GET_CHANNELS,
+		SECTID_REQ_START_CACHE_SCHEDULE,
 		SECTID_END,
 	};
 
@@ -271,20 +272,24 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_WAIT: {
 
+		int interval_day = CSettings::getInstance()->getParams()->getScheduleCacheStartIntervalDay();
+		int start_hour = CSettings::getInstance()->getParams()->getScheduleCacheStartHour();
+		int start_min = CSettings::getInstance()->getParams()->getScheduleCacheStartMin();
+		
 		CEtime t;
 		t.setCurrentDay();
 		if (t == m_schedule_cache_next_day) {
 			m_schedule_cache_plan = t;
-			m_schedule_cache_plan.addHour(19);
-			m_schedule_cache_plan.addMin(14);
+			m_schedule_cache_plan.addHour(start_hour);
+			m_schedule_cache_plan.addMin(start_min);
 			_UTL_LOG_I ("m_schedule_cache_plan: [%s]", m_schedule_cache_plan.toString());
 
-			m_schedule_cache_next_day.addDay(1); // 毎日取得
+			m_schedule_cache_next_day.addDay(interval_day); //　次の予定
 		}
 
 		t.setCurrentTime();
 		if (t >= m_schedule_cache_plan) {
-			m_schedule_cache_plan.addDay(1); // 1回だけトリガするため
+			m_schedule_cache_plan.addDay(interval_day); // 1回だけトリガするため
 
 			sectId = SECTID_REQ_GET_CHANNELS;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -320,33 +325,7 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			s_ch_num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
 			_UTL_LOG_I ("reqGetChannels s_ch_num:[%d]", s_ch_num);
 
-
-			// 取得したチャネル分で START_CACHE_SCHEDULEキューを入れます
-			// ここはREQUEST_OPTION__WITHOUT_REPLY にしておきます
-			uint32_t opt = getExternalIf()->getRequestOption ();
-			opt |= REQUEST_OPTION__WITHOUT_REPLY;
-			getExternalIf()->setRequestOption (opt);
-
-			for (int i = 0; i < s_ch_num; ++ i) {
-				CEventScheduleManagerIf::SERVICE_KEY_t _key = {
-					s_channels[i].transport_stream_id,
-					s_channels[i].original_network_id,
-					s_channels[i].service_ids[0]	// ここは添字0 でも何でも良いです
-													// (現状ではすべてのチャンネル編成分のスケジュールを取得します
-				};
-				requestAsync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,
-					(uint8_t*)&_key,
-					sizeof(_key)
-				);
-			}
-
-			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-			getExternalIf()->setRequestOption (opt);
-
-
-			sectId = SECTID_CHECK;
+			sectId = SECTID_REQ_START_CACHE_SCHEDULE;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
@@ -355,6 +334,37 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
         }
 
+		break;
+
+	case SECTID_REQ_START_CACHE_SCHEDULE: {
+
+		// 取得したチャンネル分の START_CACHE_SCHEDULEキューを入れます
+		// ここはリプライ受けないので REQUEST_OPTION__WITHOUT_REPLY にしておきます
+		uint32_t opt = getExternalIf()->getRequestOption ();
+		opt |= REQUEST_OPTION__WITHOUT_REPLY;
+		getExternalIf()->setRequestOption (opt);
+
+		for (int i = 0; i < s_ch_num; ++ i) {
+			CEventScheduleManagerIf::SERVICE_KEY_t _key = {
+				s_channels[i].transport_stream_id,
+				s_channels[i].original_network_id,
+				s_channels[i].service_ids[0]	// ここは添字0 でも何でも良いです
+												// (現状ではすべてのチャンネル編成分のスケジュールを取得します)
+			};
+			requestAsync (
+				EN_MODULE_EVENT_SCHEDULE_MANAGER,
+				EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,
+				(uint8_t*)&_key,
+				sizeof(_key)
+			);
+		}
+
+		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+		getExternalIf()->setRequestOption (opt);
+
+		sectId = SECTID_CHECK;
+		enAct = EN_THM_ACT_CONTINUE;
+		}
 		break;
 
 	case SECTID_END:
@@ -573,11 +583,14 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 //		}
 // EN_THM_RSLT_SUCCESSのみ
 
-		Enable_PARSE_EIT_SCHED_REPLY_PARAM_t param = *(Enable_PARSE_EIT_SCHED_REPLY_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+		Enable_PARSE_EIT_SCHED_REPLY_PARAM_t param =
+					*(Enable_PARSE_EIT_SCHED_REPLY_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+		// parseインスタンス取得して
+		// parser側で積んでるデータはクリアします
 		mp_EIT_H_sched = param.p_parser;
-//mp_EIT_H_sched->dumpTables_simple();
+		mEIT_H_sched_ref = param.p_parser->reference();
 		mp_EIT_H_sched->clear();
-		mEIT_H_sched_ref = mp_EIT_H_sched->reference();
 
 
 		m_startTime_EITSched.setCurrentTime();
@@ -612,9 +625,9 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 
 		} else {
 			ttmp = m_startTime_EITSched;
-			ttmp.addMin (5);
+			ttmp.addMin (CSettings::getInstance()->getParams()->getScheduleCacheTimeoutMin());
 			if (tcur > ttmp) {
-				// 開始から5分経過していたらタイムアウトします
+				// getScheduleCacheTimeoutMin 分経過していたらタイムアウトします
 				_UTL_LOG_E ("parser EIT schedule : timeout");
 				sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 				enAct = EN_THM_ACT_CONTINUE;
@@ -669,7 +682,9 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 				SERVICE_KEY_t key (
 					s_serviceInfos[i].transport_stream_id,
 					s_serviceInfos[i].original_network_id,
-					s_serviceInfos[i].service_id
+					s_serviceInfos[i].service_id,
+					s_serviceInfos[i].service_type,			// additional
+					s_serviceInfos[i].p_service_name_char	// additional
 				);
 				addScheduleMap (key, p_sched);
 				key.dump();
@@ -1174,6 +1189,32 @@ void CEventScheduleManager::cacheSchedule (
 						p_event->text = aribstr;
 					}
 
+				} else if (iter_desc->tag == DESC_TAG__COMPONENT_DESCRIPTOR) {
+					CComponentDescriptor cd (*iter_desc);
+					if (!cd.isValid) {
+						_UTL_LOG_W ("invalid ComponentDescriptor");
+						continue;
+					}
+
+					p_event->video_component_type = CTsAribCommon::getVideoComponentType(cd.component_type);
+					p_event->video_ratio = CTsAribCommon::getVideoRatio(cd.component_type);
+					p_event->component_tag = cd.component_tag;
+
+				} else if (iter_desc->tag == DESC_TAG__CONTENT_DESCRIPTOR) {
+					CContentDescriptor cd (*iter_desc);
+					if (!cd.isValid) {
+						_UTL_LOG_W ("invalid ContentDescriptor");
+						continue;
+					}
+
+					std::vector<CContentDescriptor::CContent>::const_iterator iter_con = cd.contents.begin();
+					for (; iter_con != cd.contents.end(); ++ iter_con) {
+//TODO sssssssssssssssssssssssssssssssssssssssssssssssss
+						p_event->genre_lvl1 = CTsAribCommon::getGenre_lvl1(iter_con->content_nibble_level_1);
+						p_event->genre_lvl2 = CTsAribCommon::getGenre_lvl2(iter_con->content_nibble_level_2);
+					}
+
+				} else if (iter_desc->tag == DESC_TAG__AUDIO_COMPONENT_DESCRIPTOR) {
 				}
 
 			} // loop descriptors

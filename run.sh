@@ -1,5 +1,8 @@
 #!/bin/bash
 
+ulimit -c unlimited
+
+
 #BASE_DIR=${HOME}/prog/atpp
 BASE_DIR=./
 

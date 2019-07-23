@@ -3,9 +3,13 @@
         "m_is_syslog_output": true,
         "m_command_server_port": 20001,
         "m_channels_json_path": "./data/channels.json",
-        "m_rec_reserve_json_path": "./data/rec_reserves.json",
-        "m_rec_result_json_path": "./data/rec_results.json",
+        "m_rec_reserves_json_path": "./data/rec_reserves.json",
+        "m_rec_results_json_path": "./data/rec_results.json",
         "m_rec_ts_path": "./data/",
-        "m_dummy_tuner_ts_path": "../../../test.m2ts"
+        "m_dummy_tuner_ts_path": "../../../test.m2ts",
+        "m_schedule_cache_start_interval_day": 1,
+        "m_schedule_cache_start_hour": 15,
+        "m_schedule_cache_start_min": 0,
+        "m_schedule_cache_timeout_min": 5
     }
 }
