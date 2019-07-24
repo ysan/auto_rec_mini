@@ -205,6 +205,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 	case SECTID_WAIT_TUNE:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
+//TODO 暫定待ち  PSISI_TUNE_COMPLETEをみるようにしたい
 			pIf->setTimeout (7500);
 			sectId = SECTID_WAIT_AFTER_TUNE;
 			enAct = EN_THM_ACT_WAIT;

@@ -83,6 +83,10 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	clearServiceInfos ();
 	clearEventPfInfos ();
 	clearNetworkInfo ();
+
+	m_EIT_H_comp_flag.clear();
+	m_NIT_comp_flag.clear();
+	m_SDT_comp_flag.clear();
 }
 
 CPsisiManager::~CPsisiManager (void)
@@ -93,6 +97,10 @@ CPsisiManager::~CPsisiManager (void)
 	clearServiceInfos ();
 	clearEventPfInfos ();
 	clearNetworkInfo ();
+
+	m_EIT_H_comp_flag.clear();
+	m_NIT_comp_flag.clear();
+	m_SDT_comp_flag.clear();
 }
 
 
@@ -388,6 +396,8 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 			cacheNetworkInfo();
 		}
 
+		m_NIT_comp_flag.check_update (_notice.is_new_ts_section);
+
 		break;
 
 	case EN_PSISI_TYPE__SDT:
@@ -405,6 +415,8 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 			checkEventPfInfos();
 		}
 
+		m_SDT_comp_flag.check_update (_notice.is_new_ts_section);
+
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_PF:
@@ -414,6 +426,8 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 			cacheEventPfInfos ();
 			checkEventPfInfos();
 		}
+
+		m_EIT_H_comp_flag.check_update (_notice.is_new_ts_section);
 
 		break;
 
@@ -434,6 +448,8 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_CLEAR,
+		SECTID_CLEAR_WAIT,
 		SECTID_CHECK,
 		SECTID_CHECK_WAIT,
 		SECTID_END,
@@ -447,19 +463,19 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 		// 先にreplyしておく
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
-		sectId = SECTID_CHECK;
+		sectId = SECTID_CLEAR;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_CHECK:
+	case SECTID_CLEAR:
 
-		pIf->setTimeout (1500);
+		pIf->setTimeout (200);
 
-		sectId = SECTID_CHECK_WAIT;
+		sectId = SECTID_CLEAR_WAIT;
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
-	case SECTID_CHECK_WAIT:
+	case SECTID_CLEAR_WAIT:
 
 		mPAT.clear();
 		mEIT_H.clear();
@@ -468,8 +484,42 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 		mRST.clear();
 		mBIT.clear();
 
-		sectId = SECTID_END;
+		m_EIT_H_comp_flag.clear();
+		m_NIT_comp_flag.clear();
+		m_SDT_comp_flag.clear();
+
+		sectId = SECTID_CHECK;
 		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_CHECK:
+
+		pIf->setTimeout (100);
+
+		sectId = SECTID_CHECK_WAIT;
+		enAct = EN_THM_ACT_WAIT;
+		break;
+
+	case SECTID_CHECK_WAIT:
+
+		if (
+			m_EIT_H_comp_flag.is_completed() &&
+			m_NIT_comp_flag.is_completed() &&
+			m_SDT_comp_flag.is_completed()
+		) {
+			_UTL_LOG_I ("PSI/SI tuning complete.");
+
+			// fire notify
+			pIf->notify (NOTIFY_CAT__TUNE_COMPLETE);
+
+			sectId = SECTID_END;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			sectId = SECTID_CHECK;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
 		break;
 
 	case SECTID_END:
@@ -1019,14 +1069,19 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		m_tunerIsTuned = false;
 
-#ifdef _DUMMY_TUNER // ダミーデバッグ中はここでクリア
-		mPAT.clear();
-		mEIT_H.clear();
-		mNIT.clear();
-		mSDT.clear();
-		mRST.clear();
-		mBIT.clear();
-#endif
+//#ifdef _DUMMY_TUNER 
+//		// ダミーデバッグ中はここでクリア
+//		mPAT.clear();
+//		mEIT_H.clear();
+//		mNIT.clear();
+//		mSDT.clear();
+//		mRST.clear();
+//		mBIT.clear();
+//
+//		m_EIT_H_comp_flag.clear();
+//		m_NIT_comp_flag.clear();
+//		m_SDT_comp_flag.clear();
+//#endif
 
 		break;
 
@@ -1035,7 +1090,8 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		m_tunerIsTuned = true;
 
-#ifndef _DUMMY_TUNER
+//#ifndef _DUMMY_TUNER
+		// 選局後の安定化
 		uint32_t opt = getRequestOption ();
 		opt |= REQUEST_OPTION__WITHOUT_REPLY;
 		setRequestOption (opt);
@@ -1044,7 +1100,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 		setRequestOption (opt);
-#endif
+//#endif
 
 		} break;
 

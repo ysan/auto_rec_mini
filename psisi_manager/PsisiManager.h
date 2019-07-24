@@ -38,8 +38,9 @@ using namespace ThreadManager;
 
 
 // notify category
-#define NOTIFY_CAT__PAT_DETECT		((uint8_t)0) 
-#define NOTIFY_CAT__EVENT_CHANGE	((uint8_t)1) 
+#define NOTIFY_CAT__PAT_DETECT			((uint8_t)0)
+#define NOTIFY_CAT__EVENT_CHANGE		((uint8_t)1)
+#define NOTIFY_CAT__TUNE_COMPLETE	 	((uint8_t)2)
 
 
 #define PROGRAM_INFOS_MAX			(32)
@@ -317,6 +318,39 @@ public:
 
 } _NETWORK_INFO;
 
+typedef struct _section_comp_flag {
+public:
+	_section_comp_flag (void) {
+		clear ();
+	}
+	~_section_comp_flag (void) {
+		clear ();
+	}
+
+	void check_update (bool is_new_section) {
+		if (is_new_section) {
+			if (!m_flag) {
+				m_flag = 1;
+			}
+		} else {
+			if (m_flag == 1) {
+				m_flag = 2;
+			}
+		}
+	}
+
+	bool is_completed (void) {
+		return (m_flag == 2) ;
+	}
+
+	void clear (void) {
+		m_flag = 0;
+	}
+
+private:
+	int m_flag;
+
+} SECTION_COMP_FLAG_t ;
 
 
 class CPsisiManager
@@ -462,7 +496,12 @@ private:
 	_EVENT_PF_INFO m_eventPfInfos [EVENT_PF_INFOS_MAX];
 	_NETWORK_INFO m_networkInfo ;
 
+	SECTION_COMP_FLAG_t m_EIT_H_comp_flag;
+	SECTION_COMP_FLAG_t m_SDT_comp_flag;
+	SECTION_COMP_FLAG_t m_NIT_comp_flag;
 
+
+	// for EIT schedule
 	CEventInformationTable_sched mEIT_H_sched;
 	bool m_isEnableEITSched;
 
