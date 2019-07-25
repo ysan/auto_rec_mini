@@ -1358,16 +1358,20 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 
 		if (pstQueWorker->isUsed) {
 
-			if (isLock (nThreadIdx)) {
-				/* 
-				 * だれかlockしている
-				 * (当該Threadのseqのどれかでlockしている)
-				 */
-				nSeqIdx = pstQueWorker->nDestSeqIdx;
-				if (!isLockSeq (nThreadIdx, nSeqIdx)) {
-					/* 対象のseq以外がlockしていたら 見送ります */
-					pstQueWorker ++;
-					continue;
+			if (pstQueWorker->enQueType != EN_QUE_TYPE_NOTIFY) {
+				/* lockはNOTIFYは除外します */
+
+				if (isLock (nThreadIdx)) {
+					/* 
+					 * だれかlockしている
+					 * (当該Threadのseqのどれかでlockしている)
+					 */
+					nSeqIdx = pstQueWorker->nDestSeqIdx;
+					if (!isLockSeq (nThreadIdx, nSeqIdx)) {
+						/* 対象のseq以外がlockしていたら 見送ります */
+						pstQueWorker ++;
+						continue;
+					}
 				}
 			}
 

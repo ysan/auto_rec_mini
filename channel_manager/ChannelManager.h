@@ -198,6 +198,7 @@ public:
 	void onReq_getChannels (CThreadMgrIf *pIf);
 	void onReq_dumpChannels (CThreadMgrIf *pIf);
 
+	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
 
 private:
@@ -229,7 +230,8 @@ private:
 	ST_SEQ_BASE mSeqs [EN_SEQ_CHANNEL_MANAGER__NUM]; // entity
 
 
-	uint8_t m_tunerNotify_clientId;
+	uint8_t m_tuneCompNotify_clientId;
+	PSISI_NOTIFY_NETWORK_INFO m_psisiNotify_networkInfo;
 
 	std::map <uint16_t, CChannel> m_channels; // <pysical channel, CChannel>
 

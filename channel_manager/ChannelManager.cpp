@@ -12,7 +12,7 @@
 
 CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
-	,m_tunerNotify_clientId (0xff)
+	,m_tuneCompNotify_clientId (0xff)
 {
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__MODULE_UP] =
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleUp,                              (char*)"onReq_moduleUp"};
@@ -35,12 +35,17 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 	setSeqs (mSeqs, EN_SEQ_CHANNEL_MANAGER__NUM);
 
 
+	memset (&m_psisiNotify_networkInfo, 0x00, sizeof(m_psisiNotify_networkInfo));
+
 	m_channels.clear ();
 
 }
 
 CChannelManager::~CChannelManager (void)
 {
+	memset (&m_psisiNotify_networkInfo, 0x00, sizeof(m_psisiNotify_networkInfo));
+
+	m_channels.clear ();
 }
 
 
@@ -50,8 +55,8 @@ void CChannelManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_REG_TUNER_NOTIFY,
-		SECTID_WAIT_REG_TUNER_NOTIFY,
+		SECTID_REQ_REG_TUNE_COMP_NOTIFY,
+		SECTID_WAIT_REG_TUNE_COMP_NOTIFY,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
 	};
@@ -69,25 +74,24 @@ void CChannelManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		dumpChannels_simple ();
 
 
-//		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
-//TODO TUNER_NOTIFYは特にいらない
-sectId = SECTID_END_SUCCESS;
+		sectId = SECTID_REQ_REG_TUNE_COMP_NOTIFY;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_REQ_REG_TUNER_NOTIFY: {
-		CTunerControlIf _if (getExternalIf());
-		_if.reqRegisterTunerNotify ();
+	case SECTID_REQ_REG_TUNE_COMP_NOTIFY: {
+		CPsisiManagerIf _if (getExternalIf());
+		_if.reqRegisterTuneCompleteNotify ();
 
-		sectId = SECTID_WAIT_REG_TUNER_NOTIFY;
+		sectId = SECTID_WAIT_REG_TUNE_COMP_NOTIFY;
 		enAct = EN_THM_ACT_WAIT;
 		}
 		break;
 
-	case SECTID_WAIT_REG_TUNER_NOTIFY:
+	case SECTID_WAIT_REG_TUNE_COMP_NOTIFY:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			m_tunerNotify_clientId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+			m_tuneCompNotify_clientId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+			_UTL_LOG_I ("m_tuneCompNotify_clientId=[0x%02x]", m_tuneCompNotify_clientId);
 			sectId = SECTID_END_SUCCESS;
 			enAct = EN_THM_ACT_CONTINUE;
 
@@ -385,6 +389,8 @@ void CChannelManager::onReq_tuneByServiceId (CThreadMgrIf *pIf)
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_REQ_TUNE,
 		SECTID_WAIT_TUNE,
+		SECTID_CHECK_PSISI_TUNE_COMPLETE,
+		SECTID_CHECK_WAIT_PSISI_TUNE_COMPLETE,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
 	};
@@ -438,7 +444,7 @@ void CChannelManager::onReq_tuneByServiceId (CThreadMgrIf *pIf)
 	case SECTID_WAIT_TUNE:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			sectId = SECTID_END_SUCCESS;
+			sectId = SECTID_CHECK_PSISI_TUNE_COMPLETE;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
@@ -448,10 +454,45 @@ void CChannelManager::onReq_tuneByServiceId (CThreadMgrIf *pIf)
 		}
 		break;
 
+	case SECTID_CHECK_PSISI_TUNE_COMPLETE:
+
+		pIf->setTimeout(100);
+		sectId = SECTID_CHECK_WAIT_PSISI_TUNE_COMPLETE;
+		enAct = EN_THM_ACT_WAIT;
+
+		break;
+
+	case SECTID_CHECK_WAIT_PSISI_TUNE_COMPLETE:
+		if (
+			m_psisiNotify_networkInfo.transport_stream_id == s_param.transport_stream_id &&
+			m_psisiNotify_networkInfo.original_network_id == s_param.original_network_id
+		) {
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else if (
+			m_psisiNotify_networkInfo.table_id == 0 &&
+			m_psisiNotify_networkInfo.transport_stream_id == 0 &&
+			m_psisiNotify_networkInfo.original_network_id == 0
+		) {
+			sectId = SECTID_CHECK_PSISI_TUNE_COMPLETE;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			// 予期しないnetwork
+			_UTL_LOG_E ("unexpected networkInfo");
+			m_psisiNotify_networkInfo.dump ();
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		break;
+
 	case SECTID_END_SUCCESS:
 		pIf->unlock();
 
 		memset (&s_param, 0x00, sizeof(s_param));
+		memset (&m_psisiNotify_networkInfo, 0x00, sizeof(m_psisiNotify_networkInfo));
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
@@ -462,6 +503,7 @@ void CChannelManager::onReq_tuneByServiceId (CThreadMgrIf *pIf)
 		pIf->unlock();
 
 		memset (&s_param, 0x00, sizeof(s_param));
+		memset (&m_psisiNotify_networkInfo, 0x00, sizeof(m_psisiNotify_networkInfo));
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
@@ -483,6 +525,8 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_REQ_TUNE,
 		SECTID_WAIT_TUNE,
+		SECTID_CHECK_PSISI_TUNE_COMPLETE,
+		SECTID_CHECK_WAIT_PSISI_TUNE_COMPLETE,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
 	};
@@ -536,7 +580,7 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 	case SECTID_WAIT_TUNE:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			sectId = SECTID_END_SUCCESS;
+			sectId = SECTID_CHECK_PSISI_TUNE_COMPLETE;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
@@ -546,10 +590,44 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 		}
 		break;
 
+	case SECTID_CHECK_PSISI_TUNE_COMPLETE:
+
+		pIf->setTimeout(100);
+		sectId = SECTID_CHECK_WAIT_PSISI_TUNE_COMPLETE;
+		enAct = EN_THM_ACT_WAIT;
+
+		break;
+
+	case SECTID_CHECK_WAIT_PSISI_TUNE_COMPLETE:
+		if (
+			m_psisiNotify_networkInfo.transport_stream_id == s_param.transport_stream_id &&
+			m_psisiNotify_networkInfo.original_network_id == s_param.original_network_id
+		) {
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else if (
+			m_psisiNotify_networkInfo.transport_stream_id == 0 &&
+			m_psisiNotify_networkInfo.original_network_id == 0
+		) {
+			sectId = SECTID_CHECK_PSISI_TUNE_COMPLETE;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			// 予期しないnetwork
+			_UTL_LOG_E ("unexpected networkInfo");
+			m_psisiNotify_networkInfo.dump ();
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		break;
+
 	case SECTID_END_SUCCESS:
 		pIf->unlock();
 
 		memset (&s_param, 0x00, sizeof(s_param));
+		memset (&m_psisiNotify_networkInfo, 0x00, sizeof(m_psisiNotify_networkInfo));
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
@@ -560,6 +638,7 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 		pIf->unlock();
 
 		memset (&s_param, 0x00, sizeof(s_param));
+		memset (&m_psisiNotify_networkInfo, 0x00, sizeof(m_psisiNotify_networkInfo));
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
@@ -625,6 +704,25 @@ void CChannelManager::onReq_dumpChannels (CThreadMgrIf *pIf)
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
 	pIf->setSectId (sectId, enAct);
+}
+
+void CChannelManager::onReceiveNotify (CThreadMgrIf *pIf) 
+{
+	if ((pIf->getSrcInfo()->nClientId == m_tuneCompNotify_clientId)) {
+		// psisi managerの選局完了通知
+
+		if (
+			m_psisiNotify_networkInfo.table_id != 0 ||
+			m_psisiNotify_networkInfo.transport_stream_id != 0 ||
+			m_psisiNotify_networkInfo.original_network_id != 0
+		) {
+			_UTL_LOG_W ("m_psisiNotify_networkInfo is not clear!!");
+		}
+
+		m_psisiNotify_networkInfo = *(PSISI_NOTIFY_NETWORK_INFO*)(pIf->getSrcInfo()->msg.pMsg);
+		m_psisiNotify_networkInfo.dump();
+
+	}
 }
 
 

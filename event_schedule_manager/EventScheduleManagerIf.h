@@ -24,7 +24,8 @@ enum {
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,	// inner
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_CURRENT_SERVICE,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT_LATEST_DUMPED_SCHEDULE,
+	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE,
+	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__KEY_WORD,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE,
 
@@ -66,11 +67,16 @@ public:
 
 	typedef struct _req_event_param {
 		union _arg {
-			// key指定か index指定か
+			// key指定 or index指定 or キーワード
 			EVENT_KEY_t key;
 			int index;
+			const char *p_key_word;
 		} arg;
 		EVENT_t *p_out_event;
+
+		// キーワードで複数検索されたときのため
+		// p_out_event元が配列になっている前提のもの
+		int array_max_num;
 	} REQ_EVENT_PARAM_t;
 
 public:
@@ -129,7 +135,7 @@ public:
 
 		return requestAsync (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT_LATEST_DUMPED_SCHEDULE,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE,
 					(uint8_t*)p_param,
 					sizeof (REQ_EVENT_PARAM_t)
 				);
@@ -142,7 +148,20 @@ public:
 
 		return requestSync (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT_LATEST_DUMPED_SCHEDULE,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE,
+					(uint8_t*)p_param,
+					sizeof (REQ_EVENT_PARAM_t)
+				);
+	};
+
+	bool reqGetEvent_keyWord (REQ_EVENT_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__KEY_WORD,
 					(uint8_t*)p_param,
 					sizeof (REQ_EVENT_PARAM_t)
 				);
@@ -167,7 +186,6 @@ public:
 					sizeof (SERVICE_KEY_t)
 				);
 	};
-
 
 };
 

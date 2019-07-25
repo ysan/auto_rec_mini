@@ -49,17 +49,20 @@ public:
 		std::string *getDummyTunerTsPath (void) {
 			return &m_dummy_tuner_ts_path;
 		}
-		int getScheduleCacheStartIntervalDay (void) {
-			return m_schedule_cache_start_interval_day;
+		int isEnableEventScheduleCache (void) {
+			return m_event_schedule_cache_is_enable;
 		}
-		int getScheduleCacheStartHour (void) {
-			return m_schedule_cache_start_hour;
+		int getEventScheduleCacheStartIntervalDay (void) {
+			return m_event_schedule_cache_start_interval_day;
 		}
-		int getScheduleCacheStartMin (void) {
-			return m_schedule_cache_start_min;
+		int getEventScheduleCacheStartHour (void) {
+			return m_event_schedule_cache_start_hour;
 		}
-		int getScheduleCacheTimeoutMin (void) {
-			return m_schedule_cache_timeout_min;
+		int getEventScheduleCacheStartMin (void) {
+			return m_event_schedule_cache_start_min;
+		}
+		int getEventScheduleCacheTimeoutMin (void) {
+			return m_event_schedule_cache_timeout_min;
 		}
 
 
@@ -75,10 +78,11 @@ public:
 			_UTL_LOG_I ("m_rec_results_json_path:[%s]", m_rec_results_json_path.c_str());
 			_UTL_LOG_I ("m_rec_ts_path:[%s]", m_rec_ts_path.c_str());
 			_UTL_LOG_I ("m_dummy_tuner_ts_path:[%s]", m_dummy_tuner_ts_path.c_str());
-			_UTL_LOG_I ("m_schedule_cache_start_interval_day:[%d]", m_schedule_cache_start_interval_day);
-			_UTL_LOG_I ("m_schedule_cache_start_hour:[%d]", m_schedule_cache_start_hour);
-			_UTL_LOG_I ("m_schedule_cache_start_min:[%d]", m_schedule_cache_start_min);
-			_UTL_LOG_I ("m_schedule_cache_timeout_min:[%d]", m_schedule_cache_timeout_min);
+			_UTL_LOG_I ("m_event_schedule_cache_is_enable:[%d]", m_event_schedule_cache_is_enable);
+			_UTL_LOG_I ("m_event_schedule_cache_start_interval_day:[%d]", m_event_schedule_cache_start_interval_day);
+			_UTL_LOG_I ("m_event_schedule_cache_start_hour:[%d]", m_event_schedule_cache_start_hour);
+			_UTL_LOG_I ("m_event_schedule_cache_start_min:[%d]", m_event_schedule_cache_start_min);
+			_UTL_LOG_I ("m_event_schedule_cache_timeout_min:[%d]", m_event_schedule_cache_timeout_min);
 			_UTL_LOG_I ("----------------");
 		}
 
@@ -93,10 +97,11 @@ public:
 				CEREAL_NVP(m_rec_results_json_path),
 				CEREAL_NVP(m_rec_ts_path),
 				CEREAL_NVP(m_dummy_tuner_ts_path),
-				CEREAL_NVP(m_schedule_cache_start_interval_day),
-				CEREAL_NVP(m_schedule_cache_start_hour),
-				CEREAL_NVP(m_schedule_cache_start_min),
-				CEREAL_NVP(m_schedule_cache_timeout_min)
+				CEREAL_NVP(m_event_schedule_cache_is_enable),
+				CEREAL_NVP(m_event_schedule_cache_start_interval_day),
+				CEREAL_NVP(m_event_schedule_cache_start_hour),
+				CEREAL_NVP(m_event_schedule_cache_start_min),
+				CEREAL_NVP(m_event_schedule_cache_timeout_min)
 
 			);
 		}
@@ -110,10 +115,11 @@ public:
 		std::string m_rec_results_json_path;
 		std::string m_rec_ts_path;
 		std::string m_dummy_tuner_ts_path;
-		int m_schedule_cache_start_interval_day;
-		int m_schedule_cache_start_hour;
-		int m_schedule_cache_start_min;
-		int m_schedule_cache_timeout_min;
+		bool m_event_schedule_cache_is_enable;
+		int m_event_schedule_cache_start_interval_day;
+		int m_event_schedule_cache_start_hour;
+		int m_event_schedule_cache_start_min;
+		int m_event_schedule_cache_timeout_min;
 
 	};
 

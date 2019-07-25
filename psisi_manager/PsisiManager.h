@@ -373,6 +373,8 @@ public:
 	void onReq_unregisterPatDetectNotify (CThreadMgrIf *pIf);
 	void onReq_registerEventChangeNotify (CThreadMgrIf *pIf);
 	void onReq_unregisterEventChangeNotify (CThreadMgrIf *pIf);
+	void onReq_registerTuneCompleteNotify (CThreadMgrIf *pIf);
+	void onReq_unregisterTuneCompleteNotify (CThreadMgrIf *pIf);
 	void onReq_getPatDetectState (CThreadMgrIf *pIf);
 	void onReq_getCurrentServiceInfos (CThreadMgrIf *pIf);
 	void onReq_getPresentEventInfo (CThreadMgrIf *pIf);
@@ -496,6 +498,7 @@ private:
 	_EVENT_PF_INFO m_eventPfInfos [EVENT_PF_INFOS_MAX];
 	_NETWORK_INFO m_networkInfo ;
 
+	SECTION_COMP_FLAG_t m_PAT_comp_flag;
 	SECTION_COMP_FLAG_t m_EIT_H_comp_flag;
 	SECTION_COMP_FLAG_t m_SDT_comp_flag;
 	SECTION_COMP_FLAG_t m_NIT_comp_flag;

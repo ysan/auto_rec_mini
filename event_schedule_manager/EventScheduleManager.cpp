@@ -9,8 +9,6 @@
 #include "EventScheduleManager.h"
 #include "EventScheduleManagerIf.h"
 
-#include "Settings.h"
-
 #include "modules.h"
 
 #include "aribstr.h"
@@ -37,6 +35,7 @@ bool _comp__section_number (const CEvent* l, const CEvent* r) {
 
 CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
+	,mp_settings (NULL)
 	,m_tunerNotify_clientId (0xff)
 	,m_eventChangeNotify_clientId (0xff)
 	,mp_EIT_H_sched (NULL)
@@ -55,7 +54,7 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule_currentService,  (char*)"onReq_cacheSchedule_currentService"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent,                      (char*)"onReq_getEvent"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT_LATEST_DUMPED_SCHEDULE] =
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent_latestDumpedSchedule, (char*)"onReq_getEvent_latestDumpedSchedule"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,               (char*)"onReq_dumpScheduleMap"};
@@ -63,6 +62,8 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule,                  (char*)"onReq_dumpSchedule"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
 
+
+	mp_settings = CSettings::getInstance();
 
 	m_lastUpdate_EITSched.clear();
 	m_startTime_EITSched.clear();
@@ -73,7 +74,7 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 
 
 	m_schedule_cache_next_day.clear();
-	m_schedule_cache_plan.clear();
+	m_schedule_cache_current_plan.clear();
 }
 
 CEventScheduleManager::~CEventScheduleManager (void)
@@ -86,7 +87,7 @@ CEventScheduleManager::~CEventScheduleManager (void)
 	m_latest_dumped_key.clear();
 
 	m_schedule_cache_next_day.clear();
-	m_schedule_cache_plan.clear();
+	m_schedule_cache_current_plan.clear();
 }
 
 
@@ -272,27 +273,36 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_WAIT: {
 
-		int interval_day = CSettings::getInstance()->getParams()->getScheduleCacheStartIntervalDay();
-		int start_hour = CSettings::getInstance()->getParams()->getScheduleCacheStartHour();
-		int start_min = CSettings::getInstance()->getParams()->getScheduleCacheStartMin();
+		int interval_day = mp_settings->getParams()->getEventScheduleCacheStartIntervalDay();
+		int start_hour = mp_settings->getParams()->getEventScheduleCacheStartHour();
+		int start_min = mp_settings->getParams()->getEventScheduleCacheStartMin();
 		
 		CEtime t;
 		t.setCurrentDay();
 		if (t == m_schedule_cache_next_day) {
-			m_schedule_cache_plan = t;
-			m_schedule_cache_plan.addHour(start_hour);
-			m_schedule_cache_plan.addMin(start_min);
-			_UTL_LOG_I ("m_schedule_cache_plan: [%s]", m_schedule_cache_plan.toString());
+			// 実行予定日なので時間:分を確定します
+			m_schedule_cache_current_plan = t;
+			m_schedule_cache_current_plan.addHour(start_hour);
+			m_schedule_cache_current_plan.addMin(start_min);
+			_UTL_LOG_I ("m_schedule_cache_current_plan: [%s]", m_schedule_cache_current_plan.toString());
 
-			m_schedule_cache_next_day.addDay(interval_day); //　次の予定
+			m_schedule_cache_next_day.addDay(interval_day); //　次回の予定日
 		}
 
+		// 実行時間がきたかチェックします
 		t.setCurrentTime();
-		if (t >= m_schedule_cache_plan) {
-			m_schedule_cache_plan.addDay(interval_day); // 1回だけトリガするため
+		if (t >= m_schedule_cache_current_plan) {
+			m_schedule_cache_current_plan.addDay(interval_day); // 1回だけトリガするため +interval_dayしておきます
 
-			sectId = SECTID_REQ_GET_CHANNELS;
-			enAct = EN_THM_ACT_CONTINUE;
+			if (mp_settings->getParams()->isEnableEventScheduleCache()) {
+				_UTL_LOG_I ("do schedule cache run now. [%s]", m_schedule_cache_current_plan.toString());
+				sectId = SECTID_REQ_GET_CHANNELS;
+				enAct = EN_THM_ACT_CONTINUE;
+			} else {
+				_UTL_LOG_I ("disable schedule cache. [%s]", m_schedule_cache_current_plan.toString());
+				sectId = SECTID_CHECK;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
 
 		} else {
 			sectId = SECTID_CHECK;
@@ -419,10 +429,8 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
-		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
-		SECTID_REQ_TUNE,
-		SECTID_WAIT_TUNE,
+		SECTID_REQ_TUNE_BY_SERVICE_ID,
+		SECTID_WAIT_TUNE_BY_SERVICE_ID,
 		SECTID_REQ_GET_SERVICE_INFOS,
 		SECTID_WAIT_GET_SERVICE_INFOS,
 		SECTID_REQ_ENABLE_PARSE_EIT_SCHED,
@@ -441,7 +449,6 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 	static CEventScheduleManagerIf::SERVICE_KEY_t s_service_key;
-	static uint16_t s_ch = 0;
 	static PSISI_SERVICE_INFO s_serviceInfos[10];
 	static int s_num = 0;
 	static int s_retry = 0;
@@ -456,11 +463,11 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		// 時間がかかるはずなので先にリプライしときます
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
-		sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+		sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
+	case SECTID_REQ_TUNE_BY_SERVICE_ID: {
 
 		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
 			s_service_key.transport_stream_id,
@@ -469,47 +476,21 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		};
 
 		CChannelManagerIf _if (getExternalIf());
-		_if.reqGetPysicalChannelByServiceId (&param);
+		_if.reqTuneByServiceId (&param);
 
-		sectId = SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID;
+		sectId = SECTID_WAIT_TUNE_BY_SERVICE_ID;
 		enAct = EN_THM_ACT_WAIT;
 		}
 		break;
 
-	case SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			s_ch = *(uint16_t*)(pIf->getSrcInfo()->msg.pMsg);
-			sectId = SECTID_REQ_TUNE;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-			_UTL_LOG_E ("reqGetPysicalChannelByServiceId is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-		}
-		break;
-
-	case SECTID_REQ_TUNE: {
-		uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (s_ch);
-		_UTL_LOG_I ("freq=[%d]kHz\n", freq);
-
-		CTunerControlIf _if (getExternalIf());
-		_if.reqTune (freq);
-
-		sectId = SECTID_WAIT_TUNE;
-		enAct = EN_THM_ACT_WAIT;
-		}
-		break;
-
-	case SECTID_WAIT_TUNE:
+	case SECTID_WAIT_TUNE_BY_SERVICE_ID:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 			sectId = SECTID_REQ_GET_SERVICE_INFOS;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			_UTL_LOG_E ("tune is failure");
+			_UTL_LOG_E ("CChannelManagerIf::reqTuneByServiceId is failure.");
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -587,7 +568,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 					*(Enable_PARSE_EIT_SCHED_REPLY_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
 		// parseインスタンス取得して
-		// parser側で積んでるデータはクリアします
+		// parser側で積んでるデータは一度クリアします
 		mp_EIT_H_sched = param.p_parser;
 		mEIT_H_sched_ref = param.p_parser->reference();
 		mp_EIT_H_sched->clear();
@@ -603,8 +584,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK:
 
-		_UTL_LOG_I ("parse EIT schedule ...");
-		pIf->setTimeout (2000); // 2sec
+		pIf->setTimeout (5000); // 5sec
 
 		sectId = SECTID_CHECK_WAIT;
 		enAct = EN_THM_ACT_WAIT;
@@ -612,7 +592,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_WAIT: {
 
-		// 20秒間更新がなかったら完了とします
+		// 約20秒間更新がなかったら完了とします
 		CEtime tcur;
 		tcur.setCurrentTime();
 		CEtime ttmp = m_lastUpdate_EITSched;
@@ -625,15 +605,15 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 
 		} else {
 			ttmp = m_startTime_EITSched;
-			ttmp.addMin (CSettings::getInstance()->getParams()->getScheduleCacheTimeoutMin());
+			ttmp.addMin (mp_settings->getParams()->getEventScheduleCacheTimeoutMin());
 			if (tcur > ttmp) {
-				// getScheduleCacheTimeoutMin 分経過していたらタイムアウトします
+				// getEventScheduleCacheTimeoutMin 分経過していたらタイムアウトします
 				_UTL_LOG_E ("parser EIT schedule : timeout");
 				sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 				enAct = EN_THM_ACT_CONTINUE;
 
 			} else {
-				_UTL_LOG_I ("m_lastUpdate_EITSched %s", m_lastUpdate_EITSched.toString());
+				_UTL_LOG_I ("parse EIT schedule : m_lastUpdate_EITSched %s", m_lastUpdate_EITSched.toString());
 				sectId = SECTID_CHECK;
 				enAct = EN_THM_ACT_CONTINUE;
 			}
@@ -703,7 +683,6 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 	case SECTID_END_SUCCESS:
 
 		memset (&s_service_key, 0x00, sizeof(s_service_key));
-		s_ch = 0;
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
 		s_retry = 0;
@@ -716,7 +695,6 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 	case SECTID_END_ERROR:
 
 		memset (&s_service_key, 0x00, sizeof(s_service_key));
-		s_ch = 0;
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
 		s_retry = 0;
@@ -1057,6 +1035,7 @@ void CEventScheduleManager::onReq_dumpSchedule (CThreadMgrIf *pIf)
 
 void CEventScheduleManager::onReceiveNotify (CThreadMgrIf *pIf)
 {
+/***
 	if (pIf->getSrcInfo()->nClientId == m_tunerNotify_clientId) {
 
 		EN_TUNER_STATE enState = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
@@ -1083,11 +1062,12 @@ void CEventScheduleManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 	} else if (pIf->getSrcInfo()->nClientId == m_eventChangeNotify_clientId) {
 
-//		PSISI_NOTIFY_EVENT_INFO _info = *(PSISI_NOTIFY_EVENT_INFO*)(pIf->getSrcInfo()->msg.pMsg);
-//		_UTL_LOG_I ("!!! event changed !!!");
-//		_info.dump ();
+		PSISI_NOTIFY_EVENT_INFO _info = *(PSISI_NOTIFY_EVENT_INFO*)(pIf->getSrcInfo()->msg.pMsg);
+		_UTL_LOG_I ("!!! event changed !!!");
+		_info.dump ();
 
 	}
+***/
 }
 
 /**
@@ -1209,9 +1189,10 @@ void CEventScheduleManager::cacheSchedule (
 
 					std::vector<CContentDescriptor::CContent>::const_iterator iter_con = cd.contents.begin();
 					for (; iter_con != cd.contents.end(); ++ iter_con) {
-//TODO sssssssssssssssssssssssssssssssssssssssssssssssss
-						p_event->genre_lvl1 = CTsAribCommon::getGenre_lvl1(iter_con->content_nibble_level_1);
-						p_event->genre_lvl2 = CTsAribCommon::getGenre_lvl2(iter_con->content_nibble_level_2);
+						CEvent::CGenre genre;
+						genre.lvl1 = CTsAribCommon::getGenre_lvl1(iter_con->content_nibble_level_1);
+						genre.lvl2 = CTsAribCommon::getGenre_lvl2(iter_con->content_nibble_level_2);
+						p_event->genres.push_back (genre);
 					}
 
 				} else if (iter_desc->tag == DESC_TAG__AUDIO_COMPONENT_DESCRIPTOR) {

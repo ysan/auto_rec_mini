@@ -20,6 +20,7 @@
 #include "ThreadMgrBase.h"
 #include "ThreadMgr.h"
 
+#include "Settings.h"
 #include "Utils.h"
 #include "EventScheduleManagerIf.h"
 #include "TsAribCommon.h"
@@ -166,6 +167,21 @@ public:
 
 class CEvent {
 public:
+	class CGenre {
+	public:
+		CGenre (void) {
+			lvl1.clear ();
+			lvl2.clear ();
+		}
+		~CGenre (void) {
+			lvl1.clear ();
+			lvl2.clear ();
+		}
+		std::string lvl1;
+		std::string lvl2;
+	};
+
+public:
 	CEvent (void) {
 		clear ();
 	}
@@ -175,7 +191,7 @@ public:
 
 	bool operator == (const CEvent &obj) const {
 		if (
-			this->table_id == obj.table_id &&
+//			this->table_id == obj.table_id &&
 			this->transport_stream_id == obj.transport_stream_id &&
 			this->original_network_id == obj.original_network_id &&
 			this->service_id == obj.service_id &&
@@ -189,7 +205,7 @@ public:
 
 	bool operator != (const CEvent &obj) const {
 		if (
-			this->table_id != obj.table_id ||
+//			this->table_id != obj.table_id ||
 			this->transport_stream_id != obj.transport_stream_id ||
 			this->original_network_id != obj.original_network_id ||
 			this->service_id != obj.service_id ||
@@ -220,8 +236,7 @@ public:
 	std::string video_ratio;
 	uint8_t component_tag;
 
-	std::string genre_lvl1;
-	std::string genre_lvl2;
+	std::vector <CGenre> genres;
 
 
 	void clear (void) {
@@ -238,8 +253,7 @@ public:
 		video_component_type.clear();
 		video_ratio.clear();
 		component_tag = 0;
-		genre_lvl1.clear();
-		genre_lvl2.clear();
+		genres.clear();
 	}
 
 	void dump (void) const {
@@ -265,7 +279,10 @@ public:
 			video_ratio.c_str(),
 			component_tag
 		);
-		_UTL_LOG_I ("genre:[%s][%s]", genre_lvl1.c_str(), genre_lvl2.c_str());
+		std::vector<CGenre>::const_iterator iter = genres.begin();
+		for (; iter != genres.end(); ++ iter) {
+			_UTL_LOG_I ("genre:[%s][%s]", iter->lvl1.c_str(), iter->lvl2.c_str());
+		}
 	}
 
 };
@@ -317,6 +334,8 @@ private:
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM]; // entity
 
+	CSettings *mp_settings;
+
 	uint8_t m_tunerNotify_clientId;
 	uint8_t m_eventChangeNotify_clientId;
 
@@ -333,7 +352,7 @@ private:
 
 
 	CEtime m_schedule_cache_next_day;
-	CEtime m_schedule_cache_plan;
+	CEtime m_schedule_cache_current_plan;
 };
 
 #endif

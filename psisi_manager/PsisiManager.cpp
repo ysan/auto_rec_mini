@@ -49,6 +49,10 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerEventChangeNotify,   (char*)"onReq_registerEventChangeNotify"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__UNREG_EVENT_CHANGE_NOTIFY] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterEventChangeNotify, (char*)"onReq_unregisterEventChangeNotify"};
+	mSeqs [EN_SEQ_PSISI_MANAGER__REG_TUNE_COMPLETE_NOTIFY] =
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerTuneCompleteNotify,  (char*)"onReq_registerTuneCompleteNotify"};
+	mSeqs [EN_SEQ_PSISI_MANAGER__UNREG_TUNE_COMPLETE_NOTIFY] =
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterTuneCompleteNotify,(char*)"onReq_unregisterTuneCompleteNotify"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__GET_PAT_DETECT_STATE] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getPatDetectState,           (char*)"onReq_getPatDetectState"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__GET_CURRENT_SERVICE_INFOS] =
@@ -84,6 +88,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	clearEventPfInfos ();
 	clearNetworkInfo ();
 
+	m_PAT_comp_flag.clear();
 	m_EIT_H_comp_flag.clear();
 	m_NIT_comp_flag.clear();
 	m_SDT_comp_flag.clear();
@@ -98,6 +103,7 @@ CPsisiManager::~CPsisiManager (void)
 	clearEventPfInfos ();
 	clearNetworkInfo ();
 
+	m_PAT_comp_flag.clear();
 	m_EIT_H_comp_flag.clear();
 	m_NIT_comp_flag.clear();
 	m_SDT_comp_flag.clear();
@@ -373,6 +379,9 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 	_PARSER_NOTICE _notice = *(_PARSER_NOTICE*)(pIf->getSrcInfo()->msg.pMsg);
 	switch (_notice.type) {
 	case EN_PSISI_TYPE__PAT:
+		// 選局後 parserが新しいセクションを取得したかチェックします
+		m_PAT_comp_flag.check_update (_notice.is_new_ts_section);
+
 		if (_notice.is_new_ts_section) {
 //			mPAT.dumpTables();
 			_UTL_LOG_I ("notice new PAT");
@@ -387,6 +396,9 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 		break;
 
 	case EN_PSISI_TYPE__NIT:
+		// 選局後 parserが新しいセクションを取得したかチェックします
+		m_NIT_comp_flag.check_update (_notice.is_new_ts_section);
+
 		if (_notice.is_new_ts_section) {
 //			mNIT.dumpTables();
 			_UTL_LOG_I ("notice new NIT");
@@ -396,11 +408,12 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 			cacheNetworkInfo();
 		}
 
-		m_NIT_comp_flag.check_update (_notice.is_new_ts_section);
-
 		break;
 
 	case EN_PSISI_TYPE__SDT:
+		// 選局後 parserが新しいセクションを取得したかチェックします
+		m_SDT_comp_flag.check_update (_notice.is_new_ts_section);
+
 		if (_notice.is_new_ts_section) {
 //			mSDT.dumpTables();
 			_UTL_LOG_I ("notice new SDT");
@@ -415,19 +428,18 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 			checkEventPfInfos();
 		}
 
-		m_SDT_comp_flag.check_update (_notice.is_new_ts_section);
-
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_PF:
+		// 選局後 parserが新しいセクションを取得したかチェックします
+		m_EIT_H_comp_flag.check_update (_notice.is_new_ts_section);
+
 		if (_notice.is_new_ts_section) {
 			_UTL_LOG_I ("notice new EIT p/f");
 			clearEventPfInfos();
 			cacheEventPfInfos ();
 			checkEventPfInfos();
 		}
-
-		m_EIT_H_comp_flag.check_update (_notice.is_new_ts_section);
 
 		break;
 
@@ -484,6 +496,7 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 		mRST.clear();
 		mBIT.clear();
 
+		m_PAT_comp_flag.clear();
 		m_EIT_H_comp_flag.clear();
 		m_NIT_comp_flag.clear();
 		m_SDT_comp_flag.clear();
@@ -502,15 +515,31 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_WAIT:
 
+		// PAT,EIT,NIT,SDTのparserが完了したか確認します
+		// 少なくともこの4つが完了していれば psisi manager的に選局完了とします
+		// ARIB規格上では送出頻度は以下のとおりになっている...  EIT,NIT,SDTはもっと頻度多いようみえます
+		//   PAT 1回以上/100mS
+		//   EIT 1回以上/2s
+		//   NIT 1回以上/10s
+		//   SDT 1回以上/2s
 		if (
+			m_PAT_comp_flag.is_completed() &&
 			m_EIT_H_comp_flag.is_completed() &&
 			m_NIT_comp_flag.is_completed() &&
 			m_SDT_comp_flag.is_completed()
 		) {
 			_UTL_LOG_I ("PSI/SI tuning complete.");
 
+
+			PSISI_NOTIFY_NETWORK_INFO _info = {
+				m_networkInfo.table_id,
+				m_networkInfo.transport_stream_id,
+				m_networkInfo.original_network_id
+			};
+
 			// fire notify
-			pIf->notify (NOTIFY_CAT__TUNE_COMPLETE);
+			pIf->notify (NOTIFY_CAT__TUNE_COMPLETE, (uint8_t*)&_info, sizeof(_info));
+
 
 			sectId = SECTID_END;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -650,6 +679,72 @@ void CPsisiManager::onReq_unregisterEventChangeNotify (CThreadMgrIf *pIf)
 	// msgからclientIdを取得
 	uint8_t clientId = *(pIf->getSrcInfo()->msg.pMsg);
 	bool rslt = pIf->unregNotify (NOTIFY_CAT__EVENT_CHANGE, clientId);
+	if (rslt) {
+		_UTL_LOG_I ("unregisterd clientId=[0x%02x]\n", clientId);
+		enRslt = EN_THM_RSLT_SUCCESS;
+	} else {
+		_UTL_LOG_E ("failure unregister clientId=[0x%02x]\n", clientId);
+		enRslt = EN_THM_RSLT_ERROR;
+	}
+
+	pIf->reply (enRslt);
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::onReq_registerTuneCompleteNotify (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	uint8_t clientId = 0;
+	EN_THM_RSLT enRslt;
+	bool rslt = pIf->regNotify (NOTIFY_CAT__TUNE_COMPLETE, &clientId);
+	if (rslt) {
+		enRslt = EN_THM_RSLT_SUCCESS;
+	} else {
+		enRslt = EN_THM_RSLT_ERROR;
+	}
+
+	_UTL_LOG_I ("registerd clientId=[0x%02x]\n", clientId);
+
+	// clientIdをreply msgで返す 
+	pIf->reply (enRslt, (uint8_t*)&clientId, sizeof(clientId));
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::onReq_unregisterTuneCompleteNotify (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	EN_THM_RSLT enRslt;
+	// msgからclientIdを取得
+	uint8_t clientId = *(pIf->getSrcInfo()->msg.pMsg);
+	bool rslt = pIf->unregNotify (NOTIFY_CAT__TUNE_COMPLETE, clientId);
 	if (rslt) {
 		_UTL_LOG_I ("unregisterd clientId=[0x%02x]\n", clientId);
 		enRslt = EN_THM_RSLT_SUCCESS;
@@ -1078,6 +1173,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 //		mRST.clear();
 //		mBIT.clear();
 //
+//		m_PAT_comp_flag.clear();
 //		m_EIT_H_comp_flag.clear();
 //		m_NIT_comp_flag.clear();
 //		m_SDT_comp_flag.clear();
