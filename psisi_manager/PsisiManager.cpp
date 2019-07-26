@@ -88,7 +88,6 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	clearEventPfInfos ();
 	clearNetworkInfo ();
 
-	m_PAT_comp_flag.clear();
 	m_EIT_H_comp_flag.clear();
 	m_NIT_comp_flag.clear();
 	m_SDT_comp_flag.clear();
@@ -103,7 +102,6 @@ CPsisiManager::~CPsisiManager (void)
 	clearEventPfInfos ();
 	clearNetworkInfo ();
 
-	m_PAT_comp_flag.clear();
 	m_EIT_H_comp_flag.clear();
 	m_NIT_comp_flag.clear();
 	m_SDT_comp_flag.clear();
@@ -379,8 +377,6 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 	_PARSER_NOTICE _notice = *(_PARSER_NOTICE*)(pIf->getSrcInfo()->msg.pMsg);
 	switch (_notice.type) {
 	case EN_PSISI_TYPE__PAT:
-		// 選局後 parserが新しいセクションを取得したかチェックします
-		m_PAT_comp_flag.check_update (_notice.is_new_ts_section);
 
 		if (_notice.is_new_ts_section) {
 //			mPAT.dumpTables();
@@ -496,7 +492,6 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 		mRST.clear();
 		mBIT.clear();
 
-		m_PAT_comp_flag.clear();
 		m_EIT_H_comp_flag.clear();
 		m_NIT_comp_flag.clear();
 		m_SDT_comp_flag.clear();
@@ -515,15 +510,15 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_WAIT:
 
-		// PAT,EIT,NIT,SDTのparserが完了したか確認します
-		// 少なくともこの4つが完了していれば psisi manager的に選局完了とします
-		// ARIB規格上では送出頻度は以下のとおりになっている...  EIT,NIT,SDTはもっと頻度多いようみえます
+		// EIT,NIT,SDTのparserが完了したか確認します
+		// 少なくともこの3つが完了していれば psisi manager的に選局完了とします
+		// ARIB規格上では送出頻度は以下のとおりになっている... PAT,PMTは上3つより頻度高いので除外しています
 		//   PAT 1回以上/100mS
+		//   PMT 1回以上/100mS
 		//   EIT 1回以上/2s
 		//   NIT 1回以上/10s
 		//   SDT 1回以上/2s
 		if (
-			m_PAT_comp_flag.is_completed() &&
 			m_EIT_H_comp_flag.is_completed() &&
 			m_NIT_comp_flag.is_completed() &&
 			m_SDT_comp_flag.is_completed()
@@ -1173,7 +1168,6 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 //		mRST.clear();
 //		mBIT.clear();
 //
-//		m_PAT_comp_flag.clear();
 //		m_EIT_H_comp_flag.clear();
 //		m_NIT_comp_flag.clear();
 //		m_SDT_comp_flag.clear();

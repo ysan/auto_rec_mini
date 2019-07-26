@@ -22,6 +22,7 @@
 #include "ThreadMgr.h"
 
 #include "Utils.h"
+#include "Settings.h"
 #include "RecManagerIf.h"
 #include "TsAribCommon.h"
 
@@ -263,7 +264,8 @@ private:
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_REC_MANAGER__NUM]; // entity
 
-
+	CSettings *mp_settings;
+	
 	uint8_t m_tunerNotify_clientId;
 	int m_tsReceive_handlerId;
 	uint8_t m_patDetectNotify_clientId;

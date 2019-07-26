@@ -64,6 +64,9 @@ public:
 		int getEventScheduleCacheTimeoutMin (void) {
 			return m_event_schedule_cache_timeout_min;
 		}
+		std::string *getEventNameKeywordsJsonPath (void) {
+			return &m_event_name_keywords_json_path;
+		}
 
 
 
@@ -83,6 +86,7 @@ public:
 			_UTL_LOG_I ("m_event_schedule_cache_start_hour:[%d]", m_event_schedule_cache_start_hour);
 			_UTL_LOG_I ("m_event_schedule_cache_start_min:[%d]", m_event_schedule_cache_start_min);
 			_UTL_LOG_I ("m_event_schedule_cache_timeout_min:[%d]", m_event_schedule_cache_timeout_min);
+			_UTL_LOG_I ("m_event_name_keywords_json_path:[%s]", m_event_name_keywords_json_path.c_str());
 			_UTL_LOG_I ("----------------");
 		}
 
@@ -101,7 +105,8 @@ public:
 				CEREAL_NVP(m_event_schedule_cache_start_interval_day),
 				CEREAL_NVP(m_event_schedule_cache_start_hour),
 				CEREAL_NVP(m_event_schedule_cache_start_min),
-				CEREAL_NVP(m_event_schedule_cache_timeout_min)
+				CEREAL_NVP(m_event_schedule_cache_timeout_min),
+				CEREAL_NVP(m_event_name_keywords_json_path)
 
 			);
 		}
@@ -120,6 +125,7 @@ public:
 		int m_event_schedule_cache_start_hour;
 		int m_event_schedule_cache_start_min;
 		int m_event_schedule_cache_timeout_min;
+		std::string m_event_name_keywords_json_path;
 
 	};
 

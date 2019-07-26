@@ -10,4 +10,5 @@ requestOptionで重複キューチェック
 commoand_serverのログ出力
 rec中にPAT途絶したら再選局したい retryx3
 rec reserveにnetwork_nameいれるか
-EPG on/offのスイッチ
+EPG json
+EPG 履歴

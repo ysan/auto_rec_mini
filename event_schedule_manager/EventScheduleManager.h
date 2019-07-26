@@ -304,6 +304,7 @@ public:
 	void onReq_cacheSchedule_currentService (CThreadMgrIf *pIf);
 	void onReq_getEvent (CThreadMgrIf *pIf);
 	void onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
+	void onReq_getEvents_keywordSearch (CThreadMgrIf *pIf);
 	void onReq_dumpScheduleMap (CThreadMgrIf *pIf);
 	void onReq_dumpSchedule (CThreadMgrIf *pIf);
 
@@ -329,6 +330,7 @@ private:
 
 	const CEvent *getEvent (const CEventScheduleManagerIf::EVENT_KEY_t &key) const;
 	const CEvent *getEvent (const SERVICE_KEY_t &key, int index) const;
+	int getEvents (const char *p_keyword, CEventScheduleManagerIf::EVENT_t *p_out_event, int array_max_num) const;
 
 
 

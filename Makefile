@@ -23,6 +23,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/rec_manager \
 	-I$(BASEDIR)/channel_manager \
 	-I$(BASEDIR)/event_schedule_manager \
+	-I$(BASEDIR)/event_search \
 	-I$(BASEDIR)/command_server \
 	-I./ \
 
@@ -40,6 +41,7 @@ LIBS		:= \
 	-L$(BASEDIR)/rec_manager -lrecmanager \
 	-L$(BASEDIR)/channel_manager -lchannelmanager \
 	-L$(BASEDIR)/event_schedule_manager -leventschedulemanager \
+	-L$(BASEDIR)/event_search -leventsearch \
 	-L$(BASEDIR)/command_server -lcommandserver \
 	-larib25 \
 	-lpthread \
@@ -56,6 +58,7 @@ SUBDIRS		:= \
 	rec_manager \
 	channel_manager \
 	event_schedule_manager \
+	event_search \
 	command_server \
 
 

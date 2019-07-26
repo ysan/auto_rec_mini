@@ -498,7 +498,6 @@ private:
 	_EVENT_PF_INFO m_eventPfInfos [EVENT_PF_INFOS_MAX];
 	_NETWORK_INFO m_networkInfo ;
 
-	SECTION_COMP_FLAG_t m_PAT_comp_flag;
 	SECTION_COMP_FLAG_t m_EIT_H_comp_flag;
 	SECTION_COMP_FLAG_t m_SDT_comp_flag;
 	SECTION_COMP_FLAG_t m_NIT_comp_flag;

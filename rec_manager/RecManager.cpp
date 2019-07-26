@@ -19,8 +19,6 @@ extern "C" {
 #include "RecManager.h"
 #include "RecManagerIf.h"
 
-#include "Settings.h"
-
 #include "modules.h"
 
 #include "aribstr.h"
@@ -112,6 +110,8 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CRecManager::onReq_dumpReserves,            (char*)"onReq_dumpReserves"};
 	setSeqs (mSeqs, EN_SEQ_REC_MANAGER__NUM);
 
+
+	mp_settings = CSettings::getInstance();
 
 	clearReserves ();
 	clearResults ();
@@ -685,7 +685,7 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 
 
 		// rename
-		std::string *p_path = CSettings::getInstance()->getParams()->getRecTsPath();
+		std::string *p_path = mp_settings->getParams()->getRecTsPath();
 
 		char newfile [PATH_MAX] = {0};
 		char *p_name = (char*)"rec";
@@ -828,7 +828,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			_UTL_LOG_I ("start recording (on tune thread)");
 
 			memset (m_recording_tmpfile, 0x00, sizeof(m_recording_tmpfile));
-			std::string *p_path = CSettings::getInstance()->getParams()->getRecTsPath();
+			std::string *p_path = mp_settings->getParams()->getRecTsPath();
 			snprintf (
 				m_recording_tmpfile,
 				sizeof(m_recording_tmpfile),
@@ -2355,7 +2355,7 @@ void CRecManager::saveReserves (void)
 		out_archive (CEREAL_NVP(m_reserves), sizeof(CRecReserve) * RESERVE_NUM_MAX);
 	}
 
-	std::string *p_path = CSettings::getInstance()->getParams()->getRecReservesJsonPath();
+	std::string *p_path = mp_settings->getParams()->getRecReservesJsonPath();
 	std::ofstream ofs (p_path->c_str(), std::ios::out);
 	ofs << ss.str();
 
@@ -2365,7 +2365,7 @@ void CRecManager::saveReserves (void)
 
 void CRecManager::loadReserves (void)
 {
-	std::string *p_path = CSettings::getInstance()->getParams()->getRecReservesJsonPath();
+	std::string *p_path = mp_settings->getParams()->getRecReservesJsonPath();
 	std::ifstream ifs (p_path->c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I("rec_reserves.json is not found.");
@@ -2397,7 +2397,7 @@ void CRecManager::saveResults (void)
 		out_archive (CEREAL_NVP(m_results), sizeof(CRecReserve) * RESULT_NUM_MAX);
 	}
 
-	std::string *p_path = CSettings::getInstance()->getParams()->getRecResultsJsonPath();
+	std::string *p_path = mp_settings->getParams()->getRecResultsJsonPath();
 	std::ofstream ofs (p_path->c_str(), std::ios::out);
 	ofs << ss.str();
 
@@ -2407,7 +2407,7 @@ void CRecManager::saveResults (void)
 
 void CRecManager::loadResults (void)
 {
-	std::string *p_path = CSettings::getInstance()->getParams()->getRecResultsJsonPath();
+	std::string *p_path = mp_settings->getParams()->getRecResultsJsonPath();
 	std::ifstream ifs (p_path->c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I("rec_results.json is not found.");

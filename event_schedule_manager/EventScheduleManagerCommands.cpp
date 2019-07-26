@@ -109,6 +109,42 @@ static void _dump_schedule (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void _getEvents_keywordSearch (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 1) {
+		_UTL_LOG_W ("invalid arguments.\n");
+		return;
+	}
+
+	CEventScheduleManagerIf::EVENT_t _ev [10] = {0};
+	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param;
+	_param.arg.p_keyword = argv[0];
+	_param.p_out_event = _ev;
+	_param.array_max_num = 10;
+
+	CEventScheduleManagerIf mgr(pBase->getExternalIf());
+	mgr.syncGetEvent_keyword (&_param);
+
+	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+	if (enRslt == EN_THM_RSLT_SUCCESS) {
+		int n =  *(int*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+		_UTL_LOG_I ("syncGetEvent_keyword success");
+		_UTL_LOG_I ("num of searches is [%d]", n);
+		for (int i = 0; i < n; ++ i) {
+			_UTL_LOG_I (
+				"%d: [%s - %s][%s]",
+				i,
+				_ev[i].start_time.toString(),
+				_ev[i].end_time.toString(),
+				_ev[i].p_event_name->c_str()
+			);
+		}
+
+	} else {
+		_UTL_LOG_I ("syncGetEvent_keyword error");
+	}
+}
+
 
 ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	{
@@ -129,6 +165,13 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 		_dump_schedule,
 		NULL,
 	},
+	{
+		"g",
+		"get events --search event name by keyword-- (usage: g {keyword})",
+		_getEvents_keywordSearch,
+		NULL,
+	},
+
 
 	//-- term --//
 	{

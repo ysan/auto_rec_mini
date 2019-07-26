@@ -56,6 +56,8 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent,                      (char*)"onReq_getEvent"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent_latestDumpedSchedule, (char*)"onReq_getEvent_latestDumpedSchedule"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch,       (char*)"onReq_getEvents_keywordSearch"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,               (char*)"onReq_dumpScheduleMap"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE] =
@@ -982,6 +984,47 @@ void CEventScheduleManager::onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *p
 	pIf->setSectId (sectId, enAct);
 }
 
+void CEventScheduleManager::onReq_getEvents_keywordSearch (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param =
+			*(CEventScheduleManagerIf::REQ_EVENT_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+	if (!_param.p_out_event) {
+		_UTL_LOG_E ("_param.p_out_event is null.");
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else if (_param.array_max_num <= 0) {
+		_UTL_LOG_E ("_param.array_max_num is invalid.");
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else {
+
+		int n = getEvents (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num);
+		if (n < 0) {
+			_UTL_LOG_E ("getEvent is invalid.");
+			pIf->reply (EN_THM_RSLT_ERROR);
+		} else {
+			// 検索数をreply msgで返します
+			pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&n, sizeof(n));
+		}
+	}
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CEventScheduleManager::onReq_dumpScheduleMap (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -1296,7 +1339,7 @@ bool CEventScheduleManager::hasScheduleMap (const SERVICE_KEY_t &key) const
 
 	} else {
 		std::vector <CEvent*> *p_sched = iter->second;
-		if (p_sched->size() == 0) {
+		if (!p_sched || (p_sched->size() == 0)) {
 			return false;
 		}
 	}
@@ -1337,7 +1380,7 @@ void CEventScheduleManager::dumpScheduleMap (const SERVICE_KEY_t &key) const
 
 	} else {
 		std::vector <CEvent*> *p_sched = iter->second;
-		if (p_sched->size() == 0) {
+		if (!p_sched || (p_sched->size() == 0)) {
 			return ;
 
 		} else {
@@ -1422,4 +1465,65 @@ const CEvent *CEventScheduleManager::getEvent (const SERVICE_KEY_t &key, int ind
 	}
 
 	return r;
+}
+
+int CEventScheduleManager::getEvents (
+	const char *p_keyword,
+	CEventScheduleManagerIf::EVENT_t *p_out_event,
+	int array_max_num
+) const
+{
+	if (!p_keyword || !p_out_event || array_max_num <= 0) {
+		return -1;
+	}
+
+	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.begin ();
+	if (iter == m_sched_map.end()) {
+		return 0;
+	}
+
+	int n = 0;
+
+	for (; iter != m_sched_map.end(); ++ iter) {
+		if (array_max_num == 0) {
+			break;
+		}
+
+		std::vector <CEvent*> *p_sched = iter->second;
+		if (p_sched) {
+
+			std::vector<CEvent*>::const_iterator iter_event = p_sched->begin();
+			for (; iter_event != p_sched->end(); ++ iter_event) {
+				if (array_max_num == 0) {
+					break;
+				}
+
+				CEvent* p_event = *iter_event;
+				if (p_event) {
+
+					char *s = strstr ((char*)p_event->event_name.c_str(), p_keyword);
+					if (s) {
+
+						p_out_event->table_id = p_event->table_id;
+						p_out_event->transport_stream_id = p_event->transport_stream_id;
+						p_out_event->original_network_id = p_event->original_network_id;
+						p_out_event->service_id = p_event->service_id;
+
+						p_out_event->event_id = p_event->event_id;
+						p_out_event->start_time = p_event->start_time;
+						p_out_event->end_time = p_event->end_time;
+
+						p_out_event->p_event_name = &p_event->event_name;
+						p_out_event->p_text = &p_event->text;
+
+						++ p_out_event;
+						-- array_max_num;
+						++ n;
+					}
+				}
+			}
+		}
+	}
+
+	return n;
 }
