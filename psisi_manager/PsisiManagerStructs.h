@@ -178,21 +178,4 @@ typedef struct {
 	PSISI_NETWORK_INFO *p_out_networkInfo;
 } REQ_NETWORK_INFO_PARAM;
 
-typedef struct {
-	uint8_t table_id;
-	uint16_t transport_stream_id;
-	uint16_t original_network_id;
-
-	void dump (void) {
-		_UTL_LOG_I (
-			"psisiNotify networkInfo: tblid:[0x%2x] tsid:[0x%04x] org_nid:[0x%04x]",
-			table_id,
-			transport_stream_id,
-			original_network_id
-		);
-	}
-
-} PSISI_NOTIFY_NETWORK_INFO;
-
-
 #endif

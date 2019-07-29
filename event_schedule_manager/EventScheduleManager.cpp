@@ -275,7 +275,12 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_WAIT: {
 
+		// interval_dayは最低でも１日なので
+		// 現在実行中で次の予定日時間が来てしまうことはない前提
 		int interval_day = mp_settings->getParams()->getEventScheduleCacheStartIntervalDay();
+		if (interval_day <= 1) {
+			interval_day = 1;
+		}
 		int start_hour = mp_settings->getParams()->getEventScheduleCacheStartHour();
 		int start_min = mp_settings->getParams()->getEventScheduleCacheStartMin();
 		
@@ -569,8 +574,8 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		Enable_PARSE_EIT_SCHED_REPLY_PARAM_t param =
 					*(Enable_PARSE_EIT_SCHED_REPLY_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
-		// parseインスタンス取得して
-		// parser側で積んでるデータは一度クリアします
+		// parserインスタンス取得して
+		// ここでparser側で積んでるデータは一度クリアします
 		mp_EIT_H_sched = param.p_parser;
 		mEIT_H_sched_ref = param.p_parser->reference();
 		mp_EIT_H_sched->clear();
@@ -1219,9 +1224,22 @@ void CEventScheduleManager::cacheSchedule (
 						continue;
 					}
 
-					p_event->video_component_type = CTsAribCommon::getVideoComponentType(cd.component_type);
-					p_event->video_ratio = CTsAribCommon::getVideoRatio(cd.component_type);
+					p_event->component_type = cd.component_type;
 					p_event->component_tag = cd.component_tag;
+
+				} else if (iter_desc->tag == DESC_TAG__AUDIO_COMPONENT_DESCRIPTOR) {
+					CAudioComponentDescriptor acd (*iter_desc);
+					if (!acd.isValid) {
+						_UTL_LOG_W ("invalid AudioComponentDescriptor\n");
+						continue;
+					}
+
+					p_event->audio_component_type = acd.component_type;
+					p_event->audio_component_tag = acd.component_tag;
+					p_event->ES_multi_lingual_flag = acd.ES_multi_lingual_flag;
+					p_event->main_component_flag = acd.main_component_flag;
+					p_event->quality_indicator = acd.quality_indicator;
+					p_event->sampling_rate = acd.sampling_rate;
 
 				} else if (iter_desc->tag == DESC_TAG__CONTENT_DESCRIPTOR) {
 					CContentDescriptor cd (*iter_desc);
@@ -1233,12 +1251,35 @@ void CEventScheduleManager::cacheSchedule (
 					std::vector<CContentDescriptor::CContent>::const_iterator iter_con = cd.contents.begin();
 					for (; iter_con != cd.contents.end(); ++ iter_con) {
 						CEvent::CGenre genre;
-						genre.lvl1 = CTsAribCommon::getGenre_lvl1(iter_con->content_nibble_level_1);
-						genre.lvl2 = CTsAribCommon::getGenre_lvl2(iter_con->content_nibble_level_2);
+						genre.content_nibble_level_1 = iter_con->content_nibble_level_1;
+						genre.content_nibble_level_2 = iter_con->content_nibble_level_2;
 						p_event->genres.push_back (genre);
 					}
 
-				} else if (iter_desc->tag == DESC_TAG__AUDIO_COMPONENT_DESCRIPTOR) {
+				} else if (iter_desc->tag == DESC_TAG__EXTENDED_EVENT_DESCRIPTOR) {
+					CExtendedEventDescriptor eed (*iter_desc);
+					if (!eed.isValid) {
+						_UTL_LOG_W ("invalid ExtendedEventDescriptor\n");
+						continue;
+					}
+
+					char aribstr [MAXSECLEN];
+					std::vector<CExtendedEventDescriptor::CItem>::const_iterator iter_item = eed.items.begin();
+					for (; iter_item != eed.items.end(); ++ iter_item) {
+						CEvent::CExtendedInfo info;
+
+						memset (aribstr, 0x00, MAXSECLEN);
+						AribToString (aribstr, (const char*)iter_item->item_description_char, (int)iter_item->item_description_length);
+						info.item_description = aribstr;
+
+						memset (aribstr, 0x00, MAXSECLEN);
+						AribToString (aribstr, (const char*)iter_item->item_char, (int)iter_item->item_length);
+						info.item = aribstr;
+
+						p_event->extendedInfos.push_back (info);
+					}
+
+
 				}
 
 			} // loop descriptors

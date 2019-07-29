@@ -231,7 +231,7 @@ private:
 
 
 	uint8_t m_tuneCompNotify_clientId;
-	PSISI_NOTIFY_NETWORK_INFO m_psisiNotify_networkInfo;
+	EN_PSISI_STATE m_psisiState;
 
 	std::map <uint16_t, CChannel> m_channels; // <pysical channel, CChannel>
 

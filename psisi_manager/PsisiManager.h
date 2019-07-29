@@ -40,7 +40,7 @@ using namespace ThreadManager;
 // notify category
 #define NOTIFY_CAT__PAT_DETECT			((uint8_t)0)
 #define NOTIFY_CAT__EVENT_CHANGE		((uint8_t)1)
-#define NOTIFY_CAT__TUNE_COMPLETE	 	((uint8_t)2)
+#define NOTIFY_CAT__PSISI_STATE		 	((uint8_t)2)
 
 
 #define PROGRAM_INFOS_MAX			(32)
@@ -373,8 +373,8 @@ public:
 	void onReq_unregisterPatDetectNotify (CThreadMgrIf *pIf);
 	void onReq_registerEventChangeNotify (CThreadMgrIf *pIf);
 	void onReq_unregisterEventChangeNotify (CThreadMgrIf *pIf);
-	void onReq_registerTuneCompleteNotify (CThreadMgrIf *pIf);
-	void onReq_unregisterTuneCompleteNotify (CThreadMgrIf *pIf);
+	void onReq_registerPsisiStateNotify (CThreadMgrIf *pIf);
+	void onReq_unregisterPsisiStateNotify (CThreadMgrIf *pIf);
 	void onReq_getPatDetectState (CThreadMgrIf *pIf);
 	void onReq_getCurrentServiceInfos (CThreadMgrIf *pIf);
 	void onReq_getPresentEventInfo (CThreadMgrIf *pIf);

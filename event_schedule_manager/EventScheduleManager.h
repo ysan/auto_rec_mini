@@ -167,18 +167,28 @@ public:
 
 class CEvent {
 public:
+	class CExtendedInfo {
+	public:
+		CExtendedInfo (void) {
+			item_description.clear();
+			item.clear();
+		}
+		~CExtendedInfo (void) {
+			item_description.clear();
+			item.clear();
+		}
+		std::string item_description;
+		std::string item;
+	};
+
 	class CGenre {
 	public:
 		CGenre (void) {
-			lvl1.clear ();
-			lvl2.clear ();
 		}
 		~CGenre (void) {
-			lvl1.clear ();
-			lvl2.clear ();
 		}
-		std::string lvl1;
-		std::string lvl2;
+		uint8_t content_nibble_level_1;
+		uint8_t content_nibble_level_2;
 	};
 
 public:
@@ -218,12 +228,12 @@ public:
 	}
 
 
-	uint8_t table_id;
+	uint8_t table_id; // sortするために必要
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint16_t service_id;
 
-	uint8_t section_number;
+	uint8_t section_number; // sortするために必要
 
 	uint16_t event_id;
 	CEtime start_time;
@@ -232,11 +242,20 @@ public:
 	std::string event_name;
 	std::string text;
 
-	std::string video_component_type;
-	std::string video_ratio;
+	uint8_t component_type;
 	uint8_t component_tag;
 
+	uint8_t audio_component_type;
+	uint8_t audio_component_tag;
+	uint8_t ES_multi_lingual_flag;
+	uint8_t main_component_flag;
+	uint8_t quality_indicator;
+	uint8_t sampling_rate;
+
 	std::vector <CGenre> genres;
+
+	std::vector <CExtendedInfo> extendedInfos;
+
 
 
 	void clear (void) {
@@ -250,10 +269,16 @@ public:
 		end_time.clear();	
 		event_name.clear();
 		text.clear();
-		video_component_type.clear();
-		video_ratio.clear();
+		component_type = 0;
 		component_tag = 0;
+		audio_component_type = 0;
+		audio_component_tag = 0;
+		ES_multi_lingual_flag = 0;
+		main_component_flag = 0;
+		quality_indicator = 0;
+		sampling_rate = 0;
 		genres.clear();
+		extendedInfos.clear();
 	}
 
 	void dump (void) const {
@@ -271,17 +296,38 @@ public:
 			start_time.toString(),
 			end_time.toString()
 		);
+
 		_UTL_LOG_I ("event_name:[%s]", event_name.c_str());
 		_UTL_LOG_I ("text:[%s]", text.c_str());
+
 		_UTL_LOG_I (
-			"vode_component:[%s][%s] component_tag:[0x%02x]",
-			video_component_type.c_str(),
-			video_ratio.c_str(),
-			component_tag
+			"component_type:[%s][%s]",
+			CTsAribCommon::getVideoComponentType(component_type),
+			CTsAribCommon::getVideoRatio(component_type)
 		);
+
+		_UTL_LOG_I ("audio_component_type:[%s]", CTsAribCommon::getAudioComponentType(audio_component_type));
+		_UTL_LOG_I ("ES_multi_lingual_flag:[%s]", ES_multi_lingual_flag ? "二ヶ国語" : "-");
+		_UTL_LOG_I ("main_component_flag:[%s]", main_component_flag ? "主" : "副");
+		_UTL_LOG_I ("quality_indicator:[%s]", CTsAribCommon::getAudioQuality(quality_indicator));
+		_UTL_LOG_I ("sampling_rate:[%s]\n", CTsAribCommon::getAudioSamplingRate(sampling_rate));
+
+
 		std::vector<CGenre>::const_iterator iter = genres.begin();
 		for (; iter != genres.end(); ++ iter) {
-			_UTL_LOG_I ("genre:[%s][%s]", iter->lvl1.c_str(), iter->lvl2.c_str());
+			_UTL_LOG_I (
+				"genre:[%s][%s]",
+				CTsAribCommon::getGenre_lvl1(iter->content_nibble_level_1),
+				CTsAribCommon::getGenre_lvl1(iter->content_nibble_level_2)
+			);
+		}
+	}
+
+	void dump_extendedInfo (void) const {
+		std::vector<CExtendedInfo>::const_iterator iter = extendedInfos.begin();
+		for (; iter != extendedInfos.end(); ++ iter) {
+			_UTL_LOG_I ("[%s]", iter->item_description.c_str());
+			_UTL_LOG_I ("[%s]", iter->item.c_str());
 		}
 	}
 

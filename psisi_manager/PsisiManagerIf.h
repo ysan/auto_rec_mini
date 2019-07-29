@@ -25,8 +25,8 @@ enum {
 	EN_SEQ_PSISI_MANAGER__UNREG_PAT_DETECT_NOTIFY,
 	EN_SEQ_PSISI_MANAGER__REG_EVENT_CHANGE_NOTIFY,
 	EN_SEQ_PSISI_MANAGER__UNREG_EVENT_CHANGE_NOTIFY,
-	EN_SEQ_PSISI_MANAGER__REG_TUNE_COMPLETE_NOTIFY,
-	EN_SEQ_PSISI_MANAGER__UNREG_TUNE_COMPLETE_NOTIFY,
+	EN_SEQ_PSISI_MANAGER__REG_PSISI_STATE_NOTIFY,
+	EN_SEQ_PSISI_MANAGER__UNREG_PSISI_STATE_NOTIFY,
 	EN_SEQ_PSISI_MANAGER__GET_PAT_DETECT_STATE,
 	EN_SEQ_PSISI_MANAGER__GET_CURRENT_SERVICE_INFOS,
 	EN_SEQ_PSISI_MANAGER__GET_PRESENT_EVENT_INFO,
@@ -66,6 +66,12 @@ typedef enum {
 	EN_PAT_DETECT_STATE__NOT_DETECTED,
 
 } EN_PAT_DETECT_STATE;
+
+typedef enum {
+	EN_PSISI_STATE__READY = 0,
+	EN_PSISI_STATE__NOT_READY,
+
+} EN_PSISI_STATE;
 
 
 class CPsisiManagerIf : public CThreadMgrExternalIf
@@ -120,18 +126,18 @@ public:
 				);
 	};
 
-	bool reqRegisterTuneCompleteNotify (void) {
+	bool reqRegisterPsisiStateNotify (void) {
 		return requestAsync (
 					EN_MODULE_PSISI_MANAGER,
-					EN_SEQ_PSISI_MANAGER__REG_TUNE_COMPLETE_NOTIFY
+					EN_SEQ_PSISI_MANAGER__REG_PSISI_STATE_NOTIFY
 				);
 	};
 
-	bool reqUnregisterTuneCompleteNotify (int client_id) {
+	bool reqUnregisterPsisiStateNotify (int client_id) {
 		int _id = client_id;
 		return requestAsync (
 					EN_MODULE_PSISI_MANAGER,
-					EN_SEQ_PSISI_MANAGER__UNREG_TUNE_COMPLETE_NOTIFY,
+					EN_SEQ_PSISI_MANAGER__UNREG_PSISI_STATE_NOTIFY,
 					(uint8_t*)&_id,
 					sizeof(_id)
 				);

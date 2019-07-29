@@ -49,10 +49,10 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerEventChangeNotify,   (char*)"onReq_registerEventChangeNotify"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__UNREG_EVENT_CHANGE_NOTIFY] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterEventChangeNotify, (char*)"onReq_unregisterEventChangeNotify"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__REG_TUNE_COMPLETE_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerTuneCompleteNotify,  (char*)"onReq_registerTuneCompleteNotify"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__UNREG_TUNE_COMPLETE_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterTuneCompleteNotify,(char*)"onReq_unregisterTuneCompleteNotify"};
+	mSeqs [EN_SEQ_PSISI_MANAGER__REG_PSISI_STATE_NOTIFY] =
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerPsisiStateNotify,    (char*)"onReq_registerPsisiStateNotify"};
+	mSeqs [EN_SEQ_PSISI_MANAGER__UNREG_PSISI_STATE_NOTIFY] =
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterPsisiStateNotify,  (char*)"onReq_unregisterPsisiStateNotify"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__GET_PAT_DETECT_STATE] =
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getPatDetectState,           (char*)"onReq_getPatDetectState"};
 	mSeqs [EN_SEQ_PSISI_MANAGER__GET_CURRENT_SERVICE_INFOS] =
@@ -511,7 +511,7 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 	case SECTID_CHECK_WAIT:
 
 		// EIT,NIT,SDTのparserが完了したか確認します
-		// 少なくともこの3つが完了していれば psisi manager的に選局完了とします
+		// 少なくともこの3つが完了していれば psisi manager的に選局完了とします (EN_PSISI_STATE__READY)
 		// ARIB規格上では送出頻度は以下のとおりになっている... PAT,PMTは上3つより頻度高いので除外しています
 		//   PAT 1回以上/100mS
 		//   PMT 1回以上/100mS
@@ -523,17 +523,12 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 			m_NIT_comp_flag.is_completed() &&
 			m_SDT_comp_flag.is_completed()
 		) {
-			_UTL_LOG_I ("PSI/SI tuning complete.");
+			_UTL_LOG_I ("PSI/SI ready.");
 
-
-			PSISI_NOTIFY_NETWORK_INFO _info = {
-				m_networkInfo.table_id,
-				m_networkInfo.transport_stream_id,
-				m_networkInfo.original_network_id
-			};
 
 			// fire notify
-			pIf->notify (NOTIFY_CAT__TUNE_COMPLETE, (uint8_t*)&_info, sizeof(_info));
+			EN_PSISI_STATE state = EN_PSISI_STATE__READY;
+			pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&state, sizeof(state));
 
 
 			sectId = SECTID_END;
@@ -690,7 +685,7 @@ void CPsisiManager::onReq_unregisterEventChangeNotify (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::onReq_registerTuneCompleteNotify (CThreadMgrIf *pIf)
+void CPsisiManager::onReq_registerPsisiStateNotify (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -705,7 +700,7 @@ void CPsisiManager::onReq_registerTuneCompleteNotify (CThreadMgrIf *pIf)
 
 	uint8_t clientId = 0;
 	EN_THM_RSLT enRslt;
-	bool rslt = pIf->regNotify (NOTIFY_CAT__TUNE_COMPLETE, &clientId);
+	bool rslt = pIf->regNotify (NOTIFY_CAT__PSISI_STATE, &clientId);
 	if (rslt) {
 		enRslt = EN_THM_RSLT_SUCCESS;
 	} else {
@@ -723,7 +718,7 @@ void CPsisiManager::onReq_registerTuneCompleteNotify (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CPsisiManager::onReq_unregisterTuneCompleteNotify (CThreadMgrIf *pIf)
+void CPsisiManager::onReq_unregisterPsisiStateNotify (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -739,7 +734,7 @@ void CPsisiManager::onReq_unregisterTuneCompleteNotify (CThreadMgrIf *pIf)
 	EN_THM_RSLT enRslt;
 	// msgからclientIdを取得
 	uint8_t clientId = *(pIf->getSrcInfo()->msg.pMsg);
-	bool rslt = pIf->unregNotify (NOTIFY_CAT__TUNE_COMPLETE, clientId);
+	bool rslt = pIf->unregNotify (NOTIFY_CAT__PSISI_STATE, clientId);
 	if (rslt) {
 		_UTL_LOG_I ("unregisterd clientId=[0x%02x]\n", clientId);
 		enRslt = EN_THM_RSLT_SUCCESS;
@@ -1154,8 +1149,12 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 	EN_TUNER_STATE enState = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
 	switch (enState) {
-	case EN_TUNER_STATE__TUNING_BEGIN:
+	case EN_TUNER_STATE__TUNING_BEGIN: {
 		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_BEGIN");
+
+		// fire notify
+		EN_PSISI_STATE state = EN_PSISI_STATE__NOT_READY;
+		pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&state, sizeof(state));
 
 		m_tunerIsTuned = false;
 
@@ -1173,6 +1172,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 //		m_SDT_comp_flag.clear();
 //#endif
 
+		}
 		break;
 
 	case EN_TUNER_STATE__TUNING_SUCCESS: {
@@ -1192,23 +1192,16 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 		setRequestOption (opt);
 //#endif
 
-		} break;
-
-	case EN_TUNER_STATE__TUNING_ERROR_STOP:
-		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP");
-
-		// tune stopで一連の動作が終わった時の対策
-		clearProgramInfos();
-		clearNetworkInfo();
-		clearServiceInfos (true);
-		clearEventPfInfos();
-
-		m_tunerIsTuned = false;
-
+		}
 		break;
 
-	case EN_TUNER_STATE__TUNE_STOP:
-		_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP");
+	case EN_TUNER_STATE__TUNING_ERROR_STOP: {
+		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP");
+
+		// fire notify
+		EN_PSISI_STATE state = EN_PSISI_STATE__NOT_READY;
+		pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&state, sizeof(state));
+
 
 		// tune stopで一連の動作が終わった時の対策
 		clearProgramInfos();
@@ -1218,6 +1211,26 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 		m_tunerIsTuned = false;
 
+		}
+		break;
+
+	case EN_TUNER_STATE__TUNE_STOP: {
+		_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP");
+
+		// fire notify
+		EN_PSISI_STATE state = EN_PSISI_STATE__NOT_READY;
+		pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&state, sizeof(state));
+
+
+		// tune stopで一連の動作が終わった時の対策
+		clearProgramInfos();
+		clearNetworkInfo();
+		clearServiceInfos (true);
+		clearEventPfInfos();
+
+		m_tunerIsTuned = false;
+
+		}
 		break;
 
 	default:
