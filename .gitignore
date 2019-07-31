@@ -7,3 +7,4 @@ parser_test
 recfsusb2i
 rec_reserves.json
 rec_results.json
+event_schedule_cache_histories.json

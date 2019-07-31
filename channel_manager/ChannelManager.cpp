@@ -289,6 +289,24 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 		_UTL_LOG_I ("channel scan end.");
 
+
+		//-----------------------------//
+		{
+			uint32_t opt = getRequestOption ();
+			opt |= REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+
+			// 選局を停止しときます tune stop
+			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
+			CTunerControlIf _if (getExternalIf());
+			_if.reqTuneStop ();
+
+			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+		}
+		//-----------------------------//
+
+
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		break;

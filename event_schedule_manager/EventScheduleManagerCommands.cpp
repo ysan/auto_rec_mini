@@ -145,6 +145,23 @@ static void _getEvents_keywordSearch (int argc, char* argv[], CThreadMgrBase *pB
 	}
 }
 
+static void _dump_histories (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_UTL_LOG_W ("ignore arguments.\n");
+	}
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CEventScheduleManagerIf mgr(pBase->getExternalIf());
+	mgr.reqDumpHistories ();
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
 
 ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	{
@@ -169,6 +186,12 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 		"g",
 		"get events --search event name by keyword-- (usage: g {keyword})",
 		_getEvents_keywordSearch,
+		NULL,
+	},
+	{
+		"h",
+		"dump histories",
+		_dump_histories,
 		NULL,
 	},
 

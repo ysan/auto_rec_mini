@@ -10,6 +10,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <queue>
 
 #include "threadmgr_if.h"
 #include "threadmgr_util.h"
@@ -32,8 +33,16 @@
 #include "PsisiManagerStructsAddition.h"
 #include "EventInformationTable_sched.h"
 
+#include "cereal/cereal.hpp"
+#include "cereal/archives/json.hpp"
+#include "cereal/types/vector.hpp"
+
 
 using namespace ThreadManager;
+
+
+// notify category
+#define NOTIFY_CAT__CACHE_SCHEDULE			((uint8_t)0)
 
 
 typedef struct _service_key {
@@ -300,6 +309,15 @@ public:
 		_UTL_LOG_I ("event_name:[%s]", event_name.c_str());
 		_UTL_LOG_I ("text:[%s]", text.c_str());
 
+	}
+
+	void dump_detail (void) const {
+		std::vector<CExtendedInfo>::const_iterator iter_ex = extendedInfos.begin();
+		for (; iter_ex != extendedInfos.end(); ++ iter_ex) {
+			_UTL_LOG_I ("[%s]", iter_ex->item_description.c_str());
+			_UTL_LOG_I ("[%s]", iter_ex->item.c_str());
+		}
+
 		_UTL_LOG_I (
 			"component_type:[%s][%s]",
 			CTsAribCommon::getVideoComponentType(component_type),
@@ -312,22 +330,13 @@ public:
 		_UTL_LOG_I ("quality_indicator:[%s]", CTsAribCommon::getAudioQuality(quality_indicator));
 		_UTL_LOG_I ("sampling_rate:[%s]\n", CTsAribCommon::getAudioSamplingRate(sampling_rate));
 
-
-		std::vector<CGenre>::const_iterator iter = genres.begin();
-		for (; iter != genres.end(); ++ iter) {
+		std::vector<CGenre>::const_iterator iter_gr = genres.begin();
+		for (; iter_gr != genres.end(); ++ iter_gr) {
 			_UTL_LOG_I (
 				"genre:[%s][%s]",
-				CTsAribCommon::getGenre_lvl1(iter->content_nibble_level_1),
-				CTsAribCommon::getGenre_lvl1(iter->content_nibble_level_2)
+				CTsAribCommon::getGenre_lvl1(iter_gr->content_nibble_level_1),
+				CTsAribCommon::getGenre_lvl1(iter_gr->content_nibble_level_2)
 			);
-		}
-	}
-
-	void dump_extendedInfo (void) const {
-		std::vector<CExtendedInfo>::const_iterator iter = extendedInfos.begin();
-		for (; iter != extendedInfos.end(); ++ iter) {
-			_UTL_LOG_I ("[%s]", iter->item_description.c_str());
-			_UTL_LOG_I ("[%s]", iter->item.c_str());
 		}
 	}
 
@@ -337,6 +346,125 @@ public:
 class CEventScheduleManager
 	:public CThreadMgrBase
 {
+public:
+	class CHistory {
+	public:
+		enum state {
+			EN_STATE__INIT = 0,
+			EN_STATE__COMPLETE,
+			EN_STATE__TIMEOUT,
+			EN_STATE__ERROR,
+		};
+
+
+		struct element {
+			element (void) {
+				clear();
+			}
+			~element (void) {
+				clear();
+			}
+
+			void clear (void) {
+				key.clear();
+				item_num = 0;
+			}
+
+			void dump (void) const {
+				key.dump();
+				_UTL_LOG_I ("  item_num=[%d]", item_num);
+			}
+
+			SERVICE_KEY_t key;
+			int item_num;
+		};
+
+
+		CHistory (void) {
+			clear();
+		}
+		~CHistory (void) {
+			clear();
+		}
+
+		void add (struct element &e) {
+			elements.push_back (e);
+		}
+
+		void clear (void) {
+			elements.clear ();
+			elements.shrink_to_fit ();
+			stt = EN_STATE__INIT;
+			start_time.clear();
+			end_time.clear();
+		}
+
+		struct element *get (SERVICE_KEY_t &k) {
+			std::vector<struct element>::iterator iter = elements.begin();
+			for (; iter != elements.end(); ++ iter) {
+				if (iter->key == k) {
+					return &(*iter);
+				}
+			}
+			return NULL;
+		}
+
+		struct element *get (CEventScheduleManagerIf::SERVICE_KEY_t &_k) {
+			SERVICE_KEY_t k (_k);
+			std::vector<struct element>::iterator iter = elements.begin();
+			for (; iter != elements.end(); ++ iter) {
+				if (iter->key == k) {
+					return &(*iter);
+				}
+			}
+			return NULL;
+		}
+
+		void set_state (state _s) {
+			stt = _s;
+		}
+
+		bool is_completed (void) const {
+			if (stt == EN_STATE__INIT) {
+				return false;
+			} else {
+				return true;
+			}
+		}
+
+		void set_start (void) {
+			start_time.setCurrentTime();
+		}
+
+		void set_end (void) {
+			end_time.setCurrentTime();
+		}
+
+		void dump (void) const {
+			_UTL_LOG_I ("------------------------------------------");
+			std::vector<struct element>::const_iterator iter = elements.begin();
+			for (; iter != elements.end(); ++ iter) {
+				iter->dump();
+			}
+			_UTL_LOG_I (
+				"[%s] [%s - %s]",
+				stt == EN_STATE__INIT ? "INIT" :
+					stt == EN_STATE__COMPLETE ? "COMPLETE" :
+						stt == EN_STATE__TIMEOUT ? "TIMEOUT" :
+							stt == EN_STATE__ERROR ? "ERROR" : "---",
+				start_time.toString(),
+				end_time.toString()
+			);
+		}
+
+//	private:
+	// cereal 非侵入型対応のため やむなくpublicに
+		std::vector <struct element> elements;
+		state stt;
+		CEtime start_time;
+		CEtime end_time;
+	};
+
 public:
 	CEventScheduleManager (char *pszName, uint8_t nQueNum);
 	virtual ~CEventScheduleManager (void);
@@ -353,6 +481,7 @@ public:
 	void onReq_getEvents_keywordSearch (CThreadMgrIf *pIf);
 	void onReq_dumpScheduleMap (CThreadMgrIf *pIf);
 	void onReq_dumpSchedule (CThreadMgrIf *pIf);
+	void onReq_dumpHistories (CThreadMgrIf *pIf);
 
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
@@ -378,6 +507,13 @@ private:
 	const CEvent *getEvent (const SERVICE_KEY_t &key, int index) const;
 	int getEvents (const char *p_keyword, CEventScheduleManagerIf::EVENT_t *p_out_event, int array_max_num) const;
 
+	void pushHistories (const CHistory *p_history);
+	void dumpHistories (void) const;
+
+
+	void saveHistories (void) ;
+	void loadHistories (void) ;
+
 
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM]; // entity
@@ -395,6 +531,9 @@ private:
 	CEtime m_startTime_EITSched;
 
 	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> m_sched_map;
+
+	CHistory m_current_history;
+	std::vector <CHistory> m_histories;
 
 	SERVICE_KEY_t m_latest_dumped_key;
 

@@ -62,6 +62,8 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,               (char*)"onReq_dumpScheduleMap"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule,                  (char*)"onReq_dumpSchedule"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_HISTORIES] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpHistories,                 (char*)"onReq_dumpHistories"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
 
 
@@ -71,7 +73,8 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	m_startTime_EITSched.clear();
 
 	m_sched_map.clear ();
-
+	m_current_history.clear();
+	m_histories.clear();
 	m_latest_dumped_key.clear();
 
 
@@ -119,6 +122,8 @@ void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	case SECTID_ENTRY:
 
 		m_schedule_cache_next_day.setCurrentDay();
+
+		loadHistories ();
 
 
 		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
@@ -277,8 +282,11 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 		// interval_dayは最低でも１日なので
 		// 現在実行中で次の予定日時間が来てしまうことはない前提
+
+
 		int interval_day = mp_settings->getParams()->getEventScheduleCacheStartIntervalDay();
 		if (interval_day <= 1) {
+			// interval_dayは最低でも１日にします
 			interval_day = 1;
 		}
 		int start_hour = mp_settings->getParams()->getEventScheduleCacheStartHour();
@@ -355,6 +363,15 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 	case SECTID_REQ_START_CACHE_SCHEDULE: {
 
+		// fire notify
+		EN_SCHEDULE_CACHE_STATE_t _state = EN_SCHEDULE_CACHE_STATE__START;
+		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
+
+
+		// history ----------------
+		m_current_history.clear();
+
+
 		// 取得したチャンネル分の START_CACHE_SCHEDULEキューを入れます
 		// ここはリプライ受けないので REQUEST_OPTION__WITHOUT_REPLY にしておきます
 		uint32_t opt = getExternalIf()->getRequestOption ();
@@ -368,6 +385,7 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 				s_channels[i].service_ids[0]	// ここは添字0 でも何でも良いです
 												// (現状ではすべてのチャンネル編成分のスケジュールを取得します)
 			};
+
 			requestAsync (
 				EN_MODULE_EVENT_SCHEDULE_MANAGER,
 				EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,
@@ -378,6 +396,7 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 		getExternalIf()->setRequestOption (opt);
+
 
 		sectId = SECTID_CHECK;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -458,13 +477,16 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 	static CEventScheduleManagerIf::SERVICE_KEY_t s_service_key;
 	static PSISI_SERVICE_INFO s_serviceInfos[10];
 	static int s_num = 0;
-	static int s_retry = 0;
 
 
 	switch (sectId) {
 	case SECTID_ENTRY:
 
 		s_service_key = *(CEventScheduleManagerIf::SERVICE_KEY_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+
+		// history ----------------
+		m_current_history.set_start();
 
 
 		// 時間がかかるはずなので先にリプライしときます
@@ -523,31 +545,15 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 				enAct = EN_THM_ACT_CONTINUE;
 
 			} else {
-				if (s_retry < 10) {
-					_UTL_LOG_E ("reqGetCurrentServiceInfos err --> retry");
-					sectId = SECTID_REQ_GET_SERVICE_INFOS;
-					enAct = EN_THM_ACT_WAIT;
-					pIf->setTimeout (1000);
-					++ s_retry ;
-				} else {
-					_UTL_LOG_E ("reqGetCurrentServiceInfos err --> retry over");
-					sectId = SECTID_END_ERROR;
-					enAct = EN_THM_ACT_CONTINUE;
-				}
-			}
-
-		} else {
-			if (s_retry < 10) {
-				_UTL_LOG_E ("reqGetCurrentServiceInfos err --> retry");
-				sectId = SECTID_REQ_GET_SERVICE_INFOS;
-				enAct = EN_THM_ACT_WAIT;
-				pIf->setTimeout (1000);
-				++ s_retry ;
-			} else {
-				_UTL_LOG_E ("reqGetCurrentServiceInfos err --> retry over");
+				_UTL_LOG_E ("reqGetCurrentServiceInfos  num is 0");
 				sectId = SECTID_END_ERROR;
 				enAct = EN_THM_ACT_CONTINUE;
 			}
+
+		} else {
+			_UTL_LOG_E ("reqGetCurrentServiceInfos err");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
 		}
 
 		break;
@@ -574,7 +580,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		Enable_PARSE_EIT_SCHED_REPLY_PARAM_t param =
 					*(Enable_PARSE_EIT_SCHED_REPLY_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
-		// parserインスタンス取得して
+		// parserのインスタンス取得して
 		// ここでparser側で積んでるデータは一度クリアします
 		mp_EIT_H_sched = param.p_parser;
 		mEIT_H_sched_ref = param.p_parser->reference();
@@ -610,6 +616,11 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 			sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 			enAct = EN_THM_ACT_CONTINUE;
 
+
+			// history ----------------
+			m_current_history.set_state (CHistory::EN_STATE__COMPLETE);
+
+
 		} else {
 			ttmp = m_startTime_EITSched;
 			ttmp.addMin (mp_settings->getParams()->getEventScheduleCacheTimeoutMin());
@@ -618,6 +629,11 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 				_UTL_LOG_E ("parser EIT schedule : timeout");
 				sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 				enAct = EN_THM_ACT_CONTINUE;
+
+
+				// history ----------------
+				m_current_history.set_state (CHistory::EN_STATE__TIMEOUT);
+
 
 			} else {
 				_UTL_LOG_I ("parse EIT schedule : m_lastUpdate_EITSched %s", m_lastUpdate_EITSched.toString());
@@ -673,13 +689,28 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 					s_serviceInfos[i].service_type,			// additional
 					s_serviceInfos[i].p_service_name_char	// additional
 				);
+
+				if (hasScheduleMap (key)) {
+					_UTL_LOG_I ("hasScheduleMap -> deleteScheduleMap");
+					deleteScheduleMap (key);
+				}
+
 				addScheduleMap (key, p_sched);
 				key.dump();
 				_UTL_LOG_I ("addScheduleMap -> %d items", p_sched->size());
 
+
+				// history ----------------
+				CHistory::element elem;
+				elem.key = key;
+				elem.item_num = p_sched->size();
+				m_current_history.add (elem);
+
+
 			} else {
 				_UTL_LOG_I ("schedule none.");
 				delete p_sched;
+				p_sched = NULL;
 			}
 		}
 
@@ -689,10 +720,23 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_END_SUCCESS:
 
+		{
+			// history ----------------
+			m_current_history.set_end();
+
+			if (m_current_history.is_completed()) {
+				// fire notify
+				EN_SCHEDULE_CACHE_STATE_t _state = EN_SCHEDULE_CACHE_STATE__END;
+				pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
+
+				pushHistories (&m_current_history);
+				saveHistories ();
+			}
+		}
+
 		memset (&s_service_key, 0x00, sizeof(s_service_key));
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
-		s_retry = 0;
 		mp_EIT_H_sched = NULL;
 
 		sectId = THM_SECT_ID_INIT;
@@ -701,10 +745,24 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_END_ERROR:
 
+		{
+			// history ----------------
+			m_current_history.set_state (CHistory::EN_STATE__ERROR);
+			m_current_history.set_end();
+
+			if (m_current_history.is_completed()) {
+				// fire notify
+				EN_SCHEDULE_CACHE_STATE_t _state = EN_SCHEDULE_CACHE_STATE__END;
+				pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
+
+				pushHistories (&m_current_history);
+				saveHistories ();
+			}
+		}
+
 		memset (&s_service_key, 0x00, sizeof(s_service_key));
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
-		s_retry = 0;
 		mp_EIT_H_sched = NULL;
 
 		sectId = THM_SECT_ID_INIT;
@@ -819,6 +877,11 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 
 	case SECTID_REQ_START_CACHE_SCHEDULE: {
 
+		// fire notify
+		EN_SCHEDULE_CACHE_STATE_t _state = EN_SCHEDULE_CACHE_STATE__START;
+		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
+
+
 		// ここは添字0 でも何でも良いです
 		// (現状ではすべてのチャンネル編成分のスケジュールを取得します)
 		CEventScheduleManagerIf::SERVICE_KEY_t _key = {
@@ -826,12 +889,19 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 			s_serviceInfos[0].original_network_id,
 			s_serviceInfos[0].service_id
 		};
+
+
+		// history ----------------
+		m_current_history.clear();
+
+
 		requestAsync (
 			EN_MODULE_EVENT_SCHEDULE_MANAGER,
 			EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,
 			(uint8_t*)&_key,
 			sizeof(_key)
 		);
+
 
 		sectId = SECTID_WAIT_START_CACHE_SCHEDULE;
 		enAct = EN_THM_ACT_WAIT;
@@ -1072,6 +1142,29 @@ void CEventScheduleManager::onReq_dumpSchedule (CThreadMgrIf *pIf)
 	m_latest_dumped_key = key;
 
 	dumpScheduleMap (key);
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CEventScheduleManager::onReq_dumpHistories (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	dumpHistories ();
 
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
@@ -1344,11 +1437,6 @@ bool CEventScheduleManager::addScheduleMap (const SERVICE_KEY_t &key, std::vecto
 		return false;
 	}
 
-	if (hasScheduleMap (key)) {
-		_UTL_LOG_I ("hasScheduleMap -> deleteScheduleMap");
-		deleteScheduleMap (key);
-	}
-
 	m_sched_map.insert (pair<SERVICE_KEY_t, std::vector <CEvent*> *>(key, p_sched));
 
 	return true;
@@ -1567,4 +1655,124 @@ int CEventScheduleManager::getEvents (
 	}
 
 	return n;
+}
+
+void CEventScheduleManager::pushHistories (const CHistory *p_history)
+{
+	// fifo 10
+	// pop -> delete
+	if (m_histories.size() > 10) {
+		m_histories.erase (m_histories.begin());
+	}
+
+	// push
+	m_histories.push_back (*(CHistory*)p_history);
+
+	_UTL_LOG_I ("pushHistories  size=[%d]", m_histories.size());
+}
+
+void CEventScheduleManager::dumpHistories (void) const
+{
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+
+	std::vector<CHistory>::const_iterator iter = m_histories.begin();
+	for (; iter != m_histories.end(); ++ iter) {
+
+		iter->dump();
+
+	}
+}
+
+
+
+//--------------------------------------------------------------------------------
+
+template <class Archive>
+void serialize (Archive &archive, struct timespec &t)
+{
+	archive (
+		cereal::make_nvp("tv_sec", t.tv_sec),
+		cereal::make_nvp("tv_nsec", t.tv_nsec)
+	);
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEtime &t)
+{
+	archive (cereal::make_nvp("m_time", t.m_time));
+}
+
+template <class Archive>
+void serialize (Archive &archive, SERVICE_KEY_t &k)
+{
+	archive (
+		cereal::make_nvp("transport_stream_id", k.transport_stream_id),
+		cereal::make_nvp("original_network_id", k.original_network_id),
+		cereal::make_nvp("service_id", k.service_id),
+		cereal::make_nvp("service_type", k.service_type),
+		cereal::make_nvp("service_name", k.service_name)
+	);
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEventScheduleManager::CHistory::element &e)
+{
+	archive (
+		cereal::make_nvp("key", e.key),
+		cereal::make_nvp("item_num", e.item_num)
+	);
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEventScheduleManager::CHistory &h)
+{
+	archive (
+		cereal::make_nvp("elements", h.elements),
+		cereal::make_nvp("stt", h.stt),
+		cereal::make_nvp("start_time", h.start_time),
+		cereal::make_nvp("end_time", h.end_time)
+	);
+}
+
+void CEventScheduleManager::saveHistories (void)
+{
+	std::stringstream ss;
+	{
+		cereal::JSONOutputArchive out_archive (ss);
+		out_archive (CEREAL_NVP(m_histories));
+	}
+
+	std::string *p_path = CSettings::getInstance()->getParams()->getEventScheduleCacheHistoriesJsonPath();
+	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	ofs << ss.str();
+
+	ofs.close();
+	ss.clear();
+}
+
+void CEventScheduleManager::loadHistories (void)
+{
+	std::string *p_path = CSettings::getInstance()->getParams()->getEventScheduleCacheHistoriesJsonPath();
+	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	if (!ifs.is_open()) {
+		_UTL_LOG_I ("event_schedule_cache_histories.json is not found.");
+		return;
+	}
+
+	std::stringstream ss;
+	ss << ifs.rdbuf();
+
+	cereal::JSONInputArchive in_archive (ss);
+	in_archive (CEREAL_NVP(m_histories));
+
+	ifs.close();
+	ss.clear();
+
+
+	// CEtimeの値は直接 tv_sec,tv_nsecに書いてるので toString用の文字はここで作ります
+	std::vector<CHistory>::iterator iter = m_histories.begin();
+	for (; iter != m_histories.end(); ++ iter) {
+		iter->start_time.updateStrings();
+		iter->end_time.updateStrings();
+	}
 }

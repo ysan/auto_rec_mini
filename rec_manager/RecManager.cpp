@@ -56,6 +56,14 @@ const char * getReserveState (uint32_t state)
 		++ n ;
 	}
 
+	if (s == 0) {
+		strncpy (
+			gsz_reserveState,
+			g_reserveStatePair[0].psz_reserveState,
+			sizeof(gsz_reserveState) -1
+		);
+	}
+
 	return gsz_reserveState;
 }
 
@@ -710,17 +718,22 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 
 
 //TODO 必要?
-		uint32_t opt = getRequestOption ();
-		opt |= REQUEST_OPTION__WITHOUT_REPLY;
-		setRequestOption (opt);
+		//-----------------------------//
+		{
+			uint32_t opt = getRequestOption ();
+			opt |= REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
 
-		// 選局を停止しときます tune stop
-		// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-		CTunerControlIf _if (getExternalIf());
-		_if.reqTuneStop ();
+			// 選局を停止しときます tune stop
+			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
+			CTunerControlIf _if (getExternalIf());
+			_if.reqTuneStop ();
 
-		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-		setRequestOption (opt);
+			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+		}
+		//-----------------------------//
+
 
 		}
 		break;
@@ -2424,7 +2437,7 @@ void CRecManager::loadResults (void)
 	ss.clear();
 
 
-	// CEtimeの値は直接 tv_sec,tvnsecに書いてるので toString用の文字はここで作ります
+	// CEtimeの値は直接 tv_sec,tv_nsecに書いてるので toString用の文字はここで作ります
 	for (int i = 0; i < RESULT_NUM_MAX; ++ i) {
 		m_results [i].start_time.updateStrings();
 		m_results [i].end_time.updateStrings();

@@ -85,9 +85,9 @@ public:
 			this->transport_stream_id == obj.transport_stream_id &&
 			this->original_network_id == obj.original_network_id &&
 			this->service_id == obj.service_id &&
-			this->event_id == obj.event_id &&
-			this->start_time == obj.start_time &&
-			this->end_time == obj.end_time
+			this->event_id == obj.event_id
+//			this->start_time == obj.start_time &&
+//			this->end_time == obj.end_time
 		) {
 			return true;
 		} else {
@@ -100,9 +100,9 @@ public:
 			this->transport_stream_id != obj.transport_stream_id ||
 			this->original_network_id != obj.original_network_id ||
 			this->service_id != obj.service_id ||
-			this->event_id != obj.event_id ||
-			this->start_time != obj.start_time ||
-			this->end_time != obj.end_time
+			this->event_id != obj.event_id
+//			this->start_time != obj.start_time ||
+//			this->end_time != obj.end_time
 		) {
 			return true;
 		} else {
