@@ -399,38 +399,10 @@ public:
 			end_time.clear();
 		}
 
-		struct element *get (SERVICE_KEY_t &k) {
-			std::vector<struct element>::iterator iter = elements.begin();
-			for (; iter != elements.end(); ++ iter) {
-				if (iter->key == k) {
-					return &(*iter);
-				}
-			}
-			return NULL;
-		}
-
-		struct element *get (CEventScheduleManagerIf::SERVICE_KEY_t &_k) {
-			SERVICE_KEY_t k (_k);
-			std::vector<struct element>::iterator iter = elements.begin();
-			for (; iter != elements.end(); ++ iter) {
-				if (iter->key == k) {
-					return &(*iter);
-				}
-			}
-			return NULL;
-		}
-
 		void set_state (state _s) {
 			stt = _s;
 		}
 
-		bool is_completed (void) const {
-			if (stt == EN_STATE__INIT) {
-				return false;
-			} else {
-				return true;
-			}
-		}
 
 		void set_start (void) {
 			start_time.setCurrentTime();
@@ -441,7 +413,6 @@ public:
 		}
 
 		void dump (void) const {
-			_UTL_LOG_I ("------------------------------------------");
 			std::vector<struct element>::const_iterator iter = elements.begin();
 			for (; iter != elements.end(); ++ iter) {
 				iter->dump();
