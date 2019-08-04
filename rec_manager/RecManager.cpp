@@ -1709,7 +1709,7 @@ bool CRecManager::addReserve (
 
 	CRecReserve* p_reserve = searchAscendingOrderReserve (p_start_time);
 	if (!p_reserve) {
-		_UTL_LOG_E ("reserve full.");
+		_UTL_LOG_E ("searchAscendingOrderReserve failure.");
 		return false;
 	}
 
@@ -1898,10 +1898,6 @@ void CRecManager::checkReserves (void)
 			continue;
 		}
 
-		if (!m_reserves [i].state == RESERVE_STATE__INIT) {
-			continue;
-		}
-
 		// 開始時間/終了時間とも過ぎていたら resultsに入れときます
 		if (m_reserves [i].start_time < current_time && m_reserves [i].end_time <= current_time) {
 			m_reserves [i].state |= RESERVE_STATE__END_ERROR__ALREADY_PASSED;
@@ -1952,9 +1948,8 @@ void CRecManager::refreshReserves (uint32_t state)
 		}
 		m_reserves [RESERVE_NUM_MAX -1].clear();
 
+		saveReserves ();
 	}
-
-	saveReserves ();
 }
 
 bool CRecManager::pickReqStartRecordingReserve (void)

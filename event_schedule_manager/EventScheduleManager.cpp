@@ -424,6 +424,22 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			saveHistories ();
 
 
+			//-----------------------------//
+			{
+				uint32_t opt = getRequestOption ();
+				opt |= REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+
+				// 選局を停止しときます tune stop
+				// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
+				CTunerControlIf _if (getExternalIf());
+				_if.reqTuneStop ();
+
+				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+			}
+			//-----------------------------//
+
 			sectId = SECTID_CHECK;
 			enAct = EN_THM_ACT_CONTINUE;
 
@@ -634,11 +650,11 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_WAIT: {
 
-		// 約20秒間更新がなかったら完了とします
+		// 約10秒間更新がなかったら完了とします
 		CEtime tcur;
 		tcur.setCurrentTime();
 		CEtime ttmp = m_lastUpdate_EITSched;
-		ttmp.addSec (20);
+		ttmp.addSec (10);
 
 		if (tcur > ttmp) {
 			_UTL_LOG_I ("parse EIT schedule : complete");
@@ -938,6 +954,22 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 		pushHistories (&m_current_history);
 		saveHistories ();
 
+
+		//-----------------------------//
+		{
+			uint32_t opt = getRequestOption ();
+			opt |= REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+
+			// 選局を停止しときます tune stop
+			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
+			CTunerControlIf _if (getExternalIf());
+			_if.reqTuneStop ();
+
+			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+		}
+		//-----------------------------//
 
 		sectId = SECTID_END_SUCCESS;
 		enAct = EN_THM_ACT_CONTINUE;

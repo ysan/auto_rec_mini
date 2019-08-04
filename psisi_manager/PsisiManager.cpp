@@ -289,11 +289,11 @@ void CPsisiManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 		if (m_tunerIsTuned) {
 			// PAT途絶チェック
-			// 最後にPATを受けとった時刻から再び受け取るまで5秒以上経過していたら異常	
+			// 最後にPATを受けとった時刻から再び受け取るまで30秒以上経過していたら異常	
 			CEtime tcur;
 			tcur.setCurrentTime();
 			CEtime ttmp = m_patRecvTime;
-			ttmp.addSec (5); 
+			ttmp.addSec (30); 
 			if (tcur > ttmp) {
 				_UTL_LOG_E ("PAT was not detected. probably stream is broken...");
 
