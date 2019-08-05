@@ -34,6 +34,9 @@ static ST_IT9175_TS_RECEIVE_CALLBACKS g_ts_callbacks = {
 static bool g_is_log_verbose = false;
 static bool g_is_force_tune_end = false;
 
+FILE *g_fpLog = NULL;
+bool g_is_use_syslog = false;
+
 
 //
 // prototypes
@@ -47,6 +50,12 @@ int it9175_tune (unsigned int freqKHz); // extern
 void it9175_force_tune_end (void); // extern
 static void printTMCC(const it9175_state state);
 static int check_usbdevId(const unsigned int* desc);
+void it9175_initLogDefault (void); // extern
+void it9175_initSyslog (void); // extern
+void it9175_finalizSyslog (void); // extern
+bool it9175_isUseSyslog (void); // extern
+void it9175_setLogFileptr (FILE *p); // extern
+FILE* it9175_getLogFileptr (void); // extern
 
 
 void it9175_extern_setup_ts_callbacks (const ST_IT9175_TS_RECEIVE_CALLBACKS *p_callbacks)
@@ -327,4 +336,44 @@ static int check_usbdevId(const unsigned int* desc)
 	//if(0x048d == desc[0] && 0x9175 == desc[1])  return 0;
 	if(0x0511 == desc[0] && 0x0046 == desc[1])  return 0;
 	return 1;   //# not match
+}
+
+
+//----------  log  ----------
+void it9175_initLogDefault (void)
+{
+	g_fpLog = stderr;
+}
+
+void it9175_initSyslog (void)
+{
+	if (!g_is_use_syslog) {
+		openlog (NULL, 0, LOG_USER);
+		g_is_use_syslog = true;
+	}
+}
+
+void it9175_finalizSyslog (void)
+{
+	if (g_is_use_syslog) {
+		closelog ();
+		g_is_use_syslog = false;
+	}
+}
+
+bool it9175_isUseSyslog (void)
+{
+	return g_is_use_syslog ;
+}
+
+void it9175_setLogFileptr (FILE *p)
+{
+	if (p) {
+		g_fpLog = p;
+	}
+}
+
+FILE* it9175_getLogFileptr (void)
+{
+	return g_fpLog;
 }

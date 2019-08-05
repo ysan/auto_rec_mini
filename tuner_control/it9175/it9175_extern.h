@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <syslog.h>
 
 
 //
@@ -42,6 +43,13 @@ extern bool it9175_open (void);
 extern void it9175_close (void);
 extern int it9175_tune (unsigned int freqKHz);
 extern void it9175_force_tune_end (void);
+extern void it9175_initLogDefault (void);
+extern void it9175_initSyslog (void);
+extern void it9175_finalizSyslog (void);
+extern bool it9175_isUseSyslog (void);
+extern void it9175_setLogFileptr (FILE *p);
+extern FILE* it9175_getLogFileptr (void);
+
 
 #ifdef __cplusplus
 };

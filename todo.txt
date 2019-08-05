@@ -4,7 +4,6 @@ event chenge notify
   選局で follows clear
 ts_parser_test main.cpp に TsParser_test.cppを統合
 adaptation_fieldの処理
-it9175のlog
 psisi structs のclear関数 必要かどうか
 requestOptionで重複キューチェック
 commoand_serverのログ出力

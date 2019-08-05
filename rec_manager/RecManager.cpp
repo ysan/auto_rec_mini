@@ -47,16 +47,20 @@ const char * getReserveState (uint32_t state)
 	memset (gsz_reserveState, 0x00, sizeof(gsz_reserveState));
 	int n = 0;
 	int s = 0;
+	char *pw = gsz_reserveState;
+	int _size = sizeof(gsz_reserveState);
 
 	while (g_reserveStatePair [n].psz_reserveState != NULL) {
 		if (state & g_reserveStatePair [n].state) {
-			s += snprintf (gsz_reserveState + s, sizeof(gsz_reserveState),
+			s = snprintf (pw, _size,
 								"%s,", g_reserveStatePair [n].psz_reserveState);
+			pw += s;
+			_size -= s;
 		}
 		++ n ;
 	}
 
-	if (s == 0) {
+	if (pw == gsz_reserveState) {
 		strncpy (
 			gsz_reserveState,
 			g_reserveStatePair[0].psz_reserveState,

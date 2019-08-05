@@ -10,6 +10,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/threadmgrpp \
 	-I$(BASEDIR)/common \
 	-I$(BASEDIR)/tuner_control \
+	-I$(BASEDIR)/tuner_control/it9175 \
 	-I$(BASEDIR)/psisi_manager \
 	-I$(BASEDIR)/rec_manager \
 	-I$(BASEDIR)/channel_manager \

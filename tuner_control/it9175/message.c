@@ -6,29 +6,72 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <syslog.h>
 #include "message.h"
+#include "it9175_extern.h"
 
 void u_debugMessage(const unsigned int flags, const char* FuncName, const unsigned int Line, const int retCode, const char* fmt, ...)
 {
 	va_list ap;
 
 	if(0 != FuncName) {
-		fprintf(stderr, "@%s ", FuncName);
+		fprintf(it9175_getLogFileptr(), "@%s ", FuncName);
 	}
 	if(0 != Line) {
-		fprintf(stderr, "L%u ", Line);
+		fprintf(it9175_getLogFileptr(), "L%u ", Line);
 	}
 
 	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
+	vfprintf(it9175_getLogFileptr(), fmt, ap);
 	va_end(ap);
 
 	if(0 != retCode) {
-		fprintf(stderr, ", ERR=%d", retCode);
+		fprintf(it9175_getLogFileptr(), ", ERR=%d", retCode);
 	}
 	if(flags & 0x1U) {
-		fprintf(stderr, "\n");
+		fprintf(it9175_getLogFileptr(), "\n");
 	}
+}
+
+void u_debugMessage_syslog(const unsigned int flags, const char* FuncName, const unsigned int Line, const int retCode, const char* fmt, ...)
+{
+	char buf [1024] = {0};
+	int n = 0;
+	va_list ap;
+
+	int buf_size = sizeof(buf);
+	char *pw = buf;
+
+	if(0 != FuncName) {
+		n = snprintf(buf + n, buf_size, "@%s ", FuncName);
+		pw += n;
+		buf_size -= n;
+		
+	}
+	if(0 != Line) {
+		n = snprintf(buf + n, buf_size, "L%u ", Line);
+		pw += n;
+		buf_size -= n;
+	}
+
+	va_start(ap, fmt);
+	n += vsnprintf(buf + n, buf_size, fmt, ap);
+	va_end(ap);
+
+	if(0 != retCode) {
+		n = snprintf(buf + n, buf_size, ", ERR=%d", retCode);
+		pw += n;
+		buf_size -= n;
+	}
+	if(flags & 0x1U) {
+		n = snprintf(buf + n, buf_size, "\n");
+		pw += n;
+		buf_size -= n;
+	}
+
+
+	syslog (LOG_INFO, "%s", buf);
+
 }
 
 void dumpHex(char* const buf, const unsigned buflen, const int addr, const void* const dptr, unsigned dsize)

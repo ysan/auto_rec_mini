@@ -1,6 +1,6 @@
 {
     "m_params": {
-        "m_is_syslog_output": false,
+        "m_is_syslog_output": true,
 
         "m_command_server_port": 20001,
 

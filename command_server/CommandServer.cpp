@@ -205,6 +205,7 @@ void CCommandServer::serverLoop (void)
 		FILE *fp = fdopen (fd_copy, "w");
 		CUtils::setLogFileptr (fp);
 		setLogFileptr (fp);
+		it9175_setLogFileptr (fp);
 		gp_fptr_inner = fp;
 
 
