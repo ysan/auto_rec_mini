@@ -525,6 +525,7 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 		) {
 			_UTL_LOG_I ("PSI/SI ready.");
 
+			m_tunerIsTuned = true;
 
 			// fire notify
 			EN_PSISI_STATE state = EN_PSISI_STATE__READY;
@@ -1177,8 +1178,6 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 	case EN_TUNER_STATE__TUNING_SUCCESS: {
 		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_SUCCESS");
-
-		m_tunerIsTuned = true;
 
 //#ifndef _DUMMY_TUNER
 		// 選局後の安定化

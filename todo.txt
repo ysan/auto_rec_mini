@@ -11,3 +11,4 @@ rec中にPAT途絶したら再選局したい retryx3
 rec reserveにnetwork_nameいれるか
 EPG json
 EPG 履歴
+psisi mgrの m_tunerIsTunedはpsisi stateと同等
