@@ -41,29 +41,35 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	,mp_EIT_H_sched (NULL)
 {
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp,                      (char*)"onReq_moduleUp"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp,                           (char*)"onReq_moduleUp"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleDown,                    (char*)"onReq_moduleDown"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleDown,                         (char*)"onReq_moduleDown"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__REG_CACHE_SCHEDULE_STATE_NOTIFY] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_registerCacheScheduleStateNotify,   (char*)"onReq_registerCacheScheduleStateNotify"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__UNREG_CACHE_SCHEDULE_STATE_NOTIFY] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_unregisterCacheScheduleStateNotify, (char*)"onReq_unregisterCacheScheduleStateNotify"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop,                     (char*)"onReq_checkLoop"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop,                          (char*)"onReq_checkLoop"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice,                  (char*)"onReq_parserNotice"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice,                       (char*)"onReq_parserNotice"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_startCacheSchedule,            (char*)"onReq_startCacheSchedule"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_startCacheSchedule,                 (char*)"onReq_startCacheSchedule"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_CURRENT_SERVICE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule_currentService,  (char*)"onReq_cacheSchedule_currentService"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule_currentService,       (char*)"onReq_cacheSchedule_currentService"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent,                      (char*)"onReq_getEvent"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent,                           (char*)"onReq_getEvent"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent_latestDumpedSchedule, (char*)"onReq_getEvent_latestDumpedSchedule"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent_latestDumpedSchedule,      (char*)"onReq_getEvent_latestDumpedSchedule"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_EVENT__LATEST_DUMPED_SCHEDULE] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpEvent_latestDumpedSchedule,     (char*)"onReq_dumpEvent_latestDumpedSchedule"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch,       (char*)"onReq_getEvents_keywordSearch"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch,            (char*)"onReq_getEvents_keywordSearch"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,               (char*)"onReq_dumpScheduleMap"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,                    (char*)"onReq_dumpScheduleMap"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule,                  (char*)"onReq_dumpSchedule"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule,                       (char*)"onReq_dumpSchedule"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_HISTORIES] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpHistories,                 (char*)"onReq_dumpHistories"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpHistories,                      (char*)"onReq_dumpHistories"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
 
 
@@ -239,6 +245,72 @@ void CEventScheduleManager::onReq_moduleDown (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CEventScheduleManager::onReq_registerCacheScheduleStateNotify (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	uint8_t clientId = 0;
+	EN_THM_RSLT enRslt;
+	bool rslt = pIf->regNotify (NOTIFY_CAT__CACHE_SCHEDULE, &clientId);
+	if (rslt) {
+		enRslt = EN_THM_RSLT_SUCCESS;
+	} else {
+		enRslt = EN_THM_RSLT_ERROR;
+	}
+
+	_UTL_LOG_I ("registerd clientId=[0x%02x]\n", clientId);
+
+	// clientIdをreply msgで返す 
+	pIf->reply (enRslt, (uint8_t*)&clientId, sizeof(clientId));
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CEventScheduleManager::onReq_unregisterCacheScheduleStateNotify (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	EN_THM_RSLT enRslt;
+	// msgからclientIdを取得
+	uint8_t clientId = *(pIf->getSrcInfo()->msg.pMsg);
+	bool rslt = pIf->unregNotify (NOTIFY_CAT__CACHE_SCHEDULE, clientId);
+	if (rslt) {
+		_UTL_LOG_I ("unregisterd clientId=[0x%02x]\n", clientId);
+		enRslt = EN_THM_RSLT_SUCCESS;
+	} else {
+		_UTL_LOG_E ("failure unregister clientId=[0x%02x]\n", clientId);
+		enRslt = EN_THM_RSLT_ERROR;
+	}
+
+	pIf->reply (enRslt);
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -366,7 +438,7 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 	case SECTID_REQ_START_CACHE_SCHEDULE: {
 
 		// fire notify
-		EN_SCHEDULE_CACHE_STATE_t _state = EN_SCHEDULE_CACHE_STATE__START;
+		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__START;
 		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
 
 
@@ -417,7 +489,7 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			_UTL_LOG_I ("cache sched end. reqId [%d]", reqId);
 
 			// fire notify
-			EN_SCHEDULE_CACHE_STATE_t _state = EN_SCHEDULE_CACHE_STATE__END;
+			EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__END;
 			pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
 
 			pushHistories (&m_current_history);
@@ -907,7 +979,7 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 	case SECTID_REQ_START_CACHE_SCHEDULE: {
 
 		// fire notify
-		EN_SCHEDULE_CACHE_STATE_t _state = EN_SCHEDULE_CACHE_STATE__START;
+		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__START;
 		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
 
 
@@ -948,7 +1020,7 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 // 結果みない
 
 		// fire notify
-		EN_SCHEDULE_CACHE_STATE_t _state = EN_SCHEDULE_CACHE_STATE__END;
+		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__END;
 		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
 
 		pushHistories (&m_current_history);
@@ -1108,6 +1180,52 @@ void CEventScheduleManager::onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *p
 
 		}
 	}
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CEventScheduleManager::onReq_dumpEvent_latestDumpedSchedule (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param =
+			*(CEventScheduleManagerIf::REQ_EVENT_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+//_param.p_out_eventはnullで来ます
+
+//	if (!_param.p_out_event) {
+//		_UTL_LOG_E ("_param.p_out_event is null.");
+//		pIf->reply (EN_THM_RSLT_ERROR);
+
+//	} else {
+
+		const CEvent *p = getEvent (m_latest_dumped_key, _param.arg.index);
+		CEvent* p_event = const_cast <CEvent*> (p);
+		if (p_event) {
+
+			p_event->dump();
+			p_event->dump_detail ();
+
+			pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		} else {
+
+			_UTL_LOG_E ("getEvent is null.");
+			pIf->reply (EN_THM_RSLT_ERROR);
+
+		}
+//	}
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;

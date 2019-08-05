@@ -443,12 +443,15 @@ public:
 
 	void onReq_moduleUp (CThreadMgrIf *pIf);
 	void onReq_moduleDown (CThreadMgrIf *pIf);
+	void onReq_registerCacheScheduleStateNotify (CThreadMgrIf *pIf);
+	void onReq_unregisterCacheScheduleStateNotify (CThreadMgrIf *pIf);
 	void onReq_checkLoop (CThreadMgrIf *pIf);
 	void onReq_parserNotice (CThreadMgrIf *pIf);
 	void onReq_startCacheSchedule (CThreadMgrIf *pIf);
 	void onReq_cacheSchedule_currentService (CThreadMgrIf *pIf);
 	void onReq_getEvent (CThreadMgrIf *pIf);
 	void onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
+	void onReq_dumpEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
 	void onReq_getEvents_keywordSearch (CThreadMgrIf *pIf);
 	void onReq_dumpScheduleMap (CThreadMgrIf *pIf);
 	void onReq_dumpSchedule (CThreadMgrIf *pIf);

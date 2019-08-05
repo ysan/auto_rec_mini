@@ -109,6 +109,36 @@ static void _dump_schedule (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void _getEvent (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 1) {
+		_UTL_LOG_E ("invalid arguments.");
+		return;
+	}
+
+	std::regex regex_idx ("^[0-9]+$");
+	if (!std::regex_match (argv[0], regex_idx)) {
+		_UTL_LOG_E ("invalid arguments. (index)");
+		return;
+	}
+	uint16_t _idx = atoi (argv[0]);
+
+
+	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param;
+	_param.arg.index = _idx ;
+
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CEventScheduleManagerIf mgr(pBase->getExternalIf());
+	mgr.reqDumpEvent_latestDumpedSchedule (&_param);
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
 static void _getEvents_keywordSearch (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
@@ -166,7 +196,7 @@ static void _dump_histories (int argc, char* argv[], CThreadMgrBase *pBase)
 ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	{
 		"cs",
-		"cache schedule - current services",
+		"cache schedule --current services--",
 		_cacheSchedule_currentService,
 		NULL,
 	},
@@ -184,7 +214,13 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	},
 	{
 		"g",
-		"get events --search event name by keyword-- (usage: g {keyword})",
+		"get event --from last dumped schedule-- (usage: g {index})",
+		_getEvent,
+		NULL,
+	},
+	{
+		"grep",
+		"grep events --search event name by keyword-- (usage: grep {keyword})",
 		_getEvents_keywordSearch,
 		NULL,
 	},

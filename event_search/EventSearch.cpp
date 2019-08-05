@@ -12,13 +12,14 @@
 
 CEventSearch::CEventSearch (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
+	,m_cache_sched_state_notify_client_id (0xff)
 {
 	mSeqs [EN_SEQ_EVENT_SEARCH__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_moduleUp,                              (char*)"onReq_moduleUp"};
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_moduleUp,                    (char*)"onReq_moduleUp"};
 	mSeqs [EN_SEQ_EVENT_SEARCH__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_moduleDown,                            (char*)"onReq_moduleDown"};
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_moduleDown,                  (char*)"onReq_moduleDown"};
 	mSeqs [EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH] =
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch,           (char*)"onReq_addRecReserve_keywordSearch"};
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SEARCH__NUM);
 
 
@@ -36,8 +37,8 @@ void CEventSearch::onReq_moduleUp (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_REG_TUNE_COMP_NOTIFY,
-		SECTID_WAIT_REG_TUNE_COMP_NOTIFY,
+		SECTID_REQ_REG_CACHE_SCHED_STATE_NOTIFY,
+		SECTID_WAIT_REG_CACHE_SCHED_STATE_NOTIFY,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
 	};
@@ -45,14 +46,55 @@ void CEventSearch::onReq_moduleUp (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-//
-// do nothing
-//
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
+	switch (sectId) {
+	case SECTID_ENTRY:
+		sectId = SECTID_REQ_REG_CACHE_SCHED_STATE_NOTIFY;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_REG_CACHE_SCHED_STATE_NOTIFY: {
+		CEventScheduleManagerIf _if (getExternalIf());
+		_if.reqRegisterCacheScheduleStateNotify ();
+
+		sectId = SECTID_WAIT_REG_CACHE_SCHED_STATE_NOTIFY;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_REG_CACHE_SCHED_STATE_NOTIFY:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			m_cache_sched_state_notify_client_id = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("reqRegisterTunerNotify is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_END_SUCCESS:
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	case SECTID_END_ERROR:
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+
 	pIf->setSectId (sectId, enAct);
 }
 
@@ -230,6 +272,39 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 	}
 
 	pIf->setSectId (sectId, enAct);
+}
+
+void CEventSearch::onReceiveNotify (CThreadMgrIf *pIf)
+{
+	if (pIf->getSrcInfo()->nClientId != m_cache_sched_state_notify_client_id) {
+		return ;
+	}
+
+	EN_CACHE_SCHEDULE_STATE_t enState = *(EN_CACHE_SCHEDULE_STATE_t*)(pIf->getSrcInfo()->msg.pMsg);
+	switch (enState) {
+	case EN_CACHE_SCHEDULE_STATE__START:
+		break;
+
+	case EN_CACHE_SCHEDULE_STATE__END: {
+		// EPG取得が終わったら キーワード予約をかけます
+
+		uint32_t opt = getRequestOption ();
+		opt |= REQUEST_OPTION__WITHOUT_REPLY;
+		setRequestOption (opt);
+
+		requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH);
+
+		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+		setRequestOption (opt);
+
+		}
+		break;
+
+	default:
+		break;
+	}
+
+
 }
 
 
