@@ -29,6 +29,7 @@ enum {
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_EVENT__LATEST_DUMPED_SCHEDULE,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH,
+	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE,
 	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_HISTORIES,
@@ -217,6 +218,32 @@ public:
 		return requestSync (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
 					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH,
+					(uint8_t*)p_param,
+					sizeof (REQ_EVENT_PARAM_t)
+				);
+	};
+
+	bool reqGetEvent_keyword_ex (REQ_EVENT_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX,
+					(uint8_t*)p_param,
+					sizeof (REQ_EVENT_PARAM_t)
+				);
+	};
+
+	bool syncGetEvent_keyword_ex (REQ_EVENT_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestSync (
+					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX,
 					(uint8_t*)p_param,
 					sizeof (REQ_EVENT_PARAM_t)
 				);

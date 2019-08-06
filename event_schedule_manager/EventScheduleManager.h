@@ -263,6 +263,7 @@ public:
 
 	std::vector <CGenre> genres;
 
+	// table_id 0x58〜0x5fから取得します
 	std::vector <CExtendedInfo> extendedInfos;
 
 
@@ -314,8 +315,8 @@ public:
 	void dump_detail (void) const {
 		std::vector<CExtendedInfo>::const_iterator iter_ex = extendedInfos.begin();
 		for (; iter_ex != extendedInfos.end(); ++ iter_ex) {
-			_UTL_LOG_I ("[%s]", iter_ex->item_description.c_str());
-			_UTL_LOG_I ("[%s]", iter_ex->item.c_str());
+			_UTL_LOG_I ("item_description:[%s]", iter_ex->item_description.c_str());
+			_UTL_LOG_I ("item:[%s]", iter_ex->item.c_str());
 		}
 
 		_UTL_LOG_I (
@@ -453,6 +454,7 @@ public:
 	void onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
 	void onReq_dumpEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
 	void onReq_getEvents_keywordSearch (CThreadMgrIf *pIf);
+	void onReq_getEvents_keywordSearch_ex (CThreadMgrIf *pIf);
 	void onReq_dumpScheduleMap (CThreadMgrIf *pIf);
 	void onReq_dumpSchedule (CThreadMgrIf *pIf);
 	void onReq_dumpHistories (CThreadMgrIf *pIf);
@@ -468,6 +470,8 @@ private:
 		uint16_t _service_id,
 		std::vector <CEvent*> *p_out_sched
 	);
+	void cacheSchedule_extended (std::vector <CEvent*> *p_out_sched);
+	void cacheSchedule_extended (CEvent* p_out_event);
 	void clearSchedule (std::vector <CEvent*> *p_sched);
 	void dumpSchedule (const std::vector <CEvent*> *p_sched) const;
 
@@ -479,7 +483,12 @@ private:
 
 	const CEvent *getEvent (const CEventScheduleManagerIf::EVENT_KEY_t &key) const;
 	const CEvent *getEvent (const SERVICE_KEY_t &key, int index) const;
-	int getEvents (const char *p_keyword, CEventScheduleManagerIf::EVENT_t *p_out_event, int array_max_num) const;
+	int getEvents (
+		const char *p_keyword,
+		CEventScheduleManagerIf::EVENT_t *p_out_event,
+		int out_array_num,
+		bool is_include_extendedInfo
+	) const;
 
 	void pushHistories (const CHistory *p_history);
 	void dumpHistories (void) const;

@@ -64,6 +64,8 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpEvent_latestDumpedSchedule,     (char*)"onReq_dumpEvent_latestDumpedSchedule"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch,            (char*)"onReq_getEvents_keywordSearch"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch_ex,         (char*)"onReq_getEvents_keywordSearch_ex"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,                    (char*)"onReq_dumpScheduleMap"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE] =
@@ -799,6 +801,9 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 			);
 
 			if (p_sched->size() > 0) {
+				cacheSchedule_extended (p_sched);
+
+
 				SERVICE_KEY_t key (
 					s_serviceInfos[i].transport_stream_id,
 					s_serviceInfos[i].original_network_id,
@@ -1258,7 +1263,48 @@ void CEventScheduleManager::onReq_getEvents_keywordSearch (CThreadMgrIf *pIf)
 
 	} else {
 
-		int n = getEvents (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num);
+		int n = getEvents (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num, false);
+		if (n < 0) {
+			_UTL_LOG_E ("getEvent is invalid.");
+			pIf->reply (EN_THM_RSLT_ERROR);
+		} else {
+			// 検索数をreply msgで返します
+			pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&n, sizeof(n));
+		}
+	}
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CEventScheduleManager::onReq_getEvents_keywordSearch_ex (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param =
+			*(CEventScheduleManagerIf::REQ_EVENT_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+	if (!_param.p_out_event) {
+		_UTL_LOG_E ("_param.p_out_event is null.");
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else if (_param.array_max_num <= 0) {
+		_UTL_LOG_E ("_param.array_max_num is invalid.");
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else {
+
+		int n = getEvents (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num, true);
 		if (n < 0) {
 			_UTL_LOG_E ("getEvent is invalid.");
 			pIf->reply (EN_THM_RSLT_ERROR);
@@ -1522,30 +1568,6 @@ void CEventScheduleManager::cacheSchedule (
 						p_event->genres.push_back (genre);
 					}
 
-				} else if (iter_desc->tag == DESC_TAG__EXTENDED_EVENT_DESCRIPTOR) {
-					CExtendedEventDescriptor eed (*iter_desc);
-					if (!eed.isValid) {
-						_UTL_LOG_W ("invalid ExtendedEventDescriptor\n");
-						continue;
-					}
-
-					char aribstr [MAXSECLEN];
-					std::vector<CExtendedEventDescriptor::CItem>::const_iterator iter_item = eed.items.begin();
-					for (; iter_item != eed.items.end(); ++ iter_item) {
-						CEvent::CExtendedInfo info;
-
-						memset (aribstr, 0x00, MAXSECLEN);
-						AribToString (aribstr, (const char*)iter_item->item_description_char, (int)iter_item->item_description_length);
-						info.item_description = aribstr;
-
-						memset (aribstr, 0x00, MAXSECLEN);
-						AribToString (aribstr, (const char*)iter_item->item_char, (int)iter_item->item_length);
-						info.item = aribstr;
-
-						p_event->extendedInfos.push_back (info);
-					}
-
-
 				}
 
 			} // loop descriptors
@@ -1562,6 +1584,110 @@ void CEventScheduleManager::cacheSchedule (
 	std::stable_sort (p_out_sched->begin(), p_out_sched->end(), _comp__table_id);
 	std::stable_sort (p_out_sched->begin(), p_out_sched->end(), _comp__section_number);
 
+}
+
+void CEventScheduleManager::cacheSchedule_extended (std::vector <CEvent*> *p_out_sched)
+{
+	std::vector<CEvent*>::iterator iter = p_out_sched->begin();
+	for (; iter != p_out_sched->end(); ++ iter) {
+		CEvent* p = *iter;
+		if (p) {
+			cacheSchedule_extended (p);
+		}
+	}
+}
+
+/**
+ * 引数p_out_eventをキーにテーブルのextended event descripotrの内容を保存します
+ * p_out_eventは キーとなる ts_id, org_netwkid, scv_id, evt_id はinvalidなデータなこと前提です
+ * table_id=0x58〜0x5f が対象です
+ */
+void CEventScheduleManager::cacheSchedule_extended (CEvent* p_out_event)
+{
+	if (!p_out_event) {
+		return ;
+	}
+
+
+	std::lock_guard<std::recursive_mutex> lock (*mEIT_H_sched_ref.mpMutex);
+
+	std::vector<CEventInformationTable_sched::CTable*>::const_iterator iter = mEIT_H_sched_ref.mpTables->begin();
+	for (; iter != mEIT_H_sched_ref.mpTables->end(); ++ iter) {
+
+		CEventInformationTable_sched::CTable *pTable = *iter;
+
+		// キーが一致したテーブルをみます
+		if (
+			(p_out_event->transport_stream_id != pTable->transport_stream_id) ||
+			(p_out_event->original_network_id != pTable->original_network_id) ||
+			(p_out_event->service_id != pTable->header.table_id_extension)
+		) {
+			continue;
+		}
+
+		// table_id=0x58〜0x5f が対象です
+		if (
+			(pTable->header.table_id < TBLID_EIT_SCHED_A_EXT) ||
+			(pTable->header.table_id > TBLID_EIT_SCHED_A_EXT +7)
+		) {
+			continue;
+		}
+
+
+		// loop events
+		std::vector<CEventInformationTable_sched::CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
+		for (; iter_event != pTable->events.end(); ++ iter_event) {
+			if (iter_event->event_id == 0) {
+				// event情報が付いてない
+				continue;
+			}
+
+
+			// キーが一致したテーブルをみます
+			if (p_out_event->event_id != iter_event->event_id) {
+				continue;
+			}
+
+
+			std::vector<CDescriptor>::const_iterator iter_desc = iter_event->descriptors.begin();
+			for (; iter_desc != iter_event->descriptors.end(); ++ iter_desc) {
+
+				if (iter_desc->tag == DESC_TAG__EXTENDED_EVENT_DESCRIPTOR) {
+					CExtendedEventDescriptor eed (*iter_desc);
+					if (!eed.isValid) {
+						_UTL_LOG_W ("invalid ExtendedEventDescriptor\n");
+						continue;
+					}
+
+					char aribstr [MAXSECLEN];
+					std::vector<CExtendedEventDescriptor::CItem>::const_iterator iter_item = eed.items.begin();
+					for (; iter_item != eed.items.end(); ++ iter_item) {
+						CEvent::CExtendedInfo info;
+
+						memset (aribstr, 0x00, MAXSECLEN);
+						AribToString (
+							aribstr,
+							(const char*)iter_item->item_description_char,
+							(int)iter_item->item_description_length
+						);
+						info.item_description = aribstr;
+
+						memset (aribstr, 0x00, MAXSECLEN);
+						AribToString (
+							aribstr,
+							(const char*)iter_item->item_char,
+							(int)iter_item->item_length
+						);
+						info.item = aribstr;
+
+						p_out_event->extendedInfos.push_back (info);
+					}
+				}
+
+			} // loop descriptors
+
+		} // loop events
+	} // loop tables
 }
 
 void CEventScheduleManager::clearSchedule (std::vector <CEvent*> *p_sched)
@@ -1772,10 +1898,11 @@ const CEvent *CEventScheduleManager::getEvent (const SERVICE_KEY_t &key, int ind
 int CEventScheduleManager::getEvents (
 	const char *p_keyword,
 	CEventScheduleManagerIf::EVENT_t *p_out_event,
-	int array_max_num
+	int out_array_num,
+	bool is_include_extendedInfo
 ) const
 {
-	if (!p_keyword || !p_out_event || array_max_num <= 0) {
+	if (!p_keyword || !p_out_event || out_array_num <= 0) {
 		return -1;
 	}
 
@@ -1787,7 +1914,7 @@ int CEventScheduleManager::getEvents (
 	int n = 0;
 
 	for (; iter != m_sched_map.end(); ++ iter) {
-		if (array_max_num == 0) {
+		if (out_array_num == 0) {
 			break;
 		}
 
@@ -1796,15 +1923,41 @@ int CEventScheduleManager::getEvents (
 
 			std::vector<CEvent*>::const_iterator iter_event = p_sched->begin();
 			for (; iter_event != p_sched->end(); ++ iter_event) {
-				if (array_max_num == 0) {
+				if (out_array_num == 0) {
 					break;
 				}
 
 				CEvent* p_event = *iter_event;
 				if (p_event) {
 
-					char *s = strstr ((char*)p_event->event_name.c_str(), p_keyword);
-					if (s) {
+					char *s = NULL;
+					char *s_ex = NULL;
+
+					if (is_include_extendedInfo) {
+						// check extened
+						std::vector<CEvent::CExtendedInfo>::const_iterator iter_ex = p_event->extendedInfos.begin();
+						for (; iter_ex != p_event->extendedInfos.end(); ++ iter_ex) {
+							s_ex = strstr ((char*)iter_ex->item_description.c_str(), p_keyword);
+							if (s_ex) {
+								p_event->dump();
+								p_event->dump_detail();
+								break;
+							}
+
+							s_ex = strstr ((char*)iter_ex->item.c_str(), p_keyword);
+							if (s_ex) {
+								p_event->dump();
+								p_event->dump_detail();
+								break;
+							}
+						}
+					}
+
+					// check event name
+					s = strstr ((char*)p_event->event_name.c_str(), p_keyword);
+
+
+					if (s || s_ex) {
 
 						p_out_event->table_id = p_event->table_id;
 						p_out_event->transport_stream_id = p_event->transport_stream_id;
@@ -1819,7 +1972,7 @@ int CEventScheduleManager::getEvents (
 						p_out_event->p_text = &p_event->text;
 
 						++ p_out_event;
-						-- array_max_num;
+						-- out_array_num;
 						++ n;
 					}
 				}
