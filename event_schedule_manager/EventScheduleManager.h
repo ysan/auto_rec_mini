@@ -446,6 +446,7 @@ public:
 	void onReq_moduleDown (CThreadMgrIf *pIf);
 	void onReq_registerCacheScheduleStateNotify (CThreadMgrIf *pIf);
 	void onReq_unregisterCacheScheduleStateNotify (CThreadMgrIf *pIf);
+	void onReq_getCacheScheduleState (CThreadMgrIf *pIf);
 	void onReq_checkLoop (CThreadMgrIf *pIf);
 	void onReq_parserNotice (CThreadMgrIf *pIf);
 	void onReq_startCacheSchedule (CThreadMgrIf *pIf);
@@ -454,7 +455,6 @@ public:
 	void onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
 	void onReq_dumpEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
 	void onReq_getEvents_keywordSearch (CThreadMgrIf *pIf);
-	void onReq_getEvents_keywordSearch_ex (CThreadMgrIf *pIf);
 	void onReq_dumpScheduleMap (CThreadMgrIf *pIf);
 	void onReq_dumpSchedule (CThreadMgrIf *pIf);
 	void onReq_dumpHistories (CThreadMgrIf *pIf);
@@ -487,7 +487,7 @@ private:
 		const char *p_keyword,
 		CEventScheduleManagerIf::EVENT_t *p_out_event,
 		int out_array_num,
-		bool is_include_extendedInfo
+		bool is_include_extendedEvent
 	) const;
 
 	void pushHistories (const CHistory *p_history);
@@ -502,6 +502,8 @@ private:
 	ST_SEQ_BASE mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM]; // entity
 
 	CSettings *mp_settings;
+
+	EN_CACHE_SCHEDULE_STATE_t m_state;
 
 	uint8_t m_tunerNotify_clientId;
 	uint8_t m_eventChangeNotify_clientId;

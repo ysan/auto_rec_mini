@@ -262,7 +262,7 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	},
 	{
 		"grepex",
-		"grep events --search event name and extendedInfo by keyword-- (usage: grepex {keyword})",
+		"grep events --search event name and extended event by keyword-- (usage: grepex {keyword})",
 		_getEvents_keywordSearch_ex,
 		NULL,
 	},

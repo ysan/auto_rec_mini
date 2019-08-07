@@ -36,6 +36,7 @@ bool _comp__section_number (const CEvent* l, const CEvent* r) {
 CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,mp_settings (NULL)
+	,m_state (EN_CACHE_SCHEDULE_STATE__INIT)
 	,m_tunerNotify_clientId (0xff)
 	,m_eventChangeNotify_clientId (0xff)
 	,mp_EIT_H_sched (NULL)
@@ -48,6 +49,8 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_registerCacheScheduleStateNotify,   (char*)"onReq_registerCacheScheduleStateNotify"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__UNREG_CACHE_SCHEDULE_STATE_NOTIFY] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_unregisterCacheScheduleStateNotify, (char*)"onReq_unregisterCacheScheduleStateNotify"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_CACHE_SCHEDULE_STATE] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getCacheScheduleState,              (char*)"onReq_getCacheScheduleState"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop,                          (char*)"onReq_checkLoop"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE] =
@@ -65,7 +68,7 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch,            (char*)"onReq_getEvents_keywordSearch"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch_ex,         (char*)"onReq_getEvents_keywordSearch_ex"};
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch,            (char*)"onReq_getEvents_keywordSearch(ex)"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,                    (char*)"onReq_dumpScheduleMap"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE] =
@@ -313,6 +316,28 @@ void CEventScheduleManager::onReq_unregisterCacheScheduleStateNotify (CThreadMgr
 	pIf->setSectId (sectId, enAct);
 }
 
+void CEventScheduleManager::onReq_getCacheScheduleState (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	// reply msgにm_stateを乗せます
+	pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&m_state, sizeof(m_state));
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -439,21 +464,17 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 	case SECTID_REQ_START_CACHE_SCHEDULE: {
 
+		// update m_state
+		m_state = EN_CACHE_SCHEDULE_STATE__BUSY;
 		// fire notify
-		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__START;
-		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
+		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
 
 
 		// history ----------------
 		m_current_history.clear();
 
 
-//		// 取得したチャンネル分の START_CACHE_SCHEDULEキューを入れます
-//		// ここはリプライ受けないので REQUEST_OPTION__WITHOUT_REPLY にしておきます
-//		uint32_t opt = getExternalIf()->getRequestOption ();
-//		opt |= REQUEST_OPTION__WITHOUT_REPLY;
-//		getExternalIf()->setRequestOption (opt);
-
+		// 取得したチャンネル分の START_CACHE_SCHEDULEキューを入れます
 		for (int i = 0; i < s_ch_num; ++ i) {
 			CEventScheduleManagerIf::SERVICE_KEY_t _key = {
 				s_channels[i].transport_stream_id,
@@ -472,9 +493,6 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			);
 		}
 
-//		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-//		getExternalIf()->setRequestOption (opt);
-
 		_UTL_LOG_I ("cache sched start. last reqId [%d]", s_last_reqId);
 
 		sectId = SECTID_WAIT_START_CACHE_SCHEDULE;
@@ -490,9 +508,6 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 			_UTL_LOG_I ("cache sched end. reqId [%d]", reqId);
 
-			// fire notify
-			EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__END;
-			pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
 
 			pushHistories (&m_current_history);
 			saveHistories ();
@@ -513,6 +528,13 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 				setRequestOption (opt);
 			}
 			//-----------------------------//
+
+
+			// update m_state
+			m_state = EN_CACHE_SCHEDULE_STATE__READY;
+			// fire notify
+			pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
+
 
 			sectId = SECTID_CHECK;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -984,7 +1006,7 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 	case SECTID_REQ_START_CACHE_SCHEDULE: {
 
 		// fire notify
-		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__START;
+		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__BUSY;
 		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
 
 
@@ -1024,10 +1046,6 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 //		}
 // 結果みない
 
-		// fire notify
-		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__END;
-		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
-
 		pushHistories (&m_current_history);
 		saveHistories ();
 
@@ -1047,6 +1065,11 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 			setRequestOption (opt);
 		}
 		//-----------------------------//
+
+
+		// fire notify
+		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__READY;
+		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
 
 		sectId = SECTID_END_SUCCESS;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -1263,48 +1286,14 @@ void CEventScheduleManager::onReq_getEvents_keywordSearch (CThreadMgrIf *pIf)
 
 	} else {
 
-		int n = getEvents (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num, false);
-		if (n < 0) {
-			_UTL_LOG_E ("getEvent is invalid.");
-			pIf->reply (EN_THM_RSLT_ERROR);
-		} else {
-			// 検索数をreply msgで返します
-			pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&n, sizeof(n));
+		bool is_include_extendedEvent = false;
+		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH) {
+			is_include_extendedEvent = false;
+		} else if (pIf->getSeqIdx() == EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX) {
+			is_include_extendedEvent = true;
 		}
-	}
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
-}
-
-void CEventScheduleManager::onReq_getEvents_keywordSearch_ex (CThreadMgrIf *pIf)
-{
-	uint8_t sectId;
-	EN_THM_ACT enAct;
-	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_END,
-	};
-
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
-
-
-	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param =
-			*(CEventScheduleManagerIf::REQ_EVENT_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
-
-	if (!_param.p_out_event) {
-		_UTL_LOG_E ("_param.p_out_event is null.");
-		pIf->reply (EN_THM_RSLT_ERROR);
-
-	} else if (_param.array_max_num <= 0) {
-		_UTL_LOG_E ("_param.array_max_num is invalid.");
-		pIf->reply (EN_THM_RSLT_ERROR);
-
-	} else {
-
-		int n = getEvents (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num, true);
+		int n = getEvents (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num, is_include_extendedEvent);
 		if (n < 0) {
 			_UTL_LOG_E ("getEvent is invalid.");
 			pIf->reply (EN_THM_RSLT_ERROR);
@@ -1899,7 +1888,7 @@ int CEventScheduleManager::getEvents (
 	const char *p_keyword,
 	CEventScheduleManagerIf::EVENT_t *p_out_event,
 	int out_array_num,
-	bool is_include_extendedInfo
+	bool is_include_extendedEvent
 ) const
 {
 	if (!p_keyword || !p_out_event || out_array_num <= 0) {
@@ -1931,21 +1920,17 @@ int CEventScheduleManager::getEvents (
 				if (p_event) {
 
 					char *s = NULL;
-					char *s_ex = NULL;
+					char *s_ex_item_desc = NULL;
+					char *s_ex_item = NULL;
 
-					if (is_include_extendedInfo) {
-						// check extened
+					if (is_include_extendedEvent) {
+						// check extened event
 						std::vector<CEvent::CExtendedInfo>::const_iterator iter_ex = p_event->extendedInfos.begin();
 						for (; iter_ex != p_event->extendedInfos.end(); ++ iter_ex) {
-							s_ex = strstr ((char*)iter_ex->item_description.c_str(), p_keyword);
-							if (s_ex) {
-								p_event->dump();
-								p_event->dump_detail();
-								break;
-							}
-
-							s_ex = strstr ((char*)iter_ex->item.c_str(), p_keyword);
-							if (s_ex) {
+							s_ex_item_desc = strstr ((char*)iter_ex->item_description.c_str(), p_keyword);
+							s_ex_item = strstr ((char*)iter_ex->item.c_str(), p_keyword);
+							if (s_ex_item_desc || s_ex_item) {
+								_UTL_LOG_I ("====");
 								p_event->dump();
 								p_event->dump_detail();
 								break;
@@ -1957,7 +1942,7 @@ int CEventScheduleManager::getEvents (
 					s = strstr ((char*)p_event->event_name.c_str(), p_keyword);
 
 
-					if (s || s_ex) {
+					if (s || s_ex_item_desc || s_ex_item) {
 
 						p_out_event->table_id = p_event->table_id;
 						p_out_event->transport_stream_id = p_event->transport_stream_id;

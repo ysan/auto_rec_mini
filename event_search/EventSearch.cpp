@@ -282,10 +282,10 @@ void CEventSearch::onReceiveNotify (CThreadMgrIf *pIf)
 
 	EN_CACHE_SCHEDULE_STATE_t enState = *(EN_CACHE_SCHEDULE_STATE_t*)(pIf->getSrcInfo()->msg.pMsg);
 	switch (enState) {
-	case EN_CACHE_SCHEDULE_STATE__START:
+	case EN_CACHE_SCHEDULE_STATE__BUSY:
 		break;
 
-	case EN_CACHE_SCHEDULE_STATE__END: {
+	case EN_CACHE_SCHEDULE_STATE__READY: {
 		// EPG取得が終わったら キーワード予約をかけます
 
 		uint32_t opt = getRequestOption ();

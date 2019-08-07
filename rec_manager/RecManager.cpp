@@ -533,6 +533,7 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+//TODO  eventSchedMgrの stateNotify契機でチェックする方がいいかも
 void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -567,8 +568,21 @@ void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
-	case SECTID_CHECK_WAIT:
+	case SECTID_CHECK_WAIT: {
 
+		// EPG取得が完了しているか確認します
+		CEventScheduleManagerIf _if (getExternalIf());
+		_if.syncGetCacheScheduleState ();
+		EN_CACHE_SCHEDULE_STATE_t _s =  *(EN_CACHE_SCHEDULE_STATE_t*)(pIf->getSrcInfo()->msg.pMsg);
+		if (_s <= EN_CACHE_SCHEDULE_STATE__BUSY) {
+			// readyでないので以下の処理は行いません
+			sectId = SECTID_CHECK;
+			enAct = EN_THM_ACT_CONTINUE;
+			break;
+		}
+
+
+		// 録画予約に対応するイベント内容ををチェックします
 		for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
 
 			if (!m_reserves [i].is_used) {
@@ -630,7 +644,7 @@ void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 				}
 
 			} else {
-				// 予約に対応するイベントがなかった あらら...
+				// 予約に対応するイベントがなかった
 				_UTL_LOG_E ("syncGetEvent error");
 				m_reserves [i].dump();
 			}
@@ -640,6 +654,8 @@ void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 
 		sectId = SECTID_CHECK;
 		enAct = EN_THM_ACT_CONTINUE;
+
+		}
 		break;
 
 	case SECTID_END:
@@ -721,7 +737,6 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 		_UTL_LOG_I ("recording end...");
 
 
-//TODO 必要?
 		//-----------------------------//
 		{
 			uint32_t opt = getRequestOption ();
@@ -1620,6 +1635,8 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 				// 自ら呼び出します
 				// 内部で自リクエストするので
 				// REQUEST_OPTION__WITHOUT_REPLY を入れときます
+				//
+				// PAT途絶してTsReceiveHandlerは動いていない前提
 				this->onTsReceived (NULL, 0);
 
 				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
