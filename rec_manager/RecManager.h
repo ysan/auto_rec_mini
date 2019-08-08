@@ -38,7 +38,7 @@
 using namespace ThreadManager;
 
 
-#define RESERVE_NUM_MAX		(20)
+#define RESERVE_NUM_MAX		(50)
 #define RESULT_NUM_MAX		(20)
 
 #define RESERVE_STATE__INIT								(0x00000000)
