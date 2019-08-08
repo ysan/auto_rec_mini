@@ -64,7 +64,6 @@ public:
 	} EVENT_KEY_t;
 
 	typedef struct _event {
-		uint8_t table_id;
 		uint16_t transport_stream_id;
 		uint16_t original_network_id;
 		uint16_t service_id;

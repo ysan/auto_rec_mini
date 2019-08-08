@@ -574,7 +574,7 @@ void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 		CEventScheduleManagerIf _if (getExternalIf());
 		_if.syncGetCacheScheduleState ();
 		EN_CACHE_SCHEDULE_STATE_t _s =  *(EN_CACHE_SCHEDULE_STATE_t*)(pIf->getSrcInfo()->msg.pMsg);
-		if (_s <= EN_CACHE_SCHEDULE_STATE__BUSY) {
+		if (_s != EN_CACHE_SCHEDULE_STATE__READY) {
 			// readyでないので以下の処理は行いません
 			sectId = SECTID_CHECK;
 			enAct = EN_THM_ACT_CONTINUE;

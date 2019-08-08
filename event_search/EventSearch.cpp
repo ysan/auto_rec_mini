@@ -20,10 +20,14 @@ CEventSearch::CEventSearch (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventSearch::onReq_moduleDown,                  (char*)"onReq_moduleDown"};
 	mSeqs [EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH] =
 		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch"};
+	mSeqs [EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX] =
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch(ex)"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SEARCH__NUM);
 
 
 	m_event_name_keywords.clear();
+	m_extended_event_keywords.clear();
+
 }
 
 CEventSearch::~CEventSearch (void)
@@ -136,10 +140,11 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 	static std::vector<std::string>::const_iterator s_iter ;
+	static std::vector<std::string>::const_iterator s_iter_end ;
 	static CEventScheduleManagerIf::EVENT_t s_events [30];
 	static int s_events_idx = 0;
 	static int s_get_events_num = 0;
@@ -148,14 +153,37 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 	switch (sectId) {
 	case SECTID_ENTRY:
 
-		loadEventNameKeywords ();
-		dumpEventNameKeywords ();
+		// seqIdxが別々で 関数を共有する場合 EN_THM_ACT_WAITしたときに
+		// キューもそれぞれseqIdxに対応した別々になるため sectId関係なく関数に入ってきてしまうので
+		// lockで対応します
+		pIf->lock();
 
+		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH) {
+			loadEventNameKeywords ();
+			dumpEventNameKeywords ();
 
-		s_iter = m_event_name_keywords.begin();
-		if (s_iter == m_event_name_keywords.end()) {
+			s_iter = m_event_name_keywords.begin();
+			s_iter_end = m_event_name_keywords.end();
+
+		} else if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX) {
+			loadExtendedEventKeywords ();
+			dumpExtendedEventKeywords ();
+
+			s_iter = m_extended_event_keywords.begin();
+			s_iter_end = m_extended_event_keywords.end();
+
+		} else {
+			_UTL_LOG_E ("unexpected seqIdx [%d]", pIf->getSeqIdx());
 			sectId = SECTID_END;
 			enAct = EN_THM_ACT_CONTINUE;
+			break;
+		}
+
+
+		if (s_iter == s_iter_end) {
+			sectId = SECTID_END;
+			enAct = EN_THM_ACT_CONTINUE;
+			break;
 		}
 
 		sectId = SECTID_REQ_GET_EVENTS;
@@ -174,9 +202,14 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		_param.p_out_event = s_events;
 		_param.array_max_num = 30;
 
-		CEventScheduleManagerIf _if(getExternalIf());
-		_if.reqGetEvent_keyword (&_param);
-
+		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH) {
+			CEventScheduleManagerIf _if(getExternalIf());
+			_if.reqGetEvent_keyword (&_param);
+		} else {
+			// EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX
+			CEventScheduleManagerIf _if(getExternalIf());
+			_if.reqGetEvent_keyword_ex (&_param);
+		}
 
 		sectId = SECTID_WAIT_GET_EVENTS;
 		enAct = EN_THM_ACT_WAIT;
@@ -240,6 +273,7 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		++ s_events_idx;
 
 		if (s_events_idx < s_get_events_num) {
+			// getEventの残りがあるので予約を入れます
 			sectId = SECTID_REQ_ADD_RESERVE;
 			enAct = EN_THM_ACT_CONTINUE;
 
@@ -247,11 +281,13 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 			s_events_idx = 0;
 			++ s_iter;
 
-			if (s_iter == m_event_name_keywords.end()) {
+			if (s_iter == s_iter_end) {
+				// キーワドリストすべて見終わりました
 				sectId = SECTID_END;
 				enAct = EN_THM_ACT_CONTINUE;
 
 			} else {
+				// キーワドリスト残りがあります
 				sectId = SECTID_REQ_GET_EVENTS;
 				enAct = EN_THM_ACT_CONTINUE;
 			}
@@ -260,6 +296,8 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_END:
+
+		pIf->unlock();
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -293,6 +331,7 @@ void CEventSearch::onReceiveNotify (CThreadMgrIf *pIf)
 		setRequestOption (opt);
 
 		requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH);
+		requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX);
 
 		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 		setRequestOption (opt);
@@ -313,6 +352,15 @@ void CEventSearch::dumpEventNameKeywords (void) const
 	_UTL_LOG_I ("----- event name keywords -----");
 	std::vector<std::string>::const_iterator iter = m_event_name_keywords.begin();
 	for (; iter != m_event_name_keywords.end(); ++ iter) {
+		_UTL_LOG_I ("  [%s]", iter->c_str());
+	}
+}
+
+void CEventSearch::dumpExtendedEventKeywords (void) const
+{
+	_UTL_LOG_I ("----- extended event keywords -----");
+	std::vector<std::string>::const_iterator iter = m_extended_event_keywords.begin();
+	for (; iter != m_extended_event_keywords.end(); ++ iter) {
 		_UTL_LOG_I ("  [%s]", iter->c_str());
 	}
 }
@@ -351,6 +399,41 @@ void CEventSearch::loadEventNameKeywords (void)
 
 	cereal::JSONInputArchive in_archive (ss);
 	in_archive (CEREAL_NVP(m_event_name_keywords));
+
+	ifs.close();
+	ss.clear();
+}
+
+void CEventSearch::saveExtendedEventKeywords (void)
+{
+	std::stringstream ss;
+	{
+		cereal::JSONOutputArchive out_archive (ss);
+		out_archive (CEREAL_NVP(m_extended_event_keywords));
+	}
+
+	std::string *p_path = CSettings::getInstance()->getParams()->getExtendedEventKeywordsJsonPath();
+	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	ofs << ss.str();
+
+	ofs.close();
+	ss.clear();
+}
+
+void CEventSearch::loadExtendedEventKeywords (void)
+{
+	std::string *p_path = CSettings::getInstance()->getParams()->getExtendedEventKeywordsJsonPath();
+	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	if (!ifs.is_open()) {
+		_UTL_LOG_I ("extended_event_keywords.json is not found.");
+		return;
+	}
+
+	std::stringstream ss;
+	ss << ifs.rdbuf();
+
+	cereal::JSONInputArchive in_archive (ss);
+	in_archive (CEREAL_NVP(m_extended_event_keywords));
 
 	ifs.close();
 	ss.clear();

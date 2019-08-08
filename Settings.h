@@ -70,13 +70,15 @@ public:
 		std::string *getEventNameKeywordsJsonPath (void) {
 			return &m_event_name_keywords_json_path;
 		}
-
+		std::string *getExtendedEventKeywordsJsonPath (void) {
+			return &m_extended_event_keywords_json_path;
+		}
 
 
 		void dump (void) {
-			_UTL_LOG_I ("----------------");
-			_UTL_LOG_I ("--  settings  --");
-			_UTL_LOG_I ("----------------");
+			_UTL_LOG_I ("--------------------------------");
+			_UTL_LOG_I ("--          settings          --");
+			_UTL_LOG_I ("--------------------------------");
 			_UTL_LOG_I ("m_is_syslog_output:[%d]", m_is_syslog_output);
 			_UTL_LOG_I ("m_command_server_port:[%d]", m_command_server_port);
 			_UTL_LOG_I ("m_channels_json_path:[%s]", m_channels_json_path.c_str());
@@ -91,27 +93,29 @@ public:
 			_UTL_LOG_I ("m_event_schedule_cache_timeout_min:[%d]", m_event_schedule_cache_timeout_min);
 			_UTL_LOG_I ("m_event_schedule_cache_histories_json_path:[%s]", m_event_schedule_cache_histories_json_path.c_str());
 			_UTL_LOG_I ("m_event_name_keywords_json_path:[%s]", m_event_name_keywords_json_path.c_str());
-			_UTL_LOG_I ("----------------");
+			_UTL_LOG_I ("m_extended_event_keywords_json_path:[%s]", m_extended_event_keywords_json_path.c_str());
+			_UTL_LOG_I ("--------------------------------");
 		}
 
 
 		template <class T>
 		void serialize (T & archive) {
 			archive (
-				CEREAL_NVP(m_is_syslog_output),
-				CEREAL_NVP(m_command_server_port),
-				CEREAL_NVP(m_channels_json_path),
-				CEREAL_NVP(m_rec_reserves_json_path),
-				CEREAL_NVP(m_rec_results_json_path),
-				CEREAL_NVP(m_rec_ts_path),
-				CEREAL_NVP(m_dummy_tuner_ts_path),
-				CEREAL_NVP(m_event_schedule_cache_is_enable),
-				CEREAL_NVP(m_event_schedule_cache_start_interval_day),
-				CEREAL_NVP(m_event_schedule_cache_start_hour),
-				CEREAL_NVP(m_event_schedule_cache_start_min),
-				CEREAL_NVP(m_event_schedule_cache_timeout_min),
-				CEREAL_NVP(m_event_schedule_cache_histories_json_path),
-				CEREAL_NVP(m_event_name_keywords_json_path)
+				CEREAL_NVP(m_is_syslog_output)
+				,CEREAL_NVP(m_command_server_port)
+				,CEREAL_NVP(m_channels_json_path)
+				,CEREAL_NVP(m_rec_reserves_json_path)
+				,CEREAL_NVP(m_rec_results_json_path)
+				,CEREAL_NVP(m_rec_ts_path)
+				,CEREAL_NVP(m_dummy_tuner_ts_path)
+				,CEREAL_NVP(m_event_schedule_cache_is_enable)
+				,CEREAL_NVP(m_event_schedule_cache_start_interval_day)
+				,CEREAL_NVP(m_event_schedule_cache_start_hour)
+				,CEREAL_NVP(m_event_schedule_cache_start_min)
+				,CEREAL_NVP(m_event_schedule_cache_timeout_min)
+				,CEREAL_NVP(m_event_schedule_cache_histories_json_path)
+				,CEREAL_NVP(m_event_name_keywords_json_path)
+				,CEREAL_NVP(m_extended_event_keywords_json_path)
 
 			);
 		}
@@ -132,6 +136,7 @@ public:
 		int m_event_schedule_cache_timeout_min;
 		std::string m_event_schedule_cache_histories_json_path;
 		std::string m_event_name_keywords_json_path;
+		std::string m_extended_event_keywords_json_path;
 
 	};
 

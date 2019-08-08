@@ -1134,7 +1134,6 @@ void CEventScheduleManager::onReq_getEvent (CThreadMgrIf *pIf)
 		CEvent* p_event = const_cast <CEvent*> (p);
 		if (p_event) {
 
-			_param.p_out_event->table_id = p_event->table_id;
 			_param.p_out_event->transport_stream_id = p_event->transport_stream_id;
 			_param.p_out_event->original_network_id = p_event->original_network_id;
 			_param.p_out_event->service_id = p_event->service_id;
@@ -1187,7 +1186,6 @@ void CEventScheduleManager::onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *p
 		CEvent* p_event = const_cast <CEvent*> (p);
 		if (p_event) {
 
-			_param.p_out_event->table_id = p_event->table_id;
 			_param.p_out_event->transport_stream_id = p_event->transport_stream_id;
 			_param.p_out_event->original_network_id = p_event->original_network_id;
 			_param.p_out_event->service_id = p_event->service_id;
@@ -1944,7 +1942,6 @@ int CEventScheduleManager::getEvents (
 
 					if (s || s_ex_item_desc || s_ex_item) {
 
-						p_out_event->table_id = p_event->table_id;
 						p_out_event->transport_stream_id = p_event->transport_stream_id;
 						p_out_event->original_network_id = p_event->original_network_id;
 						p_out_event->service_id = p_event->service_id;

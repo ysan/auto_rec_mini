@@ -162,8 +162,15 @@ static void _getEvents_keywordSearch (int argc, char* argv[], CThreadMgrBase *pB
 		_UTL_LOG_I ("num of searches is [%d]", n);
 		for (int i = 0; i < n; ++ i) {
 			_UTL_LOG_I (
-				"%d: [%s - %s][%s]",
+				"%d: tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
 				i,
+				_ev[i].transport_stream_id,
+				_ev[i].original_network_id,
+				_ev[i].service_id,
+				_ev[i].event_id
+			);
+			_UTL_LOG_I (
+				"    [%s - %s][%s]",
 				_ev[i].start_time.toString(),
 				_ev[i].end_time.toString(),
 				_ev[i].p_event_name->c_str()
@@ -194,12 +201,19 @@ static void _getEvents_keywordSearch_ex (int argc, char* argv[], CThreadMgrBase 
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_SUCCESS) {
 		int n =  *(int*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
-		_UTL_LOG_I ("syncGetEvent_keyword success");
+		_UTL_LOG_I ("syncGetEvent_keyword_ex success");
 		_UTL_LOG_I ("num of searches is [%d]", n);
 		for (int i = 0; i < n; ++ i) {
 			_UTL_LOG_I (
-				"%d: [%s - %s][%s]",
+				"%d: tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
 				i,
+				_ev[i].transport_stream_id,
+				_ev[i].original_network_id,
+				_ev[i].service_id,
+				_ev[i].event_id
+			);
+			_UTL_LOG_I (
+				"    [%s - %s][%s]",
 				_ev[i].start_time.toString(),
 				_ev[i].end_time.toString(),
 				_ev[i].p_event_name->c_str()
@@ -207,7 +221,7 @@ static void _getEvents_keywordSearch_ex (int argc, char* argv[], CThreadMgrBase 
 		}
 
 	} else {
-		_UTL_LOG_I ("syncGetEvent_keyword error");
+		_UTL_LOG_I ("syncGetEvent_keyword_ex error");
 	}
 }
 
@@ -232,7 +246,7 @@ static void _dump_histories (int argc, char* argv[], CThreadMgrBase *pBase)
 ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	{
 		"cs",
-		"cache schedule --current services--",
+		"cache schedule --current service--",
 		_cacheSchedule_currentService,
 		NULL,
 	},
@@ -261,8 +275,8 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 		NULL,
 	},
 	{
-		"grepex",
-		"grep events --search event name and extended event by keyword-- (usage: grepex {keyword})",
+		"grepx",
+		"grep events --search event name and extended event by keyword-- (usage: grepx {keyword})",
 		_getEvents_keywordSearch_ex,
 		NULL,
 	},

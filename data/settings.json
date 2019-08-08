@@ -19,6 +19,8 @@
         "m_event_schedule_cache_timeout_min": 5,
         "m_event_schedule_cache_histories_json_path": "./data/event_schedule_cache_histories.json",
 
-        "m_event_name_keywords_json_path": "./data/event_name_keywords.json"
+        "m_event_name_keywords_json_path": "./data/event_name_keywords.json",
+        "m_extended_event_keywords_json_path": "./data/extended_event_keywords.json"
+
     }
 }
