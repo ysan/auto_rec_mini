@@ -1092,6 +1092,11 @@ void CPsisiManager::onReq_dumpTables (CThreadMgrIf *pIf)
 		break;
 
 	case EN_PSISI_TYPE__PMT:
+		for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
+			if (m_tmpProgramMaps[i].is_used) {
+				m_tmpProgramMaps[i].m_parser.dumpTables();
+			}
+		}
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_PF:
@@ -1663,6 +1668,7 @@ bool CPsisiManager::cacheEventPfInfos (
 
 	std::vector<CEventInformationTable::CTable*>::const_iterator iter = mEIT_H_ref.mpTables->begin();
 	for (; iter != mEIT_H_ref.mpTables->end(); ++ iter) {
+		// p/fでそれぞれ別のテーブル
 
 		CEventInformationTable::CTable *pTable = *iter;
 
@@ -1690,7 +1696,6 @@ bool CPsisiManager::cacheEventPfInfos (
 		std::vector<CEventInformationTable::CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
 		for (; iter_event != pTable->events.end(); ++ iter_event) {
 			// p/fのテーブルにつき eventは一つだと思われる...  いちおうforでまわしておく
-			// p/fでそれぞれ別のテーブル
 
 			if (iter_event->event_id == 0) {
 				// event情報が付いてない
@@ -2054,6 +2059,54 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 			);
 		}
 
+
+		if (r == EN_CHECK_SECTION__COMPLETED) {
+			// 新しいPATが取れたら PMT parserを準備します
+
+			CProgramAssociationTable::CReference pat_tables = mPAT.reference();
+
+			// PATは一つしかないことを期待しています..が念の為最新(最後尾)のものを参照します
+			std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = pat_tables.mpTables->end();
+			CProgramAssociationTable::CTable* latest = *(-- iter);
+
+			// 一度クリアします
+			for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
+				if (m_tmpProgramMaps[i].is_used) {
+					m_tmpProgramMaps[i].clear();
+				}
+			}
+
+			std::vector<CProgramAssociationTable::CTable::CProgram>::const_iterator iter_prog = latest->programs.begin();
+			for (; iter_prog != latest->programs.end(); ++ iter_prog) {
+				if (iter_prog->program_number == 0) {
+					continue;
+				}
+
+				bool is_existed = false;
+				for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
+					if (m_tmpProgramMaps[i].is_used && (m_tmpProgramMaps[i].pid == iter_prog->program_map_PID)) {
+						is_existed = true;
+						break;
+					}
+				}
+				if (!is_existed) {
+					int i = 0;
+					for (i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
+						if (!m_tmpProgramMaps[i].is_used) {
+							m_tmpProgramMaps[i].pid = iter_prog->program_map_PID;
+							m_tmpProgramMaps[i].is_used = true;
+							break;
+						}
+					}
+					if (i == TMP_PROGRAM_MAPS_MAX) {
+						_UTL_LOG_W ("m_tmpProgramMaps is full.");
+						break;
+					}
+				}
+			}
+		}
+
+
 		break;
 
 	case PID_EIT_H:
@@ -2123,8 +2176,20 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		r = mBIT.checkSection (p_ts_header, p_payload, payload_size);
 		break;
 
+	default:
+		// parse PMT
+		CTmpProgramMap *p_tmp = m_tmpProgramMaps ;
+		for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
+			if (!p_tmp->is_used) {
+				continue;
+			}
+			if (p_ts_header->pid == p_tmp->pid) {
+				p_tmp->m_parser.checkSection (p_ts_header, p_payload, payload_size);
+				break;
+			}
+			++ p_tmp;
+		}
 
-	default:	
 		break;
 	}
 

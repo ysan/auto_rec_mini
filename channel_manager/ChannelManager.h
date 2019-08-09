@@ -42,7 +42,7 @@ public:
 	CChannel (void) {
 		clear ();
 	}
-	~CChannel (void) {
+	virtual ~CChannel (void) {
 		clear ();
 	}
 

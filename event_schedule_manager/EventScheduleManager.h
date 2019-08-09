@@ -84,7 +84,7 @@ public:
 		this->service_id = _key.service_id;
     }
 
-	~_service_key (void) {
+	virtual ~_service_key (void) {
 		clear ();
 	}
 
@@ -182,7 +182,7 @@ public:
 			item_description.clear();
 			item.clear();
 		}
-		~CExtendedInfo (void) {
+		virtual ~CExtendedInfo (void) {
 			item_description.clear();
 			item.clear();
 		}
@@ -194,7 +194,7 @@ public:
 	public:
 		CGenre (void) {
 		}
-		~CGenre (void) {
+		virtual ~CGenre (void) {
 		}
 		uint8_t content_nibble_level_1;
 		uint8_t content_nibble_level_2;
@@ -204,7 +204,7 @@ public:
 	CEvent (void) {
 		clear ();
 	}
-	~CEvent (void) {
+	virtual ~CEvent (void) {
 		clear ();
 	}
 
@@ -362,7 +362,7 @@ public:
 			element (void) {
 				clear();
 			}
-			~element (void) {
+			virtual ~element (void) {
 				clear();
 			}
 
@@ -384,7 +384,7 @@ public:
 		CHistory (void) {
 			clear();
 		}
-		~CHistory (void) {
+		virtual ~CHistory (void) {
 			clear();
 		}
 

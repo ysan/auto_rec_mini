@@ -47,6 +47,8 @@ using namespace ThreadManager;
 #define SERVICE_INFOS_MAX			(64)
 #define EVENT_PF_INFOS_MAX			(32)
 
+#define TMP_PROGRAM_MAPS_MAX		(16)
+
 
 typedef enum {
 	EN_EVENT_PF_STATE__INIT = 0,
@@ -65,12 +67,37 @@ static const char *gpszEventPfState [EN_EVENT_PF_STATE__MAX] = {
 	"X",
 };
 
+
+class CTmpProgramMap {
+public:
+	CTmpProgramMap (void)
+		:pid (0)
+		,is_used (false)
+	{
+		clear();
+	}
+	virtual ~CTmpProgramMap (void) {
+		clear();
+	}
+
+	void clear (void) {
+		pid = 0;
+		m_parser.clear();
+		is_used = false;
+	}
+
+	uint16_t pid;
+	CProgramMapTable m_parser;
+	bool is_used;
+};
+
+
 typedef struct _program_info {
 public:
 	_program_info (void) {
 		clear ();
 	}
-	~_program_info (void) {
+	virtual ~_program_info (void) {
 		clear ();
 	}
 
@@ -110,7 +137,7 @@ public:
 	_event_pf_info (void) {
 		clear();
 	}
-	~_event_pf_info (void) {
+	virtual ~_event_pf_info (void) {
 		clear();
 	}
 
@@ -169,7 +196,7 @@ public:
 	_service_info (void) {
 		clear ();
 	}
-	~_service_info (void) {
+	virtual ~_service_info (void) {
 		clear ();
 	}
 
@@ -237,7 +264,7 @@ public:
 	_network_info (void) {
 		clear ();
 	}
-	~_network_info (void) {
+	virtual ~_network_info (void) {
 		clear ();
 	}
 
@@ -323,7 +350,7 @@ public:
 	_section_comp_flag (void) {
 		clear ();
 	}
-	~_section_comp_flag (void) {
+	virtual ~_section_comp_flag (void) {
 		clear ();
 	}
 
@@ -479,12 +506,20 @@ private:
 	bool m_isDetectedPAT;
 
 
+	//---  以下は tuner control thread(ts_parser) のcontextで動くものです ---//
 	CProgramAssociationTable mPAT;
 	CEventInformationTable mEIT_H;
 	CNetworkInformationTable mNIT;
 	CServiceDescriptionTable mSDT;
 	CRunningStatusTable mRST;
 	CBroadcasterInformationTable mBIT;
+
+	CTmpProgramMap m_tmpProgramMaps [TMP_PROGRAM_MAPS_MAX];
+
+	// for EIT schedule
+	CEventInformationTable_sched mEIT_H_sched;
+
+	//-----------------------------------------------------------------------//
 
 	CProgramAssociationTable::CReference mPAT_ref;
 	CEventInformationTable::CReference mEIT_H_ref;
@@ -504,7 +539,6 @@ private:
 
 
 	// for EIT schedule
-	CEventInformationTable_sched mEIT_H_sched;
 	bool m_isEnableEITSched;
 
 };

@@ -140,7 +140,7 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 	};
 
 	sectId = pIf->getSectId();
-	_UTL_LOG_I ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 	static std::vector<std::string>::const_iterator s_iter ;

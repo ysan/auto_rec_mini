@@ -76,7 +76,7 @@ public:
 	CRecReserve (void) {
 		clear ();
 	}
-	~CRecReserve (void) {
+	virtual ~CRecReserve (void) {
 		clear ();
 	}
 
