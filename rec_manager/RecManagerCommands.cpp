@@ -339,6 +339,95 @@ static void addReserve_event_helper (int argc, char* argv[], CThreadMgrBase *pBa
 
 static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 {
+	if (argc != 5) {
+		_UTL_LOG_E ("invalid arguments.");
+		return ;
+	}
+
+	uint16_t _tsid = 0;
+	std::regex regex_tsid ("^[0-9]+$");
+	if (!std::regex_match (argv[0], regex_tsid)) {
+		std::regex regex_tsid ("^0x([0-9]|[a-f]|[A-F])+$");
+		if (!std::regex_match (argv[0], regex_tsid)) {
+			_UTL_LOG_E ("invalid arguments. (tsid)");
+			return;
+		} else {
+			_tsid = strtol (argv[0], NULL, 16);
+		}
+	} else {
+		_tsid = atoi (argv[0]);
+	}
+
+	uint16_t _org_nid = 0;
+	std::regex regex_org_nid ("^[0-9]+$");
+	if (!std::regex_match (argv[1], regex_org_nid)) {
+		std::regex regex_org_nid ("^0x([0-9]|[a-f]|[A-F])+$");
+		if (!std::regex_match (argv[1], regex_org_nid)) {
+			_UTL_LOG_E ("invalid arguments. (org_nid)");
+			return;
+		} else {
+			_org_nid = strtol (argv[1], NULL, 16);
+		}
+	} else {
+		_org_nid = atoi (argv[1]);
+	}
+
+	uint16_t _svc_id = 0;
+	std::regex regex_svc_id("^[0-9]+$");
+	if (!std::regex_match (argv[2], regex_svc_id)) {
+		std::regex regex_svc_id ("^0x([0-9]|[a-f]|[A-F])+$");
+		if (!std::regex_match (argv[2], regex_svc_id)) {
+			_UTL_LOG_E ("invalid arguments. (svc_id)");
+			return;
+		} else {
+			_svc_id = strtol (argv[2], NULL, 16);
+		}
+	} else {
+		_svc_id = atoi (argv[2]);
+	}
+
+	uint16_t _evt_id = 0;
+	std::regex regex_evt_id("^[0-9]+$");
+	if (!std::regex_match (argv[3], regex_evt_id)) {
+		std::regex regex_evt_id ("^0x([0-9]|[a-f]|[A-F])+$");
+		if (!std::regex_match (argv[3], regex_evt_id)) {
+			_UTL_LOG_E ("invalid arguments. (evt_id)");
+			return;
+		} else {
+			_evt_id = strtol (argv[3], NULL, 16);
+		}
+	} else {
+		_evt_id = atoi (argv[3]);
+	}
+
+	std::regex regex_rep ("^[0-1]$");
+	if (!std::regex_match (argv[4], regex_rep)) {
+		_UTL_LOG_E ("invalid arguments. (consider repeatability)");
+		return;
+	}
+	bool isConsiderRepeatability = (atoi(argv[4]) == 0 ? false : true);
+
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CRecManagerIf::REMOVE_RESERVE_PARAM_t param; 
+	param.arg.key.transport_stream_id = _tsid;
+	param.arg.key.original_network_id = _org_nid;
+	param.arg.key.service_id = _svc_id;
+	param.arg.key.event_id = _evt_id;
+	param.isConsiderRepeatability = isConsiderRepeatability;
+
+	CRecManagerIf mgr(pBase->getExternalIf());
+	mgr.reqRemoveReserve (&param);
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
+static void removeReserveByIndex (int argc, char* argv[], CThreadMgrBase *pBase)
+{
 	if (argc != 2) {
 		_UTL_LOG_E ("invalid arguments.");
 		return ;
@@ -363,10 +452,12 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CRecManagerIf::REMOVE_RESERVE_PARAM_t param = {index, isConsiderRepeatability};
+	CRecManagerIf::REMOVE_RESERVE_PARAM_t param; 
+	param.arg.index = index;
+	param.isConsiderRepeatability = isConsiderRepeatability;
 
 	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqRemoveReserve (&param);
+	mgr.reqRemoveReserveByIndex (&param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -459,9 +550,16 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 	},
 	{
 		"r",
-		"remove reserve (usage: r {index} {consider repeatability} )\n\
+		"remove reserve (usage: r {tsid} {org_nid} {svcid} {evtid} {consider repeatability} )\n\
                                            - consider repeatability is 0 (false), 1 (true)",
 		removeReserve,
+		NULL,
+	},
+	{
+		"rx",
+		"remove reserve by index (usage: rx {index} {consider repeatability} )\n\
+                                           - consider repeatability is 0 (false), 1 (true)",
+		removeReserveByIndex,
 		NULL,
 	},
 	{

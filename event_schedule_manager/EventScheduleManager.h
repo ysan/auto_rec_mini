@@ -369,15 +369,28 @@ public:
 			void clear (void) {
 				key.clear();
 				item_num = 0;
+				stt = EN_STATE__INIT;
+			}
+
+			void set_state (state _s) {
+				stt = _s;
 			}
 
 			void dump (void) const {
 				key.dump();
-				_UTL_LOG_I ("  item_num=[%d]", item_num);
+				_UTL_LOG_I (
+					"  item_num=[%d] [%s]",
+					item_num,
+					stt == EN_STATE__INIT ? "INIT" :
+						stt == EN_STATE__COMPLETE ? "COMPLETE" :
+							stt == EN_STATE__TIMEOUT ? "TIMEOUT" :
+								stt == EN_STATE__ERROR ? "ERROR" : "---"
+				);
 			}
 
 			SERVICE_KEY_t key;
 			int item_num;
+			state stt;
 		};
 
 
@@ -395,15 +408,9 @@ public:
 		void clear (void) {
 			elements.clear ();
 			elements.shrink_to_fit ();
-			stt = EN_STATE__INIT;
 			start_time.clear();
 			end_time.clear();
 		}
-
-		void set_state (state _s) {
-			stt = _s;
-		}
-
 
 		void set_start (void) {
 			start_time.setCurrentTime();
@@ -419,11 +426,7 @@ public:
 				iter->dump();
 			}
 			_UTL_LOG_I (
-				"[%s] [%s - %s]",
-				stt == EN_STATE__INIT ? "INIT" :
-					stt == EN_STATE__COMPLETE ? "COMPLETE" :
-						stt == EN_STATE__TIMEOUT ? "TIMEOUT" :
-							stt == EN_STATE__ERROR ? "ERROR" : "---",
+				"[%s - %s]",
 				start_time.toString(),
 				end_time.toString()
 			);
@@ -432,7 +435,6 @@ public:
 //	private:
 	// cereal 非侵入型対応のため やむなくpublicに
 		std::vector <struct element> elements;
-		state stt;
 		CEtime start_time;
 		CEtime end_time;
 	};
@@ -450,6 +452,7 @@ public:
 	void onReq_checkLoop (CThreadMgrIf *pIf);
 	void onReq_parserNotice (CThreadMgrIf *pIf);
 	void onReq_startCacheSchedule (CThreadMgrIf *pIf);
+	void onReq_cacheSchedule (CThreadMgrIf *pIf);
 	void onReq_cacheSchedule_currentService (CThreadMgrIf *pIf);
 	void onReq_getEvent (CThreadMgrIf *pIf);
 	void onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *pIf);

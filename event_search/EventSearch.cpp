@@ -133,6 +133,8 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_REQ_GET_EVENTS,
 		SECTID_WAIT_GET_EVENTS,
+		SECTID_REQ_REMOVE_RESERVE,
+		SECTID_WAIT_REMOVE_RESERVE,
 		SECTID_REQ_ADD_RESERVE,
 		SECTID_WAIT_ADD_RESERVE,
 		SECTID_CHECK_LOOP,
@@ -153,8 +155,8 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 	switch (sectId) {
 	case SECTID_ENTRY:
 
-		// seqIdxが別々で 関数を共有する場合 EN_THM_ACT_WAITしたときに
-		// キューもそれぞれseqIdxに対応した別々になるため sectId関係なく関数に入ってきてしまうので
+		// seqIdxが別々で 関数を共有する場合 キューもそれぞれseqIdxに対応した別々になるため
+		// EN_THM_ACT_WAITしたときに sectId関係なく関数に入ってきてしまうので
 		// lockで対応します
 		pIf->lock();
 
@@ -227,7 +229,7 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 					s_get_events_num = 30;
 				}
 
-				sectId = SECTID_REQ_ADD_RESERVE;
+				sectId = SECTID_REQ_REMOVE_RESERVE;
 				enAct = EN_THM_ACT_CONTINUE;
 
 			} else {
@@ -241,6 +243,32 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 
+		break;
+
+	case SECTID_REQ_REMOVE_RESERVE: {
+		// （既に入っていれば）一度予約消してから入れ直します
+
+		CRecManagerIf::REMOVE_RESERVE_PARAM_t _param;
+		_param.arg.key.transport_stream_id = s_events [s_events_idx].transport_stream_id;
+		_param.arg.key.original_network_id = s_events [s_events_idx].original_network_id;
+		_param.arg.key.service_id = s_events [s_events_idx].service_id;
+		_param.arg.key.event_id = s_events [s_events_idx].event_id;
+		_param.isConsiderRepeatability = false;
+
+		CRecManagerIf _if(getExternalIf());
+		_if.reqRemoveReserve (&_param);
+
+		sectId = SECTID_WAIT_REMOVE_RESERVE;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_REMOVE_RESERVE:
+//TODO 暫定 結果見ない
+
+		sectId = SECTID_REQ_ADD_RESERVE;
+		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
 	case SECTID_REQ_ADD_RESERVE: {
@@ -274,7 +302,7 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 
 		if (s_events_idx < s_get_events_num) {
 			// getEventの残りがあるので予約を入れます
-			sectId = SECTID_REQ_ADD_RESERVE;
+			sectId = SECTID_REQ_REMOVE_RESERVE;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {

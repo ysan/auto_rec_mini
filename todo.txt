@@ -1,3 +1,4 @@
+pmtの処理
 event chenge notify
   cacheEventPfInfos -> checkEventPfInfosで印付け -> followsが空だったら follow eventをcopy
   followsをloopcheck -> start_timeで notify -> follows clear
@@ -7,8 +8,13 @@ adaptation_fieldの処理
 psisi structs のclear関数 必要かどうか
 requestOptionで重複キューチェック
 commoand_serverのログ出力
-rec中にPAT途絶したら再選局したい retryx3
 rec reserveにnetwork_nameいれるか
 EPG json
 EPG 履歴
-psisi mgrの m_tunerIsTunedはpsisi stateと同等
+psisi mgrの m_tunerIsTunedはpsisi stateと同等になった  m_tunerIsTunedの名前変えた方がいい
+選局失敗したらリトライする ラップ選局ほしい at channel mgr
+   -> rec中にPAT途絶したら再選局したい retryx3
+psisi mgrで ＮＨＫ総合１・東京のEIT p/f のpがcacheできてない問題
+get_ts_name  get_service_name等がほしいかも
+   -> rec reserveにservice_name をいれたい
+channel scanで放送休止中のchannelがあると失敗する問題

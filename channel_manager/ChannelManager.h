@@ -82,6 +82,14 @@ public:
 	struct service {
 		uint16_t service_id;
 		uint8_t service_type;
+		std::string service_name;
+
+		void clear (void) {
+			service_id = 0;
+			service_type = 0;
+			service_name.clear();
+			service_name.shrink_to_fit();
+		}
 	};
 	std::vector <service> services;
 
@@ -95,8 +103,7 @@ public:
 		const char *psz_ts_name,
 		struct service _services[],
 		int _services_num
-	)
-	{
+	) {
 		this->pysical_channel = _pysical_channel;
 		this->transport_stream_id = _transport_stream_id;
 		this->original_network_id = _original_network_id;
@@ -120,10 +127,18 @@ public:
 		transport_stream_id = 0;
 		original_network_id = 0;
 		network_name.clear();
+		network_name.shrink_to_fit();
 		area_code = 0;
 		remote_control_key_id = 0;
 		ts_name.clear();
+		ts_name.shrink_to_fit();
+
+		std::vector<service>::iterator iter = services.begin();
+		for (; iter != services.end(); ++ iter) {
+			iter->clear();
+		}
 		services.clear();
+		services.shrink_to_fit();
 	}
 
 	void dump (void) const {
@@ -146,9 +161,10 @@ public:
 		std::vector<service>::const_iterator iter = services.begin();
 		for (; iter != services.end(); ++ iter) {
 			_UTL_LOG_I (
-				"svcid:[0x%04x] svctype:[0x%02x]",
+				"svcid:[0x%04x] svctype:[0x%02x] [%s]",
 				iter->service_id,
-				iter->service_type
+				iter->service_type,
+				iter->service_name.c_str()
 			);
 		}
 	}
@@ -194,6 +210,7 @@ public:
 	void onReq_getPysicalChannelByServiceId (CThreadMgrIf *pIf);
 	void onReq_getPysicalChannelByRemoteControlKeyId (CThreadMgrIf *pIf);
 	void onReq_tuneByServiceId (CThreadMgrIf *pIf);
+	void onReq_tuneByServiceId_withRetry (CThreadMgrIf *pIf);
 	void onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf);
 	void onReq_getChannels (CThreadMgrIf *pIf);
 	void onReq_dumpChannels (CThreadMgrIf *pIf);

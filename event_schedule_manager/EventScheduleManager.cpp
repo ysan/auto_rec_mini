@@ -57,6 +57,8 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice,                       (char*)"onReq_parserNotice"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_startCacheSchedule,                 (char*)"onReq_startCacheSchedule"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule,                      (char*)"onReq_cacheSchedule"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_CURRENT_SERVICE] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule_currentService,       (char*)"onReq_cacheSchedule_currentService"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT] =
@@ -346,20 +348,11 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_CHECK,
 		SECTID_CHECK_WAIT,
-		SECTID_REQ_GET_CHANNELS,
-		SECTID_WAIT_GET_CHANNELS,
-		SECTID_REQ_START_CACHE_SCHEDULE,
-		SECTID_WAIT_START_CACHE_SCHEDULE,
 		SECTID_END,
 	};
 
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
-
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-	static CChannelManagerIf::CHANNEL_t s_channels[20];
-	static int s_ch_num = 0;
-	static uint32_t s_last_reqId = 0;
 
 
 	switch (sectId) {
@@ -384,7 +377,6 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		// interval_dayは最低でも１日なので
 		// 現在実行中で次の予定日時間が来てしまうことはない前提
 
-
 		int interval_day = mp_settings->getParams()->getEventScheduleCacheStartIntervalDay();
 		if (interval_day <= 1) {
 			// interval_dayは最低でも１日にします
@@ -405,14 +397,32 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			m_schedule_cache_next_day.addDay(interval_day); //　次回の予定日
 		}
 
+
+
 		// 実行時間がきたかチェックします
-		t.setCurrentTime();
-		if (t >= m_schedule_cache_current_plan) {
+		// m_schedule_cache_current_plan から3分以内をチェックします
+		CEtime t_cur;
+		t_cur.setCurrentTime();
+		CEtime t_range = m_schedule_cache_current_plan;
+		t_range.addMin(3);
+		if ((t_cur >= m_schedule_cache_current_plan) && (t_cur < t_range)) {
 			m_schedule_cache_current_plan.addDay(interval_day); // 1回だけトリガするため +interval_dayしておきます
 
 			if (mp_settings->getParams()->isEnableEventScheduleCache()) {
 				_UTL_LOG_I ("do schedule cache run now. [%s]", m_schedule_cache_current_plan.toString());
-				sectId = SECTID_REQ_GET_CHANNELS;
+
+
+				uint32_t opt = getRequestOption ();
+				opt |= REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+
+				requestAsync (EN_MODULE_EVENT_SCHEDULE_MANAGER, EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE);
+
+				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+
+
+				sectId = SECTID_CHECK;
 				enAct = EN_THM_ACT_CONTINUE;
 			} else {
 				_UTL_LOG_I ("disable schedule cache. [%s]", m_schedule_cache_current_plan.toString());
@@ -423,125 +433,6 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		} else {
 			sectId = SECTID_CHECK;
 			enAct = EN_THM_ACT_CONTINUE;
-		}
-
-		}
-		break;
-
-	case SECTID_REQ_GET_CHANNELS: {
-
-		memset (s_channels, 0x00, sizeof(s_channels));
-		s_ch_num = 0;
-
-		CChannelManagerIf::REQ_CHANNELS_PARAM_t param = {s_channels, 20};
-
-		CChannelManagerIf _if (getExternalIf());
-		_if.reqGetChannels (&param);
-
-		sectId = SECTID_WAIT_GET_CHANNELS;
-		enAct = EN_THM_ACT_WAIT;
-
-		}
-		break;
-
-	case SECTID_WAIT_GET_CHANNELS:
-
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			s_ch_num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
-			_UTL_LOG_I ("reqGetChannels s_ch_num:[%d]", s_ch_num);
-
-			sectId = SECTID_REQ_START_CACHE_SCHEDULE;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-			_UTL_LOG_E ("reqGetChannels is failure.");
-			sectId = SECTID_CHECK;
-			enAct = EN_THM_ACT_CONTINUE;
-        }
-
-		break;
-
-	case SECTID_REQ_START_CACHE_SCHEDULE: {
-
-		// update m_state
-		m_state = EN_CACHE_SCHEDULE_STATE__BUSY;
-		// fire notify
-		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
-
-
-		// history ----------------
-		m_current_history.clear();
-
-
-		// 取得したチャンネル分の START_CACHE_SCHEDULEキューを入れます
-		for (int i = 0; i < s_ch_num; ++ i) {
-			CEventScheduleManagerIf::SERVICE_KEY_t _key = {
-				s_channels[i].transport_stream_id,
-				s_channels[i].original_network_id,
-				s_channels[i].service_ids[0]	// ここは添字0 でも何でも良いです
-												// (現状ではすべてのチャンネル編成分のスケジュールを取得します)
-			};
-
-			// s_last_reqIdはforの最後のリクエストについて有効です
-			requestAsync (
-				EN_MODULE_EVENT_SCHEDULE_MANAGER,
-				EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,
-				(uint8_t*)&_key,
-				sizeof(_key),
-				&s_last_reqId
-			);
-		}
-
-		_UTL_LOG_I ("cache sched start. last reqId [%d]", s_last_reqId);
-
-		sectId = SECTID_WAIT_START_CACHE_SCHEDULE;
-		enAct = EN_THM_ACT_WAIT;
-		}
-		break;
-
-	case SECTID_WAIT_START_CACHE_SCHEDULE: {
-
-		uint32_t reqId = (uint32_t)(pIf->getSrcInfo()->nReqId);
-		if (reqId == s_last_reqId) {
-			// すべて終了した
-
-			_UTL_LOG_I ("cache sched end. reqId [%d]", reqId);
-
-
-			pushHistories (&m_current_history);
-			saveHistories ();
-
-
-			//-----------------------------//
-			{
-				uint32_t opt = getRequestOption ();
-				opt |= REQUEST_OPTION__WITHOUT_REPLY;
-				setRequestOption (opt);
-
-				// 選局を停止しときます tune stop
-				// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-				CTunerControlIf _if (getExternalIf());
-				_if.reqTuneStop ();
-
-				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-				setRequestOption (opt);
-			}
-			//-----------------------------//
-
-
-			// update m_state
-			m_state = EN_CACHE_SCHEDULE_STATE__READY;
-			// fire notify
-			pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
-
-
-			sectId = SECTID_CHECK;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-			sectId = SECTID_WAIT_START_CACHE_SCHEDULE;
-			enAct = EN_THM_ACT_WAIT;
 		}
 
 		}
@@ -629,10 +520,6 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		s_service_key = *(CEventScheduleManagerIf::SERVICE_KEY_t*)(pIf->getSrcInfo()->msg.pMsg);
 
 
-		// history ----------------
-		m_current_history.set_start();
-
-
 		sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
@@ -646,7 +533,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		};
 
 		CChannelManagerIf _if (getExternalIf());
-		_if.reqTuneByServiceId (&param);
+		_if.reqTuneByServiceId_withRetry (&param);
 
 		sectId = SECTID_WAIT_TUNE_BY_SERVICE_ID;
 		enAct = EN_THM_ACT_WAIT;
@@ -757,11 +644,6 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 			sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 			enAct = EN_THM_ACT_CONTINUE;
 
-
-			// history ----------------
-			m_current_history.set_state (CHistory::EN_STATE__COMPLETE);
-
-
 		} else {
 			ttmp = m_startTime_EITSched;
 			ttmp.addMin (mp_settings->getParams()->getEventScheduleCacheTimeoutMin());
@@ -770,11 +652,6 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 				_UTL_LOG_E ("parser EIT schedule : timeout");
 				sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 				enAct = EN_THM_ACT_CONTINUE;
-
-
-				// history ----------------
-				m_current_history.set_state (CHistory::EN_STATE__TIMEOUT);
-
 
 			} else {
 				_UTL_LOG_I ("parse EIT schedule : m_lastUpdate_EITSched %s", m_lastUpdate_EITSched.toString());
@@ -848,6 +725,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 				CHistory::element elem;
 				elem.key = key;
 				elem.item_num = p_sched->size();
+				elem.stt = CHistory::state::EN_STATE__COMPLETE;
 				m_current_history.add (elem);
 
 
@@ -864,10 +742,6 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_END_SUCCESS:
 
-		// history ----------------
-		m_current_history.set_end();
-
-
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
 		memset (&s_service_key, 0x00, sizeof(s_service_key));
@@ -881,17 +755,204 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_END_ERROR:
 
-		// history ----------------
-		m_current_history.set_state (CHistory::EN_STATE__ERROR);
-		m_current_history.set_end();
-
-
 		pIf->reply (EN_THM_RSLT_ERROR);
 
 		memset (&s_service_key, 0x00, sizeof(s_service_key));
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
 		mp_EIT_H_sched = NULL;
+
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+	pIf->setSectId (sectId, enAct);
+}
+
+void CEventScheduleManager::onReq_cacheSchedule (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_GET_CHANNELS,
+		SECTID_WAIT_GET_CHANNELS,
+		SECTID_REQ_START_CACHE_SCHEDULE,
+		SECTID_WAIT_START_CACHE_SCHEDULE,
+		SECTID_END_SUCCESS,
+		SECTID_END_ERROR,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	static CChannelManagerIf::CHANNEL_t s_channels[20];
+	static int s_ch_num = 0;
+	static uint32_t s_last_reqId = 0;
+
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+		// 先にreplyしておく
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		sectId = SECTID_REQ_GET_CHANNELS;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_GET_CHANNELS: {
+
+		memset (s_channels, 0x00, sizeof(s_channels));
+		s_ch_num = 0;
+
+		CChannelManagerIf::REQ_CHANNELS_PARAM_t param = {s_channels, 20};
+
+		CChannelManagerIf _if (getExternalIf());
+		_if.reqGetChannels (&param);
+
+		sectId = SECTID_WAIT_GET_CHANNELS;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_GET_CHANNELS:
+
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			s_ch_num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+			_UTL_LOG_I ("reqGetChannels s_ch_num:[%d]", s_ch_num);
+
+			if (s_ch_num > 0) {
+				sectId = SECTID_REQ_START_CACHE_SCHEDULE;
+				enAct = EN_THM_ACT_CONTINUE;
+			} else {
+				_UTL_LOG_E ("reqGetChannels is 0");
+				sectId = SECTID_END_ERROR;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
+
+		} else {
+			_UTL_LOG_E ("reqGetChannels is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+        }
+
+		break;
+
+	case SECTID_REQ_START_CACHE_SCHEDULE: {
+
+		// update m_state
+		m_state = EN_CACHE_SCHEDULE_STATE__BUSY;
+		// fire notify
+		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
+
+
+		// history ----------------
+		m_current_history.clear();
+		m_current_history.set_start();
+
+
+		// 取得したチャンネル分の START_CACHE_SCHEDULEキューを入れます
+		for (int i = 0; i < s_ch_num; ++ i) {
+			CEventScheduleManagerIf::SERVICE_KEY_t _key = {
+				s_channels[i].transport_stream_id,
+				s_channels[i].original_network_id,
+				s_channels[i].service_ids[0]	// ここは添字0 でも何でも良いです
+												// (現状ではすべてのチャンネル編成分のスケジュールを取得します)
+			};
+
+			// s_last_reqIdはforの最後のリクエストについて有効です
+			requestAsync (
+				EN_MODULE_EVENT_SCHEDULE_MANAGER,
+				EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,
+				(uint8_t*)&_key,
+				sizeof(_key),
+				&s_last_reqId
+			);
+		}
+
+		_UTL_LOG_I ("cache sched start. last reqId [%d]", s_last_reqId);
+
+		sectId = SECTID_WAIT_START_CACHE_SCHEDULE;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_START_CACHE_SCHEDULE: {
+
+		uint32_t reqId = (uint32_t)(pIf->getSrcInfo()->nReqId);
+		if (reqId == s_last_reqId) {
+			// すべて終了した
+
+			_UTL_LOG_I ("cache sched end. reqId [%d]", reqId);
+
+
+			// history ----------------
+			m_current_history.set_end();
+
+			pushHistories (&m_current_history);
+			saveHistories ();
+
+
+			//-----------------------------//
+			{
+				uint32_t opt = getRequestOption ();
+				opt |= REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+
+				// 選局を停止しときます tune stop
+				// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
+				CTunerControlIf _if (getExternalIf());
+				_if.reqTuneStop ();
+
+				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+			}
+			//-----------------------------//
+
+
+			// update m_state
+			m_state = EN_CACHE_SCHEDULE_STATE__READY;
+			// fire notify
+			pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
+
+
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			sectId = SECTID_WAIT_START_CACHE_SCHEDULE;
+			enAct = EN_THM_ACT_WAIT;
+		}
+
+		}
+		break;
+
+	case SECTID_END_SUCCESS:
+
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		memset (s_channels, 0x00, sizeof(s_channels));
+		s_ch_num = 0;
+		s_last_reqId = 0;
+
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	case SECTID_END_ERROR:
+
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+		memset (s_channels, 0x00, sizeof(s_channels));
+		s_ch_num = 0;
+		s_last_reqId = 0;
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -1006,8 +1067,8 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 	case SECTID_REQ_START_CACHE_SCHEDULE: {
 
 		// fire notify
-		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__BUSY;
-		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
+//		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__BUSY;
+//		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
 
 
 		// ここは添字0 でも何でも良いです
@@ -1021,6 +1082,7 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 
 		// history ----------------
 		m_current_history.clear();
+		m_current_history.set_start();
 
 
 		requestAsync (
@@ -1046,6 +1108,9 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 //		}
 // 結果みない
 
+		// history ----------------
+		m_current_history.set_end();
+
 		pushHistories (&m_current_history);
 		saveHistories ();
 
@@ -1068,8 +1133,8 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 
 
 		// fire notify
-		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__READY;
-		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
+//		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__READY;
+//		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
 
 		sectId = SECTID_END_SUCCESS;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -1083,7 +1148,6 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
-		mp_EIT_H_sched = NULL;
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -1095,7 +1159,6 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
-		mp_EIT_H_sched = NULL;
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -1928,7 +1991,8 @@ int CEventScheduleManager::getEvents (
 							s_ex_item_desc = strstr ((char*)iter_ex->item_description.c_str(), p_keyword);
 							s_ex_item = strstr ((char*)iter_ex->item.c_str(), p_keyword);
 							if (s_ex_item_desc || s_ex_item) {
-								_UTL_LOG_I ("====");
+								_UTL_LOG_I ("====================================");
+								_UTL_LOG_I ("####  keyword:[%s]  ####", p_keyword);
 								p_event->dump();
 								p_event->dump_detail();
 								break;
@@ -1967,9 +2031,13 @@ int CEventScheduleManager::getEvents (
 
 void CEventScheduleManager::pushHistories (const CHistory *p_history)
 {
+	if (!p_history) {
+		return;
+	}
+
 	// fifo 10
 	// pop -> delete
-	if (m_histories.size() > 10) {
+	while (m_histories.size() >= 10) {
 		m_histories.erase (m_histories.begin());
 	}
 
@@ -1985,9 +2053,8 @@ void CEventScheduleManager::dumpHistories (void) const
 
 	std::vector<CHistory>::const_iterator iter = m_histories.begin();
 	for (; iter != m_histories.end(); ++ iter) {
-
+		_UTL_LOG_I ("---------------------------------------");
 		iter->dump();
-
 	}
 }
 
@@ -2027,7 +2094,8 @@ void serialize (Archive &archive, CEventScheduleManager::CHistory::element &e)
 {
 	archive (
 		cereal::make_nvp("key", e.key),
-		cereal::make_nvp("item_num", e.item_num)
+		cereal::make_nvp("item_num", e.item_num),
+		cereal::make_nvp("stt", e.stt)
 	);
 }
 
@@ -2036,7 +2104,6 @@ void serialize (Archive &archive, CEventScheduleManager::CHistory &h)
 {
 	archive (
 		cereal::make_nvp("elements", h.elements),
-		cereal::make_nvp("stt", h.stt),
 		cereal::make_nvp("start_time", h.start_time),
 		cereal::make_nvp("end_time", h.end_time)
 	);

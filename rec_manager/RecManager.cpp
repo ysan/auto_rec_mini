@@ -116,6 +116,8 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_manual,       (char*)"onReq_addReserve_manual"};
 	mSeqs [EN_SEQ_REC_MANAGER__REMOVE_RESERVE] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve,           (char*)"onReq_removeReserve"};
+	mSeqs [EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserveByIndex,    (char*)"onReq_removeReserveByIndex"};
 	mSeqs [EN_SEQ_REC_MANAGER__STOP_RECORDING] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_stopRecording,           (char*)"onReq_stopRecording"};
 	mSeqs [EN_SEQ_REC_MANAGER__DUMP_RESERVES] =
@@ -774,10 +776,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
-		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
-		SECTID_REQ_TUNE,
-		SECTID_WAIT_TUNE,
+		SECTID_REQ_TUNE_BY_SERVICE_ID,
+		SECTID_WAIT_TUNE_BY_SERVICE_ID,
 		SECTID_START_RECORDING,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
@@ -786,17 +786,16 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-	static uint16_t s_ch = 0;
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
 
 	switch (sectId) {
 	case SECTID_ENTRY:
-		sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+		sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
+	case SECTID_REQ_TUNE_BY_SERVICE_ID: {
 
 		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
 			m_recording.transport_stream_id,
@@ -805,47 +804,22 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		};
 
 		CChannelManagerIf _if (getExternalIf());
-		_if.reqGetPysicalChannelByServiceId (&param);
+		_if.reqTuneByServiceId_withRetry (&param);
 
-		sectId = SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID;
+		sectId = SECTID_WAIT_TUNE_BY_SERVICE_ID;
 		enAct = EN_THM_ACT_WAIT;
 		}
 		break;
 
-	case SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			s_ch = *(uint16_t*)(pIf->getSrcInfo()->msg.pMsg);
-			sectId = SECTID_REQ_TUNE;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-			_UTL_LOG_E ("reqGetPysicalChannelByServiceId is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-		}
-		break;
-
-	case SECTID_REQ_TUNE: {
-		uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (s_ch);
-		_UTL_LOG_I ("freq=[%d]kHz\n", freq);
-
-		CTunerControlIf _if (getExternalIf());
-		_if.reqTune (freq);
-
-		sectId = SECTID_WAIT_TUNE;
-		enAct = EN_THM_ACT_WAIT;
-		}
-		break;
-
-	case SECTID_WAIT_TUNE:
+	case SECTID_WAIT_TUNE_BY_SERVICE_ID:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 			sectId = SECTID_START_RECORDING;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			_UTL_LOG_W ("tune is failure  -> not start recording");
+			_UTL_LOG_E ("reqTuneByServiceId is failure.");
+			_UTL_LOG_E ("tune is failure  -> not start recording");
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -890,16 +864,12 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	case SECTID_END_SUCCESS:
 
-		s_ch = 0;
-
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		break;
 
 	case SECTID_END_ERROR:
-
-		s_ch = 0;
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
@@ -1495,7 +1465,46 @@ void CRecManager::onReq_removeReserve (CThreadMgrIf *pIf)
 	CRecManagerIf::REMOVE_RESERVE_PARAM_t param =
 			*(CRecManagerIf::REMOVE_RESERVE_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
-	if (removeReserve (param.index, param.isConsiderRepeatability)) {
+	int idx = getReserveIndex (
+					param.arg.key.transport_stream_id,
+					param.arg.key.original_network_id,
+					param.arg.key.service_id,
+					param.arg.key.event_id
+				);
+
+	if (idx < 0) {
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else {
+		if (removeReserve (idx, param.isConsiderRepeatability)) {
+			pIf->reply (EN_THM_RSLT_SUCCESS);
+		} else {
+			pIf->reply (EN_THM_RSLT_ERROR);
+		}
+	}
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CRecManager::onReq_removeReserveByIndex (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	CRecManagerIf::REMOVE_RESERVE_PARAM_t param =
+			*(CRecManagerIf::REMOVE_RESERVE_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+	if (removeReserve (param.arg.index, param.isConsiderRepeatability)) {
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 	} else {
 		pIf->reply (EN_THM_RSLT_ERROR);
@@ -1755,6 +1764,43 @@ bool CRecManager::addReserve (
 }
 
 /**
+ * 引数をキーと同一予約のindexを返します
+ * 見つからない場合は -1 で返します
+ */
+int CRecManager::getReserveIndex (
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id,
+	uint16_t _service_id,
+	uint16_t _event_id
+)
+{
+	CRecReserve tmp;
+	tmp.set (
+		_transport_stream_id,
+		_original_network_id,
+		_service_id,
+		_event_id,
+		NULL,
+		NULL,
+		NULL,
+		false,
+		EN_RESERVE_REPEATABILITY__NONE
+	);
+
+	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
+		if (!m_reserves [i].is_used) {
+			continue;
+		}
+
+		if (m_reserves [i] == tmp) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+/**
  * indexで指定した予約を削除します
  * 0始まり
  * isConsiderRepeatability == false で Repeatability関係なく削除します
@@ -1767,6 +1813,10 @@ bool CRecManager::removeReserve (int index, bool isConsiderRepeatability)
 
 	m_reserves [index].state |= RESERVE_STATE__REMOVE_RESERVE;
 	setResult (&m_reserves[index]);
+
+	_UTL_LOG_I ("####    remove reserve    ####");
+	m_reserves [index].dump();
+	_UTL_LOG_I ("##############################");
 
 	if (isConsiderRepeatability) {
 		checkRepeatability (&m_reserves[index]);

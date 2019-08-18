@@ -143,8 +143,12 @@ public:
 		this->original_network_id = _original_network_id;
 		this->service_id = _service_id;
 		this->event_id = _event_id;
-		this->start_time = *p_start_time;
-		this->end_time = *p_end_time;
+		if (p_start_time) {
+			this->start_time = *p_start_time;
+		}
+		if (p_end_time) {
+			this->end_time = *p_end_time;
+		}
 		if (psz_title_name) {
 			this->title_name = psz_title_name ;
 		}
@@ -162,6 +166,7 @@ public:
 		start_time.clear();
 		end_time.clear();	
 		title_name.clear();
+		title_name.shrink_to_fit();
 		is_event_type = false;
 		repeatability = EN_RESERVE_REPEATABILITY__NONE;
 		state = RESERVE_STATE__INIT;
@@ -212,6 +217,7 @@ public:
 	void onReq_addReserve_event_helper (CThreadMgrIf *pIf);
 	void onReq_addReserve_manual (CThreadMgrIf *pIf);
 	void onReq_removeReserve (CThreadMgrIf *pIf);
+	void onReq_removeReserveByIndex (CThreadMgrIf *pIf);
 	void onReq_stopRecording (CThreadMgrIf *pIf);
 	void onReq_dumpReserves (CThreadMgrIf *pIf);
 
@@ -230,6 +236,12 @@ private:
 		const char *psz_title_name,
 		bool _is_event_type,
 		EN_RESERVE_REPEATABILITY repeatability=EN_RESERVE_REPEATABILITY__NONE
+	);
+	int getReserveIndex (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id,
+		uint16_t _event_id
 	);
 	bool removeReserve (int index, bool isConsiderRepeatability);
 	CRecReserve* searchAscendingOrderReserve (CEtime *p_start_time_rf);
@@ -258,6 +270,7 @@ private:
 
 	void saveReserves (void);
 	void loadReserves (void);
+
 	void saveResults (void);
 	void loadResults (void);
 

@@ -26,6 +26,7 @@ enum {
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER,
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL,
 	EN_SEQ_REC_MANAGER__REMOVE_RESERVE,
+	EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX,
 	EN_SEQ_REC_MANAGER__STOP_RECORDING,
 	EN_SEQ_REC_MANAGER__DUMP_RESERVES,
 
@@ -75,8 +76,19 @@ public:
 	} ADD_RESERVE_HELPER_PARAM_t;
 
 	typedef struct {
-		int index;
+		union _arg {
+			// key指定 or index指定
+			struct _key {
+				uint16_t transport_stream_id;
+				uint16_t original_network_id;
+				uint16_t service_id;
+				uint16_t event_id;
+			} key;
+			int index;
+		} arg;
+
 		bool isConsiderRepeatability;
+
 	} REMOVE_RESERVE_PARAM_t;
 
 public:
@@ -149,6 +161,19 @@ public:
 		return requestAsync (
 					EN_MODULE_REC_MANAGER,
 					EN_SEQ_REC_MANAGER__REMOVE_RESERVE,
+					(uint8_t*)p_param,
+					sizeof (REMOVE_RESERVE_PARAM_t)
+				);
+	};
+
+	bool reqRemoveReserveByIndex (REMOVE_RESERVE_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_REC_MANAGER,
+					EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX,
 					(uint8_t*)p_param,
 					sizeof (REMOVE_RESERVE_PARAM_t)
 				);

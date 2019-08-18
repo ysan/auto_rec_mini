@@ -49,8 +49,6 @@ public:
 		return requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX);
 	};
 
-
-
 };
 
 #endif

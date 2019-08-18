@@ -13,27 +13,33 @@
                 "services": [
                     {
                         "service_id": 23608,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ＴＯＫＹＯ　ＭＸ１"
                     },
                     {
                         "service_id": 23609,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ＴＯＫＹＯ　ＭＸ１"
                     },
                     {
                         "service_id": 23610,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ＴＯＫＹＯ　ＭＸ２"
                     },
                     {
                         "service_id": 23615,
-                        "service_type": 161
+                        "service_type": 161,
+                        "service_name": "ＴＯＫＹＯ　ＭＸ臨時"
                     },
                     {
                         "service_id": 23992,
-                        "service_type": 192
+                        "service_type": 192,
+                        "service_name": "ＭＸワンセグ１"
                     },
                     {
                         "service_id": 23993,
-                        "service_type": 192
+                        "service_type": 192,
+                        "service_name": "ＭＸワンセグ２"
                     }
                 ]
             }
@@ -51,23 +57,28 @@
                 "services": [
                     {
                         "service_id": 24632,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ｔｖｋ１"
                     },
                     {
                         "service_id": 24633,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ｔｖｋ２"
                     },
                     {
                         "service_id": 24634,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ｔｖｋ３"
                     },
                     {
                         "service_id": 25016,
-                        "service_type": 192
+                        "service_type": 192,
+                        "service_name": "ｔｖｋワンセグ１"
                     },
                     {
                         "service_id": 25017,
-                        "service_type": 192
+                        "service_type": 192,
+                        "service_name": "ｔｖｋワンセグ２"
                     }
                 ]
             }
@@ -85,23 +96,28 @@
                 "services": [
                     {
                         "service_id": 1056,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "フジテレビ"
                     },
                     {
                         "service_id": 1057,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "フジテレビ"
                     },
                     {
                         "service_id": 1058,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "フジテレビ"
                     },
                     {
                         "service_id": 1060,
-                        "service_type": 161
+                        "service_type": 161,
+                        "service_name": "フジテレビ臨時"
                     },
                     {
                         "service_id": 1440,
-                        "service_type": 192
+                        "service_type": 192,
+                        "service_name": "フジテレビ"
                     }
                 ]
             }
@@ -119,19 +135,23 @@
                 "services": [
                     {
                         "service_id": 1048,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ＴＢＳ１"
                     },
                     {
                         "service_id": 1049,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ＴＢＳ２"
                     },
                     {
                         "service_id": 1432,
-                        "service_type": 192
+                        "service_type": 192,
+                        "service_name": "ＴＢＳ"
                     },
                     {
                         "service_id": 1183,
-                        "service_type": 192
+                        "service_type": 192,
+                        "service_name": "Ｇガイド"
                     }
                 ]
             }
@@ -149,23 +169,28 @@
                 "services": [
                     {
                         "service_id": 1072,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "テレビ東京１"
                     },
                     {
                         "service_id": 1073,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "テレビ東京２"
                     },
                     {
                         "service_id": 1074,
-                        "service_type": 1
-                    },
-                    {
-                        "service_id": 1456,
-                        "service_type": 192
+                        "service_type": 1,
+                        "service_name": "テレビ東京３"
                     },
                     {
                         "service_id": 1078,
-                        "service_type": 161
+                        "service_type": 161,
+                        "service_name": "臨時サービス"
+                    },
+                    {
+                        "service_id": 1456,
+                        "service_type": 192,
+                        "service_name": "テレビ東京携帯"
                     }
                 ]
             }
@@ -183,19 +208,23 @@
                 "services": [
                     {
                         "service_id": 1064,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "テレビ朝日"
                     },
                     {
                         "service_id": 1065,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "テレビ朝日"
                     },
                     {
                         "service_id": 1066,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "テレビ朝日"
                     },
                     {
                         "service_id": 1448,
-                        "service_type": 192
+                        "service_type": 192,
+                        "service_name": "テレビ朝日"
                     }
                 ]
             }
@@ -213,19 +242,23 @@
                 "services": [
                     {
                         "service_id": 1040,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "日テレ１"
                     },
                     {
                         "service_id": 1041,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "日テレ２"
                     },
                     {
                         "service_id": 1424,
-                        "service_type": 192
+                        "service_type": 192,
+                        "service_name": "日本テレビ"
                     },
                     {
                         "service_id": 1044,
-                        "service_type": 161
+                        "service_type": 161,
+                        "service_name": "日テレ臨時"
                     }
                 ]
             }
@@ -243,19 +276,23 @@
                 "services": [
                     {
                         "service_id": 1032,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ＮＨＫＥテレ１東京"
                     },
                     {
                         "service_id": 1033,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ＮＨＫＥテレ２東京"
                     },
                     {
                         "service_id": 1034,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ＮＨＫＥテレ３東京"
                     },
                     {
                         "service_id": 1416,
-                        "service_type": 192
+                        "service_type": 192,
+                        "service_name": "ＮＨＫ携帯２"
                     }
                 ]
             }
@@ -273,19 +310,18 @@
                 "services": [
                     {
                         "service_id": 1024,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ＮＨＫ総合１・東京"
                     },
                     {
                         "service_id": 1025,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "ＮＨＫ総合２・東京"
                     },
                     {
                         "service_id": 1408,
-                        "service_type": 192
-                    },
-                    {
-                        "service_id": 65520,
-                        "service_type": 164
+                        "service_type": 192,
+                        "service_name": "ＮＨＫ携帯Ｇ・東京"
                     }
                 ]
             }
@@ -303,19 +339,23 @@
                 "services": [
                     {
                         "service_id": 29752,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "テレ玉１"
                     },
                     {
                         "service_id": 29753,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "テレ玉２"
                     },
                     {
                         "service_id": 29754,
-                        "service_type": 1
+                        "service_type": 1,
+                        "service_name": "テレ玉３"
                     },
                     {
                         "service_id": 30136,
-                        "service_type": 192
+                        "service_type": 192,
+                        "service_name": "テレ玉携帯"
                     }
                 ]
             }
