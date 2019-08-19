@@ -103,6 +103,7 @@ bool it9175_open (void)
 		return false;
 	}
 
+	msg ("g_en_state = EN_IT9175_STATE__OPENED\n");
 	g_en_state = EN_IT9175_STATE__OPENED;
 
 	u_gettime(&time_begin);
@@ -147,6 +148,7 @@ void it9175_close (void)
 	memset (&g_usbep, 0x00, sizeof(g_usbep));
 	g_devst = NULL;
 
+	msg ("g_en_state = EN_IT9175_STATE__CLOSED\n");
 	g_en_state = EN_IT9175_STATE__CLOSED;
 }
 
@@ -180,6 +182,7 @@ int it9175_tune (unsigned int freqKHz)
 
 	warn_info (0,"freq=%u kHz tuning...", freqKHz);
 
+	msg ("g_en_state = EN_IT9175_STATE__TUNE_BEGINED\n");
 	g_en_state = EN_IT9175_STATE__TUNE_BEGINED;
 
 	for(i = 3; i > 0; i--) {  //# try 3 times
@@ -239,6 +242,7 @@ int it9175_tune (unsigned int freqKHz)
 		if(ret < 0 || (ret & 0x2) == 0)  break;
 	}
 
+	msg ("g_en_state = EN_IT9175_STATE__TUNED\n");
 	g_en_state = EN_IT9175_STATE__TUNED;
 
 	if (g_ts_callbacks.pcb_pre_ts_receive) {
@@ -251,11 +255,13 @@ int it9175_tune (unsigned int freqKHz)
 	msg("# Start!\n");
 	while (1) {
 		if (g_is_force_tune_end) {
+			msg ("g_is_force_tune_end is true --> main loop break.\n");
 			g_is_force_tune_end = false;
 			break;
 		}
 		if (g_ts_callbacks.pcb_check_ts_receive_loop) {
 			if (!g_ts_callbacks.pcb_check_ts_receive_loop (g_ts_callbacks.p_shared_data)) {
+				msg ("g_ts_callbacks.pcb_check_ts_receive_loop is false --> main loop break.\n");
 				break;
 			}
 		}
@@ -265,6 +271,7 @@ int it9175_tune (unsigned int freqKHz)
 		if((rlen = tsthread_read(tsthr, &pBuffer)) > 0) {
 			if (g_ts_callbacks.pcb_ts_received) {
 				if (!g_ts_callbacks.pcb_ts_received (g_ts_callbacks.p_shared_data, pBuffer, rlen)) {
+					msg ("g_ts_callbacks.pcb_ts_received is false --> main loop break.\n");
 					break;
 				}
 			}
@@ -298,12 +305,15 @@ int it9175_tune (unsigned int freqKHz)
 	}
 
 _END_THREAD_STOP:
+	msg ("tsthread_stop\n");
 	tsthread_stop(tsthr);
 
 _END_THREAD_DESTROY:
+	msg ("tsthread_destroy\n");
 	tsthread_destroy(tsthr);
 
 _END:
+	msg ("g_en_state = EN_IT9175_STATE__TUNE_ENDED\n");
 	g_en_state = EN_IT9175_STATE__TUNE_ENDED;
 
 	return ret;

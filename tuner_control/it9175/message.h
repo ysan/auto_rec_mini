@@ -17,13 +17,20 @@ void dumpHex(char* const buf, const unsigned buflen, const int addr, const void*
 }
 #endif
 
-#define msg(...)  fprintf(it9175_getLogFileptr(),__VA_ARGS__)
+#define msg(...) do {\
+	fprintf(it9175_getLogFileptr(), __VA_ARGS__);\
+	if (it9175_isUseSyslog()) {\
+		syslog (LOG_INFO,  __VA_ARGS__);\
+	}\
+} while (0)
+
 #define warn_msg(errCode, ...) do {\
 	u_debugMessage(1, 0, 0, errCode, __VA_ARGS__);\
 	if (it9175_isUseSyslog()) {\
 		u_debugMessage_syslog(1, 0, 0, errCode, __VA_ARGS__);\
 	}\
 } while (0)
+
 #define warn_info(errCode, ...) do {\
 	u_debugMessage(1, __func__, __LINE__, errCode, __VA_ARGS__);\
 	if (it9175_isUseSyslog()) {\
@@ -38,12 +45,14 @@ void dumpHex(char* const buf, const unsigned buflen, const int addr, const void*
 		u_debugMessage_syslog(1, 0, 0, 0, __VA_ARGS__);\
 	}\
 } while (0)
+
 #define dmsgn(...) do {\
 	u_debugMessage(0, 0, 0, 0, __VA_ARGS__);\
 	if (it9175_isUseSyslog()) {\
 		u_debugMessage_syslog(0, 0, 0, 0, __VA_ARGS__);\
 	}\
 } while (0)
+
 #else
 #define dmsg(...)
 #define dmsgn(...)
