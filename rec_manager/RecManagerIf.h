@@ -88,6 +88,7 @@ public:
 		} arg;
 
 		bool isConsiderRepeatability;
+		bool isApplyResult;
 
 	} REMOVE_RESERVE_PARAM_t;
 
@@ -127,7 +128,7 @@ public:
 				);
 	};
 
-	bool reqAddReserve_event_helper (ADD_RESERVE_HELPER_PARAM_t *p_param) {
+	bool reqAddReserve_eventHelper (ADD_RESERVE_HELPER_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
@@ -166,7 +167,7 @@ public:
 				);
 	};
 
-	bool reqRemoveReserveByIndex (REMOVE_RESERVE_PARAM_t *p_param) {
+	bool reqRemoveReserve_byIndex (REMOVE_RESERVE_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}

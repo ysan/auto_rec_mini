@@ -43,6 +43,8 @@ extern bool it9175_open (void);
 extern void it9175_close (void);
 extern int it9175_tune (unsigned int freqKHz);
 extern void it9175_force_tune_end (void);
+extern void it9175_reset_force_tune_end (void);
+extern bool it9175_is_enable_force_tune_end (void);
 extern void it9175_initLogDefault (void);
 extern void it9175_initSyslog (void);
 extern void it9175_finalizSyslog (void);

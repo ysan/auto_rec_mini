@@ -214,10 +214,10 @@ public:
 	void onReq_startRecording (CThreadMgrIf *pIf);
 	void onReq_addReserve_currentEvent (CThreadMgrIf *pIf);
 	void onReq_addReserve_event (CThreadMgrIf *pIf);
-	void onReq_addReserve_event_helper (CThreadMgrIf *pIf);
+	void onReq_addReserve_eventHelper (CThreadMgrIf *pIf);
 	void onReq_addReserve_manual (CThreadMgrIf *pIf);
 	void onReq_removeReserve (CThreadMgrIf *pIf);
-	void onReq_removeReserveByIndex (CThreadMgrIf *pIf);
+	void onReq_removeReserve_byIndex (CThreadMgrIf *pIf);
 	void onReq_stopRecording (CThreadMgrIf *pIf);
 	void onReq_dumpReserves (CThreadMgrIf *pIf);
 
@@ -243,7 +243,7 @@ private:
 		uint16_t _service_id,
 		uint16_t _event_id
 	);
-	bool removeReserve (int index, bool isConsiderRepeatability);
+	bool removeReserve (int index, bool isConsiderRepeatability, bool isApplyResult);
 	CRecReserve* searchAscendingOrderReserve (CEtime *p_start_time_rf);
 	bool isExistEmptyReserve (void) const;
 	CRecReserve *findEmptyReserve (void);

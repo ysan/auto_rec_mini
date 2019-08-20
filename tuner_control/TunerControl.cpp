@@ -374,6 +374,7 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 
 		} else {
 			_UTL_LOG_E ("tune stop transition failure. (EN_IT9175_STATE__TUNED -> EN_IT9175_STATE__TUNE_ENDED)");
+			it9175_reset_force_tune_end ();
 			pIf->reply (EN_THM_RSLT_ERROR);
 		}
 

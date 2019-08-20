@@ -48,6 +48,8 @@ bool it9175_open (void ); // extern
 void it9175_close (void); // extern
 int it9175_tune (unsigned int freqKHz); // extern
 void it9175_force_tune_end (void); // extern
+void it9175_reset_force_tune_end (void); // extern
+bool it9175_is_enable_force_tune_end (void); // extern
 static void printTMCC(const it9175_state state);
 static int check_usbdevId(const unsigned int* desc);
 void it9175_initLogDefault (void); // extern
@@ -324,6 +326,16 @@ void it9175_force_tune_end (void)
 	if (g_en_state == EN_IT9175_STATE__TUNED) {
 		g_is_force_tune_end = true;
 	}
+}
+
+void it9175_reset_force_tune_end (void)
+{
+	g_is_force_tune_end = false;
+}
+
+bool it9175_is_enable_force_tune_end (void)
+{
+	return g_is_force_tune_end;
 }
 
 static void printTMCC(const it9175_state state)

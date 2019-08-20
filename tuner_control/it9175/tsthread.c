@@ -274,6 +274,7 @@ int tsthread_read(const tsthread_ptr tptr, void ** const ptr)
 	return i;
 }
 
+#include "it9175_extern.h"
 int tsthread_readable(const tsthread_ptr tptr)
 {
 	struct tsthread_param* const ps = tptr;
@@ -291,6 +292,12 @@ int tsthread_readable(const tsthread_ptr tptr)
 		}else{
 			j = 0;
 		}
+
+		// tuner down measures @start tuning
+		if (it9175_is_enable_force_tune_end()) {
+			return 0;
+		}
+
 	} while(j != ps->buff_pop);
 	ps->buff_pop = j;
 	return ps->actual_length[j];

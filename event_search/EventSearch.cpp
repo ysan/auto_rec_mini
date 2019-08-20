@@ -254,6 +254,7 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		_param.arg.key.service_id = s_events [s_events_idx].service_id;
 		_param.arg.key.event_id = s_events [s_events_idx].event_id;
 		_param.isConsiderRepeatability = false;
+		_param.isApplyResult = false; // result に記録しない
 
 		CRecManagerIf _if(getExternalIf());
 		_if.reqRemoveReserve (&_param);

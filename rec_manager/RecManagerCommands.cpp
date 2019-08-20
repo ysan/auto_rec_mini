@@ -297,7 +297,7 @@ static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
-static void addReserve_event_helper (int argc, char* argv[], CThreadMgrBase *pBase)
+static void addReserve_eventHelper (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 2) {
 		_UTL_LOG_E ("invalid arguments.");
@@ -331,7 +331,7 @@ static void addReserve_event_helper (int argc, char* argv[], CThreadMgrBase *pBa
 	pBase->getExternalIf()->setRequestOption (opt);
 
 	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqAddReserve_event_helper (&_param);
+	mgr.reqAddReserve_eventHelper (&_param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -418,6 +418,7 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 	param.arg.key.service_id = _svc_id;
 	param.arg.key.event_id = _evt_id;
 	param.isConsiderRepeatability = isConsiderRepeatability;
+	param.isApplyResult = true;
 
 	CRecManagerIf mgr(pBase->getExternalIf());
 	mgr.reqRemoveReserve (&param);
@@ -426,7 +427,7 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
-static void removeReserveByIndex (int argc, char* argv[], CThreadMgrBase *pBase)
+static void removeReserve_byIndex (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 2) {
 		_UTL_LOG_E ("invalid arguments.");
@@ -455,9 +456,10 @@ static void removeReserveByIndex (int argc, char* argv[], CThreadMgrBase *pBase)
 	CRecManagerIf::REMOVE_RESERVE_PARAM_t param; 
 	param.arg.index = index;
 	param.isConsiderRepeatability = isConsiderRepeatability;
+	param.isApplyResult = true;
 
 	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqRemoveReserveByIndex (&param);
+	mgr.reqRemoveReserve_byIndex (&param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -536,7 +538,7 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 		"add reserve - event (helper)\n\
                                 (usage: eh {index} {repeat} )\n\
                                            - repeat is 0 (none), 1 (auto)",
-		addReserve_event_helper,
+		addReserve_eventHelper,
 		NULL,
 	},
 	{
@@ -559,7 +561,7 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 		"rx",
 		"remove reserve by index (usage: rx {index} {consider repeatability} )\n\
                                            - consider repeatability is 0 (false), 1 (true)",
-		removeReserveByIndex,
+		removeReserve_byIndex,
 		NULL,
 	},
 	{

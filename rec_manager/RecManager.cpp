@@ -111,13 +111,13 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_event,        (char*)"onReq_addReserve_event"};
 	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_event_helper, (char*)"onReq_addReserve_event_helper"};
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_eventHelper, (char*)"onReq_addReserve_eventHelper"};
 	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_manual,       (char*)"onReq_addReserve_manual"};
 	mSeqs [EN_SEQ_REC_MANAGER__REMOVE_RESERVE] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve,           (char*)"onReq_removeReserve"};
 	mSeqs [EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserveByIndex,    (char*)"onReq_removeReserveByIndex"};
+		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve_byIndex,   (char*)"onReq_removeReserve_byIndex"};
 	mSeqs [EN_SEQ_REC_MANAGER__STOP_RECORDING] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_stopRecording,           (char*)"onReq_stopRecording"};
 	mSeqs [EN_SEQ_REC_MANAGER__DUMP_RESERVES] =
@@ -1206,7 +1206,7 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onReq_addReserve_event_helper (CThreadMgrIf *pIf)
+void CRecManager::onReq_addReserve_eventHelper (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -1476,7 +1476,7 @@ void CRecManager::onReq_removeReserve (CThreadMgrIf *pIf)
 		pIf->reply (EN_THM_RSLT_ERROR);
 
 	} else {
-		if (removeReserve (idx, param.isConsiderRepeatability)) {
+		if (removeReserve (idx, param.isConsiderRepeatability, param.isApplyResult)) {
 			pIf->reply (EN_THM_RSLT_SUCCESS);
 		} else {
 			pIf->reply (EN_THM_RSLT_ERROR);
@@ -1488,7 +1488,7 @@ void CRecManager::onReq_removeReserve (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CRecManager::onReq_removeReserveByIndex (CThreadMgrIf *pIf)
+void CRecManager::onReq_removeReserve_byIndex (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -1504,7 +1504,7 @@ void CRecManager::onReq_removeReserveByIndex (CThreadMgrIf *pIf)
 	CRecManagerIf::REMOVE_RESERVE_PARAM_t param =
 			*(CRecManagerIf::REMOVE_RESERVE_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
-	if (removeReserve (param.arg.index, param.isConsiderRepeatability)) {
+	if (removeReserve (param.arg.index, param.isConsiderRepeatability, param.isApplyResult)) {
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 	} else {
 		pIf->reply (EN_THM_RSLT_ERROR);
@@ -1805,14 +1805,16 @@ int CRecManager::getReserveIndex (
  * 0始まり
  * isConsiderRepeatability == false で Repeatability関係なく削除します
  */
-bool CRecManager::removeReserve (int index, bool isConsiderRepeatability)
+bool CRecManager::removeReserve (int index, bool isConsiderRepeatability, bool isApplyResult)
 {
 	if (index >= RESERVE_NUM_MAX) {
 		return false;
 	}
 
 	m_reserves [index].state |= RESERVE_STATE__REMOVE_RESERVE;
-	setResult (&m_reserves[index]);
+	if (isApplyResult) {
+		setResult (&m_reserves[index]);
+	}
 
 	_UTL_LOG_I ("####    remove reserve    ####");
 	m_reserves [index].dump();

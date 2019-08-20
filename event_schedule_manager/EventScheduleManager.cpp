@@ -512,6 +512,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 	static CEventScheduleManagerIf::SERVICE_KEY_t s_service_key;
 	static PSISI_SERVICE_INFO s_serviceInfos[10];
 	static int s_num = 0;
+	static bool s_is_timeouted = false;
 
 
 	switch (sectId) {
@@ -650,6 +651,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 			if (tcur > ttmp) {
 				// getEventScheduleCacheTimeoutMin 分経過していたらタイムアウトします
 				_UTL_LOG_E ("parser EIT schedule : timeout");
+				s_is_timeouted = true;
 				sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 				enAct = EN_THM_ACT_CONTINUE;
 
@@ -725,7 +727,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 				CHistory::element elem;
 				elem.key = key;
 				elem.item_num = p_sched->size();
-				elem.stt = CHistory::state::EN_STATE__COMPLETE;
+				elem.stt = s_is_timeouted ? CHistory::state::EN_STATE__TIMEOUT : CHistory::state::EN_STATE__COMPLETE;
 				m_current_history.add (elem);
 
 
@@ -747,7 +749,8 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		memset (&s_service_key, 0x00, sizeof(s_service_key));
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
-		mp_EIT_H_sched = NULL;
+		s_is_timeouted = false;
+		mp_EIT_H_sched = NULL;		
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -760,6 +763,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		memset (&s_service_key, 0x00, sizeof(s_service_key));
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
+		s_is_timeouted = false;
 		mp_EIT_H_sched = NULL;
 
 		sectId = THM_SECT_ID_INIT;
