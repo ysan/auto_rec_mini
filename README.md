@@ -4,10 +4,10 @@
 atpp
 ===============
 
-ARIB TS Parser and Processer.
-
+ARIB TS Parser and Processer.  
+  
 Like a minimum TV recorder middleware.  
-Small, light and simple.
+Small, light and simple.  
 feasibility study.  
 under development, in progress.  
 
@@ -31,7 +31,7 @@ How to use
 ### System requirements ###
 
 ##### Tuner #####
-Target tuner is KTV-FSUSB2/V3. (S/N: K1212 later)
+Target tuner is KTV-FSUSB2/V3. (S/N: K1212 later)  
 one tuner. only terrestrial digital.
 
 ##### Dependencies #####
@@ -39,10 +39,10 @@ one tuner. only terrestrial digital.
 * libpcsclite
 
 ##### Platforms #####
-Generic Linux will be ok. (confirmed worked on Ubuntu, Fedora, Raspbian)
-
-Raspberry pi model B (Raspbian) is used in the main,
-Packet loss occurs, block noise and image skipping are likely to occur.
+Generic Linux will be ok. (confirmed worked on Ubuntu, Fedora, Raspbian)  
+  
+Raspberry pi model B (Raspbian) is used in the main,  
+Packet loss occurs, block noise and image skipping are likely to occur.  
 There was a case that ts could not be taken because of insufficient power at the start of tuning.
 
 ### How to run ###

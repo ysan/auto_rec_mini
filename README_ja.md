@@ -5,32 +5,31 @@ atpp
 
 ARIB TS Parser and Processer.
 
-最小機能のテレビ録画ミドルウェア。
-小規模、軽量、簡易。
-
-いまさらながら MPEG-2TSやARIBの勉強のため。
-ほそぼそと開発中。
-
+最小機能のテレビ録画ミドルウェア。  
+小規模、軽量、簡易。  
+  
+いまさらながら MPEG-2TSやARIBの勉強のため。 
+開発中のため環境によっては動作が安定しない可能性があります。
 
 Features
 ------------ 
 * 選局
-  * 1チューナーで地デジのみとなります。
+  * 1チューナー、地デジのみとなります。(チューナー：KTV-FSUSB2/V3)
 * 地デジ チャンネルスキャン
 * 録画 及び 録画予約
   * 予約は50件まで。
-  * 予約時間がかぶっている場合は先に録画していたものが終わり次第、次の録画を行います。
-  * EPG取得後に指定したキーワードを検索し自動予約が可能です。
+  * 予約時間が被っている場合は先に録画していたものが終わり次第、次の録画を行います。
+  * EPG取得後に指定したキーワードを検索し自動予約を行います。
 * EPG
   * 定時EPG取得を行います。
 * コマンドライン インターフェース
-  * ポート20001 に```telnet```や```netcat```等で接続可能です。各機能にアクセスするコマンドを実行できます。(デバッグ目的)
+  * ポート20001 に```telnet```や```netcat```等で接続できます。各機能にアクセスするコマンドの実行等を行います。(デバッグ用途でもあります。)
 
 Upcomings
 ------------
-* 現状は録画、EPG、等チューナーを使う機能間の排他ができてないのでそれを対応する。
+* 現状は録画、EPG、等チューナーを使う機能間の排他ができてない。その実装を対応する。
 * データ放送のBMLの取得を行う。 (dsmccの実装)
-* libarib25で行っているPMT周りの実装の勉強。
+* libarib25で行っているPMT周りの実装の勉強、と実装を取り込みたい。
 * 複数チューナー、BS/CS対応したい。
 
 
@@ -44,9 +43,9 @@ How to use
 ### System requirements ###
 
 ##### Tuner #####
-対象のチューナーは KTV-FSUSB2/V3 です。 (S/N: K1212 later)  
+対象のチューナーは KTV-FSUSB2/V3 です。 (S/N: K1212 以降)  
 1チューナーで地デジのみとなります。  
-（他のチューナーにも対応してきたい。。）
+（他のチューナーにも対応してきたい。）
 
 ##### Dependencies #####
 * libarib25
@@ -70,8 +69,8 @@ Component diagram
 
 Others
 ------------
-設定値などの静的データは cereal を使用してjsonに落としています。
-https://github.com/USCiLab/cereal
+設定値などの静的データは cereal を使用してjsonに落としています。  
+https://github.com/USCiLab/cereal  
 (現状DBは使用していません。)
 
 
@@ -83,8 +82,8 @@ https://github.com/USCiLab/cereal
 
  
 流用させていただいているもの:
-* aribstr  https://github.com/Piro77/epgdump  
-* recfsusb2i (tuner<->USB control) https://github.com/jeeb/recfsusb2i  
+* aribstr (ARIB外字)  https://github.com/Piro77/epgdump  
+* recfsusb2i (tuner<->USB control)  https://github.com/jeeb/recfsusb2i  
 
 
 LICENSE
