@@ -1,37 +1,73 @@
+[Japanese](/README_ja.md)
+
+
 atpp
 ===============
 
-Arib TS Parser and Processer. Like a minimum TV middleware.  
+ARIB TS Parser and Processer.
+
+Like a minimum TV recorder middleware.  
+Small, light and simple.
 feasibility study.  
 under development, in progress.  
 
 
+Features
+------------ 
+* Tuning. (one tuner. only terrestrial digital.)
+* Channel scan.
+* Recording and recording reservation. (keyword search)
+* EPG.
+* Command line interface. (connect via telnet. port 20001)
+  
+
 Platforms
 ------------
-Generic Linux will be ok. (confirmed worked on Ubuntu, Fedora, raspbian)  
-Require is libarib25, libpcsclite.  
 
-etc
+How to use
+----------
+
+#### System requirements ####
+
+##### Tuner #####
+Target tuner is KTV-FSUSB2/V3. (S/N: K1212 later)
+one tuner. only terrestrial digital.
+
+##### Dependencies #####
+* libarib25
+* libpcsclite
+
+##### Platforms #####
+Generic Linux will be ok. (confirmed worked on Ubuntu, Fedora, Raspbian)
+
+Raspberry pi model B (Raspbian) is used in the main,
+Packet loss occurs, block noise and image skipping are likely to occur.
+There was a case that ts could not be taken because of insufficient power at the start of tuning.
+
+#### How to run ####
+
+
+Component diagram
 ------------
-Target tuner is KTV-FSUSB2/V3. (S/N: K1212 later)  
-one tuner. only terrestrial digital.  
-  
-functions:  
-&nbsp;&nbsp;&nbsp;&nbsp;Tuning. (one tuner. only terrestrial digital.)  
-&nbsp;&nbsp;&nbsp;&nbsp;Terrestrial digital channel scan.  
-&nbsp;&nbsp;&nbsp;&nbsp;Recording and recording reservation.  
-&nbsp;&nbsp;&nbsp;&nbsp;Command line interface. (connect via telnet. port 20001)  
-&nbsp;&nbsp;&nbsp;&nbsp;EPG. (still in implementation...)  
-  
+
+
+others
+------------
 Setting value etc. Have static data by using cereal json serializer.  
-&nbsp;&nbsp;&nbsp;&nbsp;https://github.com/USCiLab/cereal  
+https://github.com/USCiLab/cereal  
+(no use DB.)
   
 The following repositories are referred to the parser.  
-&nbsp;&nbsp;&nbsp;&nbsp;https://github.com/stz2012/libarib25  
-&nbsp;&nbsp;&nbsp;&nbsp;https://github.com/Piro77/epgdump  
-&nbsp;&nbsp;&nbsp;&nbsp;https://github.com/youzaka/ariblib  
-&nbsp;&nbsp;&nbsp;&nbsp;https://github.com/arairait/eit_txtout_mod  
+* https://github.com/stz2012/libarib25  
+* https://github.com/Piro77/epgdump  
+* https://github.com/youzaka/ariblib  
+* https://github.com/arairait/eit_txtout_mod  
   
 What is being used:  
-&nbsp;&nbsp;&nbsp;&nbsp;aribstr of epgdump.  
-&nbsp;&nbsp;&nbsp;&nbsp;recfsusb2i (tuner<->USB control) https://github.com/jeeb/recfsusb2i  
+* aribstr  https://github.com/Piro77/epgdump
+* recfsusb2i (tuner<->USB control) https://github.com/jeeb/recfsusb2i  
+
+LICENSE
+------------
+It becomes GPL depending on the license of the source code imported from the outside.
+

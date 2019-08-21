@@ -634,13 +634,13 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK_WAIT: {
 
-		// 約10秒間更新がなかったら完了とします
 		CEtime tcur;
 		tcur.setCurrentTime();
 		CEtime ttmp = m_lastUpdate_EITSched;
 		ttmp.addSec (10);
 
 		if (tcur > ttmp) {
+			// 約10秒間更新がなかったら完了とします
 			_UTL_LOG_I ("parse EIT schedule : complete");
 			sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 			enAct = EN_THM_ACT_CONTINUE;

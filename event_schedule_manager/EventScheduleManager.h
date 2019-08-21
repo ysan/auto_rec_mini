@@ -372,10 +372,6 @@ public:
 				stt = EN_STATE__INIT;
 			}
 
-			void set_state (state _s) {
-				stt = _s;
-			}
-
 			void dump (void) const {
 				key.dump();
 				_UTL_LOG_I (
@@ -426,7 +422,7 @@ public:
 				iter->dump();
 			}
 			_UTL_LOG_I (
-				"[%s - %s]",
+				"  start - end: [%s - %s]",
 				start_time.toString(),
 				end_time.toString()
 			);
