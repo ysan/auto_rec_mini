@@ -21,13 +21,14 @@ Features
 * Command line interface. (connect via telnet. port 20001)
   
 
-Platforms
+Build and install
 ------------
+...
+
 
 How to use
 ----------
-
-#### System requirements ####
+### System requirements ###
 
 ##### Tuner #####
 Target tuner is KTV-FSUSB2/V3. (S/N: K1212 later)
@@ -44,14 +45,16 @@ Raspberry pi model B (Raspbian) is used in the main,
 Packet loss occurs, block noise and image skipping are likely to occur.
 There was a case that ts could not be taken because of insufficient power at the start of tuning.
 
-#### How to run ####
+### How to run ###
+...
 
 
 Component diagram
 ------------
+...
 
 
-others
+Others
 ------------
 Setting value etc. Have static data by using cereal json serializer.  
 https://github.com/USCiLab/cereal  
