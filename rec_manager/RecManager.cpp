@@ -575,7 +575,7 @@ void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 		// EPG取得が完了しているか確認します
 		CEventScheduleManagerIf _if (getExternalIf());
 		_if.syncGetCacheScheduleState ();
-		EN_CACHE_SCHEDULE_STATE_t _s =  *(EN_CACHE_SCHEDULE_STATE_t*)(pIf->getSrcInfo()->msg.pMsg);
+		EN_CACHE_SCHEDULE_STATE_t _s =  *(EN_CACHE_SCHEDULE_STATE_t*)(getIf()->getSrcInfo()->msg.pMsg);
 		if (_s != EN_CACHE_SCHEDULE_STATE__READY) {
 			// readyでないので以下の処理は行いません
 			sectId = SECTID_CHECK;
@@ -616,7 +616,7 @@ void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 			CEventScheduleManagerIf _if (getExternalIf());
 			_if.syncGetEvent (&param);
 			
-			enRslt = pIf->getSrcInfo()->enRslt;
+			enRslt = getIf()->getSrcInfo()->enRslt;
 			if (enRslt == EN_THM_RSLT_SUCCESS) {
 				if ( m_reserves [i].start_time != param.p_out_event-> start_time) {
 					_UTL_LOG_I (
@@ -1156,6 +1156,20 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 
 	case SECTID_ADD_RESERVE: {
 
+		char *p_svc_name = NULL;
+		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+			s_param.transport_stream_id,
+			s_param.original_network_id,
+			s_param.service_id
+		};
+		CChannelManagerIf _if (getExternalIf());
+		_if.syncGetServiceName (&param); // sync wait
+		enRslt = getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			p_svc_name = (char*)(getIf()->getSrcInfo()->msg.pMsg);
+		}
+
+
 		bool r = addReserve (
 						s_event.transport_stream_id,
 						s_event.original_network_id,
@@ -1164,6 +1178,7 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 						&s_event.start_time,
 						&s_event.end_time,
 						s_event.p_event_name->c_str(),
+						p_svc_name,
 						true, // is_event_type true
 						s_param.repeatablity
 					);
@@ -1279,6 +1294,20 @@ void CRecManager::onReq_addReserve_eventHelper (CThreadMgrIf *pIf)
 
 	case SECTID_ADD_RESERVE: {
 
+		char *p_svc_name = NULL;
+		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+			s_event.transport_stream_id,
+			s_event.original_network_id,
+			s_event.service_id
+		};
+		CChannelManagerIf _if (getExternalIf());
+		_if.syncGetServiceName (&param); // sync wait
+		enRslt = getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			p_svc_name = (char*)(getIf()->getSrcInfo()->msg.pMsg);
+		}
+
+
 		bool r = addReserve (
 						s_event.transport_stream_id,
 						s_event.original_network_id,
@@ -1287,6 +1316,7 @@ void CRecManager::onReq_addReserve_eventHelper (CThreadMgrIf *pIf)
 						&s_event.start_time,
 						&s_event.end_time,
 						s_event.p_event_name->c_str(),
+						p_svc_name,
 						true, // is_event_type true
 						s_param.repeatablity
 					);
@@ -1401,6 +1431,20 @@ void CRecManager::onReq_addReserve_manual (CThreadMgrIf *pIf)
 
 	case SECTID_ADD_RESERVE: {
 
+		char *p_svc_name = NULL;
+		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+			s_param.transport_stream_id,
+			s_param.original_network_id,
+			s_param.service_id
+		};
+		CChannelManagerIf _if (getExternalIf());
+		_if.syncGetServiceName (&param); // sync wait
+		enRslt = getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			p_svc_name = (char*)(getIf()->getSrcInfo()->msg.pMsg);
+		}
+
+
 		bool r = addReserve (
 						s_param.transport_stream_id,
 						s_param.original_network_id,
@@ -1409,6 +1453,7 @@ void CRecManager::onReq_addReserve_manual (CThreadMgrIf *pIf)
 						&s_param.start_time,
 						&s_param.end_time,
 						NULL, // タイトル名も不明 (そもそもs_paramにない)
+						p_svc_name,
 						false,
 						s_param.repeatablity
 					);
@@ -1678,6 +1723,7 @@ bool CRecManager::addReserve (PSISI_EVENT_INFO *p_info, bool _is_event_type)
 					&(p_info->start_time),
 					&(p_info->end_time),
 					p_info->event_name_char,
+					NULL, // ここではnullで後でいれます
 					_is_event_type
 				);
 
@@ -1692,6 +1738,7 @@ bool CRecManager::addReserve (
 	CEtime* p_start_time,
 	CEtime* p_end_time,
 	const char *psz_title_name,
+	const char *psz_service_name,
 	bool _is_event_type,
 	EN_RESERVE_REPEATABILITY repeatabilitiy
 )
@@ -1715,6 +1762,7 @@ bool CRecManager::addReserve (
 		p_start_time,
 		p_end_time,
 		psz_title_name,
+		psz_service_name,
 		_is_event_type,
 		repeatabilitiy
 	);
@@ -1751,6 +1799,7 @@ bool CRecManager::addReserve (
 		p_start_time,
 		p_end_time,
 		psz_title_name,
+		psz_service_name,
 		_is_event_type,
 		repeatabilitiy
 	);
@@ -1780,6 +1829,7 @@ int CRecManager::getReserveIndex (
 		_original_network_id,
 		_service_id,
 		_event_id,
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -2107,6 +2157,7 @@ void CRecManager::checkRepeatability (const CRecReserve *p_reserve)
 				&s,
 				&e,
 				p_reserve->title_name.c_str(),
+				p_reserve->service_name.c_str(),
 				p_reserve->is_event_type,
 				p_reserve->repeatability
 			);
@@ -2421,6 +2472,7 @@ void serialize (Archive &archive, CRecReserve &r)
 		cereal::make_nvp("start_time", r.start_time),
 		cereal::make_nvp("end_time", r.end_time),
 		cereal::make_nvp("title_name", r.title_name),
+		cereal::make_nvp("service_name", r.service_name),
 		cereal::make_nvp("is_event_type", r.is_event_type),
 		cereal::make_nvp("repeatability", r.repeatability),
 		cereal::make_nvp("state", r.state),

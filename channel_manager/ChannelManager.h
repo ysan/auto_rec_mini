@@ -213,6 +213,8 @@ public:
 	void onReq_tuneByServiceId_withRetry (CThreadMgrIf *pIf);
 	void onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf);
 	void onReq_getChannels (CThreadMgrIf *pIf);
+	void onReq_getTransportStreamName (CThreadMgrIf *pIf);
+	void onReq_getServiceName (CThreadMgrIf *pIf);
 	void onReq_dumpChannels (CThreadMgrIf *pIf);
 
 	void onReceiveNotify (CThreadMgrIf *pIf) override;
@@ -236,6 +238,15 @@ private:
 	const CChannel* findChannel (uint16_t pych) const;
 
 	int getChannels (CChannelManagerIf::CHANNEL_t *p_out_channels, int array_max_num) const;
+	const char* getTransportStreamName (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id
+	) const;
+	const char* getServiceName (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id
+	) const;
 
 	void dumpChannels (void) const;
 	void dumpChannels_simple (void) const;

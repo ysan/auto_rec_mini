@@ -33,6 +33,10 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByRemoteControlKeyId,              (char*)"onReq_tuneByRemoteControlKeyId"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS] =
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_getChannels,                           (char*)"onReq_getChannels"};
+	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME] =
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_getTransportStreamName,                (char*)"onReq_getTransportStreamName"};
+	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_SERVICE_NAME] =
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_getServiceName,                        (char*)"onReq_getServiceName"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS] =
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpChannels,                          (char*)"onReq_dumpChannels"};
 	setSeqs (mSeqs, EN_SEQ_CHANNEL_MANAGER__NUM);
@@ -863,6 +867,75 @@ void CChannelManager::onReq_getChannels (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CChannelManager::onReq_getTransportStreamName (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	CChannelManagerIf::SERVICE_ID_PARAM_t _param =
+				*(CChannelManagerIf::SERVICE_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+	const char *pname = getTransportStreamName (
+							_param.transport_stream_id,
+							_param.original_network_id
+						);
+
+	if (pname && strlen(pname) > 0) {
+		// reply msgで nameを渡します
+		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)pname, strlen(pname));
+	} else {
+		pIf->reply (EN_THM_RSLT_ERROR);
+	}
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CChannelManager::onReq_getServiceName (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	CChannelManagerIf::SERVICE_ID_PARAM_t _param =
+				*(CChannelManagerIf::SERVICE_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+	const char *pname = getServiceName (
+							_param.transport_stream_id,
+							_param.original_network_id,
+							_param.service_id
+						);
+
+	if (pname && strlen(pname) > 0) {
+		// reply msgで nameを渡します
+		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)pname, strlen(pname));
+	} else {
+		pIf->reply (EN_THM_RSLT_ERROR);
+	}
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CChannelManager::onReq_dumpChannels (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -905,14 +978,14 @@ uint16_t CChannelManager::getPysicalChannelByServiceId (
 	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
 	for (; iter != m_channels.end(); ++ iter) {
 		uint16_t ch = iter->first;
-		CChannel const *p_rslt = &(iter->second);
-		if (p_rslt) {
+		CChannel const *p_ch = &(iter->second);
+		if (p_ch) {
 			if (
-				(p_rslt->transport_stream_id == _transport_stream_id) &&
-				(p_rslt->original_network_id == _original_network_id)
+				(p_ch->transport_stream_id == _transport_stream_id) &&
+				(p_ch->original_network_id == _original_network_id)
 			) {
-				std::vector<CChannel::service>::const_iterator iter = p_rslt->services.begin();
-				for (; iter != p_rslt->services.end(); ++ iter) {
+				std::vector<CChannel::service>::const_iterator iter = p_ch->services.begin();
+				for (; iter != p_ch->services.end(); ++ iter) {
 					if (_service_id == iter->service_id) {
 						return ch;
 					}
@@ -934,8 +1007,8 @@ uint16_t CChannelManager::getPysicalChannelByRemoteControlKeyId (
 	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
 	for (; iter != m_channels.end(); ++ iter) {
 		uint16_t ch = iter->first;
-		CChannel const *p_rslt = &(iter->second);
-		if (p_rslt) {
+		CChannel const *p_ch = &(iter->second);
+		if (p_ch) {
 			if (
 //TODO
 // 暫定remote_control_key_idだけで判定
@@ -943,9 +1016,9 @@ uint16_t CChannelManager::getPysicalChannelByRemoteControlKeyId (
 //   検索順で先のものが得られるので あまりよくないやりかたです
 //   --> 引数 transport_stream_id, original_network_idで切り分けすれば問題ないはず
 //   --> getPysicalChannelByServiceId を使うべき
-//				(p_rslt->transport_stream_id == _transport_stream_id) &&
-//				(p_rslt->original_network_id == _original_network_id) &&
-				(p_rslt->remote_control_key_id == _remote_control_key_id)
+//				(p_ch->transport_stream_id == _transport_stream_id) &&
+//				(p_ch->original_network_id == _original_network_id) &&
+				(p_ch->remote_control_key_id == _remote_control_key_id)
 			) {
 				return ch;
 			}
@@ -964,9 +1037,9 @@ bool CChannelManager::isDuplicateChannel (const CChannel* p_channel) const
 
 	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
 	for (; iter != m_channels.end(); ++ iter) {
-		CChannel const *p_rslt = &(iter->second);
-		if (p_rslt) {
-			if (*p_rslt == *p_channel) {
+		CChannel const *p_ch = &(iter->second);
+		if (p_ch) {
+			if (*p_ch == *p_channel) {
 				// duplicate
 				return true;
 			}
@@ -997,16 +1070,16 @@ int CChannelManager::getChannels (CChannelManagerIf::CHANNEL_t *p_out_channels, 
 
 	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
 	for (; iter != m_channels.end(); ++ iter) {
-		CChannel const *p_rslt = &(iter->second);
-		if (p_rslt) {
-			p_out_channels->pysical_channel = p_rslt->pysical_channel;
-			p_out_channels->transport_stream_id = p_rslt->transport_stream_id;
-			p_out_channels->original_network_id = p_rslt->original_network_id;
-			p_out_channels->remote_control_key_id = p_rslt->remote_control_key_id;
+		CChannel const *p_ch = &(iter->second);
+		if (p_ch) {
+			p_out_channels->pysical_channel = p_ch->pysical_channel;
+			p_out_channels->transport_stream_id = p_ch->transport_stream_id;
+			p_out_channels->original_network_id = p_ch->original_network_id;
+			p_out_channels->remote_control_key_id = p_ch->remote_control_key_id;
 
 			int m = 0;
-			std::vector<CChannel::service>::const_iterator iter_svc = p_rslt->services.begin();
-			for (; iter_svc != p_rslt->services.end(); ++ iter_svc) {
+			std::vector<CChannel::service>::const_iterator iter_svc = p_ch->services.begin();
+			for (; iter_svc != p_ch->services.end(); ++ iter_svc) {
 				p_out_channels->service_ids[m] = iter_svc->service_id;
 				++ m;
 			}
@@ -1025,13 +1098,61 @@ int CChannelManager::getChannels (CChannelManagerIf::CHANNEL_t *p_out_channels, 
 	return n;
 }
 
+const char* CChannelManager::getTransportStreamName (
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id
+) const
+{
+	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
+	for (; iter != m_channels.end(); ++ iter) {
+		CChannel const *p_ch = &(iter->second);
+		if (p_ch) {
+			if (
+				(p_ch->transport_stream_id == _transport_stream_id) &&
+				(p_ch->original_network_id == _original_network_id)
+			) {
+				return p_ch->ts_name.c_str();
+			}
+		}
+	}
+
+	return NULL;
+}
+
+const char* CChannelManager::getServiceName (
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id,
+	uint16_t _service_id
+) const
+{
+	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
+	for (; iter != m_channels.end(); ++ iter) {
+		CChannel const *p_ch = &(iter->second);
+		if (p_ch) {
+			if (
+				(p_ch->transport_stream_id == _transport_stream_id) &&
+				(p_ch->original_network_id == _original_network_id)
+			) {
+				std::vector<CChannel::service>::const_iterator iter_svc = p_ch->services.begin();
+				for (; iter_svc != p_ch->services.end(); ++ iter_svc) {
+					if (iter_svc->service_id == _service_id) {
+						return  iter_svc->service_name.c_str();
+					}
+				}
+			}
+		}
+	}
+
+	return NULL;
+}
+
 void CChannelManager::dumpChannels (void) const
 {
 	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
 	for (; iter != m_channels.end(); ++ iter) {
-		CChannel const *p_rslt = &(iter->second);
-		if (p_rslt) {
-			p_rslt ->dump ();
+		CChannel const *p_ch = &(iter->second);
+		if (p_ch) {
+			p_ch ->dump ();
 		}
 	}
 }
@@ -1040,9 +1161,9 @@ void CChannelManager::dumpChannels_simple (void) const
 {
 	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
 	for (; iter != m_channels.end(); ++ iter) {
-		CChannel const *p_rslt = &(iter->second);
-		if (p_rslt) {
-			p_rslt ->dump_simple ();
+		CChannel const *p_ch = &(iter->second);
+		if (p_ch) {
+			p_ch ->dump_simple ();
 		}
 	}
 }

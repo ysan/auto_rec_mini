@@ -1209,6 +1209,8 @@ void CEventScheduleManager::onReq_getEvent (CThreadMgrIf *pIf)
 			_param.p_out_event->start_time = p_event->start_time;
 			_param.p_out_event->end_time = p_event->end_time;
 
+			// アドレスで渡してますが 基本的には schedule casheが走らない限り
+			// アドレスは変わらない前提です
 			_param.p_out_event->p_event_name = &p_event->event_name;
 			_param.p_out_event->p_text = &p_event->text;
 

@@ -119,6 +119,7 @@ public:
 	CEtime end_time;
 
 	std::string title_name;
+	std::string service_name;
 
 	bool is_event_type ;
 	EN_RESERVE_REPEATABILITY repeatability;
@@ -135,6 +136,7 @@ public:
 		CEtime* p_start_time,
 		CEtime* p_end_time,
 		const char *psz_title_name,
+		const char *psz_service_name,
 		bool _is_event_type,
 		EN_RESERVE_REPEATABILITY _repeatability
 	)
@@ -152,6 +154,9 @@ public:
 		if (psz_title_name) {
 			this->title_name = psz_title_name ;
 		}
+		if (psz_service_name) {
+			this->service_name = psz_service_name ;
+		}
 		this->is_event_type = _is_event_type;
 		this->repeatability = _repeatability;
 		this->state = RESERVE_STATE__INIT;
@@ -167,6 +172,8 @@ public:
 		end_time.clear();	
 		title_name.clear();
 		title_name.shrink_to_fit();
+		service_name.clear();
+		service_name.shrink_to_fit();
 		is_event_type = false;
 		repeatability = EN_RESERVE_REPEATABILITY__NONE;
 		state = RESERVE_STATE__INIT;
@@ -193,6 +200,7 @@ public:
 			getReserveState (state)
 		);
 		_UTL_LOG_I ("title:[%s]", title_name.c_str());
+		_UTL_LOG_I ("service_name:[%s]", service_name.c_str());
 	}
 };
 
@@ -234,6 +242,7 @@ private:
 		CEtime* p_start_time,
 		CEtime* p_end_time,
 		const char *psz_title_name,
+		const char *psz_service_name,
 		bool _is_event_type,
 		EN_RESERVE_REPEATABILITY repeatability=EN_RESERVE_REPEATABILITY__NONE
 	);
