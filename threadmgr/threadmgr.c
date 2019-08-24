@@ -2611,6 +2611,17 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 //TODO isRequestAlreadyで判断
 	pthread_mutex_lock (&gMutexSyncReply [stContext.nThreadIdx]);
 
+	//TODO
+	// 一度もクリアしてないので ここで一度msg をクリアします
+	// そもそもclearSyncReplyInfoをここでやればいいのかも
+	// clearSyncReplyInfo 内のmsgのクリアのコメントも外せるかも
+	pstTmpSyncReplyInfo = getSyncReplyInfo (stContext.nThreadIdx);
+	if (pstTmpSyncReplyInfo) {
+		memset (pstTmpSyncReplyInfo->msg.msg, 0x00, MSG_SIZE);
+		pstTmpSyncReplyInfo->msg.size = 0;
+		pstTmpSyncReplyInfo->msg.isUsed = false;
+	}
+
 	/* リクエスト投げる */
 	if (!requestInner(nThreadIdx, nSeqIdx, reqId, &stContext, pMsg, msgSize)) {
 
@@ -2639,6 +2650,7 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 	pstTmpReqIdInfo = getRequestIdInfo (stContext.nThreadIdx, reqId);
 	if (!pstTmpReqIdInfo) {
 		/* NULLリターンは起こりえないはず */
+		THM_INNER_LOG_E ("getRequestIdInfo is null\n");
 
 		/* gMutexSyncReply unlock */
 		pthread_mutex_unlock (&gMutexSyncReply[stContext.nThreadIdx]);

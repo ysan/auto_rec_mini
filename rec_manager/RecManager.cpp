@@ -111,7 +111,7 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_event,        (char*)"onReq_addReserve_event"};
 	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_eventHelper, (char*)"onReq_addReserve_eventHelper"};
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_eventHelper,  (char*)"onReq_addReserve_eventHelper"};
 	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_manual,       (char*)"onReq_addReserve_manual"};
 	mSeqs [EN_SEQ_REC_MANAGER__REMOVE_RESERVE] =

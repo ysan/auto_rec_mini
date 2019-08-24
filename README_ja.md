@@ -23,7 +23,7 @@ Features
 * EPG
   * 定時EPG取得を行います。
 * コマンドライン インターフェース
-  * ポート20001 に```telnet```や```netcat```等で接続できます。各機能にアクセスするコマンドの実行等を行います。(デバッグ用途でもあります。)
+  * `telnet`や`netcat`等でCLIサーバーに接続します。各機能にアクセスするコマンドの実行等を行います。
 
 Upcomings
 ------------
@@ -83,7 +83,7 @@ https://github.com/USCiLab/cereal
  
 流用させていただいているもの:
 * aribstr (ARIB外字)  https://github.com/Piro77/epgdump  
-* recfsusb2i (tuner<->USB control)  https://github.com/jeeb/recfsusb2i  
+* recfsusb2i (tuner<->USB 制御)  https://github.com/jeeb/recfsusb2i  
 
 
 LICENSE

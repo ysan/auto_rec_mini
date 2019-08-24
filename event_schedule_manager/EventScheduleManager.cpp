@@ -650,7 +650,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 			ttmp.addMin (mp_settings->getParams()->getEventScheduleCacheTimeoutMin());
 			if (tcur > ttmp) {
 				// getEventScheduleCacheTimeoutMin 分経過していたらタイムアウトします
-				_UTL_LOG_E ("parser EIT schedule : timeout");
+				_UTL_LOG_W ("parser EIT schedule : timeout");
 				s_is_timeouted = true;
 				sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 				enAct = EN_THM_ACT_CONTINUE;

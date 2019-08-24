@@ -1638,7 +1638,7 @@ void CPsisiManager::cacheEventPfInfos (void)
 	}
 
 	if (!r) {
-		_UTL_LOG_W ("(cacheEventPfInfos) not match");
+		_UTL_LOG_D ("(cacheEventPfInfos) not match");
 	}
 }
 
