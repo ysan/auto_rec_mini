@@ -711,6 +711,8 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 		// NOW_RECORDINGフラグは落としておきます
 		m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
 
+		m_recording.recording_end_time.setCurrentTime();
+
 		setResult (&m_recording);
 
 
@@ -730,7 +732,7 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 			"%s/%s_%s.m2ts",
 			p_path->c_str(),
 			p_name,
-			t_end.toString2()
+			t_end.toString()
 		);
 
 		rename (m_recording_tmpfile, newfile) ;
@@ -850,6 +852,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 
 			m_recording.state |= RESERVE_STATE__NOW_RECORDING;
+			m_recording.recording_start_time.setCurrentTime();
 
 			sectId = SECTID_END_SUCCESS;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -2476,6 +2479,8 @@ void serialize (Archive &archive, CRecReserve &r)
 		cereal::make_nvp("is_event_type", r.is_event_type),
 		cereal::make_nvp("repeatability", r.repeatability),
 		cereal::make_nvp("state", r.state),
+		cereal::make_nvp("recording_start_time", r.recording_start_time),
+		cereal::make_nvp("recording_end_time", r.recording_end_time),
 		cereal::make_nvp("is_used", r.is_used)
 	);
 }
@@ -2519,6 +2524,8 @@ void CRecManager::loadReserves (void)
 	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
 		m_reserves [i].start_time.updateStrings();
 		m_reserves [i].end_time.updateStrings();
+		m_reserves [i].recording_start_time.updateStrings();
+		m_reserves [i].recording_end_time.updateStrings();
 	}
 }
 
@@ -2561,5 +2568,7 @@ void CRecManager::loadResults (void)
 	for (int i = 0; i < RESULT_NUM_MAX; ++ i) {
 		m_results [i].start_time.updateStrings();
 		m_results [i].end_time.updateStrings();
+		m_results [i].recording_start_time.updateStrings();
+		m_results [i].recording_end_time.updateStrings();
 	}
 }

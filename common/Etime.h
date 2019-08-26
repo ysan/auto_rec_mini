@@ -17,6 +17,41 @@
 class CEtime
 {
 public:
+	class CDiff {
+	public:
+		explicit CDiff (struct timespec *p_diff) {
+			if (p_diff) {
+				m_diff.tv_sec = p_diff->tv_sec;
+				m_diff.tv_nsec = p_diff->tv_nsec;
+			}
+			memset (m_string, 0x00, sizeof(m_string));
+		}
+		virtual ~CDiff (void) {
+			m_diff.tv_sec = 0;
+			m_diff.tv_nsec = 0;
+			memset (m_string, 0x00, sizeof(m_string));
+		}
+
+		char * toString (void) {
+			int h = m_diff.tv_sec / 3600;
+			int m = (m_diff.tv_sec % 3600) / 60;
+			int s =  (m_diff.tv_sec % 3600) % 60;
+
+#ifdef ENABLE_AFTER_DECIAML_POINT
+			sprintf (m_string, "%02d:%02d:%02d.%03ld", h, m, s, m_diff.tv_nsec);
+#else
+			sprintf (m_string, "%02d:%02d:%02d", h, m, s);
+#endif
+
+			return m_string;
+		}
+
+	private:
+		struct timespec m_diff;
+		char m_string [12+1]; // 00:00:00.000
+	};
+
+public:
 	// generate at current time
 	CEtime (void);
 	// generate at specified epoch time
@@ -40,7 +75,7 @@ public:
 	bool operator < (const CEtime &obj) const;
 	bool operator >= (const CEtime &obj) const;
 	bool operator <= (const CEtime &obj) const;
-//	CEtime operator - (const CEtime &obj) const;
+	struct timespec operator - (const CEtime &obj) const;
 //	CEtime operator + (const CEtime &obj) const;
 
 	void setCurrentTime (void);

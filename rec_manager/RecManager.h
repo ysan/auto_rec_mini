@@ -86,8 +86,6 @@ public:
 			this->original_network_id == obj.original_network_id &&
 			this->service_id == obj.service_id &&
 			this->event_id == obj.event_id
-//			this->start_time == obj.start_time &&
-//			this->end_time == obj.end_time
 		) {
 			return true;
 		} else {
@@ -101,8 +99,6 @@ public:
 			this->original_network_id != obj.original_network_id ||
 			this->service_id != obj.service_id ||
 			this->event_id != obj.event_id
-//			this->start_time != obj.start_time ||
-//			this->end_time != obj.end_time
 		) {
 			return true;
 		} else {
@@ -125,6 +121,10 @@ public:
 	EN_RESERVE_REPEATABILITY repeatability;
 
 	uint32_t state;
+
+	CEtime recording_start_time;
+	CEtime recording_end_time;
+
 	bool is_used;
 
 
@@ -177,6 +177,8 @@ public:
 		is_event_type = false;
 		repeatability = EN_RESERVE_REPEATABILITY__NONE;
 		state = RESERVE_STATE__INIT;
+		recording_start_time.clear();
+		recording_end_time.clear();	
 		is_used = false;
 	}
 
@@ -201,6 +203,12 @@ public:
 		);
 		_UTL_LOG_I ("title:[%s]", title_name.c_str());
 		_UTL_LOG_I ("service_name:[%s]", service_name.c_str());
+
+		if (state != RESERVE_STATE__INIT) {
+			struct timespec d = recording_end_time - recording_start_time;
+			CEtime::CDiff diff (&d);
+			_UTL_LOG_I ("recording_time:[%s]", diff.toString());
+		}
 	}
 };
 

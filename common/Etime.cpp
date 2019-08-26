@@ -113,6 +113,29 @@ bool CEtime::operator <= (const CEtime &obj) const
 	}
 }
 
+struct timespec CEtime::operator - (const CEtime &obj) const
+{
+	if (*this <= obj) {
+		struct timespec r = {0, 0};
+		return r;
+	}
+
+	time_t _diff_sec = 0;
+	long _diff_nsec = 0;
+
+	if (this->m_time.tv_nsec >= obj.m_time.tv_nsec) {
+		_diff_sec = this->m_time.tv_sec - obj.m_time.tv_sec;
+		_diff_nsec = this->m_time.tv_nsec - obj.m_time.tv_nsec;
+	} else {
+		_diff_sec = (this->m_time.tv_sec - 1) - obj.m_time.tv_sec;
+		_diff_nsec = (this->m_time.tv_nsec + 1000000000) - obj.m_time.tv_nsec;
+	}
+
+	struct timespec r = {_diff_sec, _diff_nsec};
+	return r;
+}
+
+
 void CEtime::setCurrentTime (void)
 {
 	memset (&m_time, 0x00, sizeof(m_time));
