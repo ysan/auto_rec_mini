@@ -1035,8 +1035,31 @@ s_serviceInfos[0].dump();
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 s_presentEventInfo.dump();
 
-			// add reserve
-			if (addReserve (&s_presentEventInfo, true)) {
+			char *p_svc_name = NULL;
+			CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+				s_presentEventInfo.transport_stream_id,
+				s_presentEventInfo.original_network_id,
+				s_presentEventInfo.service_id
+			};
+			CChannelManagerIf _if (getExternalIf());
+			_if.syncGetServiceName (&param); // sync wait
+			enRslt = getIf()->getSrcInfo()->enRslt;
+			if (enRslt == EN_THM_RSLT_SUCCESS) {
+				p_svc_name = (char*)(getIf()->getSrcInfo()->msg.pMsg);
+			}
+
+			bool r = addReserve (
+							s_presentEventInfo.transport_stream_id,
+							s_presentEventInfo.original_network_id,
+							s_presentEventInfo.service_id,
+							s_presentEventInfo.event_id,
+							&s_presentEventInfo.start_time,
+							&s_presentEventInfo.end_time,
+							s_presentEventInfo.event_name_char,
+							p_svc_name,
+							true // is_event_type true
+						);
+			if (r) {
 				sectId = SECTID_END_SUCCESS;
 				enAct = EN_THM_ACT_CONTINUE;
 
@@ -1710,27 +1733,6 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 	}
 
-}
-
-bool CRecManager::addReserve (PSISI_EVENT_INFO *p_info, bool _is_event_type)
-{
-	if (!p_info) {
-		return false;
-	}
-
-	bool r = addReserve (
-					p_info->transport_stream_id,
-					p_info->original_network_id,
-					p_info->service_id,
-					p_info->event_id,
-					&(p_info->start_time),
-					&(p_info->end_time),
-					p_info->event_name_char,
-					NULL, // ここではnullで後でいれます
-					_is_event_type
-				);
-
-	return r;
 }
 
 bool CRecManager::addReserve (

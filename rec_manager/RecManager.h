@@ -241,7 +241,6 @@ public:
 
 
 private:
-	bool addReserve (PSISI_EVENT_INFO *p_info, bool _is_event_type);
 	bool addReserve (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,

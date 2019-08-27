@@ -5,11 +5,12 @@ atpp
 
 ARIB TS Parser and Processer.
 
-最小機能のテレビ録画ミドルウェア。  
+最小機能のTV録画ミドルウェア。  
 小規模、軽量、簡易。  
   
 いまさらながら MPEG-2TSやARIBの勉強のため。 
 開発中のため環境によっては動作が安定しない可能性があります。
+
 
 Features
 ------------ 
@@ -23,7 +24,7 @@ Features
 * EPG
   * 定時EPG取得を行います。
 * コマンドライン インターフェース
-  * `telnet`や`netcat`等でCLIサーバーに接続します。各機能にアクセスするコマンドの実行等を行います。
+  * `telnet`や`netcat`等で`command server`に接続します。各機能にアクセスするコマンドの実行等を行います。
 
 Upcomings
 ------------
@@ -48,8 +49,11 @@ How to use
 （他のチューナーにも対応してきたい。）
 
 ##### Dependencies #####
-* libarib25
-* libpcsclite
+下記のライブラリに依存します。  
+適宜インストールをお願いします。ここでは割愛させていただきます。
+
+* `libarib25`
+* `libpcsclite`
 
 ##### Platforms #####
 一般的なLinuxなら問題なく動作すると思います。(Ubuntu, Fedora, Raspbianで確認済。)  
@@ -58,8 +62,141 @@ How to use
 パケットロスが起こり、ブロックノイズ、画飛びが起きやすいです。  
 また選局開始時に電力が足りないせいかtsが取れないケースがありました。
 
+### Build and install ###
+`clone` and `make`.
+
+	$ git clone https://github.com/ysan/atpp
+	$ cd atpp
+	$ make
+
+作業ディレクトリにインストールする場合。
+
+	$ mkdir -p ~/work/data
+	$ make INSTALLDIR=~/work install
+	$ cp -p ./data/settings.json ~/work/data
+	$ cd ~/work
+	$ tree
+	.
+	├── bin
+	│   └── atpp
+	├── data
+	│   └── settings.json
+	└── lib
+	   	└── atpp
+	        ├── libchannelmanager.so
+	        ├── libcommandserver.so
+	        ├── libcommon.so
+	        ├── libdsmccparser.so
+	        ├── libeventschedulemanager.so
+	        ├── libeventsearch.so
+	        ├── libit9175.so
+	        ├── libparser.so
+	        ├── libpsisimanager.so
+	        ├── libpsisiparser.so
+	        ├── librecmanager.so
+	        ├── libthreadmgr.so
+	        ├── libthreadmgrpp.so
+	        ├── libtunercontrol.so
+	        └── libtunethread.so
+	
+	4 directories, 17 files
+
+### settings.json ###
+
+`settings.json`は設定ファイルです。  
+`atpp` プロセスの起動時に読み込みます。  
+環境に合わせて設定してください。
+
+| item | description |
+|:-----|:------------|
+| `m_is_syslog_output` | ログを`syslog`に出力するかどうかを切り替えます。 `syslog facility`は`user`です。 |
+| `m_command_server_port` | `command server` の待受ポートです。 |
+| `m_channels_json_path` | チャンネルスキャン結果の書き込み/読み込み先パスです。 |
+| `m_rec_reserves_json_path` | 録画予約リストの書き込み/読み込み先パスです。 |
+| `m_rec_results_json_path` | 録画結果リストの書き込み/読み込み先パスです。 |
+| `m_rec_ts_path` | 録画ストリームの保存先パスです。(.m2ts) |
+| `m_dummy_tuner_ts_path` | unused |
+| `m_event_schedule_cache_is_enable` | EPGを有効にするスイッチ。 |
+| `m_event_schedule_cache_start_interval_day` | EPG取得の間隔日。 |
+| `m_event_schedule_cache_start_hour` | EPG取得の開始時間。(何時) |
+| `m_event_schedule_cache_start_min` | EPG取得の開始時間。 (何分) |
+| `m_event_schedule_cache_timeout_min` | EPG取得タイムアウト時間。(分) |
+| `m_event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
+| `m_event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
+| `m_extended_event_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
+
+### event_name_keywords.json ###
+
+`m_extended_event_keywords_json_path` に下記形式の json を作成することにより    
+EPG取得後に番組名にキーワードが含まれる番組を検索して録画予約を入れます。
+
+	{
+	    "m_event_name_keywords": [
+	        "ＸＸＸニュース",
+	        "ＸＸＸスポーツ"
+	    ]
+	}
+
+### extended_event_keywords.json ###
+
+`m_extended_event_keywords_json_path` に下記形式の json を作成することにより  
+EPG取得後に番組詳細にキーワードが含まれる番組を検索して録画予約を入れます。
+
+	{
+	    "m_extended_event_keywords": [
+	        "ワールドカップ",
+	        "オリンピック"
+	    ]
+	}
+
 ### How to run ###
-...
+
+`Build and install`でインストールした作業ディレクトリで実行する場合。  
+（※実行するにはrootが必要です。）
+
+	$ cd ~/work
+	$ export LD_LIBRARY_PATH=./lib/atpp
+	$ sudo ./bin/atpp ./data/settings.json &
+
+`atpp` は起動して、チューナーを使用する準備ができた状態になります。  
+`command server` はポート20001で接続を待ち受けています。
+
+### How to use CLI ###
+
+##### Connect to command server #####
+端末から`netcat` や `telnet` で接続できます。
+`localhost` でも外部アドレスからでも接続可能です。
+`command server` はシングルクライアントとなります。
+
+	$ nc -C localhost 20001
+	
+	###  command line  begin. ###
+	
+	  ------ root tables ------
+	  s                    -- system commands               
+	  tc                   -- tuner control                 
+	  pm                   -- psisi manager                 
+	  rec                  -- rec manager                   
+	  cm                   -- channel manager               
+	  em                   -- event schedule manager        
+	  es                   -- event search                  
+	
+	/ >
+	/ >
+
+##### channel scan #####
+
+	/ > cm
+	
+	  ------ channel manager ------
+	  scan                 -- channel scan                  
+	  tr                   -- tune by remote_control_key_id (usage: tr {remote_control_key_id} )
+	  ds                   -- dump channel scan results     
+	
+	/channel manager > 
+	/channel manager > scan
+
+チャンネルスキャンが開始します。
 
 
 Component diagram
@@ -69,22 +206,19 @@ Component diagram
 
 Others
 ------------
-設定値などの静的データは cereal を使用してjsonに落としています。  
-https://github.com/USCiLab/cereal  
+設定値などの静的データの読み込み/書き込みは [`cereal`](https://github.com/USCiLab/cereal) のjsonシリアライザを使用しています。  
 (現状DBは使用していません。)
 
 
 パーサー周りは以下のレポジトリ様を参考にさせていただいています:
-* https://github.com/stz2012/libarib25  
-* https://github.com/Piro77/epgdump  
-* https://github.com/youzaka/ariblib  
-* https://github.com/arairait/eit_txtout_mod  
-
+* [`libarib25`](https://github.com/stz2012/libarib25)
+* [`epgdump`](https://github.com/Piro77/epgdump)
+* [`ariblib`](https://github.com/youzaka/ariblib)
+* [`eit_txtout_mod`](https://github.com/arairait/eit_txtout_mod)
  
 流用させていただいているもの:
-* aribstr (ARIB外字)  https://github.com/Piro77/epgdump  
-* recfsusb2i (tuner<->USB 制御)  https://github.com/jeeb/recfsusb2i  
-
+* aribstr from [`epgdump`](https://github.com/Piro77/epgdump)
+* [`recfsusb2i`](https://github.com/jeeb/recfsusb2i) (tuner<->USB control)
 
 LICENSE
 ------------
