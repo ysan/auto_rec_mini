@@ -6,7 +6,7 @@ atpp
 ARIB TS Parser and Processer.
 
 最小機能のTV録画ミドルウェア。  
-小規模、軽量、簡易。  
+小規模、軽量、簡易、コマンド操作。  
   
 いまさらながら MPEG-2TSやARIBの勉強のため。 
 開発中のため環境によっては動作が安定しない可能性があります。
@@ -44,20 +44,20 @@ How to use
 ------------
 ### System requirements ###
 
-##### Tuner #####
+#### Tuner ####
 対象のチューナーは [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) です。 (S/N: K1212 以降)  
 1チューナーで地デジのみとなります。  
 （他のチューナーにも対応してきたい。）
 
-##### Dependencies #####
+#### Dependencies ####
 下記のライブラリに依存します。  
 適宜インストールをお願いします。
 
-* `libpcsclite`
+`libpcsclite`
 
 	$ sudo apt-get install pcscd libpcsclite-dev libccid pcsc-tools
 
-* `libarib25`
+`libarib25`
 
 	$ sudo apt-get install cmake
 	$ git clone https://github.com/stz2012/libarib25
@@ -68,7 +68,7 @@ How to use
 	$ make
 	$ sudo make install
 
-##### Platforms #####
+#### Platforms ####
 一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspbian`で確認済。)  
   
 メインで使用しているのは `Raspbian` Raspberry pi model B ですが、  
@@ -175,7 +175,7 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 
 ### How to use CLI ###
 
-##### Connect to command server #####
+#### Connect to command server ####
 端末から`netcat` や `telnet` で接続できます。
 `localhost` でも外部アドレスからでも接続可能です。
 `command server` はシングルクライアントとなります。
@@ -196,7 +196,7 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 	/ >
 	/ >
 
-##### channel scan #####
+#### channel scan ####
 
 	/ > cm
 	
@@ -213,7 +213,7 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 
 Component diagram
 ------------
-...
+![component diagram](https://github.com/ysan/atpp/blob/master/etc/component_diagram.png)
 
 
 Others

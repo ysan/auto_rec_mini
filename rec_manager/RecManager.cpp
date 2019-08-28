@@ -845,19 +845,21 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			_UTL_LOG_E ("(%s) retry over.", pIf->getSeqName());
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+
+			PSISI_SERVICE_INFO _svc_info ;
+			// 以下３つの要素が入っていればOK
+			_svc_info.transport_stream_id = m_recording.transport_stream_id;
+			_svc_info.original_network_id = m_recording.original_network_id;
+			_svc_info.service_id = m_recording.service_id;
+
+			CPsisiManagerIf _if (getExternalIf());
+			_if.reqGetPresentEventInfo (&_svc_info, &s_presentEventInfo);
+
+			sectId = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
+			enAct = EN_THM_ACT_WAIT;
 		}
-
-		PSISI_SERVICE_INFO _svc_info ;
-		// 以下３つの要素が入っていればOK
-		_svc_info.transport_stream_id = m_recording.transport_stream_id;
-		_svc_info.original_network_id = m_recording.original_network_id;
-		_svc_info.service_id = m_recording.service_id;
-
-		CPsisiManagerIf _if (getExternalIf());
-		_if.reqGetPresentEventInfo (&_svc_info, &s_presentEventInfo);
-
-		sectId = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
-		enAct = EN_THM_ACT_WAIT;
 
 		}
 		break;

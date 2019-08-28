@@ -6,7 +6,8 @@ atpp
 ARIB TS Parser and Processer.  
   
 Like a minimum TV recorder middleware.  
-Small, light and simple.  
+Small, light and simple, Command line interface.
+  
 feasibility study.  
 under development, in progress.
 
@@ -24,19 +25,19 @@ How to use
 ----------
 ### System requirements ###
 
-##### Tuner #####
+#### Tuner ####
 Target tuner is [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table). (S/N: K1212 later)  
 one tuner. only terrestrial digital.
 
-##### Dependencies #####
+#### Dependencies ####
 Depends on the following libraries.  
 Please install as appropriate. 
 
-* `libpcsclite`
+`libpcsclite`
 
 	$ sudo apt-get install pcscd libpcsclite-dev libccid pcsc-tools
 
-* `libarib25`
+`libarib25`
 
 	$ sudo apt-get install cmake g++
 	$ git clone https://github.com/stz2012/libarib25
@@ -47,7 +48,7 @@ Please install as appropriate.
 	$ make
 	$ sudo make install
 
-##### Platforms #####
+#### Platforms ####
 Generic Linux will be ok. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
   
 `Raspbian` Raspberry pi model B is used in the main,  
@@ -156,9 +157,9 @@ When excuting in a working directory at `Build and install`.
 
 ### How to use CLI ###
 
-##### Connect to command server #####
+#### Connect to command server ####
 At a new terminal with run `netcat` , `telnet`.  
-`localhost` or external address.
+`localhost` or external address.  
 `command server` is single client.
 
 	$ nc -C localhost 20001
@@ -177,7 +178,7 @@ At a new terminal with run `netcat` , `telnet`.
 	/ >
 	/ >
 
-##### channel scan #####
+#### channel scan ####
 
 	/ > cm
 	
