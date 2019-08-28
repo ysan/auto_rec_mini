@@ -57,7 +57,7 @@ static void _tune (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
-static void _dump_scan_results (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _dump_channels (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_UTL_LOG_W ("ignore arguments.\n");
@@ -89,9 +89,9 @@ ST_COMMAND_INFO g_chManagerCommands [] = { // extern
 		NULL,
 	},
 	{
-		"ds",
-		"dump channel scan results",
-		_dump_scan_results,
+		"d",
+		"dump channels",
+		_dump_channels,
 		NULL,
 	},
 	//-- term --//

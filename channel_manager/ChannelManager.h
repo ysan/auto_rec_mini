@@ -167,6 +167,7 @@ public:
 				iter->service_name.c_str()
 			);
 		}
+		_UTL_LOG_I ("\n");
 	}
 
 	void dump_simple (void) const {

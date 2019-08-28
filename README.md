@@ -25,33 +25,44 @@ How to use
 ### System requirements ###
 
 ##### Tuner #####
-Target tuner is KTV-FSUSB2/V3. (S/N: K1212 later)  
+Target tuner is [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table). (S/N: K1212 later)  
 one tuner. only terrestrial digital.
 
 ##### Dependencies #####
 Depends on the following libraries.  
-Please install as appropriate. I will omit it here.
+Please install as appropriate. 
+
+* `libpcsclite`
+
+	$ sudo apt-get install pcscd libpcsclite-dev libccid pcsc-tools
 
 * `libarib25`
-* `libpcsclite`
+
+	$ sudo apt-get install cmake g++
+	$ git clone https://github.com/stz2012/libarib25
+	$ cd libarib25
+	$ mkdir build
+	$ cd build
+	$ cmake ..
+	$ make
+	$ sudo make install
 
 ##### Platforms #####
 Generic Linux will be ok. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
   
-Raspberry pi model B (Raspbian) is used in the main,  
+`Raspbian` Raspberry pi model B is used in the main,  
 Packet loss occurs, block noise and image skipping are likely to occur.  
 There was a case that ts could not be taken because of insufficient power at the start of tuning.
+  
+Also using B-CAS card with IC card reader.
 
 ### Build and install ###
-`clone` and `make`.
-
-	$ git clone https://github.com/ysan/atpp
-	$ cd atpp
-	$ make
-
 When installing in a working directory.
 
 	$ mkdir -p ~/work/data
+	$ git clone https://github.com/ysan/atpp
+	$ cd atpp
+	$ make
 	$ make INSTALLDIR=~/work install
 	$ cp -p ./data/settings.json ~/work/data
 	$ cd ~/work
@@ -107,7 +118,29 @@ Please you set according to the environment.
 
 ### event_name_keywords.json ###
 
+By creating json of the following format in `m_event_name_keywords_json_path`  
+Search for programs whose keywords are included in the program name after EPG acquisition and  
+make a recording reservation.
+
+	{
+		"m_event_name_keywords": [
+			"ＸＸＸニュース",
+			"ＸＸＸスポーツ"
+		]
+	}
+
 ### extended_event_keywords.json ###
+
+By creating json of the following format in `m_extended_event_keywords_json_path`  
+Search for programs whose keywords are included in the program name after EPG acquisition and  
+make a recording reservation.
+
+	{
+		"m_extended_event_keywords": [
+			"ワールドカップ",
+			"オリンピック"
+		]
+	}
 
 ### How to run ###
 
@@ -151,7 +184,7 @@ At a new terminal with run `netcat` , `telnet`.
 	  ------ channel manager ------
 	  scan                 -- channel scan                  
 	  tr                   -- tune by remote_control_key_id (usage: tr {remote_control_key_id} )
-	  ds                   -- dump channel scan results     
+	  d                    -- dump channels
 	
 	/channel manager > 
 	/channel manager > scan
@@ -161,7 +194,7 @@ channel scan is start.
 
 Component diagram
 ------------
-...
+![component diagram](https://github.com/ysan/atpp/blob/master/etc/component_diagram.png)
 
 
 Others

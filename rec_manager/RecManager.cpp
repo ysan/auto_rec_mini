@@ -449,6 +449,8 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
+			// NOW_RECORDINGフラグは落としておきます
+			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
 			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
 			setResult (&m_recording);
 			m_recording.clear();
@@ -780,6 +782,10 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_REQ_TUNE_BY_SERVICE_ID,
 		SECTID_WAIT_TUNE_BY_SERVICE_ID,
+		SECTID_REQ_GET_PRESENT_EVENT_INFO,
+		SECTID_WAIT_GET_PRESENT_EVENT_INFO,
+		SECTID_REQ_GET_FOLLOW_EVENT_INFO,
+		SECTID_WAIT_GET_FOLLOW_EVENT_INFO,
 		SECTID_START_RECORDING,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
@@ -789,6 +795,9 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	static PSISI_EVENT_INFO s_presentEventInfo;
+	static PSISI_EVENT_INFO s_followEventInfo;
+	static int s_retry = 0;
 
 
 	switch (sectId) {
@@ -816,12 +825,160 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	case SECTID_WAIT_TUNE_BY_SERVICE_ID:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			sectId = SECTID_START_RECORDING;
+//			sectId = SECTID_START_RECORDING;
+
+			// イベント開始時間を確認します
+			sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
 			_UTL_LOG_E ("reqTuneByServiceId is failure.");
 			_UTL_LOG_E ("tune is failure  -> not start recording");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_REQ_GET_PRESENT_EVENT_INFO: {
+
+		if (s_retry >= 10) {
+			_UTL_LOG_E ("(%s) retry over.", pIf->getSeqName());
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		PSISI_SERVICE_INFO _svc_info ;
+		// 以下３つの要素が入っていればOK
+		_svc_info.transport_stream_id = m_recording.transport_stream_id;
+		_svc_info.original_network_id = m_recording.original_network_id;
+		_svc_info.service_id = m_recording.service_id;
+
+		CPsisiManagerIf _if (getExternalIf());
+		_if.reqGetPresentEventInfo (&_svc_info, &s_presentEventInfo);
+
+		sectId = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_GET_PRESENT_EVENT_INFO:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+
+			if (s_presentEventInfo.event_id == m_recording.event_id) {
+
+				if (s_presentEventInfo.start_time == m_recording.start_time) {
+					// イベント開始時間が一致しているのでこのまま録画を開始します
+					sectId = SECTID_START_RECORDING;
+					enAct = EN_THM_ACT_CONTINUE;
+
+				} else if (s_presentEventInfo.start_time > m_recording.start_time) {
+					// present event なのにありえるのか？
+					// システムの時計がくるっていたりしたらありえる
+					_UTL_LOG_E ("s_presentEventInfo.start_time > m_recording.start_time ??");
+					sectId = SECTID_END_ERROR;
+					enAct = EN_THM_ACT_CONTINUE;
+
+				} else {
+					// すでに開始時間過ぎていた このまま録画を開始します
+					sectId = SECTID_START_RECORDING;
+					enAct = EN_THM_ACT_CONTINUE;
+				}
+			} else {
+				// イベントが一致しないので follow eventを調べます
+				sectId = SECTID_REQ_GET_FOLLOW_EVENT_INFO;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
+
+		} else {
+			_UTL_LOG_E ("reqGetPresentEventInfo err");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_REQ_GET_FOLLOW_EVENT_INFO: {
+
+		PSISI_SERVICE_INFO _svc_info ;
+		// 以下３つの要素が入っていればOK
+		_svc_info.transport_stream_id = m_recording.transport_stream_id;
+		_svc_info.original_network_id = m_recording.original_network_id;
+		_svc_info.service_id = m_recording.service_id;
+
+		CPsisiManagerIf _if (getExternalIf());
+		_if.reqGetFollowEventInfo (&_svc_info, &s_followEventInfo);
+
+		sectId = SECTID_WAIT_GET_FOLLOW_EVENT_INFO;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_GET_FOLLOW_EVENT_INFO:
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+
+			if (s_followEventInfo.event_id == m_recording.event_id) {
+
+				if (s_followEventInfo.start_time == m_recording.start_time) {
+					// (おそらく psisi mgr側でまだcasheできてない場合)
+					// イベント開始時間が一致している もう一度 present eventを調べます
+					++ s_retry;
+					pIf->setTimeout (100);
+					sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
+					enAct = EN_THM_ACT_WAIT;
+
+				} else if (s_followEventInfo.start_time > m_recording.start_time) {
+					_UTL_LOG_I (
+						"#####  event start time is delayed.  [%s] -> [%s]  #####",
+						m_recording.start_time.toString (),
+						s_followEventInfo.start_time.toString ()
+					);
+
+					// イベント開始時間が遅れた
+					// 予約入れなおします
+					bool r = addReserve (
+									m_recording.transport_stream_id,
+									m_recording.original_network_id,
+									m_recording.service_id,
+									m_recording.event_id,
+									&s_followEventInfo.start_time, // 開始時間を更新
+									&s_followEventInfo.end_time, // 終了時間も変わってるかもしれないので更新
+									m_recording.title_name.c_str(),
+									m_recording.service_name.c_str(),
+									true, // is_event_type true
+									m_recording.repeatability
+   								);
+					if (r) {
+						// 録画は行いません
+						m_recording.clear();
+
+						sectId = SECTID_END_SUCCESS;
+						enAct = EN_THM_ACT_CONTINUE;
+
+					} else {
+						sectId = SECTID_END_ERROR;
+						enAct = EN_THM_ACT_CONTINUE;
+					}
+
+				} else {
+					// follow event なのにありえるのか？
+					// システムの時計がくるっていたりしたらありえる
+					_UTL_LOG_E ("s_followEventInfo.start_time > m_recording.start_time ??");
+					sectId = SECTID_END_ERROR;
+					enAct = EN_THM_ACT_CONTINUE;
+				}
+
+			} else {
+				// イベントが一致しないのでもう一度 present eventを調べます
+				++ s_retry;
+				pIf->setTimeout (100);
+				sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
+				enAct = EN_THM_ACT_WAIT;
+			}
+
+		} else {
+			_UTL_LOG_E ("reqGetFollowEventInfo err");
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -867,12 +1024,20 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	case SECTID_END_SUCCESS:
 
+		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+		memset (&s_followEventInfo, 0x00, sizeof(s_followEventInfo));
+		s_retry = 0;
+
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		break;
 
 	case SECTID_END_ERROR:
+
+		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+		memset (&s_followEventInfo, 0x00, sizeof(s_followEventInfo));
+		s_retry = 0;
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
@@ -2048,6 +2213,10 @@ void CRecManager::checkReserves (void)
 			if (!m_recording.is_used) {
 				// 録画中でなければ 録画開始フラグ立てます
 				m_reserves [i].state |= RESERVE_STATE__REQ_START_RECORDING;
+
+				// 見つかったのでbreakします。
+				// 同時刻で予約が入っていた場合 配列の並び順で先の方を録画開始します
+				break;
 			}
 		}
 	}
