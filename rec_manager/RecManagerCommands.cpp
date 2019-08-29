@@ -516,6 +516,23 @@ static void dump_results (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void dump_recording (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_UTL_LOG_W ("ignore arguments.\n");
+	}
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CRecManagerIf mgr(pBase->getExternalIf());
+	mgr.reqDumpReserves (2);
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
 
 
 ST_COMMAND_INFO g_recManagerCommands [] = { // extern
@@ -580,6 +597,12 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 		"drl",
 		"dump results",
 		dump_results,
+		NULL,
+	},
+	{
+		"drec",
+		"dump recording",
+		dump_recording,
 		NULL,
 	},
 	//-- term --//

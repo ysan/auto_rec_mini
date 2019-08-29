@@ -19,12 +19,12 @@ Features
 * 地デジ チャンネルスキャン
 * 録画 及び 録画予約
   * 予約は50件まで。
-  * イベント追従可能。（終了時刻のみ。）
+  * イベント追従。
   * 予約時間が被っている場合は先に録画していたものが終わり次第、次の録画を行います。
   * EPG取得後に指定したキーワードを検索し録画予約を行います。
 * EPG
   * 定時EPG取得を行います。
-* コマンドライン インターフェース
+* コマンドラインインターフェース (CLI)
   * `telnet`や`netcat`等で`command server`に接続して、各機能にアクセスするコマンドの実行等を行います。
 
 Future tasks
@@ -75,7 +75,7 @@ How to use
 パケットロスが起こり、ブロックノイズ、画飛びが起きやすいです。  
 また選局開始時に電力が足りないせいかtsが取れないケースがありました。  
   
-またICカードリーダでB-CASカードを使用しています。
+B-CASカードは別途USB接続のICカードリーダを用意して使用しています。
 
 ### Build and install ###
 作業ディレクトリにインストールする場合。
@@ -137,7 +137,7 @@ How to use
 | `m_event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
 | `m_extended_event_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
 
-### event_name_keywords.json ###
+#### m_event_name_keywords_json_path ####
 
 `m_extended_event_keywords_json_path` に下記形式の json を作成することにより    
 EPG取得後に番組名にキーワードが含まれる番組を検索して録画予約を入れます。
@@ -149,7 +149,7 @@ EPG取得後に番組名にキーワードが含まれる番組を検索して�
 	    ]
 	}
 
-### extended_event_keywords.json ###
+#### m_extended_event_keywords_json_path ####
 
 `m_extended_event_keywords_json_path` に下記形式の json を作成することにより  
 EPG取得後に番組詳細にキーワードが含まれる番組を検索して録画予約を入れます。

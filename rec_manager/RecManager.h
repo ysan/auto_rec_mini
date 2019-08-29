@@ -273,6 +273,7 @@ private:
 	void checkRepeatability (const CRecReserve *p_reserve);
 	void dumpReserves (void);
 	void dumpResults (void);
+	void dumpRecording (void);
 	void clearReserves (void);
 	void clearResults (void);
 

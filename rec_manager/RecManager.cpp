@@ -1816,6 +1816,10 @@ void CRecManager::onReq_dumpReserves (CThreadMgrIf *pIf)
 		dumpResults();
 		break;
 
+	case 2:
+		dumpRecording();
+		break;
+
 	default:
 		break;
 	}
@@ -1977,6 +1981,12 @@ bool CRecManager::addReserve (
 	);
 
 
+	_UTL_LOG_I ("###########################");
+	_UTL_LOG_I ("####    add reserve    ####");
+	_UTL_LOG_I ("###########################");
+	p_reserve->dump();
+
+
 	// 毎回書き込み
 	saveReserves ();
 
@@ -2038,9 +2048,10 @@ bool CRecManager::removeReserve (int index, bool isConsiderRepeatability, bool i
 		setResult (&m_reserves[index]);
 	}
 
-	_UTL_LOG_I ("####    remove reserve    ####");
-	m_reserves [index].dump();
 	_UTL_LOG_I ("##############################");
+	_UTL_LOG_I ("####    remove reserve    ####");
+	_UTL_LOG_I ("##############################");
+	m_reserves [index].dump();
 
 	if (isConsiderRepeatability) {
 		checkRepeatability (&m_reserves[index]);
@@ -2416,11 +2427,6 @@ void CRecManager::dumpReserves (void)
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
-	if (m_recording.is_used) {
-		_UTL_LOG_I ("-----------   now recording   -----------");
-		m_recording.dump();
-		_UTL_LOG_I ("\n");
-	}
 	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
 		if (m_reserves [i].is_used) {
 			_UTL_LOG_I ("-----------------------------------------");
@@ -2439,6 +2445,19 @@ void CRecManager::dumpResults (void)
 			_UTL_LOG_I ("-----------------------------------------");
 			m_results [i].dump();
 		}
+	}
+}
+
+void CRecManager::dumpRecording (void)
+{
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+
+	if (m_recording.is_used) {
+		_UTL_LOG_I ("-----------   now recording   -----------");
+		m_recording.dump();
+		_UTL_LOG_I ("\n");
+	} else {
+		_UTL_LOG_I ("not recording now...");
 	}
 }
 

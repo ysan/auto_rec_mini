@@ -6,7 +6,7 @@ atpp
 ARIB TS Parser and Processer.  
   
 Like a minimum TV recorder middleware.  
-Small, light and simple, Command line interface.
+Small, light and simple, command line interface.
   
 feasibility study.  
 under development, in progress.
@@ -117,7 +117,7 @@ Please you set according to the environment.
 | `m_event_name_keywords_json_path` | load destination of keywords for `event name` search. |
 | `m_extended_event_keywords_json_path` | load destination of keywords for `extended event` search. |
 
-### event_name_keywords.json ###
+#### m_event_name_keywords_json_path ####
 
 By creating json of the following format in `m_event_name_keywords_json_path`  
 Search for programs whose keywords are included in the program name after EPG acquisition and  
@@ -130,7 +130,7 @@ make a recording reservation.
 		]
 	}
 
-### extended_event_keywords.json ###
+#### m_extended_event_keywords_json_path ####
 
 By creating json of the following format in `m_extended_event_keywords_json_path`  
 Search for programs whose keywords are included in the program name after EPG acquisition and  
