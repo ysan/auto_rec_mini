@@ -8,7 +8,7 @@ ARIB TS Parser and Processer.
 最小機能のTV録画ミドルウェア。  
 小規模、軽量、簡易、コマンド操作。  
   
-いまさらながら MPEG-2TSやARIBの勉強のため。 
+いまさらながら MPEG-2TSやARIBの勉強のため。  
 開発中のため環境によっては動作が安定しない可能性があります。
 
 
@@ -35,11 +35,6 @@ Future tasks
 * 複数チューナー、BS/CS対応したい。
 
 
-Build and install
-------------
-...
-
-
 How to use
 ------------
 ### System requirements ###
@@ -51,13 +46,13 @@ How to use
 
 #### Dependencies ####
 下記のライブラリに依存します。  
-適宜インストールをお願いします。
-
-`libpcsclite`
+適宜インストールをお願いします。  
+  
+libpcsclite
 
 	$ sudo apt-get install pcscd libpcsclite-dev libccid pcsc-tools
 
-`libarib25`
+libarib25
 
 	$ sudo apt-get install cmake
 	$ git clone https://github.com/stz2012/libarib25
@@ -121,7 +116,7 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 
 | item | description |
 |:-----|:------------|
-| `m_is_syslog_output` | ログを`syslog`に出力するかどうかを切り替えます。 `syslog facility`は`user`です。 |
+| `m_is_syslog_output` | ログを`syslog`に出力するかどうかを切り替えます。 |
 | `m_command_server_port` | `command server` の待受ポートです。 |
 | `m_channels_json_path` | チャンネルスキャン結果の書き込み/読み込み先パスです。 |
 | `m_rec_reserves_json_path` | 録画予約リストの書き込み/読み込み先パスです。 |
@@ -136,6 +131,19 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 | `m_event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
 | `m_event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
 | `m_extended_event_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
+
+#### m_is_syslog_output ####
+`syslog facirity`を`user`設定することで、ログを`/var/log/user.log`に出力できます。 
+`/etc/rsyslog.d/50-default.conf`を編集する必要があります。(`ubuntu16.04`の場合)
+
+	9c9
+	< *.*;auth,authpriv.none        -/var/log/syslog
+	---
+	> *.*;auth,authpriv.none,user.none      -/var/log/syslog
+	15c15
+	< #user.*               -/var/log/user.log
+	---
+	> user.*                -/var/log/user.log
 
 #### m_event_name_keywords_json_path ####
 
@@ -229,7 +237,7 @@ Others
 * [`eit_txtout_mod`](https://github.com/arairait/eit_txtout_mod)
  
 流用させていただいているもの:
-* aribstr from [`epgdump`](https://github.com/Piro77/epgdump)
+* aribstr of [`epgdump`](https://github.com/Piro77/epgdump)
 * [`recfsusb2i`](https://github.com/jeeb/recfsusb2i) (tuner<->USB control)
 
 LICENSE

@@ -31,13 +31,13 @@ one tuner. only terrestrial digital.
 
 #### Dependencies ####
 Depends on the following libraries.  
-Please install as appropriate. 
-
-`libpcsclite`
+Please install as appropriate.  
+  
+libpcsclite
 
 	$ sudo apt-get install pcscd libpcsclite-dev libccid pcsc-tools
 
-`libarib25`
+libarib25
 
 	$ sudo apt-get install cmake g++
 	$ git clone https://github.com/stz2012/libarib25
@@ -101,7 +101,7 @@ Please you set according to the environment.
 
 | item | description |
 |:-----|:------------|
-| `m_is_syslog_output` | switch whether to output log to `syslog`. `syslog facility` is `user`. |
+| `m_is_syslog_output` | switch whether to output log to `syslog`. |
 | `m_command_server_port` | `command server` listen port. |
 | `m_channels_json_path` | save/load destination of channel scan result. |
 | `m_rec_reserves_json_path` | save/load destination of recording reservation. |
@@ -116,6 +116,19 @@ Please you set according to the environment.
 | `m_event_schedule_cache_histories_json_path` | save/load destination of EPG cache history. |
 | `m_event_name_keywords_json_path` | load destination of keywords for `event name` search. |
 | `m_extended_event_keywords_json_path` | load destination of keywords for `extended event` search. |
+
+#### m_is_syslog_output ####
+Logs can be output to `/var/log/user.log` by setting the `syslog facility` is `user`.  
+You need modify `/etc/rsyslog.d/50-default.conf`. (for `ubuntu16.04`)
+
+	9c9
+	< *.*;auth,authpriv.none		-/var/log/syslog
+	---
+	> *.*;auth,authpriv.none,user.none		-/var/log/syslog
+	15c15
+	< #user.*				-/var/log/user.log
+	---
+	> user.*				-/var/log/user.log
 
 #### m_event_name_keywords_json_path ####
 
@@ -210,7 +223,7 @@ The following repositories are referred to the parser.
 * [`eit_txtout_mod`](https://github.com/arairait/eit_txtout_mod)
   
 What is being used:  
-* aribstr from [`epgdump`](https://github.com/Piro77/epgdump)
+* aribstr of [`epgdump`](https://github.com/Piro77/epgdump)
 * [`recfsusb2i`](https://github.com/jeeb/recfsusb2i) (tuner<->USB control)
 
 
