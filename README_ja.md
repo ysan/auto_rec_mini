@@ -133,8 +133,8 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 | `m_extended_event_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
 
 #### m_is_syslog_output ####
-`syslog facirity`を`user`設定することで、ログを`/var/log/user.log`に出力できます。 
-`/etc/rsyslog.d/50-default.conf`を編集する必要があります。(`ubuntu16.04`の場合)
+`syslog facirity` を `user` に設定することで、ログを `/var/log/user.log` に出力できます。  
+以下 `/etc/rsyslog.d/50-default.conf` を編集する必要があります。(`ubuntu16.04`の場合)
 
 	9c9
 	< *.*;auth,authpriv.none        -/var/log/syslog

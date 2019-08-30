@@ -205,9 +205,18 @@ public:
 		_UTL_LOG_I ("service_name:[%s]", service_name.c_str());
 
 		if (state != RESERVE_STATE__INIT) {
-			struct timespec d = recording_end_time - recording_start_time;
-			CEtime::CDiff diff (&d);
-			_UTL_LOG_I ("recording_time:[%s]", diff.toString());
+			if (state & RESERVE_STATE__NOW_RECORDING) {
+				CEtime _cur;
+				_cur.setCurrentTime ();
+				struct timespec d = _cur - recording_start_time;
+				CEtime::CDiff diff (&d);
+				_UTL_LOG_I ("recording_time:[%s]", diff.toString());
+
+			} else {
+				struct timespec d = recording_end_time - recording_start_time;
+				CEtime::CDiff diff (&d);
+				_UTL_LOG_I ("recording_time:[%s]", diff.toString());
+			}
 		}
 	}
 };
