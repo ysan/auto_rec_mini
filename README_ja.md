@@ -11,6 +11,8 @@ ARIB TS Parser and Processer.
 いまさらながら MPEG-2TSやARIBの勉強のため。  
 開発中のため環境によっては動作が安定しない可能性があります。
 
+![demo](https://github.com/ysan/atpp/blob/master/etc/demo.gif)
+
 
 Features
 ------------ 

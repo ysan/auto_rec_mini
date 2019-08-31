@@ -11,6 +11,8 @@ Small, light and simple, command line interface.
 feasibility study.  
 under development, in progress.
 
+![demo](https://github.com/ysan/atpp/blob/master/etc/demo.gif)
+
 
 Features
 ------------ 
