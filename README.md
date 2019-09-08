@@ -25,7 +25,7 @@ Features
 * EPG
   * 定時EPG取得を行います。
 * コマンドラインインターフェース (CLI)
-  * `telnet`や`netcat`等で`command server`に接続して、各機能にアクセスするコマンドの実行等を行います。
+  * `netcat`や`telnet`等で`command server`に接続して、各機能にアクセスするコマンドの実行等を行います。
 
 Future tasks
 ------------
@@ -130,7 +130,7 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 | `m_event_schedule_cache_timeout_min` | EPG取得タイムアウト時間。(分) |
 | `m_event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
 | `m_event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
-| `m_extended_event_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
+| `m_extended_event_keywords_json_path` | `extended event` 検索のキーワードリストの読み込み先パスです。 |
 
 #### m_is_syslog_output ####
 `syslog facirity` を `user` に設定することで、ログを `/var/log/user.log` に出力できます。  
@@ -147,7 +147,7 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 
 #### m_event_name_keywords_json_path ####
 
-`m_extended_event_keywords_json_path` に下記形式の json を作成することにより    
+`m_event_name_keywords_json_path` に下記形式の json を作成することにより    
 EPG取得後に番組名にキーワードが含まれる番組を検索して録画予約を入れます。
 
 	{
@@ -178,15 +178,16 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 	$ export LD_LIBRARY_PATH=./lib/auto_rec_mini
 	$ sudo ./bin/auto_rec_mini ./data/settings.json &
 
-`auto_rec_mini` は起動して、チューナーを使用する準備ができた状態になります。  
-`command server` はポート20001で接続を待ち受けています。
+以上で `auto_rec_mini` は起動して、チューナーを使用する準備ができた状態になります。  
+`command server` はポート20001で接続を待ち受けています。  
+最初に下記コマンドからチャンネルスキャンの実施お願いします。  
 
 ### How to use CLI ###
 
 #### Connect to command server ####
-端末から`netcat` や `telnet` で接続できます。
-`localhost` でも外部アドレスからでも接続可能です。
-`command server` はシングルクライアントとなります。
+端末から`netcat` や `telnet` で接続できます。  
+`localhost` でも外部アドレスからでも接続可能です。  
+また `command server` はシングルクライアントとなります。  
 
 	$ nc -C localhost 20001
 	
@@ -216,7 +217,7 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 	/channel manager > 
 	/channel manager > scan
 
-チャンネルスキャンが開始します。
+以上でチャンネルスキャンが開始します。
 
 
 Component diagram

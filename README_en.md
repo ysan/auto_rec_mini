@@ -166,7 +166,8 @@ When excuting in a working directory at `Build and install`.
 	$ sudo ./bin/auto_rec_mini ./data/settings.json &
 
 `auto_rec_mini` process is up and ready to use the tuner.  
-`command server` is listening for connections on port 20001.
+`command server` is listening for connections on port 20001.  
+First, please execute the channel scan from the following command.
 
 ### How to use CLI ###
 
