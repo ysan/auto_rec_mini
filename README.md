@@ -1,47 +1,69 @@
-[Japanese](/README_ja.md)
+[English](/README_en.md)
 
-atpp
+auto_rec_mini
 ===============
 
-ARIB TS Parser and Processer.  
+最小機能のTV録画ミドルウェア。  
+小規模、軽量、簡易、コマンド操作。  
   
-Like a minimum TV recorder middleware.  
-Small, light and simple, command line interface.
-  
-feasibility study.  
-under development, in progress.
+いまさらながら MPEG-2TSやARIBの勉強のため。  
+開発中のため環境によっては動作が安定しない可能性があります。
 
-![demo](https://github.com/ysan/atpp/blob/master/etc/demo.gif)
+![demo](https://github.com/ysan/auto_rec_mini/blob/master/etc/demo.gif)
 
 
 Features
 ------------ 
-* Tuning. (one tuner. only terrestrial digital.)
-* Channel scan.
-* Recording and recording reservation. (keyword search)
-* EPG.
-* Command line interface. (connect via telnet. port 20001)
-  
+* 選局
+  * 1チューナー、地デジのみとなります。(チューナー：[`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table))
+* 地デジ チャンネルスキャン
+* 録画 及び 録画予約
+  * 予約は50件まで。
+  * イベント追従。
+  * 予約時間が被っている場合は先に録画していたものが終わり次第、次の録画を行います。
+  * EPG取得後に指定したキーワードを検索し録画予約を行います。
+* EPG
+  * 定時EPG取得を行います。
+* コマンドラインインターフェース (CLI)
+  * `telnet`や`netcat`等で`command server`に接続して、各機能にアクセスするコマンドの実行等を行います。
+
+Future tasks
+------------
+* 現状は録画、EPG等のチューナーを使う機能間の排他ができてない。その実装を対応する。
+* データ放送のBMLの取得を行う。 (dsmccの実装)
+* libarib25で行っているPMT周りの実装の勉強、と実装を取り込みたい。
+* 複数チューナー、BS/CS対応したい。
+
 
 How to use
-----------
+------------
 ### System requirements ###
 
 #### Tuner ####
-Target tuner is [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table). (S/N: K1212 later)  
-one tuner. only terrestrial digital.
+対象のチューナーは [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) です。 (S/N: K1212 以降)  
+1チューナーで地デジのみとなります。  
+（他のチューナーにも対応してきたい。）
+
+#### Platforms ####
+一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspbian`で確認済。)  
+  
+~~メインで使用しているのは `Raspbian` Raspberry pi model B ですが、  
+パケットロスが起こり、ブロックノイズ、画飛びが起きやすいです。  
+また選局開始時に電力が足りないせいかtsが取れないケースがありました。~~
+  
+B-CASカードは別途USB接続のICカードリーダを用意して使用しています。
 
 #### Dependencies ####
-Depends on the following libraries.  
-Please install as appropriate.  
+下記のライブラリに依存します。  
+適宜インストールをお願いします。  
   
-libpcsclite
+*libpcsclite*
 
 	$ sudo apt-get install pcscd libpcsclite-dev libccid pcsc-tools
 
-libarib25
+*libarib25*
 
-	$ sudo apt-get install cmake g++
+	$ sudo apt-get install cmake
 	$ git clone https://github.com/stz2012/libarib25
 	$ cd libarib25
 	$ mkdir build
@@ -50,21 +72,12 @@ libarib25
 	$ make
 	$ sudo make install
 
-#### Platforms ####
-Generic Linux will be ok. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
-  
-`Raspbian` Raspberry pi model B is used in the main,  
-Packet loss occurs, block noise and image skipping are likely to occur.  
-There was a case that ts could not be taken because of insufficient power at the start of tuning.
-  
-Also using B-CAS card with IC card reader.
-
 ### Build and install ###
-When installing in a working directory.
+作業ディレクトリにインストールする場合。
 
 	$ mkdir -p ~/work/data
-	$ git clone https://github.com/ysan/atpp
-	$ cd atpp
+	$ git clone https://github.com/ysan/auto_rec_mini
+	$ cd auto_rec_mini
 	$ make
 	$ make INSTALLDIR=~/work install
 	$ cp -p ./data/settings.json ~/work/data
@@ -72,11 +85,11 @@ When installing in a working directory.
 	$ tree
 	.
 	├── bin
-	│   └── atpp
+	│   └── auto_rec_mini
 	├── data
 	│   └── settings.json
 	└── lib
-	   	└── atpp
+	   	└── auto_rec_mini
 	        ├── libchannelmanager.so
 	        ├── libcommandserver.so
 	        ├── libcommon.so
@@ -97,85 +110,83 @@ When installing in a working directory.
 
 ### settings.json ###
 
-`settings.json` is a configuration file.  
-Read at `atpp` process startup.  
-Please you set according to the environment.
+`settings.json`は設定ファイルです。  
+`auto_rec_mini` プロセスの起動時に読み込みます。  
+環境に合わせて設定してください。
 
 | item | description |
 |:-----|:------------|
-| `m_is_syslog_output` | switch whether to output log to `syslog`. |
-| `m_command_server_port` | `command server` listen port. |
-| `m_channels_json_path` | save/load destination of channel scan result. |
-| `m_rec_reserves_json_path` | save/load destination of recording reservation. |
-| `m_rec_results_json_path` | save/load destination of recording result. |
-| `m_rec_ts_path` | save destination of recording stream. |
+| `m_is_syslog_output` | ログを`syslog`に出力するかどうかを切り替えます。 |
+| `m_command_server_port` | `command server` の待受ポートです。 |
+| `m_channels_json_path` | チャンネルスキャン結果の書き込み/読み込み先パスです。 |
+| `m_rec_reserves_json_path` | 録画予約リストの書き込み/読み込み先パスです。 |
+| `m_rec_results_json_path` | 録画結果リストの書き込み/読み込み先パスです。 |
+| `m_rec_ts_path` | 録画ストリームの保存先パスです。(.m2ts) |
 | `m_dummy_tuner_ts_path` | unused |
-| `m_event_schedule_cache_is_enable` | switch to enable EPG. |
-| `m_event_schedule_cache_start_interval_day` | EPG cache execution interval date. |
-| `m_event_schedule_cache_start_hour` | EPG cache start time. (hour) |
-| `m_event_schedule_cache_start_min` | EPG cache start time. (minute) |
-| `m_event_schedule_cache_timeout_min` | EPG cache timeout minute. |
-| `m_event_schedule_cache_histories_json_path` | save/load destination of EPG cache history. |
-| `m_event_name_keywords_json_path` | load destination of keywords for `event name` search. |
-| `m_extended_event_keywords_json_path` | load destination of keywords for `extended event` search. |
+| `m_event_schedule_cache_is_enable` | EPGを有効にするスイッチ。 |
+| `m_event_schedule_cache_start_interval_day` | EPG取得の間隔日。 |
+| `m_event_schedule_cache_start_hour` | EPG取得の開始時間。(何時) |
+| `m_event_schedule_cache_start_min` | EPG取得の開始時間。 (何分) |
+| `m_event_schedule_cache_timeout_min` | EPG取得タイムアウト時間。(分) |
+| `m_event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
+| `m_event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
+| `m_extended_event_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
 
 #### m_is_syslog_output ####
-Logs can be output to `/var/log/user.log` by setting the `syslog facility` is `user`.  
-You need modify `/etc/rsyslog.d/50-default.conf`. (for `ubuntu16.04`)
+`syslog facirity` を `user` に設定することで、ログを `/var/log/user.log` に出力できます。  
+以下 `/etc/rsyslog.d/50-default.conf` を編集する必要があります。(`ubuntu16.04`の場合)
 
 	9c9
-	< *.*;auth,authpriv.none		-/var/log/syslog
+	< *.*;auth,authpriv.none        -/var/log/syslog
 	---
-	> *.*;auth,authpriv.none,user.none		-/var/log/syslog
+	> *.*;auth,authpriv.none,user.none      -/var/log/syslog
 	15c15
-	< #user.*				-/var/log/user.log
+	< #user.*               -/var/log/user.log
 	---
-	> user.*				-/var/log/user.log
+	> user.*                -/var/log/user.log
 
 #### m_event_name_keywords_json_path ####
 
-By creating json of the following format in `m_event_name_keywords_json_path`  
-Search for programs whose keywords are included in the program name after EPG acquisition and  
-make a recording reservation.
+`m_extended_event_keywords_json_path` に下記形式の json を作成することにより    
+EPG取得後に番組名にキーワードが含まれる番組を検索して録画予約を入れます。
 
 	{
-		"m_event_name_keywords": [
-			"ＸＸＸニュース",
-			"ＸＸＸスポーツ"
-		]
+	    "m_event_name_keywords": [
+	        "ＸＸＸニュース",
+	        "ＸＸＸスポーツ"
+	    ]
 	}
 
 #### m_extended_event_keywords_json_path ####
 
-By creating json of the following format in `m_extended_event_keywords_json_path`  
-Search for programs whose keywords are included in the program name after EPG acquisition and  
-make a recording reservation.
+`m_extended_event_keywords_json_path` に下記形式の json を作成することにより  
+EPG取得後に番組詳細にキーワードが含まれる番組を検索して録画予約を入れます。
 
 	{
-		"m_extended_event_keywords": [
-			"ワールドカップ",
-			"オリンピック"
-		]
+	    "m_extended_event_keywords": [
+	        "ワールドカップ",
+	        "オリンピック"
+	    ]
 	}
 
 ### How to run ###
 
-When excuting in a working directory at `Build and install`.  
-(You need root to run it.)
+`Build and install`でインストールした作業ディレクトリで実行する場合。  
+（※実行するにはrootが必要です。）
 
 	$ cd ~/work
-	$ export LD_LIBRARY_PATH=./lib/atpp
-	$ sudo ./bin/atpp ./data/settings.json &
+	$ export LD_LIBRARY_PATH=./lib/auto_rec_mini
+	$ sudo ./bin/auto_rec_mini ./data/settings.json &
 
-`atpp` process is up and ready to use the tuner.  
-`command server` is listening for connections on port 20001.
+`auto_rec_mini` は起動して、チューナーを使用する準備ができた状態になります。  
+`command server` はポート20001で接続を待ち受けています。
 
 ### How to use CLI ###
 
 #### Connect to command server ####
-At a new terminal with run `netcat` , `telnet`.  
-`localhost` or external address.  
-`command server` is single client.
+端末から`netcat` や `telnet` で接続できます。
+`localhost` でも外部アドレスからでも接続可能です。
+`command server` はシングルクライアントとなります。
 
 	$ nc -C localhost 20001
 	
@@ -205,31 +216,31 @@ At a new terminal with run `netcat` , `telnet`.
 	/channel manager > 
 	/channel manager > scan
 
-channel scan is start.
+チャンネルスキャンが開始します。
 
 
 Component diagram
 ------------
-![component diagram](https://github.com/ysan/atpp/blob/master/etc/component_diagram.png)
+![component diagram](https://github.com/ysan/auto_rec_mini/blob/master/etc/component_diagram.png)
 
 
 Others
 ------------
-Setting value etc. Have static data by using [`cereal`](https://github.com/USCiLab/cereal) json serializer.  
-(no use DB.)
-  
-The following repositories are referred to the parser.  
+設定値などの静的データの読み込み/書き込みは [`cereal`](https://github.com/USCiLab/cereal) のjsonシリアライザを使用しています。  
+(現状DBは使用していません。)
+
+
+パーサー周りは以下のレポジトリ様を参考にさせていただいています:
 * [`libarib25`](https://github.com/stz2012/libarib25)
 * [`epgdump`](https://github.com/Piro77/epgdump)
 * [`ariblib`](https://github.com/youzaka/ariblib)
 * [`eit_txtout_mod`](https://github.com/arairait/eit_txtout_mod)
-  
-What is being used:  
+ 
+流用させていただいているもの:
 * aribstr of [`epgdump`](https://github.com/Piro77/epgdump)
 * [`recfsusb2i`](https://github.com/jeeb/recfsusb2i) (tuner<->USB control)
 
-
 LICENSE
 ------------
-It becomes GPL depending on the license of the source code imported from the outside.
+流用しているコードがGPLとなっていますので、それに従っています。
 

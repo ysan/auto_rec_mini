@@ -65,7 +65,7 @@ SUBDIRS		:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	atpp
+TARGET_NAME	:=	auto_rec_mini
 
 #
 #   Target type

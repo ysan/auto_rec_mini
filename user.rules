@@ -7,5 +7,5 @@ CFLAGS				+=	-D_LOG_COLOR_OFF
 endif
 
 
-INSTALLDIR_BASE		:=	atpp
+INSTALLDIR_BASE		:=	auto_rec_mini
 
