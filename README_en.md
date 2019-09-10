@@ -9,6 +9,7 @@ Small, light and simple, command line interface.
 feasibility study.  
 under development, in progress.
 
+
 ![demo](https://github.com/ysan/auto_rec_mini/blob/master/etc/demo.gif)
 
 
@@ -101,23 +102,23 @@ Please you set according to the environment.
 
 | item | description |
 |:-----|:------------|
-| `m_is_syslog_output` | switch whether to output log to `syslog`. |
-| `m_command_server_port` | `command server` listen port. |
-| `m_channels_json_path` | save/load destination of channel scan result. |
-| `m_rec_reserves_json_path` | save/load destination of recording reservation. |
-| `m_rec_results_json_path` | save/load destination of recording result. |
-| `m_rec_ts_path` | save destination of recording stream. |
-| `m_dummy_tuner_ts_path` | unused |
-| `m_event_schedule_cache_is_enable` | switch to enable EPG. |
-| `m_event_schedule_cache_start_interval_day` | EPG cache execution interval date. |
-| `m_event_schedule_cache_start_hour` | EPG cache start time. (hour) |
-| `m_event_schedule_cache_start_min` | EPG cache start time. (minute) |
-| `m_event_schedule_cache_timeout_min` | EPG cache timeout minute. |
-| `m_event_schedule_cache_histories_json_path` | save/load destination of EPG cache history. |
-| `m_event_name_keywords_json_path` | load destination of keywords for `event name` search. |
-| `m_extended_event_keywords_json_path` | load destination of keywords for `extended event` search. |
+| `is_syslog_output` | switch whether to output log to `syslog`. |
+| `command_server_port` | `command server` listen port. |
+| `channels_json_path` | save/load destination of channel scan result. |
+| `rec_reserves_json_path` | save/load destination of recording reservation. |
+| `rec_results_json_path` | save/load destination of recording result. |
+| `rec_ts_path` | save destination of recording stream. |
+| `dummy_tuner_ts_path` | unused |
+| `event_schedule_cache_is_enable` | switch to enable EPG. |
+| `event_schedule_cache_start_interval_day` | EPG cache execution interval date. |
+| `event_schedule_cache_start_hour` | EPG cache start time. (hour) |
+| `event_schedule_cache_start_min` | EPG cache start time. (minute) |
+| `event_schedule_cache_timeout_min` | EPG cache timeout minute. |
+| `event_schedule_cache_histories_json_path` | save/load destination of EPG cache history. |
+| `event_name_keywords_json_path` | load destination of keywords for `event name` search. |
+| `extended_event_keywords_json_path` | load destination of keywords for `extended event` search. |
 
-#### m_is_syslog_output ####
+#### is_syslog_output ####
 Logs can be output to `/var/log/user.log` by setting the `syslog facility` is `user`.  
 You need modify `/etc/rsyslog.d/50-default.conf`. (case `ubuntu16.04`)
 
@@ -130,29 +131,33 @@ You need modify `/etc/rsyslog.d/50-default.conf`. (case `ubuntu16.04`)
 	---
 	> user.*				-/var/log/user.log
 
-#### m_event_name_keywords_json_path ####
+#### event_name_keywords_json_path ####
 
-By creating json of the following format in `m_event_name_keywords_json_path`  
+By creating json of the following format in `event_name_keywords_json_path`  
 Search for programs whose keywords are included in the program name after EPG acquisition and  
-make a recording reservation.
+make a recording reservation.  
+No limit to the number of keywords.
 
 	{
 		"m_event_name_keywords": [
 			"ＸＸＸニュース",
-			"ＸＸＸスポーツ"
+			"ＸＸＸスポーツ",
+			"ＸＸＸ報道"
 		]
 	}
 
-#### m_extended_event_keywords_json_path ####
+#### extended_event_keywords_json_path ####
 
-By creating json of the following format in `m_extended_event_keywords_json_path`  
+By creating json of the following format in `extended_event_keywords_json_path`  
 Search for programs whose keywords are included in the program name after EPG acquisition and  
-make a recording reservation.
+make a recording reservation.  
+No limit to the number of keywords.
 
 	{
 		"m_extended_event_keywords": [
-			"ワールドカップ",
-			"オリンピック"
+			"ＸＸＸワールドカップ",
+			"ＸＸＸオリンピック",
+			"ＸＸＸ野球"
 		]
 	}
 

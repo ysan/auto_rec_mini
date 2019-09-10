@@ -6,8 +6,9 @@ auto_rec_mini
 最小機能のTV録画ミドルウェア。  
 小規模、軽量、簡易、コマンド操作。  
   
-いまさらながら MPEG-2TSやARIBの勉強のため。  
+MPEG-2TSやARIBの勉強のため。  
 開発中のため環境によっては動作が安定しない可能性があります。
+
 
 ![demo](https://github.com/ysan/auto_rec_mini/blob/master/etc/demo.gif)
 
@@ -26,13 +27,6 @@ Features
   * 定時EPG取得を行います。
 * コマンドラインインターフェース (CLI)
   * `netcat`や`telnet`等で`command server`に接続して、各機能にアクセスするコマンドの実行等を行います。
-
-Future tasks
-------------
-* 現状は録画、EPG等のチューナーを使う機能間の排他ができてない。その実装を対応する。
-* データ放送のBMLの取得を行う。 (dsmccの実装)
-* libarib25で行っているPMT周りの実装の勉強、と実装を取り込みたい。
-* 複数チューナー、BS/CS対応したい。
 
 
 How to use
@@ -116,23 +110,23 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 
 | item | description |
 |:-----|:------------|
-| `m_is_syslog_output` | ログを`syslog`に出力するかどうかを切り替えます。 |
-| `m_command_server_port` | `command server` の待受ポートです。 |
-| `m_channels_json_path` | チャンネルスキャン結果の書き込み/読み込み先パスです。 |
-| `m_rec_reserves_json_path` | 録画予約リストの書き込み/読み込み先パスです。 |
-| `m_rec_results_json_path` | 録画結果リストの書き込み/読み込み先パスです。 |
-| `m_rec_ts_path` | 録画ストリームの保存先パスです。(.m2ts) |
-| `m_dummy_tuner_ts_path` | unused |
-| `m_event_schedule_cache_is_enable` | EPGを有効にするスイッチ。 |
-| `m_event_schedule_cache_start_interval_day` | EPG取得の間隔日。 |
-| `m_event_schedule_cache_start_hour` | EPG取得の開始時間。(何時) |
-| `m_event_schedule_cache_start_min` | EPG取得の開始時間。 (何分) |
-| `m_event_schedule_cache_timeout_min` | EPG取得タイムアウト時間。(分) |
-| `m_event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
-| `m_event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
-| `m_extended_event_keywords_json_path` | `extended event` 検索のキーワードリストの読み込み先パスです。 |
+| `is_syslog_output` | ログを`syslog`に出力するかどうかを切り替えます。 |
+| `command_server_port` | `command server` の待受ポートです。 |
+| `channels_json_path` | チャンネルスキャン結果の書き込み/読み込み先パスです。 |
+| `rec_reserves_json_path` | 録画予約リストの書き込み/読み込み先パスです。 |
+| `rec_results_json_path` | 録画結果リストの書き込み/読み込み先パスです。 |
+| `rec_ts_path` | 録画ストリームの保存先パスです。(.m2ts) |
+| `dummy_tuner_ts_path` | unused |
+| `event_schedule_cache_is_enable` | EPGを有効にするスイッチ。 |
+| `event_schedule_cache_start_interval_day` | EPG取得の間隔日。 |
+| `event_schedule_cache_start_hour` | EPG取得の開始時間。(何時) |
+| `event_schedule_cache_start_min` | EPG取得の開始時間。 (何分) |
+| `event_schedule_cache_timeout_min` | EPG取得タイムアウト時間。(分) |
+| `event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
+| `event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
+| `extended_event_keywords_json_path` | `extended event` 検索のキーワードリストの読み込み先パスです。 |
 
-#### m_is_syslog_output ####
+#### is_syslog_output ####
 `syslog facirity` を `user` に設定することで、ログを `/var/log/user.log` に出力できます。  
 以下 `/etc/rsyslog.d/50-default.conf` を編集する必要があります。(`ubuntu16.04`の場合)
 
@@ -145,27 +139,31 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 	---
 	> user.*                -/var/log/user.log
 
-#### m_event_name_keywords_json_path ####
+#### event_name_keywords_json_path ####
 
-`m_event_name_keywords_json_path` に下記形式の json を作成することにより    
-EPG取得後に番組名にキーワードが含まれる番組を検索して録画予約を入れます。
+`event_name_keywords_json_path` に下記形式の json を作成することにより    
+EPG取得後に番組名にキーワードが含まれる番組を検索して録画予約を入れます。  
+キーワードの数に制限はありません。
 
 	{
 	    "m_event_name_keywords": [
 	        "ＸＸＸニュース",
-	        "ＸＸＸスポーツ"
+	        "ＸＸＸスポーツ",
+	        "ＸＸＸ報道"
 	    ]
 	}
 
-#### m_extended_event_keywords_json_path ####
+#### extended_event_keywords_json_path ####
 
-`m_extended_event_keywords_json_path` に下記形式の json を作成することにより  
-EPG取得後に番組詳細にキーワードが含まれる番組を検索して録画予約を入れます。
+`extended_event_keywords_json_path` に下記形式の json を作成することにより  
+EPG取得後に番組詳細情報にキーワードが含まれる番組を検索して録画予約を入れます。  
+キーワードの数に制限はありません。
 
 	{
 	    "m_extended_event_keywords": [
-	        "ワールドカップ",
-	        "オリンピック"
+	        "ＸＸＸワールドカップ",
+	        "ＸＸＸオリンピック",
+	        "ＸＸＸ野球"
 	    ]
 	}
 
@@ -218,6 +216,14 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 	/channel manager > scan
 
 以上でチャンネルスキャンが開始します。
+
+
+Future tasks
+------------
+* 現状は録画、EPG等のチューナーを使う機能間の排他ができてない。その実装を対応する。
+* データ放送のBMLの取得を行う。 (dsmccの実装)
+* libarib25で行っているPMT周りの実装の勉強、と実装を取り込みたい。
+* 複数チューナー、BS/CS対応したい。
 
 
 Component diagram

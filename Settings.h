@@ -101,21 +101,21 @@ public:
 		template <class T>
 		void serialize (T & archive) {
 			archive (
-				CEREAL_NVP(m_is_syslog_output)
-				,CEREAL_NVP(m_command_server_port)
-				,CEREAL_NVP(m_channels_json_path)
-				,CEREAL_NVP(m_rec_reserves_json_path)
-				,CEREAL_NVP(m_rec_results_json_path)
-				,CEREAL_NVP(m_rec_ts_path)
-				,CEREAL_NVP(m_dummy_tuner_ts_path)
-				,CEREAL_NVP(m_event_schedule_cache_is_enable)
-				,CEREAL_NVP(m_event_schedule_cache_start_interval_day)
-				,CEREAL_NVP(m_event_schedule_cache_start_hour)
-				,CEREAL_NVP(m_event_schedule_cache_start_min)
-				,CEREAL_NVP(m_event_schedule_cache_timeout_min)
-				,CEREAL_NVP(m_event_schedule_cache_histories_json_path)
-				,CEREAL_NVP(m_event_name_keywords_json_path)
-				,CEREAL_NVP(m_extended_event_keywords_json_path)
+				cereal::make_nvp("is_syslog_output", m_is_syslog_output)
+				,cereal::make_nvp("command_server_port", m_command_server_port)
+				,cereal::make_nvp("channels_json_path", m_channels_json_path)
+				,cereal::make_nvp("rec_reserves_json_path", m_rec_reserves_json_path)
+				,cereal::make_nvp("rec_results_json_path", m_rec_results_json_path)
+				,cereal::make_nvp("rec_ts_path", m_rec_ts_path)
+				,cereal::make_nvp("dummy_tuner_ts_path", m_dummy_tuner_ts_path)
+				,cereal::make_nvp("event_schedule_cache_is_enable", m_event_schedule_cache_is_enable)
+				,cereal::make_nvp("event_schedule_cache_start_interval_day", m_event_schedule_cache_start_interval_day)
+				,cereal::make_nvp("event_schedule_cache_start_hour", m_event_schedule_cache_start_hour)
+				,cereal::make_nvp("event_schedule_cache_start_min", m_event_schedule_cache_start_min)
+				,cereal::make_nvp("event_schedule_cache_timeout_min", m_event_schedule_cache_timeout_min)
+				,cereal::make_nvp("event_schedule_cache_histories_json_path", m_event_schedule_cache_histories_json_path)
+				,cereal::make_nvp("event_name_keywords_json_path", m_event_name_keywords_json_path)
+				,cereal::make_nvp("extended_event_keywords_json_path", m_extended_event_keywords_json_path)
 
 			);
 		}
@@ -162,7 +162,7 @@ public:
 		std::stringstream ss;
 		{
 			cereal::JSONOutputArchive out_archive (ss);
-			out_archive (CEREAL_NVP(m_params));
+			out_archive (cereal::make_nvp("settings", m_params));
 		}
 
 		std::ofstream ofs (m_path.c_str(), std::ios::out);
@@ -185,7 +185,7 @@ public:
 		ss << ifs.rdbuf();
 
 		cereal::JSONInputArchive in_archive (ss);
-		in_archive (CEREAL_NVP(m_params));
+		in_archive (cereal::make_nvp("settings", m_params));
 
 		ifs.close();
 		ss.clear();
