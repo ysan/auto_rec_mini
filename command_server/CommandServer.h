@@ -20,6 +20,7 @@
 #include "Utils.h"
 #include "CommandServerIf.h"
 #include "CommandTables.h"
+#include "CommandServerLog.h"
 #include "Settings.h"
 #include "it9175_extern.h"
 

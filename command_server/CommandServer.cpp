@@ -26,7 +26,6 @@ static void (*on_command_wait_end) (void);
 
 
 static ST_COMMAND_INFO *gp_current_command_table = NULL;
-static FILE *gp_fptr_inner = NULL;
 
 
 CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
@@ -46,7 +45,7 @@ CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
 	on_command_wait_end = onCommandWaitEnd;
 
 	gp_current_command_table = NULL;
-	gp_fptr_inner = stdout;
+	CCommandServerLog::setFileptr (stdout);
 }
 
 CCommandServer::~CCommandServer (void)
@@ -206,7 +205,7 @@ void CCommandServer::serverLoop (void)
 		CUtils::setLogFileptr (fp);
 		setLogFileptr (fp);
 		it9175_setLogFileptr (fp);
-		gp_fptr_inner = fp;
+		CCommandServerLog::setFileptr (fp);
 
 
 		// begin
@@ -230,7 +229,7 @@ void CCommandServer::serverLoop (void)
 		// socket切断にともなってログ出力をstdoutにもどします
 		CUtils::setLogFileptr (stdout);
 		setLogFileptr (stdout);
-		gp_fptr_inner = stdout;
+		CCommandServerLog::setFileptr (stdout);
 
 		fclose (fp);
 		close (mClientfd);
@@ -471,13 +470,15 @@ void CCommandServer::printSubTables (void)
 {
 	int sp = m_stack_sub.get_sp();
 	if (sp < 1) {
-		fprintf (gp_fptr_inner, "/");
+//		fprintf (CCommandServerLog::getFileptr(), "/");
+		_COM_SVR_PRINT ("/");
 		return;
 	}
 
 	for (int i = 0; i < sp; ++ i) {
 		ST_COMMAND_INFO *p = m_stack_sub.ref (i);
-		fprintf (gp_fptr_inner, "/%s", p->pszDesc);
+//		fprintf (CCommandServerLog::getFileptr(), "/%s", p->pszDesc);
+		_COM_SVR_PRINT ("/%s", p->pszDesc);
 	}
 }
 
@@ -485,25 +486,30 @@ void CCommandServer::showList (const char *pszDesc)
 {
 	const ST_COMMAND_INFO *pWorkTable = gp_current_command_table;
 
-	fprintf (gp_fptr_inner, "\n  ------ %s ------\n", pszDesc ? pszDesc: "???");
+//	fprintf (CCommandServerLog::getFileptr(), "\n  ------ %s ------\n", pszDesc ? pszDesc: "???");
+	_COM_SVR_PRINT ("\n  ------ %s ------\n", pszDesc ? pszDesc: "???");
 
 	for (int i = 0; pWorkTable->pszCommand != NULL; ++ i) {
-		fprintf (gp_fptr_inner, "  %-20s -- %-30s\n", pWorkTable->pszCommand, pWorkTable->pszDesc);
+//		fprintf (CCommandServerLog::getFileptr(), "  %-20s -- %-30s\n", pWorkTable->pszCommand, pWorkTable->pszDesc);
+		_COM_SVR_PRINT ("  %-20s -- %-30s\n", pWorkTable->pszCommand, pWorkTable->pszDesc);
 		++ pWorkTable;
 	}
-	fprintf (gp_fptr_inner, "\n");
+//	fprintf (CCommandServerLog::getFileptr(), "\n");
+	_COM_SVR_PRINT ("\n");
 
 	printSubTables ();
-	fprintf (gp_fptr_inner, " > ");
-	fflush (gp_fptr_inner);
+//	fprintf (CCommandServerLog::getFileptr(), " > ");
+//	fflush (CCommandServerLog::getFileptr());
+	_COM_SVR_PRINT (" > ");
 }
 
 void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase)
 {
 	if (((int)strlen("..") == (int)strlen(pszCommand)) && strncmp ("..", pszCommand, (int)strlen(pszCommand)) == 0) {
 		if (argc > 0) {
-			fprintf (gp_fptr_inner, "invalid arguments...\n");
-			fflush (gp_fptr_inner);
+//			fprintf (CCommandServerLog::getFileptr(), "invalid arguments...\n");
+//			fflush (CCommandServerLog::getFileptr());
+			_COM_SVR_PRINT ("invalid arguments...\n");
 			return;
 		}
 
@@ -521,8 +527,9 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 
 	} else if ((int)strlen(".") == (int)strlen(pszCommand) && strncmp (".", pszCommand, (int)strlen(pszCommand)) == 0) {
 		if (argc > 0) {
-			fprintf (gp_fptr_inner, "invalid arguments...\n");
-			fflush (gp_fptr_inner);
+//			fprintf (CCommandServerLog::getFileptr(), "invalid arguments...\n");
+//			fflush (CCommandServerLog::getFileptr());
+			_COM_SVR_PRINT ("invalid arguments...\n");
 			return;
 		}
 
@@ -553,8 +560,9 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 					// 下位テーブルに移る
 					if (pWorkTable->pNext) {
 						if (argc > 0) {
-							fprintf (gp_fptr_inner, "invalid arguments...\n");
-							fflush (gp_fptr_inner);
+//							fprintf (CCommandServerLog::getFileptr(), "invalid arguments...\n");
+//							fflush (CCommandServerLog::getFileptr());
+							_COM_SVR_PRINT ("invalid arguments...\n");
 
 						} else {
 							m_stack.push (gp_current_command_table);
@@ -564,8 +572,9 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 						}
 
 					} else {
-						fprintf (gp_fptr_inner, "command table registration is invalid...\n");
-						fflush (gp_fptr_inner);
+//						fprintf (CCommandServerLog::getFileptr(), "command table registration is invalid...\n");
+//						fflush (CCommandServerLog::getFileptr());
+						_COM_SVR_PRINT ("command table registration is invalid...\n");
 					}
 				}
 				break;
@@ -575,8 +584,9 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 		}
 
 		if (!isMatch) {
-			fprintf (gp_fptr_inner, "invalid command...\n");
-			fflush (gp_fptr_inner);
+//			fprintf (CCommandServerLog::getFileptr(), "invalid command...\n");
+//			fflush (CCommandServerLog::getFileptr());
+			_COM_SVR_PRINT ("invalid command...\n");
 		}
 	}
 }
@@ -586,7 +596,8 @@ void CCommandServer::onCommandWaitBegin (void)
 	m_stack.clear();
 	m_stack_sub.clear();
 
-	fprintf (gp_fptr_inner, "###  command line  begin. ###\n");
+//	fprintf (CCommandServerLog::getFileptr(), "###  command line  begin. ###\n");
+	_COM_SVR_PRINT ("###  command line  begin. ###\n");
 
 	gp_current_command_table = g_rootCommandTable ;
 	showList ("root tables");
@@ -595,8 +606,9 @@ void CCommandServer::onCommandWaitBegin (void)
 void CCommandServer::onCommandLineThrough (void)
 {
 	printSubTables ();
-	fprintf (gp_fptr_inner, " > ");
-	fflush (gp_fptr_inner);
+//	fprintf (CCommandServerLog::getFileptr(), " > ");
+//	fflush (CCommandServerLog::getFileptr());
+	_COM_SVR_PRINT (" > ");
 }
 
 void CCommandServer::onCommandLineAvailable (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase)
@@ -606,7 +618,8 @@ void CCommandServer::onCommandLineAvailable (const char* pszCommand, int argc, c
 
 void CCommandServer::onCommandWaitEnd (void)
 {
-	fprintf (gp_fptr_inner, "\n###  command line  exit. ###\n");
+//	fprintf (CCommandServerLog::getFileptr(), "\n###  command line  exit. ###\n");
+	_COM_SVR_PRINT ("\n###  command line  exit. ###\n");
 
 	m_stack.clear();
 	m_stack_sub.clear();

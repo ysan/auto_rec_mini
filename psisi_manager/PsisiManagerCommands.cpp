@@ -6,13 +6,14 @@
 
 #include "PsisiManagerIf.h"
 #include "CommandTables.h"
+#include "CommandServerLog.h"
 #include "Utils.h"
 
 
 static void dump_programInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -29,7 +30,7 @@ static void dump_programInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_serviceInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -46,7 +47,7 @@ static void dump_serviceInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_eventPfInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -63,7 +64,7 @@ static void dump_eventPfInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_networkInfo (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -80,7 +81,7 @@ static void dump_networkInfo (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_pat (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -97,7 +98,7 @@ static void dump_pat (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_pmt (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -114,7 +115,7 @@ static void dump_pmt (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_eit_pf (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -131,7 +132,7 @@ static void dump_eit_pf (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_eit_pf_simple (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -148,7 +149,7 @@ static void dump_eit_pf_simple (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_eit_sch (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -165,7 +166,7 @@ static void dump_eit_sch (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_eit_sched_event (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -182,7 +183,7 @@ static void dump_eit_sched_event (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_eit_sched_simple (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -199,7 +200,7 @@ static void dump_eit_sched_simple (int argc, char* argv[], CThreadMgrBase *pBase
 static void dump_nit (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -216,7 +217,7 @@ static void dump_nit (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_sdt (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -233,7 +234,7 @@ static void dump_sdt (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_rst (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -250,7 +251,7 @@ static void dump_rst (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_bit (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();

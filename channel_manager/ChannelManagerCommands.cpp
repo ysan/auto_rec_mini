@@ -8,13 +8,14 @@
 
 #include "ChannelManagerIf.h"
 #include "CommandTables.h"
+#include "CommandServerLog.h"
 #include "Utils.h"
 
 
 static void _scan (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -31,13 +32,13 @@ static void _scan (int argc, char* argv[], CThreadMgrBase *pBase)
 static void _tune (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_UTL_LOG_E ("invalid arguments.\n");
+		_COM_SVR_PRINT ("invalid arguments.\n");
 		return;
 	}
 
 	std::regex regex_idx ("^[0-9]+$");
 	if (!std::regex_match (argv[0], regex_idx)) {
-		_UTL_LOG_E ("invalid arguments. (id)");
+		_COM_SVR_PRINT ("invalid arguments. (id)");
 		return;
 	}
 
@@ -60,7 +61,7 @@ static void _tune (int argc, char* argv[], CThreadMgrBase *pBase)
 static void _dump_channels (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();

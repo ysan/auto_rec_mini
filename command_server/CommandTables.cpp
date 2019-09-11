@@ -9,6 +9,7 @@
 
 #include "CommandTables.h"
 #include "CommandServer.h"
+#include "CommandServerLog.h"
 
 #include "TunerControlCommands.h"
 #include "PsisiManagerCommands.h"
@@ -28,13 +29,13 @@ const char *g_szLogLevels [] = {
 
 static void _echo (int argc, char* argv[], CThreadMgrBase *pBase)
 {
-	_UTL_LOG_I ("%s\n", __func__);
+	_COM_SVR_PRINT ("%s\n", __func__);
 }
 
 static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	// このcastはどうなの
@@ -45,7 +46,7 @@ static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
 static void _threadmgr_status_dump (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	kill (0, SIGQUIT);
@@ -54,19 +55,19 @@ static void _threadmgr_status_dump (int argc, char* argv[], CThreadMgrBase *pBas
 static void _log_level (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_UTL_LOG_E ("invalid arguments. (usage: lv {0|1|2|3|4} )");
+		_COM_SVR_PRINT ("invalid arguments. (usage: lv {0|1|2|3|4} )\n");
 		return;
 	}
 
 	std::regex regex("[0-4]");
 	if (!std::regex_match (argv[0], regex)) {
-		_UTL_LOG_E ("invalid arguments. (usage: lv {0|1|2|3|4} )");
+		_COM_SVR_PRINT ("invalid arguments. (usage: lv {0|1|2|3|4} )\n");
 		return;
 	}
 
 	EN_LOG_LEVEL lvl = (EN_LOG_LEVEL) atoi (argv[0]);
 	CUtils::setLogLevel (lvl);
-	_UTL_LOG_I ("set %s", g_szLogLevels [lvl]);
+	_COM_SVR_PRINT ("set %s\n", g_szLogLevels [lvl]);
 }
 
 
