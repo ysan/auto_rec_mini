@@ -33,9 +33,9 @@ one tuner. only terrestrial digital.
 #### Platforms ####
 Generic Linux will be ok. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
   
-~~`Raspbian` Raspberry pi model B is used in the main,  
+`Raspbian` Raspberry pi model B is used in the main,  
 Packet loss occurs, block noise and image skipping are likely to occur.  
-There was a case that ts could not be taken because of insufficient power at the start of tuning.~~
+~~There was a case that ts could not be taken because of insufficient power at the start of tuning.~~
   
 Also using B-CAS card with IC card reader.
 

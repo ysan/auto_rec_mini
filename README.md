@@ -41,9 +41,9 @@ How to use
 #### Platforms ####
 一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspbian`で確認済。)  
   
-~~メインで使用しているのは `Raspbian` Raspberry pi model B ですが、  
+メインで使用しているのは `Raspbian` Raspberry pi model B ですが、  
 パケットロスが起こり、ブロックノイズ、画飛びが起きやすいです。  
-また選局開始時に電力が足りないせいかtsが取れないケースがありました。~~
+~~また選局開始時に電力が足りないせいかtsが取れないケースがありました。~~
   
 B-CASカードは別途USB接続のICカードリーダを用意して使用しています。
 
