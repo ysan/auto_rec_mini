@@ -8,6 +8,7 @@
 
 #include "TunerControlIf.h"
 #include "CommandTables.h"
+#include "CommandServerLog.h"
 #include "Utils.h"
 #include "TsAribCommon.h"
 #include "it9175_extern.h"
@@ -16,70 +17,70 @@
 static void tune (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_UTL_LOG_E ("invalid arguments. (usage: t {frequesncy[kHz]} )");
+		_COM_SVR_PRINT ("invalid arguments. (usage: t {frequesncy[kHz]} )\n");
 		return;
 	}
 
 	std::regex regex("[0-9]+");
 	if (!std::regex_match (argv[0], regex)) {
-		_UTL_LOG_E ("invalid arguments. (usage: t {frequesncy[kHz]} )");
+		_COM_SVR_PRINT ("invalid arguments. (usage: t {frequesncy[kHz]} )\n");
 		return;
 	}
 
 	uint32_t freq = atoi (argv[0]);
-	_UTL_LOG_I ("freq=[%d]kHz\n", freq);
+	_COM_SVR_PRINT ("freq=[%d]kHz\n", freq);
 
 	CTunerControlIf ctl(pBase->getExternalIf());
 	ctl.reqTuneSync (freq);
 
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_SUCCESS) {
-		_UTL_LOG_I ("tune success");
+		_COM_SVR_PRINT ("tune success\n");
 	} else {
-		_UTL_LOG_I ("tune error");
+		_COM_SVR_PRINT ("tune error\n");
 	}
 }
 
 static void ch_tune (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_UTL_LOG_E ("invalid arguments. (usage: ch {physical channel} )");
+		_COM_SVR_PRINT ("invalid arguments. (usage: ch {physical channel} )\n");
 		return;
 	}
 
 	std::regex regex("[0-9]+");
 	if (!std::regex_match (argv[0], regex)) {
-		_UTL_LOG_E ("invalid arguments. (usage: ch {physical channel} )");
+		_COM_SVR_PRINT ("invalid arguments. (usage: ch {physical channel} )\n");
 		return;
 	}
 
 	uint16_t ch = atoi (argv[0]);
 	if (ch < UHF_PHYSICAL_CHANNEL_MIN || ch > UHF_PHYSICAL_CHANNEL_MAX) {
-		_UTL_LOG_E ("out of range. (physical channel is %d~%d)",
+		_COM_SVR_PRINT ("out of range. (physical channel is %d~%d)\n",
 						UHF_PHYSICAL_CHANNEL_MIN, UHF_PHYSICAL_CHANNEL_MAX);
 		return;
 	} 
 
-	_UTL_LOG_I ("ch=[%d]\n", ch);
+	_COM_SVR_PRINT ("ch=[%d]\n", ch);
 
 	uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
-	_UTL_LOG_I ("freq=[%d]kHz\n", freq);
+	_COM_SVR_PRINT ("freq=[%d]kHz\n", freq);
 
 	CTunerControlIf ctl(pBase->getExternalIf());
 	ctl.reqTuneSync (freq);
 
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_SUCCESS) {
-		_UTL_LOG_I ("tune success");
+		_COM_SVR_PRINT ("tune success\n");
 	} else {
-		_UTL_LOG_I ("tune error");
+		_COM_SVR_PRINT ("tune error\n");
 	}
 }
 
 static void tuneStop (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	CTunerControlIf ctl(pBase->getExternalIf());
@@ -87,16 +88,16 @@ static void tuneStop (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_SUCCESS) {
-		_UTL_LOG_I ("tune stop success");
+		_COM_SVR_PRINT ("tune stop success\n");
 	} else {
-		_UTL_LOG_I ("tune stop error");
+		_COM_SVR_PRINT ("tune stop error\n");
 	}
 }
 
 static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	CTunerControlIf ctl(pBase->getExternalIf());
@@ -104,24 +105,24 @@ static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_SUCCESS) {
-		_UTL_LOG_I ("get state success");
+		_COM_SVR_PRINT ("get state success\n");
 	} else {
-		_UTL_LOG_I ("get state error");
+		_COM_SVR_PRINT ("get state error\n");
 	}
 
 	EN_TUNER_STATE state = *(EN_TUNER_STATE*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
 	switch (state) {
 	case EN_TUNER_STATE__TUNING_BEGIN:
-		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_BEGIN");
+		_COM_SVR_PRINT ("EN_TUNER_STATE__TUNING_BEGIN\n");
 		break;
 	case EN_TUNER_STATE__TUNING_SUCCESS:
-		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_SUCCESS");
+		_COM_SVR_PRINT ("EN_TUNER_STATE__TUNING_SUCCESS\n");
 		break;
 	case EN_TUNER_STATE__TUNING_ERROR_STOP:
-		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP");
+		_COM_SVR_PRINT ("EN_TUNER_STATE__TUNING_ERROR_STOP\n");
 		break;
 	case EN_TUNER_STATE__TUNE_STOP:
-		_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP");
+		_COM_SVR_PRINT ("EN_TUNER_STATE__TUNE_STOP\n");
 		break;
 	default:
 		break;
@@ -131,25 +132,25 @@ static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
 static void getState_it9175 (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	EN_IT9175_STATE state = it9175_get_state();
 	switch (state) {
 	case EN_IT9175_STATE__CLOSED:
-		_UTL_LOG_I ("EN_IT9175_STATE__CLOSED");
+		_COM_SVR_PRINT ("EN_IT9175_STATE__CLOSED\n");
 		break;
 	case EN_IT9175_STATE__OPENED:
-		_UTL_LOG_I ("EN_IT9175_STATE__OPENED");
+		_COM_SVR_PRINT ("EN_IT9175_STATE__OPENED\n");
 		break;
 	case EN_IT9175_STATE__TUNE_BEGINED:
-		_UTL_LOG_I ("EN_IT9175_STATE__TUNE_BEGINED");
+		_COM_SVR_PRINT ("EN_IT9175_STATE__TUNE_BEGINED\n");
 		break;
 	case EN_IT9175_STATE__TUNED:
-		_UTL_LOG_I ("EN_IT9175_STATE__TUNED");
+		_COM_SVR_PRINT ("EN_IT9175_STATE__TUNED\n");
 		break;
 	case EN_IT9175_STATE__TUNE_ENDED:
-		_UTL_LOG_I ("EN_IT9175_STATE__TUNE_ENDED");
+		_COM_SVR_PRINT ("EN_IT9175_STATE__TUNE_ENDED\n");
 		break;
 	default:
 		break;

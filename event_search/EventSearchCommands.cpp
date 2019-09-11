@@ -8,13 +8,14 @@
 
 #include "EventSearchIf.h"
 #include "CommandTables.h"
+#include "CommandServerLog.h"
 #include "Utils.h"
 
 
 static void _addRecReserve_keywordSearch (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -31,7 +32,7 @@ static void _addRecReserve_keywordSearch (int argc, char* argv[], CThreadMgrBase
 static void _addRecReserve_keywordSearch_ex (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();

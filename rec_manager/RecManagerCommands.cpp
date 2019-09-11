@@ -8,13 +8,14 @@
 
 #include "RecManagerIf.h"
 #include "CommandTables.h"
+#include "CommandServerLog.h"
 #include "Utils.h"
 
 
 static void addReserve_currentEvent (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -95,7 +96,7 @@ static time_t dateString2epoch (char *pszDate)
 static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 6) {
-		_UTL_LOG_E ("invalid arguments.");
+		_COM_SVR_PRINT ("invalid arguments.\n");
 		return;
 	}
 
@@ -104,7 +105,7 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 	if (!std::regex_match (argv[0], regex_tsid)) {
 		std::regex regex_tsid ("^0x([0-9]|[a-f]|[A-F])+$");
 		if (!std::regex_match (argv[0], regex_tsid)) {
-			_UTL_LOG_E ("invalid arguments. (tsid)");
+			_COM_SVR_PRINT ("invalid arguments. (tsid)\n");
 			return;
 		} else {
 			_tsid = strtol (argv[0], NULL, 16);
@@ -118,7 +119,7 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 	if (!std::regex_match (argv[1], regex_org_nid)) {
 		std::regex regex_org_nid ("^0x([0-9]|[a-f]|[A-F])+$");
 		if (!std::regex_match (argv[1], regex_org_nid)) {
-			_UTL_LOG_E ("invalid arguments. (org_nid)");
+			_COM_SVR_PRINT ("invalid arguments. (org_nid)\n");
 			return;
 		} else {
 			_org_nid = strtol (argv[1], NULL, 16);
@@ -132,7 +133,7 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 	if (!std::regex_match (argv[2], regex_svc_id)) {
 		std::regex regex_svc_id ("^0x([0-9]|[a-f]|[A-F])+$");
 		if (!std::regex_match (argv[2], regex_svc_id)) {
-			_UTL_LOG_E ("invalid arguments. (svc_id)");
+			_COM_SVR_PRINT ("invalid arguments. (svc_id)\n");
 			return;
 		} else {
 			_svc_id = strtol (argv[2], NULL, 16);
@@ -143,30 +144,30 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	std::regex regex_start_time("^[0-9]{14}$");
 	if (!std::regex_match (argv[3], regex_start_time)) {
-		_UTL_LOG_E ("invalid arguments. (start_time)");
+		_COM_SVR_PRINT ("invalid arguments. (start_time)\n");
 		return;
 	}
 
 	std::regex regex_end_time("^[0-9]{14}$");
 	if (!std::regex_match (argv[4], regex_end_time)) {
-		_UTL_LOG_E ("invalid arguments. (end_time)");
+		_COM_SVR_PRINT ("invalid arguments. (end_time)\n");
 		return;
 	}
 
 	time_t _start = dateString2epoch (argv[3]);
 	if (_start == 0) {
-		_UTL_LOG_E ("invalid arguments. (start_time:dateString2epoch)");
+		_COM_SVR_PRINT ("invalid arguments. (start_time:dateString2epoch)\n");
 		return;
 	}
 
 	time_t _end = dateString2epoch (argv[4]);
 	if (_end == 0) {
-		_UTL_LOG_E ("invalid arguments. (end_time:dateString2epoch)");
+		_COM_SVR_PRINT ("invalid arguments. (end_time:dateString2epoch)\n");
 		return;
 	}
 
 	if (_start >= _end) {
-		_UTL_LOG_E ("invalid arguments. (start_time >= end_time)");
+		_COM_SVR_PRINT ("invalid arguments. (start_time >= end_time)\n");
 		return;
 	}
 
@@ -175,7 +176,7 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	std::regex regex_repeat("^[0-2]$");
 	if (!std::regex_match (argv[5], regex_repeat)) {
-		_UTL_LOG_E ("invalid arguments. (repeat)");
+		_COM_SVR_PRINT ("invalid arguments. (repeat)\n");
 		return;
 	}
 	EN_RESERVE_REPEATABILITY r = (EN_RESERVE_REPEATABILITY) atoi (argv[5]);
@@ -206,7 +207,7 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 5) {
-		_UTL_LOG_E ("invalid arguments.");
+		_COM_SVR_PRINT ("invalid arguments.\n");
 		return;
 	}
 
@@ -215,7 +216,7 @@ static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 	if (!std::regex_match (argv[0], regex_tsid)) {
 		std::regex regex_tsid ("^0x([0-9]|[a-f]|[A-F])+$");
 		if (!std::regex_match (argv[0], regex_tsid)) {
-			_UTL_LOG_E ("invalid arguments. (tsid)");
+			_COM_SVR_PRINT ("invalid arguments. (tsid)\n");
 			return;
 		} else {
 			_tsid = strtol (argv[0], NULL, 16);
@@ -229,7 +230,7 @@ static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 	if (!std::regex_match (argv[1], regex_org_nid)) {
 		std::regex regex_org_nid ("^0x([0-9]|[a-f]|[A-F])+$");
 		if (!std::regex_match (argv[1], regex_org_nid)) {
-			_UTL_LOG_E ("invalid arguments. (org_nid)");
+			_COM_SVR_PRINT ("invalid arguments. (org_nid)\n");
 			return;
 		} else {
 			_org_nid = strtol (argv[1], NULL, 16);
@@ -243,7 +244,7 @@ static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 	if (!std::regex_match (argv[2], regex_svc_id)) {
 		std::regex regex_svc_id ("^0x([0-9]|[a-f]|[A-F])+$");
 		if (!std::regex_match (argv[2], regex_svc_id)) {
-			_UTL_LOG_E ("invalid arguments. (svc_id)");
+			_COM_SVR_PRINT ("invalid arguments. (svc_id)\n");
 			return;
 		} else {
 			_svc_id = strtol (argv[2], NULL, 16);
@@ -257,7 +258,7 @@ static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 	if (!std::regex_match (argv[3], regex_evt_id)) {
 		std::regex regex_evt_id ("^0x([0-9]|[a-f]|[A-F])+$");
 		if (!std::regex_match (argv[3], regex_evt_id)) {
-			_UTL_LOG_E ("invalid arguments. (evt_id)");
+			_COM_SVR_PRINT ("invalid arguments. (evt_id)\n");
 			return;
 		} else {
 			_evt_id = strtol (argv[3], NULL, 16);
@@ -269,7 +270,7 @@ static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	std::regex regex_repeat("^[0-1]$");
 	if (!std::regex_match (argv[4], regex_repeat)) {
-		_UTL_LOG_E ("invalid arguments. (repeat)");
+		_COM_SVR_PRINT ("invalid arguments. (repeat)\n");
 		return;
 	}
 	int rpt = atoi (argv[4]);
@@ -300,13 +301,13 @@ static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 static void addReserve_eventHelper (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 2) {
-		_UTL_LOG_E ("invalid arguments.");
+		_COM_SVR_PRINT ("invalid arguments.\n");
 		return;
 	}
 
 	std::regex regex_idx ("^[0-9]+$");
 	if (!std::regex_match (argv[0], regex_idx)) {
-		_UTL_LOG_E ("invalid arguments. (index)");
+		_COM_SVR_PRINT ("invalid arguments. (index)\n");
 		return;
 	}
 	uint16_t _idx = atoi (argv[0]);
@@ -314,7 +315,7 @@ static void addReserve_eventHelper (int argc, char* argv[], CThreadMgrBase *pBas
 
 	std::regex regex_repeat("^[0-1]$");
 	if (!std::regex_match (argv[1], regex_repeat)) {
-		_UTL_LOG_E ("invalid arguments. (repeat)");
+		_COM_SVR_PRINT ("invalid arguments. (repeat)\n");
 		return;
 	}
 	int rpt = atoi (argv[1]);
@@ -340,7 +341,7 @@ static void addReserve_eventHelper (int argc, char* argv[], CThreadMgrBase *pBas
 static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 5) {
-		_UTL_LOG_E ("invalid arguments.");
+		_COM_SVR_PRINT ("invalid arguments.\n");
 		return ;
 	}
 
@@ -349,7 +350,7 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 	if (!std::regex_match (argv[0], regex_tsid)) {
 		std::regex regex_tsid ("^0x([0-9]|[a-f]|[A-F])+$");
 		if (!std::regex_match (argv[0], regex_tsid)) {
-			_UTL_LOG_E ("invalid arguments. (tsid)");
+			_COM_SVR_PRINT ("invalid arguments. (tsid)\n");
 			return;
 		} else {
 			_tsid = strtol (argv[0], NULL, 16);
@@ -363,7 +364,7 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 	if (!std::regex_match (argv[1], regex_org_nid)) {
 		std::regex regex_org_nid ("^0x([0-9]|[a-f]|[A-F])+$");
 		if (!std::regex_match (argv[1], regex_org_nid)) {
-			_UTL_LOG_E ("invalid arguments. (org_nid)");
+			_COM_SVR_PRINT ("invalid arguments. (org_nid)\n");
 			return;
 		} else {
 			_org_nid = strtol (argv[1], NULL, 16);
@@ -377,7 +378,7 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 	if (!std::regex_match (argv[2], regex_svc_id)) {
 		std::regex regex_svc_id ("^0x([0-9]|[a-f]|[A-F])+$");
 		if (!std::regex_match (argv[2], regex_svc_id)) {
-			_UTL_LOG_E ("invalid arguments. (svc_id)");
+			_COM_SVR_PRINT ("invalid arguments. (svc_id)\n");
 			return;
 		} else {
 			_svc_id = strtol (argv[2], NULL, 16);
@@ -391,7 +392,7 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 	if (!std::regex_match (argv[3], regex_evt_id)) {
 		std::regex regex_evt_id ("^0x([0-9]|[a-f]|[A-F])+$");
 		if (!std::regex_match (argv[3], regex_evt_id)) {
-			_UTL_LOG_E ("invalid arguments. (evt_id)");
+			_COM_SVR_PRINT ("invalid arguments. (evt_id)\n");
 			return;
 		} else {
 			_evt_id = strtol (argv[3], NULL, 16);
@@ -402,7 +403,7 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	std::regex regex_rep ("^[0-1]$");
 	if (!std::regex_match (argv[4], regex_rep)) {
-		_UTL_LOG_E ("invalid arguments. (consider repeatability)");
+		_COM_SVR_PRINT ("invalid arguments. (consider repeatability)\n");
 		return;
 	}
 	bool isConsiderRepeatability = (atoi(argv[4]) == 0 ? false : true);
@@ -430,19 +431,19 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 static void removeReserve_byIndex (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 2) {
-		_UTL_LOG_E ("invalid arguments.");
+		_COM_SVR_PRINT ("invalid arguments.\n");
 		return ;
 	}
 
 	std::regex regex_idx ("^[0-9]+$");
 	if (!std::regex_match (argv[0], regex_idx)) {
-		_UTL_LOG_E ("invalid arguments. (index)");
+		_COM_SVR_PRINT ("invalid arguments. (index)\n");
 		return;
 	}
 
 	std::regex regex_rep ("^[0-1]$");
 	if (!std::regex_match (argv[1], regex_rep)) {
-		_UTL_LOG_E ("invalid arguments. (consider repeatability)");
+		_COM_SVR_PRINT ("invalid arguments. (consider repeatability)\n");
 		return;
 	}
 
@@ -468,7 +469,7 @@ static void removeReserve_byIndex (int argc, char* argv[], CThreadMgrBase *pBase
 static void stop (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -485,7 +486,7 @@ static void stop (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -502,7 +503,7 @@ static void dump_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_results (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
@@ -519,7 +520,7 @@ static void dump_results (int argc, char* argv[], CThreadMgrBase *pBase)
 static void dump_recording (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
-		_UTL_LOG_W ("ignore arguments.\n");
+		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
