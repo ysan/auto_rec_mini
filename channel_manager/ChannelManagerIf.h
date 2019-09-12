@@ -159,6 +159,19 @@ public:
 				);
 	};
 
+	bool syncGetChannels (REQ_CHANNELS_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestSync (
+					EN_MODULE_CHANNEL_MANAGER,
+					EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS,
+					(uint8_t*)p_param,
+					sizeof (REQ_CHANNELS_PARAM_t)
+				);
+	};
+
 	bool reqGetTransportStreamName (const SERVICE_ID_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
@@ -168,7 +181,7 @@ public:
 					EN_MODULE_CHANNEL_MANAGER,
 					EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME,
 					(uint8_t*)p_param,
-					sizeof (REQ_CHANNELS_PARAM_t)
+					sizeof (SERVICE_ID_PARAM_t)
 				);
 	};
 
@@ -181,7 +194,7 @@ public:
 					EN_MODULE_CHANNEL_MANAGER,
 					EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME,
 					(uint8_t*)p_param,
-					sizeof (REQ_CHANNELS_PARAM_t)
+					sizeof (SERVICE_ID_PARAM_t)
 				);
 	};
 
@@ -194,7 +207,7 @@ public:
 					EN_MODULE_CHANNEL_MANAGER,
 					EN_SEQ_CHANNEL_MANAGER__GET_SERVICE_NAME,
 					(uint8_t*)p_param,
-					sizeof (REQ_CHANNELS_PARAM_t)
+					sizeof (SERVICE_ID_PARAM_t)
 				);
 	};
 
@@ -207,7 +220,7 @@ public:
 					EN_MODULE_CHANNEL_MANAGER,
 					EN_SEQ_CHANNEL_MANAGER__GET_SERVICE_NAME,
 					(uint8_t*)p_param,
-					sizeof (REQ_CHANNELS_PARAM_t)
+					sizeof (SERVICE_ID_PARAM_t)
 				);
 	};
 

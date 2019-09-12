@@ -40,6 +40,7 @@ public:
 	void serverLoop (CThreadMgrIf *pIf);
 
 
+	int getClientFd (void);
 	void connectionClose (void);
 
 private:

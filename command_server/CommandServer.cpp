@@ -133,6 +133,11 @@ void CCommandServer::serverLoop (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+int CCommandServer::getClientFd (void)
+{
+	return mClientfd ;
+}
+
 void CCommandServer::connectionClose (void)
 {
 	m_isConnectionClose = true;

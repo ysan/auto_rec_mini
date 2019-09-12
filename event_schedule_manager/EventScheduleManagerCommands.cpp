@@ -7,8 +7,10 @@
 #include <regex>
 
 #include "EventScheduleManagerIf.h"
+#include "ChannelManagerIf.h"
 #include "CommandTables.h"
 #include "CommandServerLog.h"
+#include "CommandServer.h"
 #include "Utils.h"
 
 
@@ -127,7 +129,137 @@ static void _dump_schedule (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
-static void _getEvent (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _dump_schedule2 (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_COM_SVR_PRINT ("ignore arguments.\n");
+	}
+
+	CCommandServer* pcs = dynamic_cast <CCommandServer*> (pBase);
+	int fd = pcs->getClientFd();
+
+	char buf[32] = {0};
+
+
+	CChannelManagerIf::CHANNEL_t channels[20] = {0};
+	CChannelManagerIf::REQ_CHANNELS_PARAM_t param = {channels, 20};
+	CChannelManagerIf mgr(pBase->getExternalIf());
+
+	mgr.syncGetChannels (&param);
+	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+	if (enRslt == EN_THM_RSLT_ERROR) {
+		_COM_SVR_PRINT ("syncGetChannels is failure.\n");
+		return ;
+	}
+
+	int ch_num = *(int*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+	_COM_SVR_PRINT ("syncGetChannels ch_num:[%d]\n", ch_num);
+
+	if (ch_num == 0) {
+		_COM_SVR_PRINT ("syncGetChannels is 0\n");
+		return ;
+	}
+
+
+	// list ts
+	for (int i = 0; i < 20; ++ i) {
+		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+			channels[i].transport_stream_id,
+			channels[i].original_network_id,
+			0 // no need service_id
+		};
+		mgr.syncGetTransportStreamName (&param);
+		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_ERROR) {
+			continue ;
+		}
+		char* ts_name = (char*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+		_COM_SVR_PRINT ("  %2d: [%s]\n", i, ts_name);
+	}
+
+	int sel_ch_num = 0;
+	while (1) {
+		memset (buf, 0x00, sizeof(buf));
+		_COM_SVR_PRINT ("select channel. # ");
+
+		int rSize = CUtils::recvData (fd, (uint8_t*)buf, sizeof(buf), NULL);
+		if (rSize <= 0) {
+			continue;
+		} else {
+			CUtils::deleteLF (buf);
+			CUtils::deleteHeadSp (buf);
+			CUtils::deleteTailSp (buf);
+			std::regex regex_num("^[0-9]+$");
+			if (!std::regex_match (buf, regex_num)) {
+				continue;
+			}
+
+			sel_ch_num = atoi(buf);
+			if (sel_ch_num < ch_num) {
+				break;
+			}
+		}
+	}
+
+	// list service
+	for (int i = 0; i < channels[sel_ch_num].service_num; ++ i) {
+		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+			channels[sel_ch_num].transport_stream_id,
+			channels[sel_ch_num].original_network_id,
+			channels[sel_ch_num].service_ids[i]
+		};
+		mgr.syncGetServiceName (&param);
+		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_ERROR) {
+			continue ;
+		}
+		char* svc_name = (char*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+		_COM_SVR_PRINT ("  %2d: [%s]\n", i, svc_name);
+	}
+
+	int sel_svc_num = 0;
+	while (1) {
+		memset (buf, 0x00, sizeof(buf));
+		_COM_SVR_PRINT ("select service. # ");
+
+		int rSize = CUtils::recvData (fd, (uint8_t*)buf, sizeof(buf), NULL);
+		if (rSize <= 0) {
+			continue;
+		} else {
+			CUtils::deleteLF (buf);
+			CUtils::deleteHeadSp (buf);
+			CUtils::deleteTailSp (buf);
+			std::regex regex_num("^[0-9]+$");
+			if (!std::regex_match (buf, regex_num)) {
+				continue;
+			}
+
+			sel_svc_num = atoi(buf);
+			if (sel_svc_num < channels[sel_ch_num].service_num) {
+				break;
+			}
+		}
+	}
+
+
+	CEventScheduleManagerIf::SERVICE_KEY_t key = {
+		channels[sel_ch_num].transport_stream_id,
+		channels[sel_ch_num].original_network_id,
+		channels[sel_ch_num].service_ids[sel_svc_num]
+	};
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CEventScheduleManagerIf em(pBase->getExternalIf());
+	em.reqDumpSchedule (&key);
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
+static void _dumpEvent_detail (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
 		_COM_SVR_PRINT ("invalid arguments.\n");
@@ -287,9 +419,15 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 		NULL,
 	},
 	{
-		"g",
-		"get event --from last dumped schedule-- (usage: g {index})",
-		_getEvent,
+		"d2",
+		"dump schedule",
+		_dump_schedule2,
+		NULL,
+	},
+	{
+		"dd",
+		"dump event detail --from last dumped schedule-- (usage: dd {index})",
+		_dumpEvent_detail,
 		NULL,
 	},
 	{
