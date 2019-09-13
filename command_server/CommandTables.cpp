@@ -38,8 +38,8 @@ static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	// このcastはどうなの
-	CCommandServer *p = (CCommandServer*)pBase;
+//	CCommandServer *p = (CCommandServer*)pBase;
+	CCommandServer* p = dynamic_cast <CCommandServer*> (pBase);
 	p->connectionClose ();
 }
 

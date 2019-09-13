@@ -422,7 +422,7 @@ public:
 				iter->dump();
 			}
 			_UTL_LOG_I (
-				"  start - end: [%s - %s]",
+				"\n *** start - end: [%s - %s] ***\n\n",
 				start_time.toString(),
 				end_time.toString()
 			);
@@ -486,7 +486,7 @@ private:
 		const char *p_keyword,
 		CEventScheduleManagerIf::EVENT_t *p_out_event,
 		int out_array_num,
-		bool is_include_extendedEvent
+		bool is_check_extendedEvent
 	) const;
 
 	void pushHistories (const CHistory *p_history);

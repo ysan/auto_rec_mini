@@ -566,7 +566,7 @@ void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK:
 
-		pIf->setTimeout (60*1000); // 1min
+		pIf->setTimeout (60*1000*10); // 10min
 
 		sectId = SECTID_CHECK_WAIT;
 		enAct = EN_THM_ACT_WAIT;
@@ -649,7 +649,7 @@ void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 
 			} else {
 				// 予約に対応するイベントがなかった
-				_UTL_LOG_E ("syncGetEvent error");
+				_UTL_LOG_W ("no event corresponding to the reservation...");
 				m_reserves [i].dump();
 			}
 

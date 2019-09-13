@@ -129,7 +129,7 @@ static void _dump_schedule (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
-static void _dump_schedule2 (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _dump_schedule_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -161,7 +161,7 @@ static void _dump_schedule2 (int argc, char* argv[], CThreadMgrBase *pBase)
 	}
 
 
-	// list ts
+	// list ts channel
 	for (int i = 0; i < 20; ++ i) {
 		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
 			channels[i].transport_stream_id,
@@ -177,6 +177,7 @@ static void _dump_schedule2 (int argc, char* argv[], CThreadMgrBase *pBase)
 		_COM_SVR_PRINT ("  %2d: [%s]\n", i, ts_name);
 	}
 
+	// select ts channel
 	int sel_ch_num = 0;
 	while (1) {
 		memset (buf, 0x00, sizeof(buf));
@@ -217,6 +218,7 @@ static void _dump_schedule2 (int argc, char* argv[], CThreadMgrBase *pBase)
 		_COM_SVR_PRINT ("  %2d: [%s]\n", i, svc_name);
 	}
 
+	// select service
 	int sel_svc_num = 0;
 	while (1) {
 		memset (buf, 0x00, sizeof(buf));
@@ -419,13 +421,13 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 		NULL,
 	},
 	{
-		"d2",
-		"dump schedule",
-		_dump_schedule2,
+		"di",
+		"dump schedule (interactive mode)",
+		_dump_schedule_interactive,
 		NULL,
 	},
 	{
-		"dd",
+		"ded",
 		"dump event detail --from last dumped schedule-- (usage: dd {index})",
 		_dumpEvent_detail,
 		NULL,

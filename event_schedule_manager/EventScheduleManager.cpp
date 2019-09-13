@@ -1353,14 +1353,14 @@ void CEventScheduleManager::onReq_getEvents_keywordSearch (CThreadMgrIf *pIf)
 
 	} else {
 
-		bool is_include_extendedEvent = false;
+		bool is_check_extendedEvent = false;
 		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH) {
-			is_include_extendedEvent = false;
+			is_check_extendedEvent = false;
 		} else if (pIf->getSeqIdx() == EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX) {
-			is_include_extendedEvent = true;
+			is_check_extendedEvent = true;
 		}
 
-		int n = getEvents (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num, is_include_extendedEvent);
+		int n = getEvents (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num, is_check_extendedEvent);
 		if (n < 0) {
 			_UTL_LOG_E ("getEvent is invalid.");
 			pIf->reply (EN_THM_RSLT_ERROR);
@@ -1955,7 +1955,7 @@ int CEventScheduleManager::getEvents (
 	const char *p_keyword,
 	CEventScheduleManagerIf::EVENT_t *p_out_event,
 	int out_array_num,
-	bool is_include_extendedEvent
+	bool is_check_extendedEvent
 ) const
 {
 	if (!p_keyword || !p_out_event || out_array_num <= 0) {
@@ -1986,31 +1986,43 @@ int CEventScheduleManager::getEvents (
 				CEvent* p_event = *iter_event;
 				if (p_event) {
 
-					char *s = NULL;
+					char *s_evt_name = NULL;
+					char *s_evt_text = NULL;
 					char *s_ex_item_desc = NULL;
 					char *s_ex_item = NULL;
 
-					if (is_include_extendedEvent) {
+					if (is_check_extendedEvent) {
+
+						// check event text
+						s_evt_text = strstr ((char*)p_event->text.c_str(), p_keyword);
+
 						// check extened event
 						std::vector<CEvent::CExtendedInfo>::const_iterator iter_ex = p_event->extendedInfos.begin();
 						for (; iter_ex != p_event->extendedInfos.end(); ++ iter_ex) {
 							s_ex_item_desc = strstr ((char*)iter_ex->item_description.c_str(), p_keyword);
 							s_ex_item = strstr ((char*)iter_ex->item.c_str(), p_keyword);
 							if (s_ex_item_desc || s_ex_item) {
-								_UTL_LOG_I ("====================================");
-								_UTL_LOG_I ("####  keyword:[%s]  ####", p_keyword);
-								p_event->dump();
-								p_event->dump_detail();
 								break;
 							}
 						}
+
+						// debug dump
+						if (s_evt_text || s_ex_item_desc || s_ex_item) {
+							_UTL_LOG_I ("====================================");
+							_UTL_LOG_I ("====  keyword:[%s]  ====", p_keyword);
+							_UTL_LOG_I ("====================================");
+							p_event->dump();
+							p_event->dump_detail();
+						}
+
+					} else {
+
+						// check event name
+						s_evt_name = strstr ((char*)p_event->event_name.c_str(), p_keyword);
 					}
 
-					// check event name
-					s = strstr ((char*)p_event->event_name.c_str(), p_keyword);
-
-
-					if (s || s_ex_item_desc || s_ex_item) {
+					// check result
+					if (s_evt_name || s_evt_text || s_ex_item_desc || s_ex_item) {
 
 						p_out_event->transport_stream_id = p_event->transport_stream_id;
 						p_out_event->original_network_id = p_event->original_network_id;
