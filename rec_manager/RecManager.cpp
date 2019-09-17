@@ -816,6 +816,10 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	switch (sectId) {
 	case SECTID_ENTRY:
+
+		_UTL_LOG_I ("(%s) entry", pIf->getSeqName());
+		m_recording.dump();
+
 		sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;

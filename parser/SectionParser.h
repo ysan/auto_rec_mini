@@ -116,6 +116,8 @@ public:
 
 
 	EN_CHECK_SECTION checkSection (const TS_HEADER *pTsHdr, uint8_t *pPayload, size_t payloadSize);
+	void checkAsyncDelete (void);
+
 
 protected:
 	CSectionInfo *getLatestCompleteSection (void) const;
@@ -123,6 +125,7 @@ protected:
 	void detachAllSectionList (void);
 	CSectionInfo *searchSectionList (const CSectionInfo &sectInfo) const;
 	int getSectionListNum (void) const;
+	uint16_t getPid (void) const;
 
 	virtual bool onSectionStarted (const CSectionInfo *pSection);
 	virtual void onSectionCompleted (const CSectionInfo *pCompSection);

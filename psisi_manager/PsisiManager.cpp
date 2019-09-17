@@ -2042,6 +2042,16 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 	}
 
 
+	mPAT.checkAsyncDelete ();
+	mEIT_H.checkAsyncDelete ();
+	mEIT_H_sched.checkAsyncDelete ();
+	mNIT.checkAsyncDelete ();
+	mSDT.checkAsyncDelete ();
+	for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
+		m_tmpProgramMaps[i].m_parser.checkAsyncDelete ();
+	}
+
+
 	EN_CHECK_SECTION r = EN_CHECK_SECTION__COMPLETED;
 
 	switch (p_ts_header->pid) {
@@ -2065,14 +2075,14 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 			CProgramAssociationTable::CReference pat_tables = mPAT.reference();
 
-			// PATは一つしかないことを期待しています..が念の為最新(最後尾)のものを参照します
+			// PATは一つしかないことを期待していますが 念の為最新(最後尾)のものを参照します
 			std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = pat_tables.mpTables->end();
 			CProgramAssociationTable::CTable* latest = *(-- iter);
 
 			// 一度クリアします
 			for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
 				if (m_tmpProgramMaps[i].is_used) {
-					m_tmpProgramMaps[i].clear();
+					m_tmpProgramMaps[i].clear(); // asyncDeleteもここで
 				}
 			}
 
@@ -2093,6 +2103,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 					int i = 0;
 					for (i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
 						if (!m_tmpProgramMaps[i].is_used) {
+							// set PID
 							m_tmpProgramMaps[i].pid = iter_prog->program_map_PID;
 							m_tmpProgramMaps[i].is_used = true;
 							break;
@@ -2168,12 +2179,12 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 	case PID_RST:
 
-		r = mRST.checkSection (p_ts_header, p_payload, payload_size);
+//		r = mRST.checkSection (p_ts_header, p_payload, payload_size);
 		break;
 
 	case PID_BIT:
 
-		r = mBIT.checkSection (p_ts_header, p_payload, payload_size);
+//		r = mBIT.checkSection (p_ts_header, p_payload, payload_size);
 		break;
 
 	default:
@@ -2183,8 +2194,21 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 			if (!p_tmp->is_used) {
 				continue;
 			}
+
 			if (p_ts_header->pid == p_tmp->pid) {
-				p_tmp->m_parser.checkSection (p_ts_header, p_payload, payload_size);
+
+				r = p_tmp->m_parser.checkSection (p_ts_header, p_payload, payload_size);
+				if (r == EN_CHECK_SECTION__COMPLETED || r == EN_CHECK_SECTION__COMPLETED_ALREADY) {
+					_PARSER_NOTICE _notice = {EN_PSISI_TYPE__SDT,
+										r == EN_CHECK_SECTION__COMPLETED ? true : false};
+					requestAsync (
+						EN_MODULE_PSISI_MANAGER,
+						EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
+						(uint8_t*)&_notice,
+						sizeof(_notice)
+					);
+				}
+
 				break;
 			}
 			++ p_tmp;

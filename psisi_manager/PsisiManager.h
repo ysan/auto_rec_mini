@@ -514,7 +514,7 @@ private:
 	CRunningStatusTable mRST;
 	CBroadcasterInformationTable mBIT;
 
-	CTmpProgramMap m_tmpProgramMaps [TMP_PROGRAM_MAPS_MAX];
+	CTmpProgramMap m_tmpProgramMaps [TMP_PROGRAM_MAPS_MAX]; // TODO 現状配列の排他は入れません
 
 	// for EIT schedule
 	CEventInformationTable_sched mEIT_H_sched;

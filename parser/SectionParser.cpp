@@ -952,6 +952,14 @@ int CSectionParser::getSectionListNum (void) const
 /**
  *
  */
+uint16_t CSectionParser::getPid (void) const
+{
+	return mPid;
+}
+
+/**
+ *
+ */
 void CSectionParser::dumpSectionList (void) const
 {
 	_UTL_LOG_I ("- section list ----------");
@@ -1290,11 +1298,11 @@ EN_CHECK_SECTION CSectionParser::checkSection (const TS_HEADER *pTsHdr, uint8_t 
 
 	} else {
 
-		if (mIsAsyncDelete) {
-			_UTL_LOG_I ("pid:[0x%04x] asyncDelete -> detachAllSectionList", mPid);
-			detachAllSectionList ();
-			mIsAsyncDelete = false;
-		}
+//		if (mIsAsyncDelete) {
+//			_UTL_LOG_I ("pid:[0x%04x] asyncDelete -> detachAllSectionList", mPid);
+//			detachAllSectionList ();
+//			mIsAsyncDelete = false;
+//		}
 
 		_UTL_LOG_D ("checkSectionFirst");
 		return checkSectionFirst (pPayload, payloadSize);
@@ -1354,4 +1362,16 @@ void CSectionParser::onSectionCompleted (const CSectionInfo *pCompSection)
 void CSectionParser::asyncDelete (void)
 {
 	mIsAsyncDelete = true;
+}
+
+/**
+ *
+ */
+void CSectionParser::checkAsyncDelete (void)
+{
+	if (mIsAsyncDelete) {
+		_UTL_LOG_I ("pid:[0x%04x] asyncDelete -> detachAllSectionList", mPid);
+		detachAllSectionList ();
+		mIsAsyncDelete = false;
+	}
 }

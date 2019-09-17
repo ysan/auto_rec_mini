@@ -172,6 +172,7 @@ void CProgramMapTable::dumpTable (const CTable* pTable) const
 	}
 
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
+	_UTL_LOG_I ("PID [0x%04x]\n", this->getPid ());
 	pTable->header.dump ();
 	_UTL_LOG_I ("========================================\n");
 
