@@ -35,7 +35,9 @@ static const struct reserve_state_pair g_reserveStatePair [] = {
 	{0x00000020, "END_SUCCESS"},
 	{0x00000040, "END_ERROR__ALREADY_PASSED"},
 	{0x00000080, "END_ERROR__HDD_FREE_SPACE_LOW"},
-	{0x00000100, "END_ERROR__INTERNAL_ERR"},
+	{0x00000100, "END_ERROR__TUNE_ERR"},
+	{0x00000200, "END_ERROR__EVENT_NOT_FOUND"},
+	{0x00000400, "END_ERROR__INTERNAL_ERR"},
 
 	{0x00000000, NULL}, // term
 };
@@ -52,14 +54,14 @@ const char * getReserveState (uint32_t state)
 
 	while (g_reserveStatePair [n].psz_reserveState != NULL) {
 		if (state & g_reserveStatePair [n].state) {
-			s = snprintf (pw, _size,
-								"%s,", g_reserveStatePair [n].psz_reserveState);
+			s = snprintf (pw, _size, "%s,", g_reserveStatePair [n].psz_reserveState);
 			pw += s;
 			_size -= s;
 		}
 		++ n ;
 	}
 
+	// INIT
 	if (pw == gsz_reserveState) {
 		strncpy (
 			gsz_reserveState,
@@ -449,11 +451,23 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			// NOW_RECORDINGフラグは落としておきます
-			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
-			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
-			setResult (&m_recording);
-			m_recording.clear();
+
+			//-----------------------------//
+			{
+				uint32_t opt = getRequestOption ();
+				opt |= REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+
+				// 選局を停止しときます tune stop
+				// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
+				CTunerControlIf _if (getExternalIf());
+				_if.reqTuneStop ();
+
+				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+			}
+			//-----------------------------//
+
 
 			sectId = SECTID_CHECK;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -516,7 +530,7 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			}
 
 		} else {
-			_UTL_LOG_E ("reqGetPresentEventInfo err");
+			_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
 		}
 
 		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
@@ -825,15 +839,28 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	case SECTID_WAIT_TUNE_BY_SERVICE_ID:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
-//			sectId = SECTID_START_RECORDING;
 
-			// イベント開始時間を確認します
-			sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
-			enAct = EN_THM_ACT_CONTINUE;
+			if (m_recording.is_event_type) {
+				// イベント開始時間を確認します
+				sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
+				enAct = EN_THM_ACT_CONTINUE;
+
+			} else {
+				// manual録画は即 録画開始します
+				sectId = SECTID_START_RECORDING;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
 
 		} else {
 			_UTL_LOG_E ("reqTuneByServiceId is failure.");
 			_UTL_LOG_E ("tune is failure  -> not start recording");
+
+			// NOW_RECORDINGフラグは落としておきます
+			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
+			m_recording.state |= RESERVE_STATE__END_ERROR__TUNE_ERR;
+			setResult (&m_recording);
+			m_recording.clear();
+
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -843,6 +870,13 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 		if (s_retry >= 10) {
 			_UTL_LOG_E ("(%s) retry over.", pIf->getSeqName());
+
+			// NOW_RECORDINGフラグは落としておきます
+			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
+			m_recording.state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
+			setResult (&m_recording);
+			m_recording.clear();
+
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 
@@ -894,7 +928,14 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			}
 
 		} else {
-			_UTL_LOG_E ("reqGetPresentEventInfo err");
+			_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
+
+			// NOW_RECORDINGフラグは落としておきます
+			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
+			m_recording.state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
+			setResult (&m_recording);
+			m_recording.clear();
+
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -955,10 +996,16 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 						// 録画は行いません
 						m_recording.clear();
 
-						sectId = SECTID_END_SUCCESS;
+						sectId = SECTID_END_ERROR; // 選局止めたいのでエラーで返します
 						enAct = EN_THM_ACT_CONTINUE;
 
 					} else {
+						// NOW_RECORDINGフラグは落としておきます
+						m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
+						m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+						setResult (&m_recording);
+						m_recording.clear();
+
 						sectId = SECTID_END_ERROR;
 						enAct = EN_THM_ACT_CONTINUE;
 					}
@@ -967,6 +1014,13 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 					// follow event なのにありえるのか？
 					// システムの時計がくるっていたりしたらありえる
 					_UTL_LOG_E ("s_followEventInfo.start_time > m_recording.start_time ??");
+
+					// NOW_RECORDINGフラグは落としておきます
+					m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
+					m_recording.state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
+					setResult (&m_recording);
+					m_recording.clear();
+
 					sectId = SECTID_END_ERROR;
 					enAct = EN_THM_ACT_CONTINUE;
 				}
@@ -980,7 +1034,14 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			}
 
 		} else {
-			_UTL_LOG_E ("reqGetFollowEventInfo err");
+			_UTL_LOG_E ("(%s) reqGetFollowEventInfo err", pIf->getSeqName());
+
+			// NOW_RECORDINGフラグは落としておきます
+			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
+			m_recording.state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
+			setResult (&m_recording);
+			m_recording.clear();
+
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -1018,6 +1079,13 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 		} else {
 			_UTL_LOG_E ("m_recProgress != EN_REC_PROGRESS__INIT ???  -> not start recording");
+
+			// NOW_RECORDINGフラグは落としておきます
+			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
+			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+			setResult (&m_recording);
+			m_recording.clear();
+
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -1236,7 +1304,7 @@ s_presentEventInfo.dump();
 			}
 
 		} else {
-			_UTL_LOG_E ("reqGetPresentEventInfo err");
+			_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
