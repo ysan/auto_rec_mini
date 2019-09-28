@@ -379,9 +379,7 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 	case EN_PSISI_TYPE__PAT:
 
 		if (_notice.is_new_ts_section) {
-//			mPAT.dumpTables();
 			_UTL_LOG_I ("notice new PAT");
-
 			clearProgramInfos();
 			cacheProgramInfos();
 		}
@@ -391,12 +389,21 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 
 		break;
 
+	case EN_PSISI_TYPE__PMT:
+
+		if (_notice.is_new_ts_section) {
+			_UTL_LOG_I ("notice new PMT");
+			clearProgramInfos();
+			cacheProgramInfos();
+		}
+
+		break;
+
 	case EN_PSISI_TYPE__NIT:
 		// 選局後 parserが新しいセクションを取得したかチェックします
 		m_NIT_comp_flag.check_update (_notice.is_new_ts_section);
 
 		if (_notice.is_new_ts_section) {
-//			mNIT.dumpTables();
 			_UTL_LOG_I ("notice new NIT");
 
 			// ここにくるってことは選局したとゆうこと
@@ -411,7 +418,6 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 		m_SDT_comp_flag.check_update (_notice.is_new_ts_section);
 
 		if (_notice.is_new_ts_section) {
-//			mSDT.dumpTables();
 			_UTL_LOG_I ("notice new SDT");
 
 			// ここにくるってことは選局したとゆうこと
@@ -1248,34 +1254,33 @@ void CPsisiManager::cacheProgramInfos (void)
 
 	std::lock_guard<std::recursive_mutex> lock (*mPAT_ref.mpMutex);
 
-	std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = mPAT_ref.mpTables->begin();
-	for (; iter != mPAT_ref.mpTables->end(); ++ iter) {
+	// PATは一つしかないことを期待していますが 念の為最新(最後尾)のものを参照します
+	std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = mPAT_ref.mpTables->end();
+	CProgramAssociationTable::CTable* latest = *(-- iter);
+
+	CProgramAssociationTable::CTable *pTable = latest;
+	uint8_t tbl_id = pTable->header.table_id;
+	uint16_t ts_id = pTable->header.table_id_extension;
+
+	std::vector<CProgramAssociationTable::CTable::CProgram>::const_iterator iter_prog = pTable->programs.begin();
+	for (; iter_prog != pTable->programs.end(); ++ iter_prog) {
 
 		if (n >= PROGRAM_INFOS_MAX) {
 			return ;
 		}
 
-		CProgramAssociationTable::CTable *pTable = *iter;
-		uint8_t tbl_id = pTable->header.table_id;
-		uint16_t ts_id = pTable->header.table_id_extension;
+		m_programInfos[n].table_id = tbl_id;
+		m_programInfos[n].transport_stream_id = ts_id;
 
-		std::vector<CProgramAssociationTable::CTable::CProgram>::const_iterator iter_prog = pTable->programs.begin();
-		for (; iter_prog != pTable->programs.end(); ++ iter_prog) {
+		m_programInfos[n].program_number = iter_prog->program_number;
+		m_programInfos[n].program_map_PID = iter_prog->program_map_PID;
 
-			m_programInfos[n].table_id = tbl_id;
-			m_programInfos[n].transport_stream_id = ts_id;
+		m_programInfos[n].p_orgTable = pTable;
+		m_programInfos[n].is_used = true;
 
-			m_programInfos[n].program_number = iter_prog->program_number;
-			m_programInfos[n].program_map_PID = iter_prog->program_map_PID;
+		++ n;
 
-			m_programInfos[n].p_orgTable = pTable;
-			m_programInfos[n].is_used = true;
-
-			++ n;
-
-		} // loop programs
-
-	} // loop tables
+	} // loop programs
 }
 
 void CPsisiManager::dumpProgramInfos (void)
@@ -2199,7 +2204,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 				r = p_tmp->m_parser.checkSection (p_ts_header, p_payload, payload_size);
 				if (r == EN_CHECK_SECTION__COMPLETED || r == EN_CHECK_SECTION__COMPLETED_ALREADY) {
-					_PARSER_NOTICE _notice = {EN_PSISI_TYPE__SDT,
+					_PARSER_NOTICE _notice = {EN_PSISI_TYPE__PMT,
 										r == EN_CHECK_SECTION__COMPLETED ? true : false};
 					requestAsync (
 						EN_MODULE_PSISI_MANAGER,
