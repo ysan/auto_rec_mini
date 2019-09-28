@@ -1254,9 +1254,16 @@ void CPsisiManager::cacheProgramInfos (void)
 
 	std::lock_guard<std::recursive_mutex> lock (*mPAT_ref.mpMutex);
 
+	if (mPAT_ref.mpTables->size() == 0) {
+		return;
+	}
+
 	// PATは一つしかないことを期待していますが 念の為最新(最後尾)のものを参照します
 	std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = mPAT_ref.mpTables->end();
 	CProgramAssociationTable::CTable* latest = *(-- iter);
+	if (!latest) {
+		return;
+	}
 
 	CProgramAssociationTable::CTable *pTable = latest;
 	uint8_t tbl_id = pTable->header.table_id;
@@ -2060,7 +2067,10 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 	EN_CHECK_SECTION r = EN_CHECK_SECTION__COMPLETED;
 
 	switch (p_ts_header->pid) {
-	case PID_PAT:
+	case PID_PAT: {
+
+//TODO
+		std::lock_guard<std::recursive_mutex> lock (*mPAT_ref.mpMutex);
 
 		r = mPAT.checkSection (p_ts_header, p_payload, payload_size);
 		if (r == EN_CHECK_SECTION__COMPLETED || r == EN_CHECK_SECTION__COMPLETED_ALREADY) {
@@ -2078,10 +2088,8 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		if (r == EN_CHECK_SECTION__COMPLETED) {
 			// 新しいPATが取れたら PMT parserを準備します
 
-			CProgramAssociationTable::CReference pat_tables = mPAT.reference();
-
 			// PATは一つしかないことを期待していますが 念の為最新(最後尾)のものを参照します
-			std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = pat_tables.mpTables->end();
+			std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = mPAT_ref.mpTables->end();
 			CProgramAssociationTable::CTable* latest = *(-- iter);
 
 			// 一度クリアします
@@ -2122,7 +2130,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 			}
 		}
 
-
+		}
 		break;
 
 	case PID_EIT_H:
