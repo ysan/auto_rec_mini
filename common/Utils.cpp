@@ -277,6 +277,24 @@ void CUtils::getTimeOfDay (struct timeval *p)
 	gettimeofday (p, NULL);
 }
 
+/**
+ * DISKの空き容量 MByte単位で返します
+ */
+int CUtils::getDiskFreeMB (char *path)
+{
+	if (!path) {
+		return -1;
+	}
+
+	struct statvfs s = {0};
+	int r = statvfs (path, &s);
+	if (r != 0) {
+		_UTL_PERROR ("statvfs");
+		return -1;
+	}
+
+	return (int) (s.f_bfree * s.f_bsize / 1000000);
+}
 
 //--------------------------  log methods  --------------------------
 // default stdout

@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 
 #include <syslog.h>
+#include <sys/statvfs.h>
 
 #ifndef _ANDROID_BUILD
 #include <execinfo.h>
@@ -172,6 +173,8 @@ public:
 	static void getTimeOfDay (struct timeval *p);
 	static void setThreadName (char *p);
 	static void getThreadName (char *pszOut, size_t nSize);
+
+	static int getDiskFreeMB (char *path);
 
 
 	static FILE *mpfpLog;
