@@ -280,7 +280,7 @@ void CUtils::getTimeOfDay (struct timeval *p)
 /**
  * DISKの空き容量 MByte単位で返します
  */
-int CUtils::getDiskFreeMB (char *path)
+int CUtils::getDiskFreeMB (const char *path)
 {
 	if (!path) {
 		return -1;

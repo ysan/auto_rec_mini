@@ -174,7 +174,7 @@ public:
 	static void setThreadName (char *p);
 	static void getThreadName (char *pszOut, size_t nSize);
 
-	static int getDiskFreeMB (char *path);
+	static int getDiskFreeMB (const char *path);
 
 
 	static FILE *mpfpLog;

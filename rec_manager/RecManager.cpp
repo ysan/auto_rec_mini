@@ -42,27 +42,27 @@ static const struct reserve_state_pair g_reserveStatePair [] = {
 	{0x00000000, NULL}, // term
 };
 
-static char gsz_reserveState [100];
+static char gsz_reserveState [256];
 
 const char * getReserveState (uint32_t state)
 {
 	memset (gsz_reserveState, 0x00, sizeof(gsz_reserveState));
 	int n = 0;
 	int s = 0;
-	char *pw = gsz_reserveState;
+	char *pos = gsz_reserveState;
 	int _size = sizeof(gsz_reserveState);
 
 	while (g_reserveStatePair [n].psz_reserveState != NULL) {
 		if (state & g_reserveStatePair [n].state) {
-			s = snprintf (pw, _size, "%s,", g_reserveStatePair [n].psz_reserveState);
-			pw += s;
+			s = snprintf (pos, _size, "%s,", g_reserveStatePair [n].psz_reserveState);
+			pos += s;
 			_size -= s;
 		}
 		++ n ;
 	}
 
 	// INIT
-	if (pw == gsz_reserveState) {
+	if (pos == gsz_reserveState) {
 		strncpy (
 			gsz_reserveState,
 			g_reserveStatePair[0].psz_reserveState,
@@ -421,8 +421,30 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 				enAct = EN_THM_ACT_CONTINUE;
 
 			} else {
-				sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
-				enAct = EN_THM_ACT_CONTINUE;
+
+				// disk 残量チェック
+				std::string *p_path = mp_settings->getParams()->getRecTsPath();
+				int df = CUtils::getDiskFreeMB(p_path->c_str());
+				if (df < 100) {
+					_UTL_LOG_E ("(%s) disk free [%d] bytes !!", pIf->getSeqName(), df);
+					// 100MBytes満たない場合は 強制終了します
+					m_recording.state |= RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW;
+
+					uint32_t opt = getRequestOption ();
+					opt |= REQUEST_OPTION__WITHOUT_REPLY;
+					setRequestOption (opt);
+					requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__STOP_RECORDING);
+					opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+					setRequestOption (opt);
+
+					// recording end
+					sectId = SECTID_CHECK;
+					enAct = EN_THM_ACT_CONTINUE;
+
+				} else {
+					sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
+					enAct = EN_THM_ACT_CONTINUE;
+				}
 			}
 
 		} else {
@@ -794,6 +816,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_CHECK_DISK_FREE_SPACE,
 		SECTID_REQ_TUNE_BY_SERVICE_ID,
 		SECTID_WAIT_TUNE_BY_SERVICE_ID,
 		SECTID_REQ_GET_PRESENT_EVENT_INFO,
@@ -820,8 +843,27 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		_UTL_LOG_I ("(%s) entry", pIf->getSeqName());
 		m_recording.dump();
 
-		sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
+		sectId = SECTID_CHECK_DISK_FREE_SPACE;
 		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_CHECK_DISK_FREE_SPACE: {
+
+		std::string *p_path = mp_settings->getParams()->getRecTsPath();
+		int df = CUtils::getDiskFreeMB(p_path->c_str());
+		if (df < 100) {
+			_UTL_LOG_E ("(%s) disk free [%d] bytes !!", pIf->getSeqName(), df);
+			m_recording.state |= RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW;
+
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		}
 		break;
 
 	case SECTID_REQ_TUNE_BY_SERVICE_ID: {
@@ -1856,7 +1898,7 @@ void CRecManager::onReq_stopRecording (CThreadMgrIf *pIf)
 
 	} else {
 
-		_UTL_LOG_E ("invalid rec state");
+		_UTL_LOG_E ("invalid rec state (not recording now...)");
 		pIf->reply (EN_THM_RSLT_ERROR);
 	}
 
@@ -2301,6 +2343,7 @@ void CRecManager::checkReserves (void)
 
 				// 見つかったのでbreakします。
 				// 同時刻で予約が入っていた場合 配列の並び順で先の方を録画開始します
+				// 先行の録画が終わらないと後続は始まらないです
 				break;
 			}
 		}
