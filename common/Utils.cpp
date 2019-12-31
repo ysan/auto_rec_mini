@@ -293,7 +293,8 @@ int CUtils::getDiskFreeMB (const char *path)
 		return -1;
 	}
 
-	return (int) (s.f_bfree * s.f_bsize / 1000000);
+	long long _free = (long long)s.f_bfree * (long long)s.f_bsize / 1000000;
+	return (int) _free;
 }
 
 //--------------------------  log methods  --------------------------
