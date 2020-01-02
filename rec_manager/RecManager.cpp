@@ -425,9 +425,9 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 				// disk 残量チェック
 				std::string *p_path = mp_settings->getParams()->getRecTsPath();
 				int df = CUtils::getDiskFreeMB(p_path->c_str());
-				if (df < 100) {
-					_UTL_LOG_E ("(%s) disk free [%d] Mbytes !!", pIf->getSeqName(), df);
-					// 100MBytes満たない場合は 強制終了します
+				if (df < 1000) {
+					_UTL_LOG_E ("(%s) disk free space [%d] Mbytes !!", pIf->getSeqName(), df);
+					// 1GB満たない場合は 強制終了します
 					m_recording.state |= RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW;
 
 					uint32_t opt = getRequestOption ();
@@ -851,8 +851,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 		std::string *p_path = mp_settings->getParams()->getRecTsPath();
 		int df = CUtils::getDiskFreeMB(p_path->c_str());
-		_UTL_LOG_I ("(%s) disk free [%d] Mbytes.", pIf->getSeqName(), df);
-		if (df < 100) {
+		_UTL_LOG_I ("(%s) disk free space [%d] Mbytes.", pIf->getSeqName(), df);
+		if (df < 1000) {
 			m_recording.state |= RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW;
 
 			sectId = SECTID_END_ERROR;
