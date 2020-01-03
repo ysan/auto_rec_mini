@@ -797,6 +797,7 @@ void CPsisiManager::onReq_getCurrentServiceInfos (CThreadMgrIf *pIf)
 
 	REQ_SERVICE_INFOS_PARAM param = *(REQ_SERVICE_INFOS_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
 	if (!param.p_out_serviceInfos || param.array_max_num == 0) {
+		_UTL_LOG_E ("REQ_SERVICE_INFOS_PARAM is invalid.\n");
 		pIf->reply (EN_THM_RSLT_ERROR);
 
 	} else {
@@ -828,6 +829,7 @@ void CPsisiManager::onReq_getPresentEventInfo (CThreadMgrIf *pIf)
 
 	REQ_EVENT_INFO_PARAM param = *(REQ_EVENT_INFO_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
 	if (!param.p_out_eventInfo) {
+		_UTL_LOG_E ("REQ_EVENT_INFO_PARAM is invalid.\n");
 		enRslt = EN_THM_RSLT_ERROR;
 
 	} else {
@@ -855,6 +857,7 @@ void CPsisiManager::onReq_getPresentEventInfo (CThreadMgrIf *pIf)
 			enRslt = EN_THM_RSLT_SUCCESS;
 
 		} else {
+			_UTL_LOG_E ("not found PresentEventInfo");
 			enRslt = EN_THM_RSLT_ERROR;
 		}
 	}
@@ -883,6 +886,7 @@ void CPsisiManager::onReq_getFollowEventInfo (CThreadMgrIf *pIf)
 
 	REQ_EVENT_INFO_PARAM param = *(REQ_EVENT_INFO_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
 	if (!param.p_out_eventInfo) {
+		_UTL_LOG_E ("REQ_EVENT_INFO_PARAM is invalid.\n");
 		enRslt = EN_THM_RSLT_ERROR;
 
 	} else {
@@ -910,6 +914,7 @@ void CPsisiManager::onReq_getFollowEventInfo (CThreadMgrIf *pIf)
 			enRslt = EN_THM_RSLT_SUCCESS;
 
 		} else {
+			_UTL_LOG_E ("not found FollowEventInfo");
 			enRslt = EN_THM_RSLT_ERROR;
 		}
 	}
@@ -938,6 +943,7 @@ void CPsisiManager::onReq_getCurrentNetworkInfo (CThreadMgrIf *pIf)
 
 	REQ_NETWORK_INFO_PARAM param = *(REQ_NETWORK_INFO_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
 	if (!param.p_out_networkInfo) {
+		_UTL_LOG_E ("REQ_NETWORK_INFO_PARAM is invalid.\n");
 		enRslt = EN_THM_RSLT_ERROR;
 
 	} else {
@@ -973,6 +979,7 @@ void CPsisiManager::onReq_getCurrentNetworkInfo (CThreadMgrIf *pIf)
 			enRslt = EN_THM_RSLT_SUCCESS;
 
 		} else {
+			_UTL_LOG_E ("m_networkInfo is not availale...");
 			enRslt = EN_THM_RSLT_ERROR;
 		}
 	}
