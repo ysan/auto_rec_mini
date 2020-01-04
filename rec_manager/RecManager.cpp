@@ -468,29 +468,11 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 //TODO imple
-
 			sectId = SECTID_CHECK;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-
-			//-----------------------------//
-			{
-				uint32_t opt = getRequestOption ();
-				opt |= REQUEST_OPTION__WITHOUT_REPLY;
-				setRequestOption (opt);
-
-				// 選局を停止しときます tune stop
-				// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-				CTunerControlIf _if (getExternalIf());
-				_if.reqTuneStop ();
-
-				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-				setRequestOption (opt);
-			}
-			//-----------------------------//
-
-
+//TODO imple
 			sectId = SECTID_CHECK;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -533,10 +515,10 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 						}
 
 					} else {
-//TODO
+//TODO 録画止めてもいいかも
 						// event_idが変わった とりあえずログだしとく
 						_UTL_LOG_W (
-							"#####  recording event_id is update.  [0x%04x] -> [0x%04x]  #####",
+							"#####  recording event_id changed.  [0x%04x] -> [0x%04x]  #####",
 							s_presentEventInfo.event_id,
 							m_recording.event_id
 						);
@@ -821,8 +803,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		SECTID_WAIT_TUNE_BY_SERVICE_ID,
 		SECTID_REQ_GET_PRESENT_EVENT_INFO,
 		SECTID_WAIT_GET_PRESENT_EVENT_INFO,
-		SECTID_REQ_GET_FOLLOW_EVENT_INFO,
-		SECTID_WAIT_GET_FOLLOW_EVENT_INFO,
+		SECTID_REQ_CACHE_SCHEDULE,
+		SECTID_WAIT_CACHE_SCHEDULE,
 		SECTID_START_RECORDING,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
@@ -833,8 +815,6 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 	static PSISI_EVENT_INFO s_presentEventInfo;
-	static PSISI_EVENT_INFO s_followEventInfo;
-	static int s_retry = 0;
 
 
 	switch (sectId) {
@@ -901,8 +881,6 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			_UTL_LOG_E ("reqTuneByServiceId is failure.");
 			_UTL_LOG_E ("tune is failure  -> not start recording");
 
-			// NOW_RECORDINGフラグは落としておきます
-			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
 			m_recording.state |= RESERVE_STATE__END_ERROR__TUNE_ERR;
 			setResult (&m_recording);
 			m_recording.clear();
@@ -914,33 +892,17 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	case SECTID_REQ_GET_PRESENT_EVENT_INFO: {
 
-		if (s_retry >= 10) {
-			_UTL_LOG_E ("(%s) retry over.", pIf->getSeqName());
+		PSISI_SERVICE_INFO _svc_info ;
+		// 以下３つの要素が入っていればOK
+		_svc_info.transport_stream_id = m_recording.transport_stream_id;
+		_svc_info.original_network_id = m_recording.original_network_id;
+		_svc_info.service_id = m_recording.service_id;
 
-			// NOW_RECORDINGフラグは落としておきます
-			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
-			m_recording.state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
-			setResult (&m_recording);
-			m_recording.clear();
+		CPsisiManagerIf _if (getExternalIf());
+		_if.reqGetPresentEventInfo (&_svc_info, &s_presentEventInfo);
 
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-
-			PSISI_SERVICE_INFO _svc_info ;
-			// 以下３つの要素が入っていればOK
-			_svc_info.transport_stream_id = m_recording.transport_stream_id;
-			_svc_info.original_network_id = m_recording.original_network_id;
-			_svc_info.service_id = m_recording.service_id;
-
-			CPsisiManagerIf _if (getExternalIf());
-			_if.reqGetPresentEventInfo (&_svc_info, &s_presentEventInfo);
-
-			sectId = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
-			enAct = EN_THM_ACT_WAIT;
-		}
-
+		sectId = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
+		enAct = EN_THM_ACT_WAIT;
 		}
 		break;
 
@@ -949,35 +911,20 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 
 			if (s_presentEventInfo.event_id == m_recording.event_id) {
+				// 録画開始します
+				sectId = SECTID_START_RECORDING;
+				enAct = EN_THM_ACT_CONTINUE;
 
-				if (s_presentEventInfo.start_time == m_recording.start_time) {
-					// イベント開始時間が一致しているのでこのまま録画を開始します
-					sectId = SECTID_START_RECORDING;
-					enAct = EN_THM_ACT_CONTINUE;
-
-				} else if (s_presentEventInfo.start_time > m_recording.start_time) {
-					// present event なのにありえるのか？
-					// システムの時計がくるっていたりしたらありえる
-					_UTL_LOG_E ("s_presentEventInfo.start_time > m_recording.start_time ??");
-					sectId = SECTID_END_ERROR;
-					enAct = EN_THM_ACT_CONTINUE;
-
-				} else {
-					// すでに開始時間過ぎていた このまま録画を開始します
-					sectId = SECTID_START_RECORDING;
-					enAct = EN_THM_ACT_CONTINUE;
-				}
 			} else {
-				// イベントが一致しないので follow eventを調べます
-				sectId = SECTID_REQ_GET_FOLLOW_EVENT_INFO;
+				// イベントが一致しないので 前番組の延長とかで開始時間が遅れたと予想します
+				// --> EIT schedule を取得してみます
+				sectId = SECTID_REQ_CACHE_SCHEDULE;
 				enAct = EN_THM_ACT_CONTINUE;
 			}
 
 		} else {
 			_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
 
-			// NOW_RECORDINGフラグは落としておきます
-			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
 			m_recording.state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
 			setResult (&m_recording);
 			m_recording.clear();
@@ -987,103 +934,47 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		}
 		break;
 
-	case SECTID_REQ_GET_FOLLOW_EVENT_INFO: {
+	case SECTID_REQ_CACHE_SCHEDULE: {
 
-		PSISI_SERVICE_INFO _svc_info ;
-		// 以下３つの要素が入っていればOK
-		_svc_info.transport_stream_id = m_recording.transport_stream_id;
-		_svc_info.original_network_id = m_recording.original_network_id;
-		_svc_info.service_id = m_recording.service_id;
+		CEventScheduleManagerIf _if (getExternalIf());
+		_if.reqCacheSchedule_currentService ();
 
-		CPsisiManagerIf _if (getExternalIf());
-		_if.reqGetFollowEventInfo (&_svc_info, &s_followEventInfo);
-
-		sectId = SECTID_WAIT_GET_FOLLOW_EVENT_INFO;
+		sectId = SECTID_WAIT_CACHE_SCHEDULE;
 		enAct = EN_THM_ACT_WAIT;
 
 		}
 		break;
 
-	case SECTID_WAIT_GET_FOLLOW_EVENT_INFO:
+	case SECTID_WAIT_CACHE_SCHEDULE:
+
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 
-			if (s_followEventInfo.event_id == m_recording.event_id) {
+			// 予約を入れなおしてみます
+			CRecManagerIf::ADD_RESERVE_PARAM_t _param;
+			_param.transport_stream_id = m_recording.transport_stream_id ;
+			_param.original_network_id = m_recording.original_network_id;
+			_param.service_id = m_recording.service_id;
+			_param.event_id = m_recording.event_id;
+			_param.repeatablity = m_recording.repeatability;
+			_param.dump();
 
-				if (s_followEventInfo.start_time == m_recording.start_time) {
-					// (おそらく psisi mgr側でまだcasheできてない場合)
-					// イベント開始時間が一致している もう一度 present eventを調べます
-					++ s_retry;
-					pIf->setTimeout (100);
-					sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
-					enAct = EN_THM_ACT_WAIT;
+			// とりあえずリプライいらない
+			uint32_t opt = getRequestOption ();
+			opt |= REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+			requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT, (uint8_t*)&_param, sizeof(_param));
+			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
 
-				} else if (s_followEventInfo.start_time > m_recording.start_time) {
-					_UTL_LOG_I (
-						"#####  event start time is delayed.  [%s] -> [%s]  #####",
-						m_recording.start_time.toString (),
-						s_followEventInfo.start_time.toString ()
-					);
+			// 録画は行いません
+			m_recording.clear();
 
-					// イベント開始時間が遅れた
-					// 予約入れなおします
-					bool r = addReserve (
-									m_recording.transport_stream_id,
-									m_recording.original_network_id,
-									m_recording.service_id,
-									m_recording.event_id,
-									&s_followEventInfo.start_time, // 開始時間を更新
-									&s_followEventInfo.end_time, // 終了時間も変わってるかもしれないので更新
-									m_recording.title_name.c_str(),
-									m_recording.service_name.c_str(),
-									true, // is_event_type true
-									m_recording.repeatability
-   								);
-					if (r) {
-						// 録画は行いません
-						m_recording.clear();
-
-						sectId = SECTID_END_ERROR; // 選局止めたいのでエラーで返します
-						enAct = EN_THM_ACT_CONTINUE;
-
-					} else {
-						// NOW_RECORDINGフラグは落としておきます
-						m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
-						m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
-						setResult (&m_recording);
-						m_recording.clear();
-
-						sectId = SECTID_END_ERROR;
-						enAct = EN_THM_ACT_CONTINUE;
-					}
-
-				} else {
-					// follow event なのにありえるのか？
-					// システムの時計がくるっていたりしたらありえる
-					_UTL_LOG_E ("s_followEventInfo.start_time > m_recording.start_time ??");
-
-					// NOW_RECORDINGフラグは落としておきます
-					m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
-					m_recording.state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
-					setResult (&m_recording);
-					m_recording.clear();
-
-					sectId = SECTID_END_ERROR;
-					enAct = EN_THM_ACT_CONTINUE;
-				}
-
-			} else {
-				// イベントが一致しないのでもう一度 present eventを調べます
-				++ s_retry;
-				pIf->setTimeout (100);
-				sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
-				enAct = EN_THM_ACT_WAIT;
-			}
+			sectId = SECTID_END_ERROR; // 選局止めたいのでエラーにしておきます
+			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			_UTL_LOG_E ("(%s) reqGetFollowEventInfo err", pIf->getSeqName());
+			_UTL_LOG_E ("(%s) reqCacheSchedule_currentService err", pIf->getSeqName());
 
-			// NOW_RECORDINGフラグは落としておきます
-			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
 			m_recording.state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
 			setResult (&m_recording);
 			m_recording.clear();
@@ -1126,8 +1017,6 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		} else {
 			_UTL_LOG_E ("m_recProgress != EN_REC_PROGRESS__INIT ???  -> not start recording");
 
-			// NOW_RECORDINGフラグは落としておきます
-			m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
 			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
 			setResult (&m_recording);
 			m_recording.clear();
@@ -1141,8 +1030,6 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	case SECTID_END_SUCCESS:
 
 		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
-		memset (&s_followEventInfo, 0x00, sizeof(s_followEventInfo));
-		s_retry = 0;
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
@@ -1152,8 +1039,22 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	case SECTID_END_ERROR:
 
 		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
-		memset (&s_followEventInfo, 0x00, sizeof(s_followEventInfo));
-		s_retry = 0;
+
+		//-----------------------------//
+		{
+			uint32_t opt = getRequestOption ();
+			opt |= REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+
+			// 選局を停止しときます tune stop
+			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
+			CTunerControlIf _if (getExternalIf());
+			_if.reqTuneStop ();
+
+			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+		}
+		//-----------------------------//
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;

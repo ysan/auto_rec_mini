@@ -1118,7 +1118,7 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 		pushHistories (&m_current_history);
 		saveHistories ();
 
-
+#if 0
 		//-----------------------------//
 		{
 			uint32_t opt = getRequestOption ();
@@ -1134,7 +1134,7 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 			setRequestOption (opt);
 		}
 		//-----------------------------//
-
+#endif
 
 		// fire notify
 //		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__READY;
@@ -1263,6 +1263,8 @@ void CEventScheduleManager::onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *p
 			_param.p_out_event->start_time = p_event->start_time;
 			_param.p_out_event->end_time = p_event->end_time;
 
+			// アドレスで渡してますが 基本的には schedule casheが走らない限り
+			// アドレスは変わらない前提です
 			_param.p_out_event->p_event_name = &p_event->event_name;
 			_param.p_out_event->p_text = &p_event->text;
 
@@ -1362,7 +1364,7 @@ void CEventScheduleManager::onReq_getEvents_keywordSearch (CThreadMgrIf *pIf)
 
 		int n = getEvents (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num, is_check_extendedEvent);
 		if (n < 0) {
-			_UTL_LOG_E ("getEvent is invalid.");
+			_UTL_LOG_E ("getEvents is invalid.");
 			pIf->reply (EN_THM_RSLT_ERROR);
 		} else {
 			// 検索数をreply msgで返します
