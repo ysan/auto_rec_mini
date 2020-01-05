@@ -749,9 +749,10 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 		snprintf (
 			newfile,
 			sizeof(newfile),
-			"%s/%s_%s.m2ts",
+			"%s/%s_0x%08x_%s.m2ts",
 			p_path->c_str(),
 			p_name,
+			m_recording.state,
 			t_end.toString()
 		);
 
@@ -805,6 +806,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		SECTID_WAIT_GET_PRESENT_EVENT_INFO,
 		SECTID_REQ_CACHE_SCHEDULE,
 		SECTID_WAIT_CACHE_SCHEDULE,
+		SECTID_REQ_ADD_RESERVE_RESCHEDULE,
+		SECTID_WAIT_ADD_RESERVE_RESCHEDULE,
 		SECTID_START_RECORDING,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
@@ -925,7 +928,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		} else {
 			_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
 
-			m_recording.state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
+			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
 			setResult (&m_recording);
 			m_recording.clear();
 
@@ -949,31 +952,53 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 
-			// 予約を入れなおしてみます
-			CRecManagerIf::ADD_RESERVE_PARAM_t _param;
-			_param.transport_stream_id = m_recording.transport_stream_id ;
-			_param.original_network_id = m_recording.original_network_id;
-			_param.service_id = m_recording.service_id;
-			_param.event_id = m_recording.event_id;
-			_param.repeatablity = m_recording.repeatability;
-			_param.dump();
-
-			// とりあえずリプライいらない
-			uint32_t opt = getRequestOption ();
-			opt |= REQUEST_OPTION__WITHOUT_REPLY;
-			setRequestOption (opt);
-			requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT, (uint8_t*)&_param, sizeof(_param));
-			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-			setRequestOption (opt);
-
-			// 録画は行いません
-			m_recording.clear();
-
-			sectId = SECTID_END_ERROR; // 選局止めたいのでエラーにしておきます
+			// イベントを検索して予約を入れなおしてみます
+			sectId = SECTID_REQ_ADD_RESERVE_RESCHEDULE;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
 			_UTL_LOG_E ("(%s) reqCacheSchedule_currentService err", pIf->getSeqName());
+
+			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+			setResult (&m_recording);
+			m_recording.clear();
+
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_REQ_ADD_RESERVE_RESCHEDULE: {
+
+		CRecManagerIf::ADD_RESERVE_PARAM_t _param;
+		_param.transport_stream_id = m_recording.transport_stream_id ;
+		_param.original_network_id = m_recording.original_network_id;
+		_param.service_id = m_recording.service_id;
+		_param.event_id = m_recording.event_id;
+		_param.repeatablity = m_recording.repeatability;
+		_param.dump();
+
+		requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT, (uint8_t*)&_param, sizeof(_param));
+
+		sectId = SECTID_WAIT_ADD_RESERVE_RESCHEDULE;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_ADD_RESERVE_RESCHEDULE:
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			_UTL_LOG_I ("(%s) add reserve reschedule ok.", pIf->getSeqName());
+
+			// 今回は録画は行いません
+			m_recording.clear();
+
+			// 選局止めたいのでエラーにしておきます
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("(%s) add reserve reschedule err...", pIf->getSeqName());
 
 			m_recording.state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
 			setResult (&m_recording);
