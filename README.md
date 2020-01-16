@@ -1,4 +1,4 @@
-[Japanese](/README_jp.md)
+[Japanese](/README_ja.md)
 
 auto_rec_mini
 ===============
