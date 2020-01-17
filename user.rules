@@ -1,10 +1,32 @@
+# DEBUG_BUILD
+ifeq ($(DEBUG_BUILD), 1)
+MAKE_OPTIONS		+=	DEBUG_BUILD=1 NO_STRIP=1
+endif
+
+ifeq ($(DEBUG_BUILD), 1)
+CFLAGS				+=	-g3 -O0 -D_DEBUG_BUILD
+endif
+
+
+# DUMMY_TUNER
+ifeq ($(DUMMY_TUNER), 1)
+MAKE_OPTIONS		+=	DUMMY_TUNER=1
+endif
+
 ifeq ($(DUMMY_TUNER), 1)
 CFLAGS				+=  -D_DUMMY_TUNER
+endif
+
+
+# LOG_COLOR_OFF
+ifeq ($(LOG_COLOR_OFF), 1)
+MAKE_OPTIONS		+=	LOG_COLOR_OFF=1
 endif
 
 ifeq ($(LOG_COLOR_OFF), 1)
 CFLAGS				+=	-D_LOG_COLOR_OFF
 endif
+
 
 
 INSTALLDIR_BASE		:=	auto_rec_mini

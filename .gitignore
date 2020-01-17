@@ -1,7 +1,7 @@
-*so
-*o
-*a
-*d
+*.so
+*.o
+*.a
+*.d
 auto_rec_mini
 parser_test
 recfsusb2i

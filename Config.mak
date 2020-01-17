@@ -2,9 +2,6 @@
 #   Defines
 #
 
-# add user define
--include $(BASEDIR)/user.rules
-
 MAKE		:=	/usr/bin/make
 ECHO		:=	echo
 ifeq ($(WITH_CLANG), 1)
@@ -23,18 +20,18 @@ LDD			:=	/usr/bin/ldd
 SIZE		:=	/usr/bin/size
 OBJDUMP		:=	/usr/bin/objdump
 
+MAKE_OPTIONS	:=	--no-print-directory
 
-# redefine MAKE command
-MAKE		+=	--no-print-directory
-ifeq ($(DEBUG_BUILD), 1)
-MAKE		+=	DEBUG_BUILD=1 NO_STRIP=1
-endif
+
+# add user define
+-include $(BASEDIR)/user.rules
+
+
+# redefine options for recursive MAKE
 ifeq ($(NO_STRIP), 1)
-MAKE		+=	NO_STRIP=1
+MAKE_OPTIONS	+=	NO_STRIP=1
 endif
-ifeq ($(DUMMY_TUNER), 1)
-MAKE		+=	DUMMY_TUNER=1
-endif
+MAKE		+=	$(MAKE_OPTIONS)
 
 
 # CFLAGS
@@ -51,11 +48,7 @@ ifneq ($(USERDEFS),)
 CFLAGS		+=	$(USERDEFS)
 endif
 
-ifeq ($(DEBUG_BUILD), 1)
-CFLAGS		+=	-g -D_DEBUG_BUILD
-endif
-
-ifeq ($(ADDR_SANITIZE), 1)
+ifeq ($(WITH_ASAN), 1)
 CFLAGS		+=	-fsanitize=address -fno-omit-frame-pointer
 endif
 
