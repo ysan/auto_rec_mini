@@ -32,6 +32,7 @@
 #include "RunningStatusTable.h"
 #include "BroadcasterInformationTable.h"
 #include "TimeOffsetTable.h"
+#include "ConditionalAccessTable.h"
 
 
 using namespace ThreadManager;
@@ -507,19 +508,20 @@ private:
 
 
 	//---  以下は tuner control thread(ts_parser) のcontextで動くものです ---//
+
 	CProgramAssociationTable mPAT;
 	CEventInformationTable mEIT_H;
 	CNetworkInformationTable mNIT;
 	CServiceDescriptionTable mSDT;
-	CRunningStatusTable mRST;
-	CBroadcasterInformationTable mBIT;
+	CConditionalAccessTable mCAT;
 
 	CTmpProgramMap m_tmpProgramMaps [TMP_PROGRAM_MAPS_MAX]; // TODO 現状配列の排他は入れません
 
 	// for EIT schedule
 	CEventInformationTable_sched mEIT_H_sched;
 
-	//-----------------------------------------------------------------------//
+	//--- ここまで ----------------------------------------------------------//
+
 
 	CProgramAssociationTable::CReference mPAT_ref;
 	CEventInformationTable::CReference mEIT_H_ref;

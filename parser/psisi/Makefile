@@ -48,6 +48,7 @@ SRCS_CPP	:= \
 	ServiceDescriptionTable.cpp \
 	RunningStatusTable.cpp \
 	BroadcasterInformationTable.cpp \
+	ConditionalAccessTable.cpp \
 
 
 #

@@ -399,6 +399,15 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 
 		break;
 
+	case EN_PSISI_TYPE__CAT:
+
+		if (_notice.is_new_ts_section) {
+			_UTL_LOG_I ("notice new CAT");
+//TODO
+		}
+
+		break;
+
 	case EN_PSISI_TYPE__NIT:
 		// 選局後 parserが新しいセクションを取得したかチェックします
 		m_NIT_comp_flag.check_update (_notice.is_new_ts_section);
@@ -495,8 +504,9 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 		mEIT_H.clear();
 		mNIT.clear();
 		mSDT.clear();
-		mRST.clear();
-		mBIT.clear();
+		mCAT.clear();
+//		mRST.clear();
+//		mBIT.clear();
 
 		m_EIT_H_comp_flag.clear();
 		m_NIT_comp_flag.clear();
@@ -1140,13 +1150,17 @@ void CPsisiManager::onReq_dumpTables (CThreadMgrIf *pIf)
 		mSDT.dumpTables();
 		break;
 
-	case EN_PSISI_TYPE__RST:
-		mRST.dumpTables();
+	case EN_PSISI_TYPE__CAT:
+		mCAT.dumpTables();
 		break;
 
-	case EN_PSISI_TYPE__BIT:
-		mBIT.dumpTables();
-		break;
+//	case EN_PSISI_TYPE__RST:
+//		mRST.dumpTables();
+//		break;
+
+//	case EN_PSISI_TYPE__BIT:
+//		mBIT.dumpTables();
+//		break;
 
 	default:
 		break;
@@ -2066,6 +2080,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 	mEIT_H_sched.checkAsyncDelete ();
 	mNIT.checkAsyncDelete ();
 	mSDT.checkAsyncDelete ();
+	mCAT.checkAsyncDelete ();
 	for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
 		m_tmpProgramMaps[i].m_parser.checkAsyncDelete ();
 	}
@@ -2197,15 +2212,29 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		break;
 
-	case PID_RST:
+	case PID_CAT:
 
+		r = mCAT.checkSection (p_ts_header, p_payload, payload_size);
+		if (r == EN_CHECK_SECTION__COMPLETED || r == EN_CHECK_SECTION__COMPLETED_ALREADY) {
+			_PARSER_NOTICE _notice = {EN_PSISI_TYPE__CAT,
+										r == EN_CHECK_SECTION__COMPLETED ? true : false};
+			requestAsync (
+				EN_MODULE_PSISI_MANAGER,
+				EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
+				(uint8_t*)&_notice,
+				sizeof(_notice)
+			);
+		}
+
+		break;
+
+//	case PID_RST:
 //		r = mRST.checkSection (p_ts_header, p_payload, payload_size);
-		break;
+//		break;
 
-	case PID_BIT:
-
+//	case PID_BIT:
 //		r = mBIT.checkSection (p_ts_header, p_payload, payload_size);
-		break;
+//		break;
 
 	default:
 		// parse PMT
