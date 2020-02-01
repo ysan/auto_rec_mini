@@ -301,7 +301,8 @@ static pthread_cond_t gCondSyncReply [THREAD_IDX_MAX];
 static pthread_mutex_t gMutexOpeQueBase;
 static pthread_mutex_t gMutexOpeQueWorker [THREAD_IDX_MAX];
 static pthread_mutex_t gMutexOpeRequestId [THREAD_IDX_MAX +1]; // 添え字 +1 は外部のスレッドからのリクエスト用
-static pthread_mutex_t gMutexNotifyClientInfo [THREAD_IDX_MAX];
+//static pthread_mutex_t gMutexNotifyClientInfo [THREAD_IDX_MAX];
+static pthread_mutex_t gMutexNotifyClientInfo ; // gMutexNotifyClientInfoのmutexはプロセスにわたりユニークにアクセスするため一つになります
 static pthread_mutex_t gMutexOpeExtInfoList;
 
 static sigset_t gSigset; // プロセス全体のシグナルセット
@@ -695,9 +696,10 @@ static void initCondMutex (void)
 		pthread_mutex_init (&gMutexOpeRequestId [i], &attrMutexOpeRequestId);
 	}
 
-	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
-		pthread_mutex_init (&gMutexNotifyClientInfo [i], NULL);
-	}
+//	for (i = 0; i < THREAD_IDX_MAX; ++ i) {
+//		pthread_mutex_init (&gMutexNotifyClientInfo [i], NULL);
+//	}
+	pthread_mutex_init (&gMutexNotifyClientInfo, NULL);
 
 	pthread_mutex_init (&gMutexOpeExtInfoList, NULL);
 }
@@ -3883,8 +3885,8 @@ static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8
 	uint8_t id = 0;
 
 	/* lock */
-//TODO いらないかも ここは個々のスレッドが処理するから
-	pthread_mutex_lock (&gMutexNotifyClientInfo [nThreadIdx]);
+//	pthread_mutex_lock (&gMutexNotifyClientInfo [nThreadIdx]);
+	pthread_mutex_lock (&gMutexNotifyClientInfo);
 
 
 	/* 空きを探す */
@@ -3899,8 +3901,8 @@ static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8
 		THM_INNER_LOG_E ("clientId is full.\n");
 
 		/* unlock */
-//TODO いらないかも ここは個々のスレッドが処理するから
-		pthread_mutex_unlock (&gMutexNotifyClientInfo [nThreadIdx]);
+//		pthread_mutex_unlock (&gMutexNotifyClientInfo [nThreadIdx]);
+		pthread_mutex_unlock (&gMutexNotifyClientInfo);
 
 		return id;
 	}
@@ -3912,8 +3914,8 @@ static uint8_t setNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8
 
 
 	/* unlock */
-//TODO いらないかも ここは個々のスレッドが処理するから
-	pthread_mutex_unlock (&gMutexNotifyClientInfo [nThreadIdx]);
+//	pthread_mutex_unlock (&gMutexNotifyClientInfo [nThreadIdx]);
+	pthread_mutex_unlock (&gMutexNotifyClientInfo);
 
 	return id;
 }
@@ -3926,14 +3928,14 @@ static bool unsetNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8_
 // 引数 nCategory使用しない
 
 	/* lock */
-//TODO いらないかも ここは個々のスレッドが処理するから
-	pthread_mutex_lock (&gMutexNotifyClientInfo [nThreadIdx]);
+//	pthread_mutex_lock (&gMutexNotifyClientInfo [nThreadIdx]);
+	pthread_mutex_lock (&gMutexNotifyClientInfo);
 
 	if (!gstNotifyClientInfo [nClientId].isUsed) {
 		THM_INNER_LOG_E ("clientId is not use...?");
 
-//TODO いらないかも ここは個々のスレッドが処理するから
-		pthread_mutex_unlock (&gMutexNotifyClientInfo [nThreadIdx]);
+//		pthread_mutex_unlock (&gMutexNotifyClientInfo [nThreadIdx]);
+		pthread_mutex_unlock (&gMutexNotifyClientInfo);
 
 		return false;
 	}
@@ -3941,8 +3943,8 @@ static bool unsetNotifyClientInfo (uint8_t nThreadIdx, uint8_t nCategory, uint8_
 	clearNotifyClientInfo (&gstNotifyClientInfo [nClientId]);
 
 	/* unlock */
-//TODO いらないかも ここは個々のスレッドが処理するから
-	pthread_mutex_unlock (&gMutexNotifyClientInfo [nThreadIdx]);
+//	pthread_mutex_unlock (&gMutexNotifyClientInfo [nThreadIdx]);
+	pthread_mutex_unlock (&gMutexNotifyClientInfo);
 
 	return true;
 }
