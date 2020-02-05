@@ -43,8 +43,6 @@ void CProgramMapTable::onSectionCompleted (const CSectionInfo *pCompSection)
 
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
-//TODO mutex
-		std::lock_guard<std::mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
 }
@@ -128,15 +126,11 @@ void CProgramMapTable::appendTable (CTable *pTable)
 		return ;
 	}
 
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	mTables.push_back (pTable);
 }
 
 void CProgramMapTable::releaseTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -152,8 +146,6 @@ void CProgramMapTable::releaseTables (void)
 
 void CProgramMapTable::dumpTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -209,10 +201,4 @@ void CProgramMapTable:: clear (void)
 //	detachAllSectionList ();
 	// detachAllSectionList in parser loop
 	asyncDelete ();
-}
-
-CProgramMapTable::CReference CProgramMapTable::reference (void)
-{
-	CReference ref (&mTables, &mMutexTables);
-	return ref;
 }

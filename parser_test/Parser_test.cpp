@@ -459,9 +459,7 @@ bool CParser_test::parse (void)
 //					mPAT.getTable (mPatTables, 32);
 //					mPAT.dumpTable (mPatTables, n);
 
-					CProgramAssociationTable::CReference pat_tables = mPAT.reference();
-//TODO mutex
-					std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = pat_tables.mpTables->end();
+					std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = mPAT.getTables()->end();
 					CProgramAssociationTable::CTable* pLatestTable = *(-- iter);
 					std::vector<CProgramAssociationTable::CTable::CProgram>::const_iterator iter_prog = pLatestTable->programs.begin();
 					for (; iter_prog != pLatestTable->programs.end(); ++ iter_prog) {
@@ -532,10 +530,8 @@ bool CParser_test::parse (void)
 					if (p_curProgramCache->mpPMT->checkSection (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
 
 						// stream_typeからDSMCCのPIDを取得する //////////
-						CProgramMapTable::CReference pmt_tables = p_curProgramCache->mpPMT->reference();
-//TODO mutex
-						std::vector<CProgramMapTable::CTable*>::const_iterator iter = pmt_tables.mpTables->begin();
-						for (; iter != pmt_tables.mpTables->end(); ++ iter) {
+						std::vector<CProgramMapTable::CTable*>::const_iterator iter = p_curProgramCache->mpPMT->getTables()->begin();
+						for (; iter != p_curProgramCache->mpPMT->getTables()->end(); ++ iter) {
 							CProgramMapTable::CTable *pTable = *iter;
 							std::vector<CProgramMapTable::CTable::CStream>::const_iterator iter_strm = pTable->streams.begin();
 							for (; iter_strm != pTable->streams.end(); ++ iter_strm) {

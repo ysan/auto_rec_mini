@@ -76,10 +76,9 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
 		dumpTables_simple ();
 //TODO mutex
-		std::lock_guard<std::recursive_mutex> lock (mMutexTables);
+//		std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
-
 }
 
 bool CEventInformationTable::parse (const CSectionInfo *pCompSection, CTable* pOutTable)
@@ -152,14 +151,14 @@ void CEventInformationTable::appendTable (CTable *pTable)
 		return ;
 	}
 
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
+//	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
 	mTables.push_back (pTable);
 }
 
 void CEventInformationTable::releaseTables (void)
 {
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
+//	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
 	if (mTables.size() == 0) {
 		return;
@@ -180,7 +179,7 @@ void CEventInformationTable::releaseTable (CTable *pErase)
 		return;
 	}
 
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
+//	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
 	if (mTables.size() == 0) {
 		return;
@@ -199,7 +198,7 @@ void CEventInformationTable::releaseTable (CTable *pErase)
 
 void CEventInformationTable::dumpTables (void)
 {
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
+//	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
 	if (mTables.size() == 0) {
 		return;
@@ -214,7 +213,7 @@ void CEventInformationTable::dumpTables (void)
 
 void CEventInformationTable::dumpTables_simple (void)
 {
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
+//	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
 	if (mTables.size() == 0) {
 		return;
@@ -331,7 +330,7 @@ bool CEventInformationTable::refreshSubTablesByVersionNumber (CTable* pNewTable)
 		return false;
 	}
 
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
+//	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
 
 	// sub-table identify
@@ -409,8 +408,8 @@ void CEventInformationTable::refreshSubTables (CTable* pNewTable)
 	}
 }
 
-CEventInformationTable::CReference CEventInformationTable::reference (void)
-{
-	CReference ref (&mTables, &mMutexTables);
-	return ref;
-}
+//CEventInformationTable::CReference CEventInformationTable::reference (void)
+//{
+//	CReference ref (&mTables, &mMutexTables);
+//	return ref;
+//}

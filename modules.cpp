@@ -19,7 +19,7 @@
 static CCommandServer        g_commandServer     ((char*)"CommandServer"       , 10);
 static CTunerControl         g_tunerControl      ((char*)"TunerControl"        , 10);
 static CTuneThread           g_tuneThread        ((char*)"TuneThread"          , 10);
-static CPsisiManager         g_psisiManager      ((char*)"PsisiManager"        , 50);
+static CPsisiManager         g_psisiManager      ((char*)"PsisiManager"        , 100);
 static CRecManager           g_recManager        ((char*)"RecManager"          , 10);
 static CChannelManager       g_chennelManager    ((char*)"ChannelManager"      , 10);
 static CEventScheduleManager g_eventSchedManager ((char*)"EventScheduleManager", 50);

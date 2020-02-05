@@ -42,8 +42,6 @@ void CRunningStatusTable::onSectionCompleted (const CSectionInfo *pCompSection)
 
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
-//TODO mutex
-		std::lock_guard<std::mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
 }
@@ -97,15 +95,11 @@ void CRunningStatusTable::appendTable (CTable *pTable)
 		return ;
 	}
 
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	mTables.push_back (pTable);
 }
 
 void CRunningStatusTable::releaseTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -121,8 +115,6 @@ void CRunningStatusTable::releaseTables (void)
 
 void CRunningStatusTable::dumpTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -164,10 +156,4 @@ void CRunningStatusTable::clear (void)
 //	detachAllSectionList ();
 	// detachAllSectionList in parser loop
 	asyncDelete ();
-}
-
-CRunningStatusTable::CReference CRunningStatusTable::reference (void)
-{
-	CReference ref (&mTables, &mMutexTables);
-	return ref;
 }

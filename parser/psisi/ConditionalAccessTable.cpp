@@ -42,8 +42,6 @@ void CConditionalAccessTable::onSectionCompleted (const CSectionInfo *pCompSecti
 
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
-//TODO mutex
-		std::lock_guard<std::mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
 }
@@ -83,15 +81,11 @@ void CConditionalAccessTable::appendTable (CTable *pTable)
 		return ;
 	}
 
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	mTables.push_back (pTable);
 }
 
 void CConditionalAccessTable::releaseTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -107,8 +101,6 @@ void CConditionalAccessTable::releaseTables (void)
 
 void CConditionalAccessTable::dumpTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -148,10 +140,3 @@ void CConditionalAccessTable::clear (void)
 	// detachAllSectionList in parser loop
 	asyncDelete ();
 }
-
-CConditionalAccessTable::CReference CConditionalAccessTable::reference (void)
-{
-	CReference ref (&mTables, &mMutexTables);
-	return ref;
-}
-

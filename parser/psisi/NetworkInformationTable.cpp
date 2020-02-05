@@ -42,8 +42,6 @@ void CNetworkInformationTable::onSectionCompleted (const CSectionInfo *pCompSect
 
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
-//TODO mutex
-		std::lock_guard<std::mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
 }
@@ -134,15 +132,11 @@ void CNetworkInformationTable::appendTable (CTable *pTable)
 		return ;
 	}
 
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	mTables.push_back (pTable);
 }
 
 void CNetworkInformationTable::releaseTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -158,8 +152,6 @@ void CNetworkInformationTable::releaseTables (void)
 
 void CNetworkInformationTable::dumpTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -217,10 +209,3 @@ void CNetworkInformationTable::clear (void)
 	// detachAllSectionList in parser loop
 	asyncDelete ();
 }
-
-CNetworkInformationTable::CReference CNetworkInformationTable::reference (void)
-{
-	CReference ref (&mTables, &mMutexTables);
-	return ref;
-}
-

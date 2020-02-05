@@ -45,8 +45,6 @@ void CProgramAssociationTable::onSectionCompleted (const CSectionInfo *pCompSect
 
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
-//TODO mutex
-		std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
 
@@ -104,15 +102,11 @@ void CProgramAssociationTable::appendTable (CTable *pTable)
 		return ;
 	}
 
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
-
 	mTables.push_back (pTable);
 }
 
 void CProgramAssociationTable::releaseTables (void)
 {
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -132,8 +126,6 @@ void CProgramAssociationTable::releaseTable (CTable *pErase)
 		return;
 	}
 
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -151,8 +143,6 @@ void CProgramAssociationTable::releaseTable (CTable *pErase)
 
 void CProgramAssociationTable::dumpTables (void)
 {
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -202,8 +192,6 @@ bool CProgramAssociationTable::refreshSubTablesByVersionNumber (CTable* pNewTabl
 	if (!pNewTable) {
 		return false;
 	}
-
-	std::lock_guard<std::recursive_mutex> lock (mMutexTables);
 
 
 	// sub-table identify
@@ -275,10 +263,4 @@ void CProgramAssociationTable::refreshSubTables (CTable* pNewTable)
 			break;
 		}
 	}
-}
-
-CProgramAssociationTable::CReference CProgramAssociationTable::reference (void)
-{
-	CReference ref (&mTables, &mMutexTables);
-	return ref;
 }

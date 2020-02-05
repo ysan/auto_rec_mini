@@ -42,8 +42,6 @@ void CBroadcasterInformationTable::onSectionCompleted (const CSectionInfo *pComp
 
 	// debug dump
 	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
-//TODO mutex
-		std::lock_guard<std::mutex> lock (mMutexTables);
 		dumpTable (pTable);
 	}
 }
@@ -124,15 +122,11 @@ void CBroadcasterInformationTable::appendTable (CTable *pTable)
 		return ;
 	}
 
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	mTables.push_back (pTable);
 }
 
 void CBroadcasterInformationTable::releaseTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -148,8 +142,6 @@ void CBroadcasterInformationTable::releaseTables (void)
 
 void CBroadcasterInformationTable::dumpTables (void)
 {
-	std::lock_guard<std::mutex> lock (mMutexTables);
-
 	if (mTables.size() == 0) {
 		return;
 	}
@@ -206,10 +198,3 @@ void CBroadcasterInformationTable::clear (void)
 	// detachAllSectionList in parser loop
 	asyncDelete ();
 }
-
-CBroadcasterInformationTable::CReference CBroadcasterInformationTable::reference (void)
-{
-    CReference ref (&mTables, &mMutexTables);
-    return ref;
-}
-

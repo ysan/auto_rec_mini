@@ -507,26 +507,20 @@ private:
 	bool m_isDetectedPAT;
 
 
-	//---  以下は tuner control thread(ts_parser) のcontextで動くものです ---//
-
 	CProgramAssociationTable mPAT;
 	CEventInformationTable mEIT_H;
 	CNetworkInformationTable mNIT;
 	CServiceDescriptionTable mSDT;
 	CConditionalAccessTable mCAT;
 
-	CTmpProgramMap m_tmpProgramMaps [TMP_PROGRAM_MAPS_MAX]; // TODO 現状配列の排他は入れません
+// TODO 現状配列の排他は入れません
+// tuner thread との排他
+	CTmpProgramMap m_tmpProgramMaps [TMP_PROGRAM_MAPS_MAX];
 
-	// for EIT schedule
-	CEventInformationTable_sched mEIT_H_sched;
-
-	//--- ここまで ----------------------------------------------------------//
-
-
-	CProgramAssociationTable::CReference mPAT_ref;
-	CEventInformationTable::CReference mEIT_H_ref;
-	CNetworkInformationTable::CReference mNIT_ref;
-	CServiceDescriptionTable::CReference mSDT_ref;
+//	CProgramAssociationTable::CReference mPAT_ref;
+//	CEventInformationTable::CReference mEIT_H_ref;
+//	CNetworkInformationTable::CReference mNIT_ref;
+//	CServiceDescriptionTable::CReference mSDT_ref;
 
 	CEtime m_patRecvTime;
 
@@ -541,6 +535,7 @@ private:
 
 
 	// for EIT schedule
+	CEventInformationTable_sched mEIT_H_sched;
 	bool m_isEnableEITSched;
 
 };
