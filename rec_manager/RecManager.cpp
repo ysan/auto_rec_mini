@@ -488,10 +488,14 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		_svc_info.service_id = m_recording.service_id;
 
 		CPsisiManagerIf _if (getExternalIf());
-		_if.reqGetPresentEventInfo (&_svc_info, &s_presentEventInfo);
-
-		sectId = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
-		enAct = EN_THM_ACT_WAIT;
+		if (_if.reqGetPresentEventInfo (&_svc_info, &s_presentEventInfo)) {
+			sectId = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
+			enAct = EN_THM_ACT_WAIT;
+		} else {
+			// キューが入らなかった時用
+			sectId = SECTID_CHECK;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
 
 		}
 		break;
