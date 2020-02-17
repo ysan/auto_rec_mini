@@ -222,7 +222,7 @@ public:
 
 	void clear (void) {
 		// clear all
-		memset (this, 0x00, sizeof(struct _event_pf_info));
+		memset (this, 0x00, sizeof(struct _service_info));
 		is_tune_target = false;
 		eventFollowInfo.clear();
 		last_update.clear();
