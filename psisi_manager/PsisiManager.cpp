@@ -987,7 +987,7 @@ void CPsisiManager::onReq_getPresentEventInfo (CThreadMgrIf *pIf)
 			_UTL_LOG_E ("not found PresentEventInfo");
 			enRslt = EN_THM_RSLT_ERROR;
 mEIT_H.dumpTables_simple();
-mEIT_H.dumpTables();
+mEIT_H.dumpSectionList();
 		}
 	}
 
