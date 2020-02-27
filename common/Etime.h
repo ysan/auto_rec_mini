@@ -19,11 +19,15 @@ class CEtime
 public:
 	class CDiff {
 	public:
-		explicit CDiff (struct timespec *p_diff) {
+		explicit CDiff (const struct timespec *p_diff) {
 			if (p_diff) {
 				m_diff.tv_sec = p_diff->tv_sec;
 				m_diff.tv_nsec = p_diff->tv_nsec;
 			}
+			memset (m_string, 0x00, sizeof(m_string));
+		}
+		CDiff (const CEtime &st, const CEtime &sp) {
+			m_diff = sp - st;
 			memset (m_string, 0x00, sizeof(m_string));
 		}
 		virtual ~CDiff (void) {
@@ -38,7 +42,7 @@ public:
 			int s =  (m_diff.tv_sec % 3600) % 60;
 
 #ifdef ENABLE_AFTER_DECIAML_POINT
-			sprintf (m_string, "%02d:%02d:%02d.%03ld", h, m, s, m_diff.tv_nsec);
+			sprintf (m_string, "%02d:%02d:%02d.%03ld", h, m, s, m_diff.tv_nsec/1000000);
 #else
 			sprintf (m_string, "%02d:%02d:%02d", h, m, s);
 #endif
