@@ -31,6 +31,8 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByServiceId_withRetry,             (char*)"onReq_tuneByServiceId_withRetry"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID] =
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByRemoteControlKeyId,              (char*)"onReq_tuneByRemoteControlKeyId"};
+	mSeqs [EN_SEQ_CHANNEL_MANAGER__TUNE_STOP] =
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneStop,                              (char*)"onReq_tuneStop"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS] =
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_getChannels,                           (char*)"onReq_getChannels"};
 	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME] =
@@ -685,6 +687,7 @@ void CChannelManager::onReq_tuneByServiceId_withRetry (CThreadMgrIf *pIf)
 
 	pIf->setSectId (sectId, enAct);
 }
+
 void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -823,6 +826,74 @@ void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
 
 		memset (&s_param, 0x00, sizeof(s_param));
 		s_retry = 0;
+
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+	pIf->setSectId (sectId, enAct);
+}
+
+void CChannelManager::onReq_tuneStop (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_TUNE_STOP,
+		SECTID_WAIT_TUNE_STOP,
+		SECTID_END_SUCCESS,
+		SECTID_END_ERROR,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+		pIf->lock();
+
+		sectId = SECTID_REQ_TUNE_STOP;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_TUNE_STOP: {
+		CTunerControlIf _if (getExternalIf());
+		_if.reqTuneStop ();
+
+		sectId = SECTID_WAIT_TUNE_STOP;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_TUNE_STOP:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+		} else {
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_END_SUCCESS:
+		pIf->unlock();
+
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	case SECTID_END_ERROR:
+		pIf->unlock();
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;

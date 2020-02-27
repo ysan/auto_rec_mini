@@ -213,6 +213,7 @@ public:
 	void onReq_tuneByServiceId (CThreadMgrIf *pIf);
 	void onReq_tuneByServiceId_withRetry (CThreadMgrIf *pIf);
 	void onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf);
+	void onReq_tuneStop (CThreadMgrIf *pIf);
 	void onReq_getChannels (CThreadMgrIf *pIf);
 	void onReq_getTransportStreamName (CThreadMgrIf *pIf);
 	void onReq_getServiceName (CThreadMgrIf *pIf);

@@ -117,6 +117,7 @@ public:
 
 	EN_CHECK_SECTION checkSection (const TS_HEADER *pTsHdr, uint8_t *pPayload, size_t payloadSize);
 	void checkAsyncDelete (void);
+	void dumpSectionList (void) const;
 
 
 protected:
@@ -146,7 +147,6 @@ private:
 	void checkDetachFifoSectionList (void);
 	CSectionInfo* checkDeleteFifoSectionList (void);
 
-	void dumpSectionList (void) const;
 
 	EN_CHECK_SECTION checkSectionFirst (uint8_t *pPayload, size_t payloadSize);
 	EN_CHECK_SECTION checkSectionFollow (uint8_t *pPayload, size_t payloadSize);

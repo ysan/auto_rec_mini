@@ -149,6 +149,23 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void _tune_stop (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_COM_SVR_PRINT ("ignore arguments.\n");
+	}
+
+	CChannelManagerIf mgr(pBase->getExternalIf());
+	mgr.reqTuneStopSync ();
+
+	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+	if (enRslt == EN_THM_RSLT_SUCCESS) {
+		_COM_SVR_PRINT ("tune stop success\n");
+	} else {
+		_COM_SVR_PRINT ("tune stop error\n");
+	}
+}
+
 static void _dump_channels (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
@@ -184,6 +201,12 @@ ST_COMMAND_INFO g_chManagerCommands [] = { // extern
 		"ti",
 		"tune (interactive mode)",
 		_tune_interactive,
+		NULL,
+	},
+	{
+		"stop",
+		"tune stop",
+		_tune_stop,
 		NULL,
 	},
 	{
