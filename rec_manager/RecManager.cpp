@@ -774,7 +774,7 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 
 			// 選局を停止しときます tune stop
 			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-			CTunerControlIf _if (getExternalIf());
+			CChannelManagerIf _if (getExternalIf());
 			_if.reqTuneStop ();
 
 			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
@@ -1077,7 +1077,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 			// 選局を停止しときます tune stop
 			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-			CTunerControlIf _if (getExternalIf());
+			CChannelManagerIf _if (getExternalIf());
 			_if.reqTuneStop ();
 
 			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
