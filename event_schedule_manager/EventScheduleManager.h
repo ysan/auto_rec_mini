@@ -348,6 +348,93 @@ class CEventScheduleManager
 	:public CThreadMgrBase
 {
 public:
+	class CReserve {
+	public:
+		typedef enum {
+			EN_TYPE__INIT = 0,
+			EN_TYPE__SINGLE,
+			EN_TYPE__ALL,
+		} type_t;
+
+		CReserve (void) {
+			clear ();
+		}
+		CReserve (
+			uint16_t _transport_stream_id,
+			uint16_t _original_network_id,
+			uint16_t _service_id,
+			CEtime *p_start_time,
+			type_t _type
+		) {
+			clear ();
+			transport_stream_id = _transport_stream_id;
+			original_network_id = _original_network_id;
+			service_id = _service_id;
+			if (p_start_time) {
+				start_time = *p_start_time;
+			}
+			type = _type;
+		}
+		virtual ~CReserve (void) {
+			clear ();
+		}
+
+		bool operator == (const CReserve &obj) const {
+			if (
+				this->transport_stream_id == obj.transport_stream_id &&
+				this->original_network_id == obj.original_network_id &&
+				this->service_id == obj.service_id &&
+				this->start_time == obj.start_time &&
+				this->type == obj.type
+			) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		bool operator != (const CReserve &obj) const {
+			if (
+				this->transport_stream_id != obj.transport_stream_id ||
+				this->original_network_id != obj.original_network_id ||
+				this->service_id != obj.service_id ||
+				this->start_time != obj.start_time ||
+				this->type != obj.type
+			) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		void clear (void) {
+			transport_stream_id = 0;
+			original_network_id = 0;
+			service_id = 0;
+			start_time.clear ();
+			type = EN_TYPE__INIT;
+		}
+
+		void dump (void) const {
+			_UTL_LOG_I ("tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] start_time:[%s] type:[%s]",
+				transport_stream_id,
+				original_network_id,
+				service_id,
+				start_time.toString(),
+				type == EN_TYPE__INIT ? "INIT" :
+					type == EN_TYPE__INIT ? "SINGLE" :
+						type == EN_TYPE__INIT ? "ALL" : "???"
+			);
+		}
+
+	private:
+		uint16_t transport_stream_id;
+		uint16_t original_network_id;
+		uint16_t service_id;
+		CEtime start_time;
+		type_t type;
+	};
+
 	class CHistory {
 	public:
 		enum state {
@@ -380,7 +467,7 @@ public:
 					stt == EN_STATE__INIT ? "INIT" :
 						stt == EN_STATE__COMPLETE ? "COMPLETE" :
 							stt == EN_STATE__TIMEOUT ? "TIMEOUT" :
-								stt == EN_STATE__ERROR ? "ERROR" : "---"
+								stt == EN_STATE__ERROR ? "ERROR" : "???"
 				);
 			}
 
@@ -489,9 +576,27 @@ private:
 		bool is_check_extendedEvent
 	) const;
 
+
+
+	bool addReserve (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id,
+		CEtime * p_start_time,
+		CReserve::type_t _type
+	);
+	bool removeReserve (
+		uint16_t _transport_stream_id,
+		uint16_t _original_network_id,
+		uint16_t _service_id,
+		CEtime * p_start_time,
+		CReserve::type_t _type
+	);
+	bool isDuplicateReserve (const CReserve* p_reserve) const;
+
+
 	void pushHistories (const CHistory *p_history);
 	void dumpHistories (void) const;
-
 
 	void saveHistories (void) ;
 	void loadHistories (void) ;
@@ -524,6 +629,12 @@ private:
 
 	CEtime m_schedule_cache_next_day;
 	CEtime m_schedule_cache_current_plan;
+
+
+	std::vector <CReserve> m_reserves;
+
+	bool m_is_executing;
+
 };
 
 #endif

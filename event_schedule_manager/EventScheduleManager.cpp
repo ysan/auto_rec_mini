@@ -40,6 +40,7 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	,m_tunerNotify_clientId (0xff)
 	,m_eventChangeNotify_clientId (0xff)
 	,mp_EIT_H_sched (NULL)
+	,m_is_executing (false)
 {
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_UP] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp,                           (char*)"onReq_moduleUp"};
@@ -93,6 +94,9 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 
 	m_schedule_cache_next_day.clear();
 	m_schedule_cache_current_plan.clear();
+
+
+	m_reserves.clear();
 }
 
 CEventScheduleManager::~CEventScheduleManager (void)
@@ -2047,6 +2051,76 @@ int CEventScheduleManager::getEvents (
 	}
 
 	return n;
+}
+
+bool CEventScheduleManager::addReserve (
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id,
+	uint16_t _service_id,
+	CEtime * p_start_time,
+	CReserve::type_t _type
+)
+{
+	if (!p_start_time) {
+		_UTL_LOG_E ("p_start_time is null");
+		return false;
+	}
+
+	CReserve r (_transport_stream_id, _original_network_id, _service_id, p_start_time, _type);
+
+	if (isDuplicateReserve (&r)) {
+		_UTL_LOG_E ("reserve is duplicate.");
+		return false;
+	}
+
+	m_reserves.push_back (r);
+
+	return true;
+}
+
+bool CEventScheduleManager::removeReserve (
+	uint16_t _transport_stream_id,
+	uint16_t _original_network_id,
+	uint16_t _service_id,
+	CEtime * p_start_time,
+	CReserve::type_t _type
+)
+{
+	if (!p_start_time) {
+		_UTL_LOG_E ("p_start_time is null");
+		return false;
+	}
+
+	CReserve r (_transport_stream_id, _original_network_id, _service_id, p_start_time, _type);
+
+	std::vector<CReserve>::const_iterator iter = m_reserves.begin();
+	for (; iter != m_reserves.end(); ++ iter) {
+		if (*iter == r) {
+			// match
+			m_reserves.erase (iter);
+			// 重複無い前提
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool CEventScheduleManager::isDuplicateReserve (const CReserve* p_reserve) const
+{
+	if (!p_reserve) {
+		return false;
+	}
+
+	std::vector<CReserve>::const_iterator iter = m_reserves.begin();
+	for (; iter != m_reserves.end(); ++ iter) {
+		if (*iter == *p_reserve) {
+			// duplicate
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void CEventScheduleManager::pushHistories (const CHistory *p_history)
