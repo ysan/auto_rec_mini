@@ -71,10 +71,14 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch,            (char*)"onReq_getEvents_keywordSearch"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch,            (char*)"onReq_getEvents_keywordSearch(ex)"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__ADD_RESERVES] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_addReserves,                        (char*)"onReq_addReserves"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,                    (char*)"onReq_dumpScheduleMap"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule,                       (char*)"onReq_dumpSchedule"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_RESERVES] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpReserves,                       (char*)"onReq_dumpReserves"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_HISTORIES] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpHistories,                      (char*)"onReq_dumpHistories"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
@@ -486,7 +490,7 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK:
 
-		pIf->setTimeout (60*1000); // 60sec
+		pIf->setTimeout (10*1000); // 10sec
 
 		sectId = SECTID_CHECK_WAIT;
 		enAct = EN_THM_ACT_WAIT;
@@ -1664,6 +1668,29 @@ void CEventScheduleManager::onReq_dumpSchedule (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CEventScheduleManager::onReq_dumpReserves (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	dumpReserves ();
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CEventScheduleManager::onReq_dumpHistories (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -2353,6 +2380,14 @@ bool CEventScheduleManager::isDuplicateReserve (const CReserve* p_reserve) const
 	}
 
 	return false;
+}
+
+void CEventScheduleManager::dumpReserves (void) const
+{
+	std::vector<CReserve>::const_iterator iter = m_reserves.begin();
+	for (; iter != m_reserves.end(); ++ iter) {
+		iter->dump();
+	}
 }
 
 void CEventScheduleManager::pushHistories (const CHistory *p_history)

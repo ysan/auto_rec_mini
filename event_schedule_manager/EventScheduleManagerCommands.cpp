@@ -377,6 +377,23 @@ static void _getEvents_keywordSearch_ex (int argc, char* argv[], CThreadMgrBase 
 	}
 }
 
+static void _dump_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_COM_SVR_PRINT ("ignore arguments.\n");
+	}
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CEventScheduleManagerIf mgr(pBase->getExternalIf());
+	mgr.reqDumpReserves ();
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
 static void _dump_histories (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
@@ -442,6 +459,12 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 		"grepx",
 		"grep events --search event name and extended event by keyword-- (usage: grepx {keyword})",
 		_getEvents_keywordSearch_ex,
+		NULL,
+	},
+	{
+		"dr",
+		"dump reserves",
+		_dump_reserves,
 		NULL,
 	},
 	{

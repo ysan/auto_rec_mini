@@ -555,6 +555,7 @@ public:
 	void onReq_addReserves (CThreadMgrIf *pIf);
 	void onReq_dumpScheduleMap (CThreadMgrIf *pIf);
 	void onReq_dumpSchedule (CThreadMgrIf *pIf);
+	void onReq_dumpReserves (CThreadMgrIf *pIf);
 	void onReq_dumpHistories (CThreadMgrIf *pIf);
 
 
@@ -605,7 +606,7 @@ private:
 		CReserve::type_t _type
 	);
 	bool isDuplicateReserve (const CReserve* p_reserve) const;
-	bool dumpReserves (void) const;
+	void dumpReserves (void) const;
 
 
 	void pushHistories (const CHistory *p_history);
