@@ -352,8 +352,8 @@ public:
 	public:
 		typedef enum {
 			EN_TYPE__INIT = 0,
-			EN_TYPE__SINGLE,
 			EN_TYPE__ALL,
+			EN_TYPE__SINGLE,
 		} type_t;
 
 		CReserve (void) {
@@ -407,23 +407,33 @@ public:
 			}
 		}
 
+		bool isExecuting (void) const {
+			return is_executing;
+		}
+
+		const CEtime *getStartTime  (void) const {
+			return &start_time;
+		}
+
 		void clear (void) {
 			transport_stream_id = 0;
 			original_network_id = 0;
 			service_id = 0;
 			start_time.clear ();
 			type = EN_TYPE__INIT;
+			is_executing = false;
 		}
 
 		void dump (void) const {
-			_UTL_LOG_I ("tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] start_time:[%s] type:[%s]",
+			_UTL_LOG_I ("tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] start_time:[%s] type:[%s] is_executing:[%d]",
 				transport_stream_id,
 				original_network_id,
 				service_id,
 				start_time.toString(),
 				type == EN_TYPE__INIT ? "INIT" :
-					type == EN_TYPE__INIT ? "SINGLE" :
-						type == EN_TYPE__INIT ? "ALL" : "???"
+					type == EN_TYPE__ALL ? "ALL" :
+						type == EN_TYPE__SINGLE ? "SINGLE" : "???",
+				is_executing
 			);
 		}
 
@@ -433,6 +443,7 @@ public:
 		uint16_t service_id;
 		CEtime start_time;
 		type_t type;
+		bool is_executing;
 	};
 
 	class CHistory {
@@ -541,6 +552,7 @@ public:
 	void onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
 	void onReq_dumpEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
 	void onReq_getEvents_keywordSearch (CThreadMgrIf *pIf);
+	void onReq_addReserves (CThreadMgrIf *pIf);
 	void onReq_dumpScheduleMap (CThreadMgrIf *pIf);
 	void onReq_dumpSchedule (CThreadMgrIf *pIf);
 	void onReq_dumpHistories (CThreadMgrIf *pIf);
@@ -593,6 +605,7 @@ private:
 		CReserve::type_t _type
 	);
 	bool isDuplicateReserve (const CReserve* p_reserve) const;
+	bool dumpReserves (void) const;
 
 
 	void pushHistories (const CHistory *p_history);
@@ -632,8 +645,7 @@ private:
 
 
 	std::vector <CReserve> m_reserves;
-
-	bool m_is_executing;
+	CReserve m_executing_reserve;
 
 };
 

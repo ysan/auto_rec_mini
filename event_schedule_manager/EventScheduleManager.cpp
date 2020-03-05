@@ -40,7 +40,6 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	,m_tunerNotify_clientId (0xff)
 	,m_eventChangeNotify_clientId (0xff)
 	,mp_EIT_H_sched (NULL)
-	,m_is_executing (false)
 {
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_UP] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp,                           (char*)"onReq_moduleUp"};
@@ -97,6 +96,7 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 
 
 	m_reserves.clear();
+	m_executing_reserve.clear();
 }
 
 CEventScheduleManager::~CEventScheduleManager (void)
@@ -105,11 +105,16 @@ CEventScheduleManager::~CEventScheduleManager (void)
 	m_startTime_EITSched.clear();
 
 	m_sched_map.clear ();
-
+	m_current_history.clear();
+	m_histories.clear();
 	m_latest_dumped_key.clear();
 
 	m_schedule_cache_next_day.clear();
 	m_schedule_cache_current_plan.clear();
+
+
+	m_reserves.clear();
+	m_executing_reserve.clear();
 }
 
 
@@ -344,6 +349,7 @@ void CEventScheduleManager::onReq_getCacheScheduleState (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+#if 0
 void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -438,6 +444,108 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			sectId = SECTID_CHECK;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
+
+		}
+		break;
+
+	case SECTID_END:
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+	pIf->setSectId (sectId, enAct);
+}
+#endif
+void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_CHECK,
+		SECTID_CHECK_WAIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+		// 先にreplyしておく
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		sectId = SECTID_CHECK;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_CHECK:
+
+		pIf->setTimeout (60*1000); // 60sec
+
+		sectId = SECTID_CHECK_WAIT;
+		enAct = EN_THM_ACT_WAIT;
+		break;
+
+	case SECTID_CHECK_WAIT: {
+
+		// 実行予定日をチェックします
+		CEtime t;
+		t.setCurrentDay();
+		if (t == m_schedule_cache_next_day) {
+			// 実行予定日なので予約を入れます
+			_UTL_LOG_I ("add reserves: [%s]", m_schedule_cache_next_day.toString());
+
+			int start_hour = mp_settings->getParams()->getEventScheduleCacheStartHour();
+			int start_min = mp_settings->getParams()->getEventScheduleCacheStartMin();
+			CEtime _base_time = m_schedule_cache_next_day;
+			_base_time.addHour (start_hour);
+			_base_time.addMin (start_min);
+
+
+			uint32_t opt = getRequestOption ();
+			opt |= REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+
+			requestAsync (
+				EN_MODULE_EVENT_SCHEDULE_MANAGER,
+				EN_SEQ_EVENT_SCHEDULE_MANAGER__ADD_RESERVES,
+				(uint8_t*)&_base_time,
+				sizeof(_base_time)
+			);
+
+			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+
+
+			// 次回の予定日セットしておきます
+			int interval_day = mp_settings->getParams()->getEventScheduleCacheStartIntervalDay();
+			if (interval_day <= 1) {
+				// interval_dayは最低でも１日にします
+				interval_day = 1;
+			}
+			m_schedule_cache_next_day.addDay(interval_day);
+		}
+
+
+
+		// 予約をチェックします
+
+
+
+
+
+
+
+
+
+		sectId = SECTID_CHECK;
+		enAct = EN_THM_ACT_CONTINUE;
 
 		}
 		break;
@@ -1378,6 +1486,130 @@ void CEventScheduleManager::onReq_getEvents_keywordSearch (CThreadMgrIf *pIf)
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CEventScheduleManager::onReq_addReserves (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_GET_CHANNELS,
+		SECTID_WAIT_GET_CHANNELS,
+		SECTID_ADD_RESERVES,
+		SECTID_END_SUCCESS,
+		SECTID_END_ERROR,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	static CChannelManagerIf::CHANNEL_t s_channels[20];
+	static int s_ch_num = 0;
+	static CEtime _base_time;
+
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+
+		_base_time = *(CEtime*)(pIf->getSrcInfo()->msg.pMsg);
+
+		sectId = SECTID_REQ_GET_CHANNELS;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_GET_CHANNELS: {
+
+		memset (s_channels, 0x00, sizeof(s_channels));
+		s_ch_num = 0;
+
+		CChannelManagerIf::REQ_CHANNELS_PARAM_t param = {s_channels, 20};
+
+		CChannelManagerIf _if (getExternalIf());
+		_if.reqGetChannels (&param);
+
+		sectId = SECTID_WAIT_GET_CHANNELS;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_GET_CHANNELS:
+
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			s_ch_num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+			_UTL_LOG_I ("reqGetChannels s_ch_num:[%d]", s_ch_num);
+
+			if (s_ch_num > 0) {
+				sectId = SECTID_ADD_RESERVES;
+				enAct = EN_THM_ACT_CONTINUE;
+			} else {
+				_UTL_LOG_E ("reqGetChannels is 0");
+				sectId = SECTID_END_ERROR;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
+
+		} else {
+			_UTL_LOG_E ("reqGetChannels is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+        }
+
+		break;
+
+	case SECTID_ADD_RESERVES: {
+
+		// 取得したチャンネル分の予約を入れます
+		for (int i = 0; i < s_ch_num; ++ i) {
+
+			_base_time.addMin(3*i);
+			CEtime _start_time = _base_time;
+
+			addReserve (
+				s_channels[i].transport_stream_id,
+				s_channels[i].original_network_id,
+				s_channels[i].service_ids[0],	// ここは添字0 でも何でも良いです
+												// (現状ではすべてのチャンネル編成分のスケジュールを取得します)
+				&_start_time,
+				CReserve::type_t::EN_TYPE__ALL
+			);
+		}
+
+		sectId = SECTID_END_SUCCESS;
+		enAct = EN_THM_ACT_CONTINUE;
+
+		}
+		break;
+
+	case SECTID_END_SUCCESS:
+
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		memset (s_channels, 0x00, sizeof(s_channels));
+		s_ch_num = 0;
+
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	case SECTID_END_ERROR:
+
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+		memset (s_channels, 0x00, sizeof(s_channels));
+		s_ch_num = 0;
+
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
 	pIf->setSectId (sectId, enAct);
 }
 
