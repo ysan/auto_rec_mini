@@ -407,12 +407,12 @@ public:
 			}
 		}
 
-		bool isExecuting (void) const {
-			return is_executing;
-		}
-
-		const CEtime *getStartTime  (void) const {
-			return &start_time;
+		bool isValid (void) {
+			if (transport_stream_id && original_network_id && service_id) {
+				return true;
+			} else {
+				return false;
+			}
 		}
 
 		void clear (void) {
@@ -421,29 +421,25 @@ public:
 			service_id = 0;
 			start_time.clear ();
 			type = EN_TYPE__INIT;
-			is_executing = false;
 		}
 
 		void dump (void) const {
-			_UTL_LOG_I ("tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] start_time:[%s] type:[%s] is_executing:[%d]",
+			_UTL_LOG_I ("tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] start_time:[%s] type:[%s]",
 				transport_stream_id,
 				original_network_id,
 				service_id,
 				start_time.toString(),
 				type == EN_TYPE__INIT ? "INIT" :
 					type == EN_TYPE__ALL ? "ALL" :
-						type == EN_TYPE__SINGLE ? "SINGLE" : "???",
-				is_executing
+						type == EN_TYPE__SINGLE ? "SINGLE" : "???"
 			);
 		}
 
-	private:
 		uint16_t transport_stream_id;
 		uint16_t original_network_id;
 		uint16_t service_id;
 		CEtime start_time;
 		type_t type;
-		bool is_executing;
 	};
 
 	class CHistory {
@@ -545,7 +541,7 @@ public:
 	void onReq_getCacheScheduleState (CThreadMgrIf *pIf);
 	void onReq_checkLoop (CThreadMgrIf *pIf);
 	void onReq_parserNotice (CThreadMgrIf *pIf);
-	void onReq_startCacheSchedule (CThreadMgrIf *pIf);
+	void onReq_execCacheSchedule (CThreadMgrIf *pIf);
 	void onReq_cacheSchedule (CThreadMgrIf *pIf);
 	void onReq_cacheSchedule_currentService (CThreadMgrIf *pIf);
 	void onReq_getEvent (CThreadMgrIf *pIf);
@@ -606,6 +602,7 @@ private:
 		CReserve::type_t _type
 	);
 	bool isDuplicateReserve (const CReserve* p_reserve) const;
+	void checkReserves (void) ;
 	void dumpReserves (void) const;
 
 

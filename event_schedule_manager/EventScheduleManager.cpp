@@ -55,8 +55,8 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop,                          (char*)"onReq_checkLoop"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice,                       (char*)"onReq_parserNotice"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_startCacheSchedule,                 (char*)"onReq_startCacheSchedule"};
+	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__EXEC_CACHE_SCHEDULE] =
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_execCacheSchedule,                  (char*)"onReq_execCacheSchedule"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule,                      (char*)"onReq_cacheSchedule"};
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_CURRENT_SERVICE] =
@@ -539,13 +539,7 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 
 		// 予約をチェックします
-
-
-
-
-
-
-
+		checkReserves ();
 
 
 		sectId = SECTID_CHECK;
@@ -600,7 +594,7 @@ void CEventScheduleManager::onReq_parserNotice (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
+void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -867,6 +861,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		s_num = 0;
 		s_is_timeouted = false;
 		mp_EIT_H_sched = NULL;		
+		m_executing_reserve.clear();
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -881,6 +876,7 @@ void CEventScheduleManager::onReq_startCacheSchedule (CThreadMgrIf *pIf)
 		s_num = 0;
 		s_is_timeouted = false;
 		mp_EIT_H_sched = NULL;
+		m_executing_reserve.clear();
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -990,7 +986,7 @@ void CEventScheduleManager::onReq_cacheSchedule (CThreadMgrIf *pIf)
 			// s_last_reqIdはforの最後のリクエストについて有効です
 			requestAsync (
 				EN_MODULE_EVENT_SCHEDULE_MANAGER,
-				EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,
+				EN_SEQ_EVENT_SCHEDULE_MANAGER__EXEC_CACHE_SCHEDULE,
 				(uint8_t*)&_key,
 				sizeof(_key),
 				&s_last_reqId
@@ -1056,7 +1052,7 @@ void CEventScheduleManager::onReq_cacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_END_SUCCESS:
 
-		pIf->reply (EN_THM_RSLT_SUCCESS);
+//		pIf->reply (EN_THM_RSLT_SUCCESS);
 
 		memset (s_channels, 0x00, sizeof(s_channels));
 		s_ch_num = 0;
@@ -1068,7 +1064,7 @@ void CEventScheduleManager::onReq_cacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_END_ERROR:
 
-		pIf->reply (EN_THM_RSLT_ERROR);
+//		pIf->reply (EN_THM_RSLT_ERROR);
 
 		memset (s_channels, 0x00, sizeof(s_channels));
 		s_ch_num = 0;
@@ -1207,7 +1203,7 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 
 		requestAsync (
 			EN_MODULE_EVENT_SCHEDULE_MANAGER,
-			EN_SEQ_EVENT_SCHEDULE_MANAGER__START_CACHE_SCHEDULE,
+			EN_SEQ_EVENT_SCHEDULE_MANAGER__EXEC_CACHE_SCHEDULE,
 			(uint8_t*)&_key,
 			sizeof(_key)
 		);
@@ -1569,7 +1565,7 @@ void CEventScheduleManager::onReq_addReserves (CThreadMgrIf *pIf)
 		// 取得したチャンネル分の予約を入れます
 		for (int i = 0; i < s_ch_num; ++ i) {
 
-			_base_time.addMin(3*i);
+			_base_time.addMin(3); // 3分おき
 			CEtime _start_time = _base_time;
 
 			addReserve (
@@ -2380,6 +2376,47 @@ bool CEventScheduleManager::isDuplicateReserve (const CReserve* p_reserve) const
 	}
 
 	return false;
+}
+
+void CEventScheduleManager::checkReserves (void)
+{
+	if (m_executing_reserve.isValid()) {
+		return;
+	}
+
+
+	CEtime cur_time;
+	cur_time.setCurrentTime ();
+
+	std::vector<CReserve>::const_iterator iter = m_reserves.begin();
+	for (; iter != m_reserves.end(); ++ iter) {
+
+		if (cur_time >= iter->start_time) {
+
+			CEventScheduleManagerIf::SERVICE_KEY_t _key = {
+				iter->transport_stream_id,
+				iter->original_network_id,
+				iter->service_id
+			};
+
+			bool r = requestAsync (
+				EN_MODULE_EVENT_SCHEDULE_MANAGER,
+				EN_SEQ_EVENT_SCHEDULE_MANAGER__EXEC_CACHE_SCHEDULE,
+				(uint8_t*)&_key,
+				sizeof(_key)
+			);
+
+			if (r) {
+				m_executing_reserve = *iter;
+			} else {
+				_UTL_LOG_E ("requestAsync EXEC_CACHE_SCHEDULE failure!");
+			}
+
+			m_reserves.erase (iter);
+			break;
+		}
+
+	}
 }
 
 void CEventScheduleManager::dumpReserves (void) const
