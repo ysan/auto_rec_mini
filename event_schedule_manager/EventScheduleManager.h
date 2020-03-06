@@ -352,7 +352,9 @@ public:
 	public:
 		typedef enum {
 			EN_TYPE__INIT = 0,
-			EN_TYPE__ALL,
+			EN_TYPE__FULL_S,
+			EN_TYPE__FULL,
+			EN_TYPE__FULL_E,
 			EN_TYPE__SINGLE,
 		} type_t;
 
@@ -430,8 +432,10 @@ public:
 				service_id,
 				start_time.toString(),
 				type == EN_TYPE__INIT ? "INIT" :
-					type == EN_TYPE__ALL ? "ALL" :
-						type == EN_TYPE__SINGLE ? "SINGLE" : "???"
+					type == EN_TYPE__FULL_S ? "FULL_S" :
+						type == EN_TYPE__FULL ? "FULL" :
+							type == EN_TYPE__FULL_E ? "FULL_E" :
+								type == EN_TYPE__SINGLE ? "SINGLE" : "???"
 			);
 		}
 
