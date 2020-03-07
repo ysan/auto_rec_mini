@@ -640,7 +640,7 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 		s_service_key = *(CEventScheduleManagerIf::SERVICE_KEY_t*)(pIf->getSrcInfo()->msg.pMsg);
 
-		if (m_executing_reserve.type == CReserve::type_t::EN_TYPE__FULL_S) {
+		if ((m_executing_reserve.type & CReserve::type_t::S_FLG) || m_executing_reserve.type == CReserve::type_t::SINGLE) {
 			// update m_state
 			m_state = EN_CACHE_SCHEDULE_STATE__BUSY;
 			// fire notify
@@ -890,7 +890,7 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_EXIT:
 
-		if (m_executing_reserve.type == CReserve::type_t::EN_TYPE__FULL_E) {
+		if ((m_executing_reserve.type & CReserve::type_t::E_FLG) || m_executing_reserve.type == CReserve::type_t::SINGLE) {
 
 			// history ----------------
 			m_current_history.set_end();
@@ -1683,13 +1683,12 @@ void CEventScheduleManager::onReq_addReserves (CThreadMgrIf *pIf)
 			}
 			CEtime _start_time = _base_time;
 
-			CReserve::type_t type;
+			CReserve::type_t type = CReserve::type_t::FULL;
 			if (i == 0) {
-				type = CReserve::type_t::EN_TYPE__FULL_S;
-			} else if (i == s_ch_num -1) {
-				type = CReserve::type_t::EN_TYPE__FULL_E;
-			} else {
-				type = CReserve::type_t::EN_TYPE__FULL;
+				type = (CReserve::type_t)(type | CReserve::type_t::S_FLG);
+			}
+			if (i == s_ch_num -1) {
+				type = (CReserve::type_t)(type | CReserve::type_t::E_FLG);
 			}
 
 			addReserve (
@@ -2461,24 +2460,11 @@ bool CEventScheduleManager::addReserve (
 	return true;
 }
 
-bool CEventScheduleManager::removeReserve (
-	uint16_t _transport_stream_id,
-	uint16_t _original_network_id,
-	uint16_t _service_id,
-	CEtime * p_start_time,
-	CReserve::type_t _type
-)
+bool CEventScheduleManager::removeReserve (CReserve &reserve)
 {
-	if (!p_start_time) {
-		_UTL_LOG_E ("p_start_time is null");
-		return false;
-	}
-
-	CReserve r (_transport_stream_id, _original_network_id, _service_id, p_start_time, _type);
-
 	std::vector<CReserve>::const_iterator iter = m_reserves.begin();
 	for (; iter != m_reserves.end(); ++ iter) {
-		if (*iter == r) {
+		if (*iter == reserve) {
 			// match
 			m_reserves.erase (iter);
 			// 重複無い前提
@@ -2518,6 +2504,9 @@ void CEventScheduleManager::checkReserves (void)
 
 	std::vector<CReserve>::const_iterator iter = m_reserves.begin();
 	for (; iter != m_reserves.end(); ++ iter) {
+		if ((iter->type & CReserve::type_t::TYPE_MASK) == CReserve::type_t::INIT) {
+			continue;
+		}
 
 		if (cur_time >= iter->start_time) {
 

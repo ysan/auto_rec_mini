@@ -351,11 +351,12 @@ public:
 	class CReserve {
 	public:
 		typedef enum {
-			EN_TYPE__INIT = 0,
-			EN_TYPE__FULL_S,
-			EN_TYPE__FULL,
-			EN_TYPE__FULL_E,
-			EN_TYPE__SINGLE,
+			INIT      = 0x0000,
+			FULL      = 0x0001,
+			SINGLE    = 0x0002,
+			TYPE_MASK = 0x00ff,
+			S_FLG     = 0x0100, // start flag
+			E_FLG     = 0x0200, // end flag
 		} type_t;
 
 		CReserve (void) {
@@ -422,20 +423,20 @@ public:
 			original_network_id = 0;
 			service_id = 0;
 			start_time.clear ();
-			type = EN_TYPE__INIT;
+			type = INIT;
 		}
 
 		void dump (void) const {
-			_UTL_LOG_I ("tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] start_time:[%s] type:[%s]",
+			_UTL_LOG_I ("tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] start_time:[%s] type:[%s%s%s]",
 				transport_stream_id,
 				original_network_id,
 				service_id,
 				start_time.toString(),
-				type == EN_TYPE__INIT ? "INIT" :
-					type == EN_TYPE__FULL_S ? "FULL_S" :
-						type == EN_TYPE__FULL ? "FULL" :
-							type == EN_TYPE__FULL_E ? "FULL_E" :
-								type == EN_TYPE__SINGLE ? "SINGLE" : "???"
+				(type & TYPE_MASK) == INIT ? "INIT" :
+					(type & TYPE_MASK) == FULL ? "FULL" :
+						(type & TYPE_MASK) == SINGLE ? "SINGLE" : "???",
+				type & S_FLG ? ",S" : "",
+				type & E_FLG ? ",E" : ""
 			);
 		}
 
@@ -598,13 +599,7 @@ private:
 		CEtime * p_start_time,
 		CReserve::type_t _type
 	);
-	bool removeReserve (
-		uint16_t _transport_stream_id,
-		uint16_t _original_network_id,
-		uint16_t _service_id,
-		CEtime * p_start_time,
-		CReserve::type_t _type
-	);
+	bool removeReserve (CReserve &reserve);
 	bool isDuplicateReserve (const CReserve* p_reserve) const;
 	void checkReserves (void) ;
 	void dumpReserves (void) const;
