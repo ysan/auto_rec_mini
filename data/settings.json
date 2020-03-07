@@ -14,8 +14,7 @@
 
         "event_schedule_cache_is_enable": true,
         "event_schedule_cache_start_interval_day": 1,
-        "event_schedule_cache_start_hour": 15,
-        "event_schedule_cache_start_min": 0,
+        "event_schedule_cache_start_time": "15:00",
         "event_schedule_cache_timeout_min": 3,
         "event_schedule_cache_histories_json_path": "./data/event_schedule_cache_histories.json",
 

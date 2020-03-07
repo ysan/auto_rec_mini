@@ -545,9 +545,10 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		}
 
 
-
-		// 予約をチェックします
-		checkReserves ();
+		if (mp_settings->getParams()->isEnableEventScheduleCache()) {
+			// 予約をチェックします
+			checkReserves ();
+		}
 
 
 		sectId = SECTID_CHECK;

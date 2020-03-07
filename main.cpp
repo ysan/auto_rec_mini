@@ -40,7 +40,10 @@ int main (int argc, char *argv[])
 
 	std::string settings_json = argv[1];
 	CSettings *s = CSettings::getInstance ();
-	s->load (settings_json);
+	if (!s->load (settings_json)) {
+		printf ("[main] invalid settings.jon.\n");
+		exit (EXIT_FAILURE);
+	}
 
 
 	initLogStdout(); // threadmgr log init
