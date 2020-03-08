@@ -456,36 +456,68 @@ public:
 			EN_STATE__ERROR,
 		};
 
-
-		struct element {
-			element (void) {
+		struct service {
+			service (void) {
 				clear();
 			}
-			virtual ~element (void) {
+			virtual ~service (void) {
 				clear();
 			}
 
 			void clear (void) {
 				key.clear();
 				item_num = 0;
-				stt = EN_STATE__INIT;
 			}
 
 			void dump (void) const {
-				key.dump();
+//				key.dump();
 				_UTL_LOG_I (
-					"  item_num=[%d] [%s]",
-					item_num,
-					stt == EN_STATE__INIT ? "INIT" :
-						stt == EN_STATE__COMPLETE ? "COMPLETE" :
-							stt == EN_STATE__TIMEOUT ? "TIMEOUT" :
-								stt == EN_STATE__ERROR ? "ERROR" : "???"
+					"#_service_key#  0x%04x 0x%04x 0x%04x  (svctype:0x%02x,%s)  item_num=[%d]",
+					key.transport_stream_id,
+					key.original_network_id,
+					key.service_id,
+					key.service_type,
+					key.service_name.c_str(),
+					item_num
 				);
 			}
 
 			SERVICE_KEY_t key;
 			int item_num;
-			state stt;
+		};
+
+		struct stream {
+			stream (void) {
+				clear();
+			}
+			virtual ~stream (void) {
+				clear();
+			}
+
+			void clear (void) {
+				stream_name.clear();
+				_state = EN_STATE__INIT;
+				services.clear();
+//				services.shrink_to_fit();
+			}
+
+			void dump (void) const {
+				_UTL_LOG_I ("[%s][%s]",
+					stream_name.c_str(),
+					_state == EN_STATE__INIT ? "INIT" :
+						_state == EN_STATE__COMPLETE ? "COMPLETE" :
+							_state == EN_STATE__TIMEOUT ? "TIMEOUT" :
+								_state == EN_STATE__ERROR ? "ERROR" : "???"
+				);
+				std::vector<struct service>::const_iterator iter = services.begin();
+				for (; iter != services.end(); ++ iter) {
+					iter->dump();
+				}
+			}
+
+			std::string stream_name;
+			state _state;
+			std::vector <struct service> services;
 		};
 
 
@@ -496,28 +528,28 @@ public:
 			clear();
 		}
 
-		void add (struct element &e) {
-			elements.push_back (e);
+		void add (struct stream &s) {
+			streams.push_back (s);
 		}
 
 		void clear (void) {
-			elements.clear ();
-			elements.shrink_to_fit ();
+			streams.clear ();
+//			streams.shrink_to_fit ();
 			start_time.clear();
 			end_time.clear();
 		}
 
-		void set_start (void) {
+		void set_startTime (void) {
 			start_time.setCurrentTime();
 		}
 
-		void set_end (void) {
+		void set_endTime (void) {
 			end_time.setCurrentTime();
 		}
 
 		void dump (void) const {
-			std::vector<struct element>::const_iterator iter = elements.begin();
-			for (; iter != elements.end(); ++ iter) {
+			std::vector<struct stream>::const_iterator iter = streams.begin();
+			for (; iter != streams.end(); ++ iter) {
 				iter->dump();
 			}
 			_UTL_LOG_I (
@@ -529,7 +561,7 @@ public:
 
 //	private:
 	// cereal 非侵入型対応のため やむなくpublicに
-		std::vector <struct element> elements;
+		std::vector <struct stream> streams;
 		CEtime start_time;
 		CEtime end_time;
 	};
@@ -632,6 +664,7 @@ private:
 	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> m_sched_map;
 
 	CHistory m_current_history;
+	CHistory::stream m_current_history_stream;
 	std::vector <CHistory> m_histories;
 
 	SERVICE_KEY_t m_latest_dumped_key;

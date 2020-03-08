@@ -99,6 +99,7 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 
 	m_sched_map.clear ();
 	m_current_history.clear();
+	m_current_history_stream.clear();
 	m_histories.clear();
 	m_latest_dumped_key.clear();
 
@@ -118,6 +119,7 @@ CEventScheduleManager::~CEventScheduleManager (void)
 
 	m_sched_map.clear ();
 	m_current_history.clear();
+	m_current_history_stream.clear();
 	m_histories.clear();
 	m_latest_dumped_key.clear();
 
@@ -648,7 +650,21 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 			// history ----------------
 			m_current_history.clear();
-			m_current_history.set_start();
+			m_current_history.set_startTime();
+		}
+
+		// history ----------------
+		{
+			CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+				s_service_key.transport_stream_id,
+				s_service_key.original_network_id,
+				0 // no need service_id
+			};
+			CChannelManagerIf _if (getExternalIf());
+			_if.syncGetTransportStreamName (&param);
+   	    	char* ts_name = (char*)(pIf->getSrcInfo()->msg.pMsg);
+			m_current_history_stream.clear();
+			m_current_history_stream.stream_name = ts_name;
 		}
 
 		sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
@@ -854,11 +870,10 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 
 				// history ----------------
-				CHistory::element elem;
-				elem.key = key;
-				elem.item_num = p_sched->size();
-				elem.stt = s_is_timeouted ? CHistory::state::EN_STATE__TIMEOUT : CHistory::state::EN_STATE__COMPLETE;
-				m_current_history.add (elem);
+				CHistory::service svc;
+				svc.key = key;
+				svc.item_num = p_sched->size();
+				m_current_history_stream.services.push_back (svc);
 
 
 			} else {
@@ -876,6 +891,14 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
+		// history ----------------
+		if (s_is_timeouted) {
+			m_current_history_stream._state = CHistory::EN_STATE__TIMEOUT;
+		} else {
+			m_current_history_stream._state = CHistory::EN_STATE__COMPLETE;
+		}
+		m_current_history.add (m_current_history_stream);
+
 		sectId = SECTID_EXIT;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
@@ -883,6 +906,10 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 	case SECTID_END_ERROR:
 
 		pIf->reply (EN_THM_RSLT_ERROR);
+
+		// history ----------------
+		m_current_history_stream._state = CHistory::EN_STATE__ERROR;
+		m_current_history.add (m_current_history_stream);
 
 		sectId = SECTID_EXIT;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -893,7 +920,7 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		if ((m_executing_reserve.type & CReserve::type_t::E_FLG) || m_executing_reserve.type == CReserve::type_t::SINGLE) {
 
 			// history ----------------
-			m_current_history.set_end();
+			m_current_history.set_endTime();
 
 			pushHistories (&m_current_history);
 			saveHistories ();
@@ -1022,7 +1049,7 @@ void CEventScheduleManager::onReq_cacheSchedule (CThreadMgrIf *pIf)
 
 		// history ----------------
 		m_current_history.clear();
-		m_current_history.set_start();
+		m_current_history.set_startTime();
 
 
 		// 取得したチャンネル分の EXEC_CACHE_SCHEDULEキューを入れます
@@ -1061,7 +1088,7 @@ void CEventScheduleManager::onReq_cacheSchedule (CThreadMgrIf *pIf)
 
 
 			// history ----------------
-			m_current_history.set_end();
+			m_current_history.set_endTime();
 
 			pushHistories (&m_current_history);
 			saveHistories ();
@@ -1313,11 +1340,6 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 
 	case SECTID_REQ_EXEC_CACHE_SCHEDULE: {
 
-		// fire notify
-//		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__BUSY;
-//		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
-
-
 		// ここは添字0 でも何でも良いです
 		// (現状ではすべてのチャンネル編成分のスケジュールを取得します)
 		CEventScheduleManagerIf::SERVICE_KEY_t _key = {
@@ -1326,19 +1348,12 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 			s_serviceInfos[0].service_id
 		};
 
-
-		// history ----------------
-		m_current_history.clear();
-		m_current_history.set_start();
-
-
 		requestAsync (
 			EN_MODULE_EVENT_SCHEDULE_MANAGER,
 			EN_SEQ_EVENT_SCHEDULE_MANAGER__EXEC_CACHE_SCHEDULE,
 			(uint8_t*)&_key,
 			sizeof(_key)
 		);
-
 
 		sectId = SECTID_WAIT_EXEC_CACHE_SCHEDULE;
 		enAct = EN_THM_ACT_WAIT;
@@ -1354,16 +1369,6 @@ void CEventScheduleManager::onReq_cacheSchedule_currentService (CThreadMgrIf *pI
 //
 //		}
 // 結果みない
-
-		// history ----------------
-		m_current_history.set_end();
-
-		pushHistories (&m_current_history);
-		saveHistories ();
-
-		// fire notify
-//		EN_CACHE_SCHEDULE_STATE_t _state = EN_CACHE_SCHEDULE_STATE__READY;
-//		pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&_state, sizeof(_state));
 
 		sectId = SECTID_END_SUCCESS;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -2607,12 +2612,21 @@ void serialize (Archive &archive, SERVICE_KEY_t &k)
 }
 
 template <class Archive>
-void serialize (Archive &archive, CEventScheduleManager::CHistory::element &e)
+void serialize (Archive &archive, CEventScheduleManager::CHistory::service &s)
 {
 	archive (
-		cereal::make_nvp("key", e.key),
-		cereal::make_nvp("item_num", e.item_num),
-		cereal::make_nvp("stt", e.stt)
+		cereal::make_nvp("key", s.key),
+		cereal::make_nvp("item_num", s.item_num)
+	);
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEventScheduleManager::CHistory::stream &s)
+{
+	archive (
+		cereal::make_nvp("stream_name", s.stream_name),
+		cereal::make_nvp("_state", s._state),
+		cereal::make_nvp("services", s.services)
 	);
 }
 
@@ -2620,7 +2634,7 @@ template <class Archive>
 void serialize (Archive &archive, CEventScheduleManager::CHistory &h)
 {
 	archive (
-		cereal::make_nvp("elements", h.elements),
+		cereal::make_nvp("streams", h.streams),
 		cereal::make_nvp("start_time", h.start_time),
 		cereal::make_nvp("end_time", h.end_time)
 	);
