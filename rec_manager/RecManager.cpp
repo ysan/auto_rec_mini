@@ -944,7 +944,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	case SECTID_REQ_CACHE_SCHEDULE: {
 
 		CEventScheduleManagerIf _if (getExternalIf());
-		_if.reqCacheSchedule_currentService ();
+		_if.reqCacheSchedule_forceCurrentService ();
 
 		sectId = SECTID_WAIT_CACHE_SCHEDULE;
 		enAct = EN_THM_ACT_WAIT;

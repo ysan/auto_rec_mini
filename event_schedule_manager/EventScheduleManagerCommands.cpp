@@ -31,7 +31,7 @@ static void _cacheSchedule (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
-static void _cacheSchedule_currentService (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _cacheSchedule_forceCurrentService (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -42,7 +42,7 @@ static void _cacheSchedule_currentService (int argc, char* argv[], CThreadMgrBas
 	pBase->getExternalIf()->setRequestOption (opt);
 
 	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.reqCacheSchedule_currentService ();
+	mgr.reqCacheSchedule_forceCurrentService ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -421,8 +421,8 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	},
 	{
 		"csc",
-		"cache schedule --current service--",
-		_cacheSchedule_currentService,
+		"cache schedule --force current service--",
+		_cacheSchedule_forceCurrentService,
 		NULL,
 	},
 	{

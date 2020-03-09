@@ -352,11 +352,14 @@ public:
 	public:
 		typedef enum {
 			INIT      = 0x0000,
-			FULL      = 0x0001,
-			SINGLE    = 0x0002,
+			NORMAL    = 0x0001,
+			FORCE     = 0x0002,
+
 			TYPE_MASK = 0x00ff,
+
 			S_FLG     = 0x0100, // start flag
 			E_FLG     = 0x0200, // end flag
+
 		} type_t;
 
 		CReserve (void) {
@@ -433,8 +436,8 @@ public:
 				service_id,
 				start_time.toString(),
 				(type & TYPE_MASK) == INIT ? "INIT" :
-					(type & TYPE_MASK) == FULL ? "FULL" :
-						(type & TYPE_MASK) == SINGLE ? "SINGLE" : "???",
+					(type & TYPE_MASK) == NORMAL ? "NORMAL" :
+						(type & TYPE_MASK) == FORCE ? "FORCE" : "???",
 				type & S_FLG ? ",S" : "",
 				type & E_FLG ? ",E" : ""
 			);
@@ -453,6 +456,7 @@ public:
 			EN_STATE__INIT = 0,
 			EN_STATE__COMPLETE,
 			EN_STATE__TIMEOUT,
+			EN_STATE__CANCEL,
 			EN_STATE__ERROR,
 		};
 
@@ -502,12 +506,13 @@ public:
 			}
 
 			void dump (void) const {
-				_UTL_LOG_I ("[%s][%s]",
+				_UTL_LOG_I ("transport_stream_name:[%s] ==> [%s]",
 					stream_name.c_str(),
 					_state == EN_STATE__INIT ? "INIT" :
 						_state == EN_STATE__COMPLETE ? "COMPLETE" :
 							_state == EN_STATE__TIMEOUT ? "TIMEOUT" :
-								_state == EN_STATE__ERROR ? "ERROR" : "???"
+								_state == EN_STATE__CANCEL ? "CANCEL" :
+									_state == EN_STATE__ERROR ? "ERROR" : "???"
 				);
 				std::vector<struct service>::const_iterator iter = services.begin();
 				for (; iter != services.end(); ++ iter) {
@@ -580,7 +585,8 @@ public:
 	void onReq_parserNotice (CThreadMgrIf *pIf);
 	void onReq_execCacheSchedule (CThreadMgrIf *pIf);
 	void onReq_cacheSchedule (CThreadMgrIf *pIf);
-	void onReq_cacheSchedule_currentService (CThreadMgrIf *pIf);
+	void onReq_cacheSchedule_forceCurrentService (CThreadMgrIf *pIf);
+	void onReq_stopCacheSchedule (CThreadMgrIf *pIf);
 	void onReq_getEvent (CThreadMgrIf *pIf);
 	void onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
 	void onReq_dumpEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
@@ -623,7 +629,6 @@ private:
 	) const;
 
 
-
 	bool addReserve (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
@@ -631,9 +636,11 @@ private:
 		CEtime * p_start_time,
 		CReserve::type_t _type
 	);
-	bool removeReserve (CReserve &reserve);
-	bool isDuplicateReserve (const CReserve* p_reserve) const;
-	void checkReserves (void) ;
+	bool addReserve (const CReserve &reserve);
+	bool removeReserve (const CReserve &reserve);
+	bool isDuplicateReserve (const CReserve& reserve) const;
+	void check2executeReserves (void) ;
+	bool isExistReserve (const CReserve& reserve) const;
 	void dumpReserves (void) const;
 
 
@@ -663,10 +670,6 @@ private:
 
 	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> m_sched_map;
 
-	CHistory m_current_history;
-	CHistory::stream m_current_history_stream;
-	std::vector <CHistory> m_histories;
-
 	SERVICE_KEY_t m_latest_dumped_key;
 
 
@@ -677,6 +680,11 @@ private:
 	std::vector <CReserve> m_reserves;
 	CReserve m_executing_reserve;
 
+	bool m_is_need_stop;
+
+	CHistory m_current_history;
+	CHistory::stream m_current_history_stream;
+	std::vector <CHistory> m_histories;
 };
 
 #endif
