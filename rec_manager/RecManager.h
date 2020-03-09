@@ -284,9 +284,9 @@ private:
 	void setResult (CRecReserve *p);
 	bool checkRecordingEnd (void);
 	void checkRepeatability (const CRecReserve *p_reserve);
-	void dumpReserves (void);
-	void dumpResults (void);
-	void dumpRecording (void);
+	void dumpReserves (void) const;
+	void dumpResults (void) const;
+	void dumpRecording (void) const;
 	void clearReserves (void);
 	void clearResults (void);
 

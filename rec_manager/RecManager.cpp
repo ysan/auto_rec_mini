@@ -2468,7 +2468,7 @@ bool CRecManager::checkRecordingEnd (void)
 	return false;
 }
 
-void CRecManager::dumpReserves (void)
+void CRecManager::dumpReserves (void) const
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
@@ -2481,7 +2481,7 @@ void CRecManager::dumpReserves (void)
 	}
 }
 
-void CRecManager::dumpResults (void)
+void CRecManager::dumpResults (void) const
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
@@ -2493,7 +2493,7 @@ void CRecManager::dumpResults (void)
 	}
 }
 
-void CRecManager::dumpRecording (void)
+void CRecManager::dumpRecording (void) const
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
