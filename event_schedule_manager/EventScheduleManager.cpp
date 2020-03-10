@@ -2179,12 +2179,12 @@ const CEvent *CEventScheduleManager::getEvent (const SERVICE_KEY_t &key, int ind
 
 int CEventScheduleManager::getEvents (
 	const char *p_keyword,
-	CEventScheduleManagerIf::EVENT_t *p_out_event,
+	CEventScheduleManagerIf::EVENT_t *p_out_events,
 	int out_array_num,
 	bool is_check_extendedEvent
 ) const
 {
-	if (!p_keyword || !p_out_event || out_array_num <= 0) {
+	if (!p_keyword || !p_out_events || out_array_num <= 0) {
 		return -1;
 	}
 
@@ -2250,18 +2250,18 @@ int CEventScheduleManager::getEvents (
 					// check result
 					if (s_evt_name || s_evt_text || s_ex_item_desc || s_ex_item) {
 
-						p_out_event->transport_stream_id = p_event->transport_stream_id;
-						p_out_event->original_network_id = p_event->original_network_id;
-						p_out_event->service_id = p_event->service_id;
+						p_out_events->transport_stream_id = p_event->transport_stream_id;
+						p_out_events->original_network_id = p_event->original_network_id;
+						p_out_events->service_id = p_event->service_id;
 
-						p_out_event->event_id = p_event->event_id;
-						p_out_event->start_time = p_event->start_time;
-						p_out_event->end_time = p_event->end_time;
+						p_out_events->event_id = p_event->event_id;
+						p_out_events->start_time = p_event->start_time;
+						p_out_events->end_time = p_event->end_time;
 
-						p_out_event->p_event_name = &p_event->event_name;
-						p_out_event->p_text = &p_event->text;
+						p_out_events->p_event_name = &p_event->event_name;
+						p_out_events->p_text = &p_event->text;
 
-						++ p_out_event;
+						++ p_out_events;
 						-- out_array_num;
 						++ n;
 					}
