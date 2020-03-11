@@ -9,9 +9,9 @@ Small, light and simple, command line interface.
 feasibility study.  
 under development, in progress.
 
-
+<!--
 ![demo](https://github.com/ysan/auto_rec_mini/blob/master/etc/demo.gif)
-
+-->
 
 Features
 ------------ 
@@ -32,6 +32,7 @@ one tuner. only terrestrial digital.
 
 #### Platforms ####
 Generic Linux will be ok. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
+(requires -std=c++11)  
   
 `Raspbian` Raspberry pi model B is used in the main,  
 Packet loss occurs, block noise and image skipping are likely to occur.  
@@ -111,8 +112,7 @@ Please you set according to the environment.
 | `dummy_tuner_ts_path` | unused |
 | `event_schedule_cache_is_enable` | switch to enable EPG. |
 | `event_schedule_cache_start_interval_day` | EPG cache execution interval date. |
-| `event_schedule_cache_start_hour` | EPG cache start time. (hour) |
-| `event_schedule_cache_start_min` | EPG cache start time. (minute) |
+| `event_schedule_cache_start_time` | EPG cache start time. (HH:mm) |
 | `event_schedule_cache_timeout_min` | EPG cache timeout minute. |
 | `event_schedule_cache_histories_json_path` | save/load destination of EPG cache history. |
 | `event_name_keywords_json_path` | load destination of keywords for `event name` search. |

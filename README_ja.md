@@ -9,14 +9,14 @@ auto_rec_mini
 MPEG-2TSやARIBの勉強のため。  
 開発中のため環境によっては動作が安定しない可能性があります。
 
-
+<!--
 ![demo](https://github.com/ysan/auto_rec_mini/blob/master/etc/demo.gif)
-
+-->
 
 Features
 ------------ 
 * 選局
-  * 1チューナー、地デジのみとなります。(チューナー：[`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table))
+  * 1チューナー、地デジのみとなります。
 * 地デジ チャンネルスキャン
 * 録画 及び 録画予約
   * 予約は50件まで。
@@ -30,10 +30,9 @@ Features
 
 Future tasks
 ------------
-* データ放送のBMLの取得を行う。 (dsmccの実装)
 * libarib25で行っているPMT周りの実装の勉強、と実装を取り込みたい。
 * 複数チューナー、BS/CS対応したい。
-* 録画、EPG等のチューナーを使う機能間の排他ができてないのでその実装を対応。
+* データ放送のBMLの取得を行う。 (dsmccの実装)
 
 
 How to use
@@ -46,6 +45,7 @@ How to use
 
 #### Platforms ####
 一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspbian`で確認済。)  
+(requires -std=c++11)  
   
 メインで使用しているのは `Raspbian` Raspberry pi model B ですが、  
 パケットロスが起こり、ブロックノイズ、画飛びが起きやすいです。  
@@ -125,8 +125,7 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 | `m_dummy_tuner_ts_path` | unused |
 | `m_event_schedule_cache_is_enable` | EPGを有効にするスイッチ。 |
 | `m_event_schedule_cache_start_interval_day` | EPG取得の間隔日。 |
-| `m_event_schedule_cache_start_hour` | EPG取得の開始時間。(何時) |
-| `m_event_schedule_cache_start_min` | EPG取得の開始時間。 (何分) |
+| `m_event_schedule_cache_start_time` | EPG取得の開始時間。(HH:mm) |
 | `m_event_schedule_cache_timeout_min` | EPG取得タイムアウト時間。(分) |
 | `m_event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
 | `m_event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
