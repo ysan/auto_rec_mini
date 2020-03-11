@@ -578,6 +578,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		CTunerControlIf _if (getExternalIf());
 		_if.reqGetState ();
 
+		sectId = SECTID_WAIT_GET_TUNE_STATE;
+		enAct = EN_THM_ACT_WAIT;
 		}
 		break;
 
@@ -828,6 +830,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		// history ----------------
 		if (s_is_timeouted) {
 			m_current_history_stream._state = CHistory::EN_STATE__TIMEOUT;
+		} else if (m_is_need_stop) {
+			m_current_history_stream._state = CHistory::EN_STATE__CANCEL;
 		} else {
 			m_current_history_stream._state = CHistory::EN_STATE__COMPLETE;
 		}
@@ -2258,6 +2262,8 @@ int CEventScheduleManager::getEvents (
 						p_out_events->start_time = p_event->start_time;
 						p_out_events->end_time = p_event->end_time;
 
+						// アドレスで渡してますが 基本的には schedule casheが走らない限り
+						// アドレスは変わらない前提です
 						p_out_events->p_event_name = &p_event->event_name;
 						p_out_events->p_text = &p_event->text;
 
