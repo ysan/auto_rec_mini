@@ -120,6 +120,8 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve,           (char*)"onReq_removeReserve"};
 	mSeqs [EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve_byIndex,   (char*)"onReq_removeReserve_byIndex"};
+	mSeqs [EN_SEQ_REC_MANAGER__GET_RESERVES] =
+		{(PFN_SEQ_BASE)&CRecManager::onReq_getReserves,             (char*)"onReq_getReserves"};
 	mSeqs [EN_SEQ_REC_MANAGER__STOP_RECORDING] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_stopRecording,           (char*)"onReq_stopRecording"};
 	mSeqs [EN_SEQ_REC_MANAGER__DUMP_RESERVES] =
@@ -804,6 +806,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_CHECK_DISK_FREE_SPACE,
+		SECTID_REQ_STOP_CACHE_SCHED,
+		SECTID_WAIT_STOP_CACHE_SCHED,
 		SECTID_REQ_TUNE_BY_SERVICE_ID,
 		SECTID_WAIT_TUNE_BY_SERVICE_ID,
 		SECTID_REQ_GET_PRESENT_EVENT_INFO,
@@ -846,11 +850,29 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
+			sectId = SECTID_REQ_STOP_CACHE_SCHED;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 
 		}
+		break;
+
+	case SECTID_REQ_STOP_CACHE_SCHED: {
+
+		// EPG取得中だったら止めてから録画開始します
+		CEventScheduleManagerIf _if (getExternalIf());
+		_if.reqStopCacheSchedule ();
+
+		sectId = SECTID_WAIT_STOP_CACHE_SCHED;
+		enAct = EN_THM_ACT_WAIT;
+
+		}
+		break;
+
+	case SECTID_WAIT_STOP_CACHE_SCHED:
+		// successのみ
+		sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
+		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
 	case SECTID_REQ_TUNE_BY_SERVICE_ID: {
@@ -961,7 +983,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			_UTL_LOG_E ("(%s) reqCacheSchedule_currentService err", pIf->getSeqName());
+			_UTL_LOG_E ("(%s) reqCacheSchedule_forceCurrentService err", pIf->getSeqName());
 
 			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
 			setResult (&m_recording);
@@ -1798,6 +1820,42 @@ void CRecManager::onReq_removeReserve_byIndex (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CRecManager::onReq_getReserves (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	CRecManagerIf::GET_RESERVES_PARAM_t _param =
+			*(CRecManagerIf::GET_RESERVES_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+	if (!_param.p_out_reserves) {
+		_UTL_LOG_E ("_param.p_out_reserves is null.");
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else if (_param.array_max_num <= 0) {
+		_UTL_LOG_E ("_param.array_max_num is invalid.");
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else {
+
+		int n = getReserves (_param.p_out_reserves, _param.array_max_num);
+		// 取得数をreply msgで返します
+		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&n, sizeof(n));
+	}
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CRecManager::onReq_stopRecording (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -2344,63 +2402,6 @@ bool CRecManager::pickReqStartRecordingReserve (void)
 	return false;
 }
 
-//TODO event_typeの場合はどうするか
-/**
- * Repeatabilityの確認して
- * 予約入れるべきものは予約します
- */
-void CRecManager::checkRepeatability (const CRecReserve *p_reserve)
-{
-	if (!p_reserve) {
-		return ;
-	}
-
-	CEtime s;
-	CEtime e;
-	s = p_reserve->start_time;
-	e = p_reserve->end_time;
-
-	switch (p_reserve->repeatability) {
-	case EN_RESERVE_REPEATABILITY__NONE:
-		return;
-		break;
-
-	case EN_RESERVE_REPEATABILITY__DAILY:
-		s.addDay(1);
-		e.addDay(1);
-		break;
-
-	case EN_RESERVE_REPEATABILITY__WEEKLY:
-		s.addWeek(1);
-		e.addWeek(1);
-		break;
-
-	default:
-		_UTL_LOG_W ("invalid repeatability");
-		return ;
-		break;
-	}
-
-	bool r = addReserve (
-				p_reserve->transport_stream_id,
-				p_reserve->original_network_id,
-				p_reserve->service_id,
-				p_reserve->event_id,
-				&s,
-				&e,
-				p_reserve->title_name.c_str(),
-				p_reserve->service_name.c_str(),
-				p_reserve->is_event_type,
-				p_reserve->repeatability
-			);
-
-	if (r) {
-		_UTL_LOG_I ("addReserve by repeatability -- success.");
-	} else {
-		_UTL_LOG_W ("addReserve by repeatability -- failure.");
-	}
-}
-
 /**
  * 録画結果をリストに保存します
  */
@@ -2466,6 +2467,100 @@ bool CRecManager::checkRecordingEnd (void)
 	}
 
 	return false;
+}
+
+//TODO event_typeの場合はどうするか
+/**
+ * Repeatabilityの確認して
+ * 予約入れるべきものは予約します
+ */
+void CRecManager::checkRepeatability (const CRecReserve *p_reserve)
+{
+	if (!p_reserve) {
+		return ;
+	}
+
+	CEtime s;
+	CEtime e;
+	s = p_reserve->start_time;
+	e = p_reserve->end_time;
+
+	switch (p_reserve->repeatability) {
+	case EN_RESERVE_REPEATABILITY__NONE:
+		return;
+		break;
+
+	case EN_RESERVE_REPEATABILITY__DAILY:
+		s.addDay(1);
+		e.addDay(1);
+		break;
+
+	case EN_RESERVE_REPEATABILITY__WEEKLY:
+		s.addWeek(1);
+		e.addWeek(1);
+		break;
+
+	default:
+		_UTL_LOG_W ("invalid repeatability");
+		return ;
+		break;
+	}
+
+	bool r = addReserve (
+				p_reserve->transport_stream_id,
+				p_reserve->original_network_id,
+				p_reserve->service_id,
+				p_reserve->event_id,
+				&s,
+				&e,
+				p_reserve->title_name.c_str(),
+				p_reserve->service_name.c_str(),
+				p_reserve->is_event_type,
+				p_reserve->repeatability
+			);
+
+	if (r) {
+		_UTL_LOG_I ("addReserve by repeatability -- success.");
+	} else {
+		_UTL_LOG_W ("addReserve by repeatability -- failure.");
+	}
+}
+
+int CRecManager::getReserves (CRecManagerIf::RESERVE_t *p_out_reserves, int out_array_num) const
+{
+	if (!p_out_reserves || out_array_num <= 0) {
+		return -1;
+	}
+
+	int n = 0;
+
+	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
+		if (!m_reserves [i].is_used) {
+			continue;
+		}
+
+		if (out_array_num == 0) {
+			break;
+		}
+
+		p_out_reserves->transport_stream_id = m_reserves [i].transport_stream_id;
+		p_out_reserves->original_network_id = m_reserves [i].original_network_id;
+		p_out_reserves->service_id = m_reserves [i].service_id;
+
+		p_out_reserves->event_id = m_reserves [i].event_id;
+		p_out_reserves->start_time = m_reserves [i].start_time;
+		p_out_reserves->end_time = m_reserves [i].end_time;
+
+		// アドレスで渡します
+		p_out_reserves->p_title_name = const_cast<std::string*> (&m_reserves [i].title_name);
+		p_out_reserves->p_service_name = const_cast<std::string*> (&m_reserves [i].service_name);
+
+		++ p_out_reserves;
+		-- out_array_num;
+		++ n;
+	}
+
+	return n;
 }
 
 void CRecManager::dumpReserves (void) const

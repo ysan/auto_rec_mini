@@ -247,6 +247,7 @@ public:
 	void onReq_addReserve_manual (CThreadMgrIf *pIf);
 	void onReq_removeReserve (CThreadMgrIf *pIf);
 	void onReq_removeReserve_byIndex (CThreadMgrIf *pIf);
+	void onReq_getReserves (CThreadMgrIf *pIf);
 	void onReq_stopRecording (CThreadMgrIf *pIf);
 	void onReq_dumpReserves (CThreadMgrIf *pIf);
 
@@ -284,6 +285,7 @@ private:
 	void setResult (CRecReserve *p);
 	bool checkRecordingEnd (void);
 	void checkRepeatability (const CRecReserve *p_reserve);
+	int getReserves (CRecManagerIf::RESERVE_t *p_out_reserves, int out_array_num) const;
 	void dumpReserves (void) const;
 	void dumpResults (void) const;
 	void dumpRecording (void) const;

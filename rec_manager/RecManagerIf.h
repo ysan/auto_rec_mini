@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <string>
+
 #include "ThreadMgrExternalIf.h"
 #include "modules.h"
 #include "Utils.h"
@@ -27,6 +29,7 @@ enum {
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL,
 	EN_SEQ_REC_MANAGER__REMOVE_RESERVE,
 	EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX,
+	EN_SEQ_REC_MANAGER__GET_RESERVES,
 	EN_SEQ_REC_MANAGER__STOP_RECORDING,
 	EN_SEQ_REC_MANAGER__DUMP_RESERVES,
 
@@ -56,8 +59,8 @@ public:
 		EN_RESERVE_REPEATABILITY repeatablity;
 
 		void dump (void) const {
-		_UTL_LOG_I (
-				"reserve_param_t - tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svcid:[0x%04x] time:[%s - %s] repeat:[%d]",
+			_UTL_LOG_I (
+				"reserve_param_t - tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x] time:[%s - %s] repeat:[%d]",
 				transport_stream_id,
 				original_network_id,
 				service_id,
@@ -91,6 +94,29 @@ public:
 		bool isApplyResult;
 
 	} REMOVE_RESERVE_PARAM_t;
+
+	typedef struct _reserve {
+		uint16_t transport_stream_id;
+		uint16_t original_network_id;
+		uint16_t service_id;
+
+		uint16_t event_id;
+		CEtime start_time;
+		CEtime end_time;
+
+		std::string *p_title_name;
+		std::string *p_service_name;
+
+		bool is_event_type ;
+		EN_RESERVE_REPEATABILITY repeatability;
+
+	} RESERVE_t;
+
+	typedef struct _get_reserves_param {
+		RESERVE_t *p_out_reserves;
+		int array_max_num;
+	} GET_RESERVES_PARAM_t;
+
 
 public:
 	explicit CRecManagerIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
@@ -177,6 +203,32 @@ public:
 					EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX,
 					(uint8_t*)p_param,
 					sizeof (REMOVE_RESERVE_PARAM_t)
+				);
+	};
+
+	bool reqGetReserves (GET_RESERVES_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_REC_MANAGER,
+					EN_SEQ_REC_MANAGER__GET_RESERVES,
+					(uint8_t*)p_param,
+					sizeof (GET_RESERVES_PARAM_t)
+				);
+	};
+
+	bool syncGetReserves (GET_RESERVES_PARAM_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestSync (
+					EN_MODULE_REC_MANAGER,
+					EN_SEQ_REC_MANAGER__GET_RESERVES,
+					(uint8_t*)p_param,
+					sizeof (GET_RESERVES_PARAM_t)
 				);
 	};
 

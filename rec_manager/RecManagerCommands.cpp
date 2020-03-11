@@ -466,6 +466,50 @@ static void removeReserve_byIndex (int argc, char* argv[], CThreadMgrBase *pBase
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void get_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_COM_SVR_PRINT ("ignore arguments.\n");
+	}
+
+	CRecManagerIf::RESERVE_t reserves[50] = {0}; // max 50
+	CRecManagerIf::GET_RESERVES_PARAM_t param = {reserves, 50};
+	CRecManagerIf mgr(pBase->getExternalIf());
+	mgr.syncGetReserves (&param);
+
+	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+	if (enRslt == EN_THM_RSLT_SUCCESS) {
+		int n =  *(int*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+		_COM_SVR_PRINT ("syncGetReserves success\n");
+		_COM_SVR_PRINT ("num of reserves is [%d]\n", n);
+		for (int i = 0; i < n; ++ i) {
+			_COM_SVR_PRINT (
+				"%d: tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]\n",
+				i,
+				reserves[i].transport_stream_id,
+				reserves[i].original_network_id,
+				reserves[i].service_id,
+				reserves[i].event_id
+			);
+			_COM_SVR_PRINT (
+				"    [%s - %s][%s][%s]\n",
+				reserves[i].start_time.toString(),
+				reserves[i].end_time.toString(),
+				reserves[i].p_service_name->c_str(),
+				reserves[i].p_title_name->c_str()
+			);
+			_COM_SVR_PRINT (
+				"    is_event_type:[%d] repeatability:[%d]\n",
+				reserves[i].is_event_type,
+				reserves[i].repeatability
+			);
+		}
+
+	} else {
+		_COM_SVR_PRINT ("syncGetReserves error\n");
+	}
+}
+
 static void stop (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
@@ -580,6 +624,12 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 		"remove reserve by index (usage: rx {index} {consider repeatability} )\n\
                                            - consider repeatability is 0 (false), 1 (true)",
 		removeReserve_byIndex,
+		NULL,
+	},
+	{
+		"g",
+		"get reserves",
+		get_reserves,
 		NULL,
 	},
 	{
