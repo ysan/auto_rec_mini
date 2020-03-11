@@ -48,6 +48,23 @@ static void _cacheSchedule_forceCurrentService (int argc, char* argv[], CThreadM
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void _stopCacheSchedule (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_COM_SVR_PRINT ("ignore arguments.\n");
+	}
+
+	CEventScheduleManagerIf mgr(pBase->getExternalIf());
+	mgr.syncStopCacheSchedule ();
+
+	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+	if (enRslt == EN_THM_RSLT_SUCCESS) {
+		_COM_SVR_PRINT ("syncStopCacheSchedule is success.\n");
+	} else {
+		_COM_SVR_PRINT ("syncStopCacheSchedule is failure.\n");
+	}
+}
+
 static void _dump_scheduleMap (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
@@ -423,6 +440,12 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 		"csc",
 		"cache schedule --force current service--",
 		_cacheSchedule_forceCurrentService,
+		NULL,
+	},
+	{
+		"stop",
+		"stop cache schedule",
+		_stopCacheSchedule,
 		NULL,
 	},
 	{

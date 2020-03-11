@@ -165,6 +165,13 @@ public:
 				);
 	};
 
+	bool syncStopCacheSchedule (void) {
+		return requestSync (
+					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__STOP_CACHE_SCHEDULE
+				);
+	};
+
 	bool reqGetEvent (REQ_EVENT_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
