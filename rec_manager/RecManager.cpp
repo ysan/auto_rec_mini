@@ -2555,6 +2555,9 @@ int CRecManager::getReserves (CRecManagerIf::RESERVE_t *p_out_reserves, int out_
 		p_out_reserves->p_title_name = const_cast<std::string*> (&m_reserves [i].title_name);
 		p_out_reserves->p_service_name = const_cast<std::string*> (&m_reserves [i].service_name);
 
+		p_out_reserves->is_event_type = m_reserves [i].is_event_type;
+		p_out_reserves->repeatability = m_reserves [i].repeatability;
+
 		++ p_out_reserves;
 		-- out_array_num;
 		++ n;

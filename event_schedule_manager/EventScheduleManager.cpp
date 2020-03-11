@@ -528,6 +528,7 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 	static PSISI_SERVICE_INFO s_serviceInfos[10];
 	static int s_num = 0;
 	static bool s_is_timeouted = false;
+	static bool s_is_already_using_tuner = false;
 
 
 	switch (sectId) {
@@ -588,6 +589,7 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		EN_TUNER_STATE state = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
 		if (state != EN_TUNER_STATE__TUNE_STOP) {
 			_UTL_LOG_E ("someone is using a tuner.");
+			s_is_already_using_tuner = true;
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		} else {
@@ -862,14 +864,7 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_EXIT:
 
-		if (m_executing_reserve.type & CReserve::type_t::E_FLG) {
-
-			// history ----------------
-			m_current_history.set_endTime();
-
-			pushHistories (&m_current_history);
-			saveHistories ();
-
+		if (!s_is_already_using_tuner) {
 			//-----------------------------//
 			{
 				uint32_t opt = getRequestOption ();
@@ -885,6 +880,15 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 				setRequestOption (opt);
 			}
 			//-----------------------------//
+		}
+
+		if (m_executing_reserve.type & CReserve::type_t::E_FLG) {
+
+			// history ----------------
+			m_current_history.set_endTime();
+
+			pushHistories (&m_current_history);
+			saveHistories ();
 
 			// update m_state
 			m_state = EN_CACHE_SCHEDULE_STATE__READY;
@@ -896,6 +900,7 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
 		s_is_timeouted = false;
+		s_is_already_using_tuner = false;
 		mp_EIT_H_sched = NULL;
 		m_executing_reserve.clear();
 
