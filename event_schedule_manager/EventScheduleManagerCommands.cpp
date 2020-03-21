@@ -468,7 +468,7 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	},
 	{
 		"ded",
-		"dump event detail --from last dumped schedule-- (usage: dd {index})",
+		"dump event detail --from last dumped schedule-- (usage: ded {index})",
 		_dumpEvent_detail,
 		NULL,
 	},
