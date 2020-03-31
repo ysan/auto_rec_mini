@@ -2030,6 +2030,11 @@ bool CRecManager::addReserve (
 		return false;
 	}
 
+	if (!isExistEmptyReserve ()) {
+		_UTL_LOG_E ("reserve full.");
+		return false;
+	}
+
 
 	CRecReserve tmp;
 	tmp.set (
@@ -2046,11 +2051,6 @@ bool CRecManager::addReserve (
 	);
 
 
-	if (!isExistEmptyReserve ()) {
-		_UTL_LOG_E ("reserve full.");
-		return false;
-	}
-
 	if (isDuplicateReserve (&tmp)) {
 		_UTL_LOG_E ("reserve is duplicate.");
 		return false;
@@ -2060,6 +2060,13 @@ bool CRecManager::addReserve (
 		_UTL_LOG_W ("reserve time is overrap.");
 // 時間被ってるけど予約入れます
 //		return false;
+	}
+
+	if (m_recording.is_used) {
+		if (m_recording == tmp) {
+			_UTL_LOG_E ("reserve is now recording.");
+			return false;
+		}
 	}
 
 

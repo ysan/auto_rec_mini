@@ -82,6 +82,7 @@ public:
 		clear ();
 	}
 
+	// event_type only
 	bool operator == (const CRecReserve &obj) const {
 		if (
 			this->transport_stream_id == obj.transport_stream_id &&
@@ -95,6 +96,7 @@ public:
 		}
 	}
 
+	// event_type only
 	bool operator != (const CRecReserve &obj) const {
 		if (
 			this->transport_stream_id != obj.transport_stream_id ||
