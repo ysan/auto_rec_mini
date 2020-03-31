@@ -237,7 +237,7 @@ public:
 				);
 	};
 
-	bool reqGetEvent_keyword (REQ_EVENT_PARAM_t *p_param) {
+	bool reqGetEvents_keyword (REQ_EVENT_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
@@ -250,7 +250,7 @@ public:
 				);
 	};
 
-	bool syncGetEvent_keyword (REQ_EVENT_PARAM_t *p_param) {
+	bool syncGetEvents_keyword (REQ_EVENT_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
@@ -263,7 +263,7 @@ public:
 				);
 	};
 
-	bool reqGetEvent_keyword_ex (REQ_EVENT_PARAM_t *p_param) {
+	bool reqGetEvents_keyword_ex (REQ_EVENT_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
@@ -276,7 +276,7 @@ public:
 				);
 	};
 
-	bool syncGetEvent_keyword_ex (REQ_EVENT_PARAM_t *p_param) {
+	bool syncGetEvents_keyword_ex (REQ_EVENT_PARAM_t *p_param) {
 		if (!p_param) {
 			return false;
 		}

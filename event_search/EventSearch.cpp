@@ -206,11 +206,11 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 
 		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH) {
 			CEventScheduleManagerIf _if(getExternalIf());
-			_if.reqGetEvent_keyword (&_param);
+			_if.reqGetEvents_keyword (&_param);
 		} else {
 			// EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX
 			CEventScheduleManagerIf _if(getExternalIf());
-			_if.reqGetEvent_keyword_ex (&_param);
+			_if.reqGetEvents_keyword_ex (&_param);
 		}
 
 		sectId = SECTID_WAIT_GET_EVENTS;

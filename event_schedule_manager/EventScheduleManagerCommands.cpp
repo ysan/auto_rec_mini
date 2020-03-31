@@ -322,12 +322,12 @@ static void _getEvents_keywordSearch (int argc, char* argv[], CThreadMgrBase *pB
 	_param.array_max_num = 10;
 
 	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.syncGetEvent_keyword (&_param);
+	mgr.syncGetEvents_keyword (&_param);
 
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_SUCCESS) {
 		int n =  *(int*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
-		_COM_SVR_PRINT ("syncGetEvent_keyword success\n");
+		_COM_SVR_PRINT ("syncGetEvents_keyword success\n");
 		_COM_SVR_PRINT ("num of searches is [%d]\n", n);
 		for (int i = 0; i < n; ++ i) {
 			_COM_SVR_PRINT (
@@ -347,7 +347,7 @@ static void _getEvents_keywordSearch (int argc, char* argv[], CThreadMgrBase *pB
 		}
 
 	} else {
-		_COM_SVR_PRINT ("syncGetEvent_keyword error");
+		_COM_SVR_PRINT ("syncGetEvents_keyword error");
 	}
 }
 
@@ -365,12 +365,12 @@ static void _getEvents_keywordSearch_ex (int argc, char* argv[], CThreadMgrBase 
 	_param.array_max_num = 10;
 
 	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.syncGetEvent_keyword_ex (&_param);
+	mgr.syncGetEvents_keyword_ex (&_param);
 
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_SUCCESS) {
 		int n =  *(int*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
-		_COM_SVR_PRINT ("syncGetEvent_keyword_ex success\n");
+		_COM_SVR_PRINT ("syncGetEvents_keyword_ex success\n");
 		_COM_SVR_PRINT ("num of searches is [%d]\n", n);
 		for (int i = 0; i < n; ++ i) {
 			_COM_SVR_PRINT (
@@ -390,7 +390,7 @@ static void _getEvents_keywordSearch_ex (int argc, char* argv[], CThreadMgrBase 
 		}
 
 	} else {
-		_COM_SVR_PRINT ("syncGetEvent_keyword_ex error\n");
+		_COM_SVR_PRINT ("syncGetEvents_keyword_ex error\n");
 	}
 }
 
