@@ -133,6 +133,7 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_REQ_GET_EVENTS,
 		SECTID_WAIT_GET_EVENTS,
+		SECTID_CHECK_EVENT_TIME,
 		SECTID_REQ_REMOVE_RESERVE,
 		SECTID_WAIT_REMOVE_RESERVE,
 		SECTID_REQ_ADD_RESERVE,
@@ -225,11 +226,11 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 			s_get_events_num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
 			if (s_get_events_num > 0) {
 				if (s_get_events_num > 30) {
-					_UTL_LOG_W ("trancate s_get_events_num");
+					_UTL_LOG_W ("trancate s_get_events_num 30");
 					s_get_events_num = 30;
 				}
 
-				sectId = SECTID_REQ_REMOVE_RESERVE;
+				sectId = SECTID_CHECK_EVENT_TIME;
 				enAct = EN_THM_ACT_CONTINUE;
 
 			} else {
@@ -245,8 +246,25 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 
 		break;
 
+	case SECTID_CHECK_EVENT_TIME: {
+
+		CEtime cur;
+		cur.setCurrentTime();
+		if (cur > s_events [s_events_idx].end_time) {
+			// 終了時間が過ぎていたら録画予約入れません
+			sectId = SECTID_CHECK_LOOP;
+			enAct = EN_THM_ACT_CONTINUE;
+		} else {
+			sectId = SECTID_REQ_REMOVE_RESERVE;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		}
+		break;
+
 	case SECTID_REQ_REMOVE_RESERVE: {
-		// （既に入っていれば）一度予約消してから入れ直します
+		// 一度予約消してから入れ直します
+		// （既に入っていれば消すことになります）
 
 		CRecManagerIf::REMOVE_RESERVE_PARAM_t _param;
 		_param.arg.key.transport_stream_id = s_events [s_events_idx].transport_stream_id;
@@ -302,11 +320,12 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		++ s_events_idx;
 
 		if (s_events_idx < s_get_events_num) {
-			// getEventの残りがあるので予約を入れます
-			sectId = SECTID_REQ_REMOVE_RESERVE;
+			// getEventsで取得したリストの残りがあります
+			sectId = SECTID_CHECK_EVENT_TIME;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
+			// getEventsで取得したリストを全て見終わりました
 			s_events_idx = 0;
 			++ s_iter;
 
