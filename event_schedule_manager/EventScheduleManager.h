@@ -359,6 +359,7 @@ public:
 
 			S_FLG     = 0x0100, // start flag
 			E_FLG     = 0x0200, // end flag
+			N_FLG     = 0x0400, // need notify flag
 
 		} type_t;
 
@@ -439,7 +440,8 @@ public:
 					(type & TYPE_MASK) == NORMAL ? "NORMAL" :
 						(type & TYPE_MASK) == FORCE ? "FORCE" : "???",
 				type & S_FLG ? ",S" : "",
-				type & E_FLG ? ",E" : ""
+				type & E_FLG ? ",E" : "",
+				type & N_FLG ? ",N" : ""
 			);
 		}
 

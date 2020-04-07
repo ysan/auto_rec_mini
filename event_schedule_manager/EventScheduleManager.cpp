@@ -539,8 +539,11 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		if (m_executing_reserve.type & CReserve::type_t::S_FLG) {
 			// update m_state
 			m_state = EN_CACHE_SCHEDULE_STATE__BUSY;
-			// fire notify
-			pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
+
+			if (m_executing_reserve.type & CReserve::type_t::N_FLG) {
+				// fire notify
+				pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
+			}
 
 			// history ----------------
 			m_current_history.clear();
@@ -563,8 +566,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		}
 
 
-		if (m_executing_reserve.type == CReserve::type_t::FORCE) {
-			sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
+		if ((m_executing_reserve.type & CReserve::type_t::TYPE_MASK) == CReserve::type_t::FORCE) {
+			sectId = SECTID_REQ_GET_SERVICE_INFOS;
 			enAct = EN_THM_ACT_CONTINUE;
 		} else {
 			// NORMAL
@@ -892,8 +895,11 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 			// update m_state
 			m_state = EN_CACHE_SCHEDULE_STATE__READY;
-			// fire notify
-			pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
+
+			if (m_executing_reserve.type & CReserve::type_t::N_FLG) {
+				// fire notify
+				pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
+			}
 		}
 
 		memset (&s_service_key, 0x00, sizeof(s_service_key));
@@ -1534,10 +1540,10 @@ void CEventScheduleManager::onReq_addReserves (CThreadMgrIf *pIf)
 
 			CReserve::type_t type = CReserve::type_t::NORMAL;
 			if (i == 0) {
-				type = (CReserve::type_t)(type | CReserve::type_t::S_FLG);
+				type = (CReserve::type_t)(type | CReserve::type_t::S_FLG | CReserve::type_t::N_FLG);
 			}
 			if (i == s_ch_num -1) {
-				type = (CReserve::type_t)(type | CReserve::type_t::E_FLG);
+				type = (CReserve::type_t)(type | CReserve::type_t::E_FLG | CReserve::type_t::N_FLG);
 			}
 
 			addReserve (
