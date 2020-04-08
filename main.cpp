@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <getopt.h>
+
 #include "threadmgr_if.h"
 #include "threadmgr_util.h"
 
@@ -30,18 +32,78 @@
 
 using namespace ThreadManager;
 
+static void _usage (char* _arg_0)
+{
+	printf ("\n");
+	printf ("Usage: %s -c conf-file [OPTIONS]\n", _arg_0);
+	printf ("  OPTIONS\n");
+	printf ("      -c conf-file, --conf=conf-file  (*requiredment option*)\n");
+	printf ("        Specify a configuration file.\n\n");
+	printf ("      -d change-directory, --dir=change-directory\n");
+	printf ("        Specify the process starting directory.\n\n");
+	printf ("      -h\n");
+	printf ("        print usage.\n\n");
+}
 
 int main (int argc, char *argv[])
 {
-	if (argc != 2) {
-		printf ("[main] unexpected arguments.\n");
+	int c = 0;
+	std::string settings_json_path = "";
+	std::string change_directory_path = "";
+
+	while (1) {
+		int option_index = 0;
+		struct option long_options [] = {
+			{"conf" , required_argument, 0, 'c'}, // load conf file
+			{"dir",   required_argument, 0, 'd'}, // change directory
+			{0, 0, 0, 0},
+		};
+
+		c = getopt_long(argc, argv, "c:d:h", long_options, &option_index);
+		if (c == -1) {
+			break;
+		}
+
+		switch (c) {
+		case 'c':
+			settings_json_path = optarg;
+			break;
+
+		case 'd':
+			change_directory_path = optarg;
+			break;
+
+		case 'h':
+			_usage (argv[0]);
+			exit (EXIT_SUCCESS);
+			break;
+
+		default:
+			_usage (argv[0]);
+			exit (EXIT_FAILURE);
+		}
+	}
+
+	if (settings_json_path.length() == 0) {
+		printf ("must specify configuration file. rerun set '-c' option.\n");
+		_usage (argv[0]);
 		exit (EXIT_FAILURE);
 	}
 
-	std::string settings_json = argv[1];
+	if (change_directory_path.length() > 0) {
+		chdir (change_directory_path.c_str());
+	}
+
+
+//	if (argc != 2) {
+//		printf ("unexpected arguments.\n");
+//		exit (EXIT_FAILURE);
+//	}
+
+//	std::string settings_json = argv[1];
 	CSettings *s = CSettings::getInstance ();
-	if (!s->load (settings_json)) {
-		printf ("[main] invalid settings.jon.\n");
+	if (!s->load (settings_json_path)) {
+		printf ("invalid settings.json.\n");
 		exit (EXIT_FAILURE);
 	}
 
