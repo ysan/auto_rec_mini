@@ -113,7 +113,10 @@ public:
 	bool is_used;
 
 	void clear (void) {
-		memset (this, 0x00, sizeof(struct _program_info));
+		table_id = 0;
+		transport_stream_id = 0;
+		program_number = 0;
+		program_map_PID = 0;
 		p_orgTable = NULL;
 		is_used = false;
 	}
@@ -160,10 +163,14 @@ public:
 	bool is_used;
 
 	void clear (void) {
-		// clear all
-		memset (this, 0x00, sizeof(struct _event_pf_info));
+		table_id = 0;
+		transport_stream_id = 0;
+		original_network_id = 0;
+		service_id = 0;
+		event_id = 0;
 		start_time.clear();
 		end_time.clear();
+		memset (event_name_char, 0x00, sizeof(event_name_char));
 		state = EN_EVENT_PF_STATE__INIT;
 		p_orgTable = NULL;
 		is_used = false;
@@ -221,8 +228,12 @@ public:
 	bool is_used;
 
 	void clear (void) {
-		// clear all
-		memset (this, 0x00, sizeof(struct _service_info));
+		table_id = 0;
+		transport_stream_id = 0;
+		original_network_id = 0;
+		service_id = 0;
+		service_type = 0;
+		memset (service_name_char, 0x00, sizeof(service_name_char))	;
 		is_tune_target = false;
 		eventFollowInfo.clear();
 		last_update.clear();
@@ -305,8 +316,18 @@ public:
 	bool is_used;
 
 	void clear (void) {
-		// clear all
-		memset (this, 0x00, sizeof(struct _network_info));
+		table_id = 0;
+		network_id = 0;
+		memset (network_name_char, 0x00, sizeof(network_name_char));
+		transport_stream_id = 0;
+		original_network_id = 0;
+		memset (services, 0x00, sizeof(services));
+		services_num = 0;
+		area_code = 0;
+		guard_interval = 0;
+		transmission_mode = 0;
+		remote_control_key_id = 0;
+		memset (ts_name_char, 0x00, sizeof(ts_name_char));
 		p_orgTable = NULL;
 		is_used = false;
 	}

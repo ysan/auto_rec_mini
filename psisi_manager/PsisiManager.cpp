@@ -1981,7 +1981,7 @@ void CPsisiManager::dumpEventPfInfos (void)
 
 void CPsisiManager::clearEventPfInfos (void)
 {
-	_UTL_LOG_I ("clearEventPfInfos");
+//	_UTL_LOG_I ("clearEventPfInfos");
 	for (int i = 0; i < EVENT_PF_INFOS_MAX; ++ i) {
 		m_eventPfInfos [i].clear();
 	}

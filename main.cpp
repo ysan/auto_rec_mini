@@ -38,7 +38,7 @@ static void _usage (char* _arg_0)
 	printf ("Usage: %s -c conf-file [OPTIONS]\n", _arg_0);
 	printf ("  OPTIONS\n");
 	printf ("      -c conf-file, --conf=conf-file  (*requiredment option*)\n");
-	printf ("        Specify a configuration file.\n\n");
+	printf ("        Specify a configuration file. (settings.json)\n\n");
 	printf ("      -d change-directory, --dir=change-directory\n");
 	printf ("        Specify the process starting directory.\n\n");
 	printf ("      -h\n");
@@ -85,12 +85,13 @@ int main (int argc, char *argv[])
 	}
 
 	if (settings_json_path.length() == 0) {
-		printf ("must specify configuration file. rerun set '-c' option.\n");
+		printf ("must specify configuration file. (settings.json)\nrerun set '-c' option.\n");
 		_usage (argv[0]);
 		exit (EXIT_FAILURE);
 	}
 
 	if (change_directory_path.length() > 0) {
+		printf ("chdir %s\n", change_directory_path.c_str());
 		chdir (change_directory_path.c_str());
 	}
 

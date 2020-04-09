@@ -44,7 +44,8 @@ rec reserveにreasonがほしい
 externalCpで notify対応
 --------------------------------------------------------------------
 rec reserve のend time と次のstart timeは同じでも重複とみなさない
-
+--------------------------------------------------------------------
+command serverのログも保存したい
 
 
 [processed list]
