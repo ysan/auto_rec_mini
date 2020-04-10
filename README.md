@@ -60,21 +60,18 @@ Please install as appropriate.
 	$ sudo make install
 
 ### Build and install ###
-When installing in a working directory.
 
-	$ mkdir -p ~/work/data
 	$ git clone https://github.com/ysan/auto_rec_mini
 	$ cd auto_rec_mini
 	$ make
-	$ make INSTALLDIR=~/work install
-	$ cp -p ./data/settings.json ~/work/data
-	$ cd ~/work
-	$ tree
-	.
+	$ sudo make INSTALLDIR=/usr/local install
+	$ sudo ldconfig /usr/local/lib/auto_rec_mini
+
+Installation files:
+
+	/usr/local/
 	├── bin
 	│   └── auto_rec_mini
-	├── data
-	│   └── settings.json
 	└── lib
 	   	└── auto_rec_mini
 	        ├── libchannelmanager.so
@@ -92,8 +89,30 @@ When installing in a working directory.
 	        ├── libthreadmgrpp.so
 	        ├── libtunercontrol.so
 	        └── libtunethread.so
-	
-	4 directories, 17 files
+
+### Running as a Linux service (use systemd) ###
+Copy the config file(`settings.json`) to /etc/auto_rec_mini/ .
+
+	sudo mkdir -p /etc/auto_rec_mini/data
+	sudo cp settings.json /etc/auto_rec_mini
+
+Copy the systemd unit file. (`auto_rec_mini.service`)
+
+	sudo cp auto_rec_mini.service /etc/systemd/system
+
+To start the service for the first time, do the usual systemctl dance.
+
+	sudo systemctl daemon-reload
+	sudo systemctl enable auto_rec_mini
+	sudo systemctl start auto_rec_mini
+
+`auto_rec_mini` process is up and ready to use the tuner.  
+`command server` is listening for connections on port 20001.  
+First, please execute the channel scan CLI command.  
+  
+You can stop the service with this command.
+
+    sudo systemctl stop auto_rec_mini
 
 ### settings.json ###
 
@@ -160,19 +179,6 @@ No limit to the number of keywords.
 			"ＸＸＸ野球"
 		]
 	}
-
-### How to run ###
-
-When excuting in a working directory at `Build and install`.  
-(You need root to run it.)
-
-	$ cd ~/work
-	$ export LD_LIBRARY_PATH=./lib/auto_rec_mini
-	$ sudo ./bin/auto_rec_mini ./data/settings.json &
-
-`auto_rec_mini` process is up and ready to use the tuner.  
-`command server` is listening for connections on port 20001.  
-First, please execute the channel scan from the following command.
 
 ### How to use CLI ###
 

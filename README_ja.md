@@ -73,17 +73,16 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 	$ sudo make install
 
 ### Build and install ###
-作業ディレクトリにインストールする場合。
 
-	$ mkdir -p ~/work/data
 	$ git clone https://github.com/ysan/auto_rec_mini
 	$ cd auto_rec_mini
 	$ make
-	$ make INSTALLDIR=~/work install
-	$ cp -p ./data/settings.json ~/work/data
-	$ cd ~/work
-	$ tree
-	.
+	$ sudo make INSTALLDIR=/usr/local install
+	$ sudo ldconfig /usr/local/lib/auto_rec_mini
+
+インストールファイル：
+
+	/usr/local/
 	├── bin
 	│   └── auto_rec_mini
 	├── data
@@ -105,8 +104,30 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 	        ├── libthreadmgrpp.so
 	        ├── libtunercontrol.so
 	        └── libtunethread.so
-	
-	4 directories, 17 files
+
+### Running as a Linux service (use systemd) ###
+設定ファイル(`settings.json`) を /etc/auto_rec_mini/ にコピーします。
+
+    sudo mkdir -p /etc/auto_rec_mini/data
+    sudo cp settings.json /etc/auto_rec_mini
+
+systemdユニット設定ファイルをコピーします。(`auto_rec_mini.service`)
+
+	sudo cp auto_rec_mini.service /etc/systemd/system
+
+systemctlコマンドでサービスを開始します。
+
+	sudo systemctl daemon-reload
+	sudo systemctl enable auto_rec_mini
+	sudo systemctl start auto_rec_mini
+
+`auto_rec_mini` プロセスは起動し、チューナーを使用する準備ができた状態になります。  
+`command server` はポート20001で接続を待ち受けています。
+最初にCLIコマンドよりチャンネルスキャンを行ってください。  
+  
+サービスを停止するには以下のコマンドを実行します。
+
+	sudo systemctl stop auto_rec_mini
 
 ### settings.json ###
 
@@ -171,19 +192,6 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 	        "ＸＸＸ野球"
 	    ]
 	}
-
-### How to run ###
-
-`Build and install`でインストールした作業ディレクトリで実行する場合。  
-（※実行するにはroot権限が必要です。）
-
-	$ cd ~/work
-	$ export LD_LIBRARY_PATH=./lib/auto_rec_mini
-	$ sudo ./bin/auto_rec_mini ./data/settings.json &
-
-`auto_rec_mini` は起動して、チューナーを使用する準備ができた状態になります。  
-`command server` はポート20001で接続を待ち受けています。
-最初にチャンネルスキャンを行ってください。
 
 ### How to use CLI ###
 

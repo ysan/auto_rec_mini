@@ -1,0 +1,12 @@
+[Unit]
+Description=auto_rec_mini
+After=network.service
+
+[Service]
+Type=simple
+Restart=on-success
+ExecStart=/usr/local/bin/auto_rec_mini -c /etc/auto_rec_mini/settings.json -d /etc/auto_rec_mini
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target
