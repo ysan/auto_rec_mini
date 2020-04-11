@@ -327,6 +327,7 @@ private:
 	char m_recording_tmpfile [PATH_MAX];
 	struct OutputBuffer *mp_outputBuffer;
 
+	bool m_is_reserve_reschedule; // このフラグはパッチ的 あまり入れたくなかった
 };
 
 #endif

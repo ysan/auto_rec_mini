@@ -95,6 +95,7 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	,m_eventChangeNotify_clientId (0xff)
 	,m_recProgress (EN_REC_PROGRESS__INIT)
 	,mp_outputBuffer (NULL)
+	,m_is_reserve_reschedule (false)
 {
 	mSeqs [EN_SEQ_REC_MANAGER__MODULE_UP] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUp,                (char*)"onReq_moduleUp"};
@@ -947,6 +948,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			} else {
 				// イベントが一致しないので 前番組の延長とかで開始時間が遅れたと予想します
 				// --> EIT schedule を取得してみます
+				_UTL_LOG_E ("(%s) event tracking...", pIf->getSeqName());
 				sectId = SECTID_REQ_CACHE_SCHEDULE;
 				enAct = EN_THM_ACT_CONTINUE;
 			}
@@ -975,10 +977,11 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_WAIT_CACHE_SCHEDULE:
-
+		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 
 			// イベントを検索して予約を入れなおしてみます
+			_UTL_LOG_E ("(%s) try reserve reschedule", pIf->getSeqName());
 			sectId = SECTID_REQ_ADD_RESERVE_RESCHEDULE;
 			enAct = EN_THM_ACT_CONTINUE;
 
@@ -1004,6 +1007,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		_param.repeatablity = m_recording.repeatability;
 		_param.dump();
 
+		m_is_reserve_reschedule = true;
 		requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT, (uint8_t*)&_param, sizeof(_param));
 
 		sectId = SECTID_WAIT_ADD_RESERVE_RESCHEDULE;
@@ -1013,6 +1017,10 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_WAIT_ADD_RESERVE_RESCHEDULE:
+
+		m_is_reserve_reschedule = false;
+
+		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 			_UTL_LOG_I ("(%s) add reserve reschedule ok.", pIf->getSeqName());
 
@@ -2062,10 +2070,12 @@ bool CRecManager::addReserve (
 //		return false;
 	}
 
-	if (m_recording.is_used) {
-		if (m_recording == tmp) {
-			_UTL_LOG_E ("reserve is now recording.");
-			return false;
+	if (!m_is_reserve_reschedule) {
+		if (m_recording.is_used) {
+			if (m_recording == tmp) {
+				_UTL_LOG_E ("reserve is now recording.");
+				return false;
+			}
 		}
 	}
 

@@ -431,7 +431,7 @@ public:
 		}
 
 		void dump (void) const {
-			_UTL_LOG_I ("tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] start_time:[%s] type:[%s%s%s]",
+			_UTL_LOG_I ("tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] start_time:[%s] type:[%s%s%s%s]",
 				transport_stream_id,
 				original_network_id,
 				service_id,
