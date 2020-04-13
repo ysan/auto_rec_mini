@@ -51,7 +51,7 @@ Please install as appropriate.
 *libarib25*
 
 	$ sudo apt-get install cmake g++
-	$ git clone https://github.com/stz2012/libarib25
+	$ git clone https://github.com/stz2012/libarib25.git
 	$ cd libarib25
 	$ mkdir build
 	$ cd build
@@ -61,7 +61,7 @@ Please install as appropriate.
 
 ### Build and install ###
 
-	$ git clone https://github.com/ysan/auto_rec_mini
+	$ git clone https://github.com/ysan/auto_rec_mini.git
 	$ cd auto_rec_mini
 	$ make
 	$ sudo make INSTALLDIR=/usr/local install

@@ -64,7 +64,7 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 *libarib25*
 
 	$ sudo apt-get install cmake
-	$ git clone https://github.com/stz2012/libarib25
+	$ git clone https://github.com/stz2012/libarib25.git
 	$ cd libarib25
 	$ mkdir build
 	$ cd build
@@ -74,7 +74,7 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 
 ### Build and install ###
 
-	$ git clone https://github.com/ysan/auto_rec_mini
+	$ git clone https://github.com/ysan/auto_rec_mini.git
 	$ cd auto_rec_mini
 	$ make
 	$ sudo make INSTALLDIR=/usr/local install
