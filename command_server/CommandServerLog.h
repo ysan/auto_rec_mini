@@ -11,10 +11,16 @@
 #include "Settings.h"
 
 
+#if 0
 #define _COM_SVR_PRINT(fmt, ...) do {\
 	fprintf (CCommandServerLog::getFileptr(), fmt, ##__VA_ARGS__);\
 	fflush (CCommandServerLog::getFileptr());\
 } while (0)
+#endif
+#define _COM_SVR_PRINT(fmt, ...) do {\
+	CUtils::putsLogSimple (CUtils::mpfpLog, fmt, ##__VA_ARGS__); \
+} while (0)
+
 
 
 class CCommandServerLog

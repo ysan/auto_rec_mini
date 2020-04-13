@@ -45,7 +45,7 @@ CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
 	on_command_wait_end = onCommandWaitEnd;
 
 	gp_current_command_table = NULL;
-	CCommandServerLog::setFileptr (stdout);
+//	CCommandServerLog::setFileptr (stdout);
 }
 
 CCommandServer::~CCommandServer (void)
@@ -210,7 +210,7 @@ void CCommandServer::serverLoop (void)
 		CUtils::setLogFileptr (fp);
 		setLogFileptr (fp);
 		it9175_setLogFileptr (fp);
-		CCommandServerLog::setFileptr (fp);
+//		CCommandServerLog::setFileptr (fp);
 
 
 		// begin
@@ -234,7 +234,7 @@ void CCommandServer::serverLoop (void)
 		// socket切断にともなってログ出力をstdoutにもどします
 		CUtils::setLogFileptr (stdout);
 		setLogFileptr (stdout);
-		CCommandServerLog::setFileptr (stdout);
+//		CCommandServerLog::setFileptr (stdout);
 
 		fclose (fp);
 		close (mClientfd);

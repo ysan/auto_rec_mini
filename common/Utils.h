@@ -221,6 +221,11 @@ public:
 		const char *pszFormat,
 		...
 	);
+	static void putsLogSimple (
+		FILE *pFp,
+		const char *pszFormat,
+		...
+	);
 
 	static void setLogLevel (EN_LOG_LEVEL enLvl);
 	static EN_LOG_LEVEL getLogLevel (void);

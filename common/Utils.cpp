@@ -1129,6 +1129,31 @@ void CUtils::putsSyslogLW (
 		break;
 	}
 }
+
+/**
+ * putsLogSimple
+ * ログ出力
+ * (src,lineなし, ヘッダなし)
+ */
+void CUtils::putsLogSimple (
+	FILE *pFp,
+	const char *pszFormat,
+	...
+)
+{
+	char szBufVa [LOG_STRING_SIZE];
+	memset (szBufVa, 0x00, sizeof (szBufVa));
+
+	va_list va;
+	va_start (va, pszFormat);
+	vsnprintf (szBufVa, sizeof(szBufVa), pszFormat, va);
+	fprintf (pFp, "%s", szBufVa);
+	fflush (pFp);
+	if (m_is_use_syslog) {
+		syslog (LOG_INFO, "%s", szBufVa);
+	}
+	va_end (va);
+}
 //--------------------------  log methods end --------------------------
 
 
