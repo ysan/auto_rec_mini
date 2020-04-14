@@ -1150,7 +1150,25 @@ void CUtils::putsLogSimple (
 	fprintf (pFp, "%s", szBufVa);
 	fflush (pFp);
 	if (m_is_use_syslog) {
-		syslog (LOG_INFO, "%s", szBufVa);
+		// syslogは行内のLFを分けます
+		char *token = NULL;
+		char *saveptr = NULL;
+		char *s = szBufVa;
+		int n = 0;
+		while (1) {
+			token = strtok_r_impl (s, "\n", &saveptr, NULL);
+			if (token == NULL) {
+				if (n == 0 && (int)strlen(szBufVa) > 0) {
+					syslog (LOG_INFO, "%s", szBufVa);
+				}
+				break;
+			}
+
+			syslog (LOG_INFO, "%s", token);
+
+			s = NULL;
+			++ n;
+		}
 	}
 	va_end (va);
 }
