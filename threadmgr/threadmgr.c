@@ -2157,7 +2157,9 @@ static void *workerThread (void *pArg)
 					memcpy (&(pstInnerInfo->stNowExecQueWorker), &stRtnQue, sizeof(ST_QUE_WORKER));
 
 					/* 引数gstThmSrcInfoセット */
-					pstThmSrcInfo->nReqId = stRtnQue.nReqId; /* getRequestId で生成した値 */
+					pstThmSrcInfo->nThreadIdx = stRtnQue.nSrcThreadIdx; /* どこのだれから来たのか分かるように */
+					pstThmSrcInfo->nSeqIdx = stRtnQue.nSrcSeqIdx; /* どこのだれから来たのか分かるように */
+					pstThmSrcInfo->nReqId = stRtnQue.nReqId; /* 基本的にはreply時に使う */
 					pstThmSrcInfo->enRslt = stRtnQue.enRslt; /* reqestの場合EN_THM_RSLT_IGNOREが入る 無効な値
 																replyの場合その結果が入る
 																Reqタイムアウトの場合はEN_THM_RSLT_REQ_TIMEOUTが入る
@@ -2257,6 +2259,8 @@ static void *workerThread (void *pArg)
 					//TODO pstInnerInfo->stNowExecQueWorker の保存必要かどうか
 
 					/* 引数gstThmSrcInfoセット */
+					pstThmSrcInfo->nThreadIdx = stRtnQue.nSrcThreadIdx; /* どこのだれから来たのか分かるように */
+					pstThmSrcInfo->nSeqIdx = stRtnQue.nSrcSeqIdx; /* どこのだれから来たのか分かるように */
 					pstThmSrcInfo->nReqId = stRtnQue.nReqId; /* requestの時に生成したもの */
 					pstThmSrcInfo->enRslt = stRtnQue.enRslt; /* 結果が入る */
 					pstThmSrcInfo->nClientId = stRtnQue.nClientId; /* NOTIFY_CLIENT_ID_BLANK が入る 無効な値 */
@@ -2293,6 +2297,8 @@ static void *workerThread (void *pArg)
 				if (gpfnDispatcher || pTbl->pcbRecvNotify) {
 
 					/* 引数gstThmSrcInfoセット */
+					pstThmSrcInfo->nThreadIdx = stRtnQue.nSrcThreadIdx; /* どこのだれから来たのか分かるように */
+					pstThmSrcInfo->nSeqIdx = stRtnQue.nSrcSeqIdx; /* どこのだれから来たのか分かるように */
 					pstThmSrcInfo->nReqId = stRtnQue.nReqId; /* REQUEST_ID_BLANKが入る 無効な値 */
 					pstThmSrcInfo->enRslt = stRtnQue.enRslt; /* EN_THM_RSLT_IGNOREが入る 無効な値 */
 					pstThmSrcInfo->nClientId = stRtnQue.nClientId; /* notify時に登録した値 */
@@ -2426,6 +2432,8 @@ static void clearThmSrcInfo (ST_THM_SRC_INFO *p)
 		return;
 	}
 
+	p->nThreadIdx = THREAD_IDX_BLANK;
+	p->nSeqIdx = SEQ_IDX_BLANK;
 	p->nReqId = REQUEST_ID_BLANK;
 	p->enRslt = EN_THM_RSLT_IGNORE;
 	p->nClientId = NOTIFY_CLIENT_ID_BLANK;
@@ -2696,6 +2704,8 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		 * 結果をいれる
 		 */
 		if (pstTmpSyncReplyInfo) {
+			gstThmSrcInfo [stContext.nThreadIdx].nThreadIdx = nThreadIdx;
+			gstThmSrcInfo [stContext.nThreadIdx].nSeqIdx = nSeqIdx;
 			gstThmSrcInfo [stContext.nThreadIdx].nReqId = reqId;
 			gstThmSrcInfo [stContext.nThreadIdx].enRslt = pstTmpSyncReplyInfo->enRslt;
 			if (pstTmpSyncReplyInfo->msg.isUsed) {
@@ -3045,6 +3055,8 @@ static bool replyOuter (
 	pthread_mutex_lock (&(pstExtInfo->mutex));
 
 	/* 結果を入れます */
+	pstExtInfo->stThmSrcInfo.nThreadIdx = pstContext->nThreadIdx;
+	pstExtInfo->stThmSrcInfo.nSeqIdx = pstContext->nSeqIdx;
 	if (enRslt == EN_THM_RSLT_REQ_TIMEOUT) {
 		/* タイムアウトだったら extInfoのreqIdクリア */
 		pstExtInfo->nReqId = REQUEST_ID_BLANK;

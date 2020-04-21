@@ -91,7 +91,7 @@ void CThreadMgrExternalIf::setRequestOption (uint32_t option)
 	}
 }
 
-uint32_t CThreadMgrExternalIf::getRequestOption (void)
+uint32_t CThreadMgrExternalIf::getRequestOption (void) const
 {
 	if (mpExtIf) {
 		return mpExtIf->pfnGetRequestOption ();

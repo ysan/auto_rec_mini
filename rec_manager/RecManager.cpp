@@ -27,24 +27,25 @@ extern "C" {
 
 static const struct reserve_state_pair g_reserveStatePair [] = {
 	{0x00000000, "INIT"},
-	{0x00000001, "REMOVE_RESERVE"},
-	{0x00000002, "START_TIME_PASSED"},
-	{0x00000004, "REQ_START_RECORDING"},
-	{0x00000008, "NOW_RECORDING"},
-	{0x00000010, "FORCE_STOP"},
-	{0x00000020, "END_SUCCESS"},
-	{0x00000040, "END_ERROR__ALREADY_PASSED"},
-	{0x00000080, "END_ERROR__HDD_FREE_SPACE_LOW"},
-	{0x00000100, "END_ERROR__TUNE_ERR"},
-	{0x00000200, "END_ERROR__EVENT_NOT_FOUND"},
-	{0x00000400, "END_ERROR__INTERNAL_ERR"},
+	{0x00000001, "REMOVED"},
+	{0x00000002, "RESCHEDULED"},
+	{0x00000004, "START_TIME_PASSED"},
+	{0x00000100, "REQ_START_RECORDING"},
+	{0x00000200, "NOW_RECORDING"},
+	{0x00000400, "FORCE_STOPPED"},
+	{0x00010000, "END_ERROR__ALREADY_PASSED"},
+	{0x00020000, "END_ERROR__HDD_FREE_SPACE_LOW"},
+	{0x00040000, "END_ERROR__TUNE_ERR"},
+	{0x00080000, "END_ERROR__EVENT_NOT_FOUND"},
+	{0x00100000, "END_ERROR__INTERNAL_ERR"},
+	{0x80000000, "END_SUCCESS"},
 
 	{0x00000000, NULL}, // term
 };
 
 static char gsz_reserveState [256];
 
-const char * getReserveState (uint32_t state)
+const char * getReserveStateString (uint32_t state)
 {
 	memset (gsz_reserveState, 0x00, sizeof(gsz_reserveState));
 	int n = 0;
@@ -95,7 +96,6 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	,m_eventChangeNotify_clientId (0xff)
 	,m_recProgress (EN_REC_PROGRESS__INIT)
 	,mp_outputBuffer (NULL)
-	,m_is_reserve_reschedule (false)
 {
 	mSeqs [EN_SEQ_REC_MANAGER__MODULE_UP] =
 		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUp,                (char*)"onReq_moduleUp"};
@@ -1007,7 +1007,6 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		_param.repeatablity = m_recording.repeatability;
 		_param.dump();
 
-		m_is_reserve_reschedule = true;
 		requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT, (uint8_t*)&_param, sizeof(_param));
 
 		sectId = SECTID_WAIT_ADD_RESERVE_RESCHEDULE;
@@ -1017,8 +1016,6 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_WAIT_ADD_RESERVE_RESCHEDULE:
-
-		m_is_reserve_reschedule = false;
 
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
@@ -1298,7 +1295,8 @@ s_presentEventInfo.dump();
 							&s_presentEventInfo.end_time,
 							s_presentEventInfo.event_name_char,
 							p_svc_name,
-							true // is_event_type true
+							true, // is_event_type true
+							EN_RESERVE_REPEATABILITY__NONE
 						);
 			if (r) {
 				sectId = SECTID_END_SUCCESS;
@@ -1363,13 +1361,13 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 	static CRecManagerIf::ADD_RESERVE_PARAM_t s_param;
 	static CEventScheduleManagerIf::EVENT_t s_event;
+	static bool s_is_rescheduled = false;
 
 
 	switch (sectId) {
-	case SECTID_ENTRY:
+	case SECTID_ENTRY: {
 
 		s_param = *(CRecManagerIf::ADD_RESERVE_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
-
 
 		// repeatablityのチェック入れときます
 		if (
@@ -1379,10 +1377,20 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 			sectId = SECTID_REQ_GET_EVENT;
 			enAct = EN_THM_ACT_CONTINUE;
 		} else {
+			_UTL_LOG_E ("invalid repeatablity");
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 
+		// rescheduleかのチェックします
+		uint8_t src_thread_idx = pIf->getSrcInfo()->nThreadIdx;
+		uint8_t src_seq_idx = pIf->getSrcInfo()->nSeqIdx;
+		if ((src_thread_idx == EN_MODULE_REC_MANAGER) && (src_seq_idx == EN_SEQ_REC_MANAGER__START_RECORDING)) {
+			_UTL_LOG_I ("(%s) requst from EN_SEQ_REC_MANAGER__START_RECORDING", pIf->getSeqName());
+			s_is_rescheduled = true;
+		}
+
+		}
 		break;
 
 	case SECTID_REQ_GET_EVENT: {
@@ -1414,7 +1422,7 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 
 		} else {
 			// 予約に対応するイベントがなかった あらら...
-			_UTL_LOG_E ("reqGetEvent error");
+			_UTL_LOG_E ("onReq_addReserve_event - reqGetEvent error");
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -1447,7 +1455,8 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 						s_event.p_event_name->c_str(),
 						p_svc_name,
 						true, // is_event_type true
-						s_param.repeatablity
+						s_param.repeatablity,
+						s_is_rescheduled
 					);
 		if (r) {
 			sectId = SECTID_END_SUCCESS;
@@ -1464,6 +1473,7 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 
 		memset (&s_param, 0x00, sizeof(s_param));
 		memset (&s_event, 0x00, sizeof(s_event));
+		s_is_rescheduled = false;
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
@@ -1474,6 +1484,7 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 
 		memset (&s_param, 0x00, sizeof(s_param));
 		memset (&s_event, 0x00, sizeof(s_event));
+		s_is_rescheduled = false;
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
@@ -1888,7 +1899,7 @@ void CRecManager::onReq_stopRecording (CThreadMgrIf *pIf)
 		// ######################################### //
 
 
-		m_recording.state |= RESERVE_STATE__FORCE_STOP;
+		m_recording.state |= RESERVE_STATE__FORCE_STOPPED;
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -2026,7 +2037,8 @@ bool CRecManager::addReserve (
 	const char *psz_title_name,
 	const char *psz_service_name,
 	bool _is_event_type,
-	EN_RESERVE_REPEATABILITY repeatabilitiy
+	EN_RESERVE_REPEATABILITY repeatabilitiy,
+	bool _is_rescheduled
 )
 {
 	if (!p_start_time || !p_end_time) {
@@ -2070,7 +2082,7 @@ bool CRecManager::addReserve (
 //		return false;
 	}
 
-	if (!m_is_reserve_reschedule) {
+	if (!_is_rescheduled) {
 		if (m_recording.is_used) {
 			if (m_recording == tmp) {
 				_UTL_LOG_E ("reserve is now recording.");
@@ -2162,7 +2174,7 @@ bool CRecManager::removeReserve (int index, bool isConsiderRepeatability, bool i
 		return false;
 	}
 
-	m_reserves [index].state |= RESERVE_STATE__REMOVE_RESERVE;
+	m_reserves [index].state |= RESERVE_STATE__REMOVED;
 	if (isApplyResult) {
 		setResult (&m_reserves[index]);
 	}

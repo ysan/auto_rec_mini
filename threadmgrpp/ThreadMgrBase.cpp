@@ -166,7 +166,7 @@ void CThreadMgrBase::setRequestOption (uint32_t option)
 	(*mpExtIf)->setRequestOption (option);
 }
 
-uint32_t CThreadMgrBase::getRequestOption (void)
+uint32_t CThreadMgrBase::getRequestOption (void) const
 {
 	if (!(*mpExtIf)) {
 		THM_LOG_E ("BUG: mpExtIf is null. (CThreadMgrBase)");

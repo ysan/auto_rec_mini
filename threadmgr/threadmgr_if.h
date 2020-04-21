@@ -81,6 +81,8 @@ typedef enum {
 
 
 typedef struct threadmgr_src_info {
+	uint8_t nThreadIdx;
+	uint8_t nSeqIdx;
 	uint32_t nReqId;
 	EN_THM_RSLT enRslt;
 	uint8_t nClientId;

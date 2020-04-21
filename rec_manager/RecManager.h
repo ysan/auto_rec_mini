@@ -42,17 +42,18 @@ using namespace ThreadManager;
 #define RESULT_NUM_MAX		(20)
 
 #define RESERVE_STATE__INIT								(0x00000000)
-#define RESERVE_STATE__REMOVE_RESERVE					(0x00000001)
-#define RESERVE_STATE__START_TIME_PASSED				(0x00000002)
-#define RESERVE_STATE__REQ_START_RECORDING				(0x00000004)
-#define RESERVE_STATE__NOW_RECORDING					(0x00000008)
-#define RESERVE_STATE__FORCE_STOP						(0x00000010)
-#define RESERVE_STATE__END_SUCCESS						(0x00000020)
-#define RESERVE_STATE__END_ERROR__ALREADY_PASSED		(0x00000040)
-#define RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW	(0x00000080)
-#define RESERVE_STATE__END_ERROR__TUNE_ERR				(0x00000100)
-#define RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND		(0x00000200)
-#define RESERVE_STATE__END_ERROR__INTERNAL_ERR			(0x00000400)
+#define RESERVE_STATE__REMOVED							(0x00000001)
+#define RESERVE_STATE__RESCHEDULED						(0x00000002)
+#define RESERVE_STATE__START_TIME_PASSED				(0x00000004)
+#define RESERVE_STATE__REQ_START_RECORDING				(0x00000100)
+#define RESERVE_STATE__NOW_RECORDING					(0x00000200)
+#define RESERVE_STATE__FORCE_STOPPED					(0x00000400)
+#define RESERVE_STATE__END_ERROR__ALREADY_PASSED		(0x00010000)
+#define RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW	(0x00020000)
+#define RESERVE_STATE__END_ERROR__TUNE_ERR				(0x00040000)
+#define RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND		(0x00080000)
+#define RESERVE_STATE__END_ERROR__INTERNAL_ERR			(0x00100000)
+#define RESERVE_STATE__END_SUCCESS						(0x80000000)
 
 
 typedef enum {
@@ -70,7 +71,7 @@ struct reserve_state_pair {
 	const char *psz_reserveState;
 };
 
-const char * getReserveState (uint32_t state);
+const char * getReserveStateString (uint32_t state);
 
 
 class CRecReserve {
@@ -203,7 +204,7 @@ public:
 				repeatability == 1 ? "DAILY" :
 					repeatability == 2 ? "WEEKLY" :
 						repeatability == 3 ? "AUTO" : "???",
-			getReserveState (state)
+			getReserveStateString (state)
 		);
 		_UTL_LOG_I ("title:[%s]", title_name.c_str());
 		_UTL_LOG_I ("service_name:[%s]", service_name.c_str());
@@ -267,7 +268,8 @@ private:
 		const char *psz_title_name,
 		const char *psz_service_name,
 		bool _is_event_type,
-		EN_RESERVE_REPEATABILITY repeatability=EN_RESERVE_REPEATABILITY__NONE
+		EN_RESERVE_REPEATABILITY repeatability,
+		bool _is_rescheduled=false
 	);
 	int getReserveIndex (
 		uint16_t _transport_stream_id,
@@ -326,8 +328,6 @@ private:
 
 	char m_recording_tmpfile [PATH_MAX];
 	struct OutputBuffer *mp_outputBuffer;
-
-	bool m_is_reserve_reschedule; // このフラグはパッチ的 あまり入れたくなかった
 };
 
 #endif
