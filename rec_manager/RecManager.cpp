@@ -2111,6 +2111,9 @@ bool CRecManager::addReserve (
 		repeatabilitiy
 	);
 
+	if (_is_rescheduled) {
+		p_reserve->state |= RESERVE_STATE__RESCHEDULED;
+	}
 
 	_UTL_LOG_I ("###########################");
 	_UTL_LOG_I ("####    add reserve    ####");
