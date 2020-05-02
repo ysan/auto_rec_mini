@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -107,6 +105,7 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	m_schedule_cache_current_plan.clear();
 
 	m_reserves.clear();
+	m_retry_reserves.clear();
 	m_executing_reserve.clear();
 
 	m_current_history.clear();
@@ -540,14 +539,16 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 			// update m_state
 			m_state = EN_CACHE_SCHEDULE_STATE__BUSY;
 
-			if (m_executing_reserve.type & CReserve::type_t::N_FLG) {
-				// fire notify
-				pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
-			}
-
 			// history ----------------
 			m_current_history.clear();
 			m_current_history.set_startTime();
+
+			m_retry_reserves.clear();
+		}
+
+		if (m_executing_reserve.type & CReserve::type_t::N_FLG) {
+			// fire notify
+			pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
 		}
 
 
@@ -823,8 +824,13 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 			}
 		}
 
-		sectId = SECTID_END_SUCCESS;
-		enAct = EN_THM_ACT_CONTINUE;
+		if (s_is_timeouted || m_is_need_stop) {
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		} else {
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
 		break;
 
 	case SECTID_END_SUCCESS:
@@ -833,13 +839,7 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 
 		// history ----------------
-		if (s_is_timeouted) {
-			m_current_history_stream._state = CHistory::EN_STATE__TIMEOUT;
-		} else if (m_is_need_stop) {
-			m_current_history_stream._state = CHistory::EN_STATE__CANCEL;
-		} else {
-			m_current_history_stream._state = CHistory::EN_STATE__COMPLETE;
-		}
+		m_current_history_stream._state = CHistory::EN_STATE__COMPLETE;
 		m_current_history.add (m_current_history_stream);
 
 
@@ -855,10 +855,29 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		// history ----------------
 		if (m_is_need_stop) {
 			m_current_history_stream._state = CHistory::EN_STATE__CANCEL;
+		} else if (s_is_timeouted) {
+			m_current_history_stream._state = CHistory::EN_STATE__TIMEOUT;
 		} else {
 			m_current_history_stream._state = CHistory::EN_STATE__ERROR;
 		}
 		m_current_history.add (m_current_history_stream);
+
+
+		if (m_executing_reserve.type & CReserve::type_t::R_FLG) {
+			// retry reserve
+			CReserve retry;
+
+			CEtime start_time;
+			start_time.setCurrentTime();
+			start_time.addMin(90); // とりあえず90分後にリトライします
+
+			retry.transport_stream_id = s_service_key.transport_stream_id;
+			retry.original_network_id = s_service_key.original_network_id;
+			retry.service_id = s_service_key.service_id;
+			retry.start_time = start_time;
+			retry.type = CReserve::type_t::NORMAL;
+			m_retry_reserves.push_back(retry);
+		}
 
 
 		sectId = SECTID_EXIT;
@@ -896,10 +915,25 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 			// update m_state
 			m_state = EN_CACHE_SCHEDULE_STATE__READY;
 
-			if (m_executing_reserve.type & CReserve::type_t::N_FLG) {
-				// fire notify
-				pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
+			// retry reserve
+			int n = (int)m_retry_reserves.size();
+			for (int i = 0; i < n; ++ i) {
+				if (i == 0) {
+					m_retry_reserves[i].type =
+						(CReserve::type_t)(CReserve::type_t::NORMAL | CReserve::type_t::S_FLG | CReserve::type_t::N_FLG);
+				}
+				if (i == (n - 1)) {
+					m_retry_reserves[i].type =
+						(CReserve::type_t)(CReserve::type_t::NORMAL | CReserve::type_t::E_FLG | CReserve::type_t::N_FLG);
+				}
+				addReserve(m_retry_reserves[i]);
 			}
+			m_retry_reserves.clear();
+		}
+
+		if (m_executing_reserve.type & CReserve::type_t::N_FLG) {
+			// fire notify
+			pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
 		}
 
 		memset (&s_service_key, 0x00, sizeof(s_service_key));
@@ -972,7 +1006,7 @@ void CEventScheduleManager::onReq_cacheSchedule (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			_UTL_LOG_E ("reqGetChannels is failure.");
+			_UTL_LOG_E ("add reserve failure.");
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
         }
@@ -1538,7 +1572,7 @@ void CEventScheduleManager::onReq_addReserves (CThreadMgrIf *pIf)
 			}
 			CEtime _start_time = _base_time;
 
-			CReserve::type_t type = CReserve::type_t::NORMAL;
+			CReserve::type_t type = (CReserve::type_t)(CReserve::type_t::NORMAL | CReserve::type_t::R_FLG);
 			if (i == 0) {
 				type = (CReserve::type_t)(type | CReserve::type_t::S_FLG | CReserve::type_t::N_FLG);
 			}

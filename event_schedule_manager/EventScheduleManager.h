@@ -360,6 +360,7 @@ public:
 			S_FLG     = 0x0100, // start flag
 			E_FLG     = 0x0200, // end flag
 			N_FLG     = 0x0400, // need notify flag
+			R_FLG     = 0x0800, // need retry flag
 
 		} type_t;
 
@@ -680,6 +681,7 @@ private:
 
 
 	std::vector <CReserve> m_reserves;
+	std::vector <CReserve> m_retry_reserves;
 	CReserve m_executing_reserve;
 
 	bool m_is_need_stop;
