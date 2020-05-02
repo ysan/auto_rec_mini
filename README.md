@@ -133,6 +133,7 @@ Please you set according to the environment.
 | `event_schedule_cache_start_interval_day` | EPG cache execution interval date. |
 | `event_schedule_cache_start_time` | EPG cache start time. (HH:mm) |
 | `event_schedule_cache_timeout_min` | EPG cache timeout minute. |
+| `event_schedule_cache_retry_interval_min` | EPG cache retry interval minute. |
 | `event_schedule_cache_histories_json_path` | save/load destination of EPG cache history. |
 | `event_name_keywords_json_path` | load destination of keywords for `event name` search. |
 | `extended_event_keywords_json_path` | load destination of keywords for `extended event` search. |

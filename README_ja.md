@@ -85,8 +85,6 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 	/usr/local/
 	├── bin
 	│   └── auto_rec_mini
-	├── data
-	│   └── settings.json
 	└── lib
 	   	└── auto_rec_mini
 	        ├── libchannelmanager.so
@@ -148,6 +146,7 @@ systemctlコマンドでサービスを開始します。
 | `m_event_schedule_cache_start_interval_day` | EPG取得の間隔日。 |
 | `m_event_schedule_cache_start_time` | EPG取得の開始時間。(HH:mm) |
 | `m_event_schedule_cache_timeout_min` | EPG取得タイムアウト時間。(分) |
+| `m_event_schedule_cache_retry_interval_min` | EPG取得リトライ間隔。(分) |
 | `m_event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
 | `m_event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
 | `m_extended_event_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |

@@ -869,7 +869,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 			CEtime start_time;
 			start_time.setCurrentTime();
-			start_time.addMin(90); // とりあえず90分後にリトライします
+			int interval = mp_settings->getParams()->getEventScheduleCacheRetryIntervalMin();
+			start_time.addMin(interval);
 
 			retry.transport_stream_id = s_service_key.transport_stream_id;
 			retry.original_network_id = s_service_key.original_network_id;
@@ -911,24 +912,36 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 			pushHistories (&m_current_history);
 			saveHistories ();
+			m_current_history.clear();
 
 			// update m_state
 			m_state = EN_CACHE_SCHEDULE_STATE__READY;
 
 			// retry reserve
-			int n = (int)m_retry_reserves.size();
-			for (int i = 0; i < n; ++ i) {
-				if (i == 0) {
-					m_retry_reserves[i].type =
-						(CReserve::type_t)(CReserve::type_t::NORMAL | CReserve::type_t::S_FLG | CReserve::type_t::N_FLG);
+			int _rs = (int)m_retry_reserves.size();
+			_UTL_LOG_I ("m_retry_reserves.size %d", _rs);
+			if (_rs == 1) {
+				m_retry_reserves[0].type =
+					(CReserve::type_t)(CReserve::type_t::NORMAL | CReserve::type_t::S_FLG |
+										CReserve::type_t::E_FLG | CReserve::type_t::N_FLG);
+				addReserve(m_retry_reserves[0]);
+				dumpReserves();
+				m_retry_reserves.clear();
+
+			} else if (_rs >= 2) {
+				for (int i = 0; i < _rs; ++ i) {
+					if (i == 0) {
+						m_retry_reserves[i].type =
+							(CReserve::type_t)(CReserve::type_t::NORMAL | CReserve::type_t::S_FLG | CReserve::type_t::N_FLG);
+					} else if (i == (_rs - 1)) {
+						m_retry_reserves[i].type =
+							(CReserve::type_t)(CReserve::type_t::NORMAL | CReserve::type_t::E_FLG | CReserve::type_t::N_FLG);
+					}
+					addReserve(m_retry_reserves[i]);
 				}
-				if (i == (n - 1)) {
-					m_retry_reserves[i].type =
-						(CReserve::type_t)(CReserve::type_t::NORMAL | CReserve::type_t::E_FLG | CReserve::type_t::N_FLG);
-				}
-				addReserve(m_retry_reserves[i]);
+				dumpReserves();
+				m_retry_reserves.clear();
 			}
-			m_retry_reserves.clear();
 		}
 
 		if (m_executing_reserve.type & CReserve::type_t::N_FLG) {

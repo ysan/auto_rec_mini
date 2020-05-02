@@ -16,6 +16,7 @@
         "event_schedule_cache_start_interval_day": 1,
         "event_schedule_cache_start_time": "15:00",
         "event_schedule_cache_timeout_min": 3,
+        "event_schedule_cache_retry_interval_min": 90,
         "event_schedule_cache_histories_json_path": "./data/event_schedule_cache_histories.json",
 
         "event_name_keywords_json_path": "./data/event_name_keywords.json",

@@ -65,6 +65,9 @@ public:
 		int getEventScheduleCacheTimeoutMin (void) {
 			return m_event_schedule_cache_timeout_min;
 		}
+		int getEventScheduleCacheRetryIntervalMin (void) {
+			return m_event_schedule_cache_retry_interval_min;
+		}
 		std::string *getEventScheduleCacheHistoriesJsonPath (void) {
 			return &m_event_schedule_cache_histories_json_path;
 		}
@@ -91,6 +94,7 @@ public:
 			_UTL_LOG_I ("event_schedule_cache_start_interval_day:[%d]", m_event_schedule_cache_start_interval_day);
 			_UTL_LOG_I ("event_schedule_cache_start_time:[%s]", m_event_schedule_cache_start_time.c_str());
 			_UTL_LOG_I ("event_schedule_cache_timeout_min:[%d]", m_event_schedule_cache_timeout_min);
+			_UTL_LOG_I ("event_schedule_cache_retry_interval_min:[%d]", m_event_schedule_cache_retry_interval_min);
 			_UTL_LOG_I ("event_schedule_cache_histories_json_path:[%s]", m_event_schedule_cache_histories_json_path.c_str());
 			_UTL_LOG_I ("event_name_keywords_json_path:[%s]", m_event_name_keywords_json_path.c_str());
 			_UTL_LOG_I ("extended_event_keywords_json_path:[%s]", m_extended_event_keywords_json_path.c_str());
@@ -138,6 +142,7 @@ public:
 				,cereal::make_nvp("event_schedule_cache_start_interval_day", m_event_schedule_cache_start_interval_day)
 				,cereal::make_nvp("event_schedule_cache_start_time", m_event_schedule_cache_start_time)
 				,cereal::make_nvp("event_schedule_cache_timeout_min", m_event_schedule_cache_timeout_min)
+				,cereal::make_nvp("event_schedule_cache_retry_interval_min", m_event_schedule_cache_retry_interval_min)
 				,cereal::make_nvp("event_schedule_cache_histories_json_path", m_event_schedule_cache_histories_json_path)
 				,cereal::make_nvp("event_name_keywords_json_path", m_event_name_keywords_json_path)
 				,cereal::make_nvp("extended_event_keywords_json_path", m_extended_event_keywords_json_path)
@@ -160,6 +165,7 @@ public:
 		int m_event_schedule_cache_start_hour;
 		int m_event_schedule_cache_start_min;
 		int m_event_schedule_cache_timeout_min;
+		int m_event_schedule_cache_retry_interval_min;
 		std::string m_event_schedule_cache_histories_json_path;
 		std::string m_event_name_keywords_json_path;
 		std::string m_extended_event_keywords_json_path;
