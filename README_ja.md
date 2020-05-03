@@ -78,7 +78,6 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 	$ cd auto_rec_mini
 	$ make
 	$ sudo make INSTALLDIR=/usr/local install
-	$ sudo ldconfig /usr/local/lib/auto_rec_mini
 
 インストールファイル：
 
@@ -106,18 +105,18 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 ### Running as a Linux service (use systemd) ###
 設定ファイル(`settings.json`) を /etc/auto_rec_mini/ にコピーします。
 
-    sudo mkdir -p /etc/auto_rec_mini/data
-    sudo cp settings.json /etc/auto_rec_mini
+	$ sudo mkdir -p /etc/auto_rec_mini/data
+	$ sudo cp settings.json /etc/auto_rec_mini
 
 systemdユニット設定ファイルをコピーします。(`auto_rec_mini.service`)
 
-	sudo cp auto_rec_mini.service /etc/systemd/system
+	$ sudo cp auto_rec_mini.service /etc/systemd/system
 
 systemctlコマンドでサービスを開始します。
 
-	sudo systemctl daemon-reload
-	sudo systemctl enable auto_rec_mini
-	sudo systemctl start auto_rec_mini
+	$ sudo systemctl daemon-reload
+	$ sudo systemctl enable auto_rec_mini
+	$ sudo systemctl start auto_rec_mini
 
 `auto_rec_mini` プロセスは起動し、チューナーを使用する準備ができた状態になります。  
 `command server` はポート20001で接続を待ち受けています。
@@ -125,7 +124,7 @@ systemctlコマンドでサービスを開始します。
   
 サービスを停止するには以下のコマンドを実行します。
 
-	sudo systemctl stop auto_rec_mini
+	$ sudo systemctl stop auto_rec_mini
 
 ### settings.json ###
 
@@ -188,7 +187,7 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 	    "m_extended_event_keywords": [
 	        "ワールドカップ",
 	        "オリンピック",
-	        "ＸＸＸ野球"
+	        "野球"
 	    ]
 	}
 

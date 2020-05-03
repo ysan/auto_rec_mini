@@ -65,7 +65,6 @@ Please install as appropriate.
 	$ cd auto_rec_mini
 	$ make
 	$ sudo make INSTALLDIR=/usr/local install
-	$ sudo ldconfig /usr/local/lib/auto_rec_mini
 
 Installation files:
 
@@ -93,18 +92,18 @@ Installation files:
 ### Running as a Linux service (use systemd) ###
 Copy the config file(`settings.json`) to /etc/auto_rec_mini/ .
 
-	sudo mkdir -p /etc/auto_rec_mini/data
-	sudo cp settings.json /etc/auto_rec_mini
+	$ sudo mkdir -p /etc/auto_rec_mini/data
+	$ sudo cp settings.json /etc/auto_rec_mini
 
 Copy the systemd unit file. (`auto_rec_mini.service`)
 
-	sudo cp auto_rec_mini.service /etc/systemd/system
+	$ sudo cp auto_rec_mini.service /etc/systemd/system
 
 To start the service for the first time, do the usual systemctl dance.
 
-	sudo systemctl daemon-reload
-	sudo systemctl enable auto_rec_mini
-	sudo systemctl start auto_rec_mini
+	$ sudo systemctl daemon-reload
+	$ sudo systemctl enable auto_rec_mini
+	$ sudo systemctl start auto_rec_mini
 
 `auto_rec_mini` process is up and ready to use the tuner.  
 `command server` is listening for connections on port 20001.  
@@ -112,7 +111,7 @@ First, please execute the channel scan CLI command.
   
 You can stop the service with this command.
 
-    sudo systemctl stop auto_rec_mini
+    $ sudo systemctl stop auto_rec_mini
 
 ### settings.json ###
 
@@ -175,9 +174,9 @@ No limit to the number of keywords.
 
 	{
 		"m_extended_event_keywords": [
-			"ＸＸＸワールドカップ",
-			"ＸＸＸオリンピック",
-			"ＸＸＸ野球"
+			"ワールドカップ",
+			"オリンピック",
+			"野球"
 		]
 	}
 
