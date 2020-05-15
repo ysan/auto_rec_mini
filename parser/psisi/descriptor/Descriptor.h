@@ -15,7 +15,7 @@ class CDescriptor {
 public:
 	explicit CDescriptor (const uint8_t *pDesc);
 	CDescriptor (const CDescriptor &obj);
-	~CDescriptor (void);
+	virtual ~CDescriptor (void);
 
 	virtual void dump (void) const;
 
