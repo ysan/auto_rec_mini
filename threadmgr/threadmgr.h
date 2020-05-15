@@ -28,6 +28,7 @@ bool createExternalCp (void);
 void destroyExternalCp (void);
 ST_THM_SRC_INFO *receiveExternal (void);
 void finalize (void);
+void waitAll (void);
 void setDispatcher (const PFN_DISPATCHER); /* for c++ wrapper extension */
 
 #endif

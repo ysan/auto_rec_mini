@@ -29,6 +29,7 @@
  * Prototypes
  */
 ST_THM_EXTERNAL_IF *setupThreadMgr (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax); // extern
+void waitThreadMgr (void); // extern
 void teardownThreadMgr (void); // extern
 
 
@@ -57,12 +58,21 @@ ST_THM_EXTERNAL_IF *setupThreadMgr (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax)
 }
 
 /**
+ * waitThreadMgr
+ */
+void waitThreadMgr (void)
+{
+	waitAll ();
+}
+
+/**
  * teardownThreadMgr
  */
 void teardownThreadMgr (void)
 {
 	finalize ();
 }
+
 
 /**
  * setDisaptcher

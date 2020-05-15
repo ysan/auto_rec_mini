@@ -27,6 +27,7 @@ public:
 	static CThreadMgr *getInstance (void);
 
 	bool setup (CThreadMgrBase *pThreads[], int threadNum);
+	void wait (void);
 	void teardown (void);
 
 	CThreadMgrExternalIf * getExternalIf (void) const;

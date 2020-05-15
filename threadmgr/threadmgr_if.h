@@ -193,7 +193,9 @@ extern "C" {
  * External
  */
 extern ST_THM_EXTERNAL_IF *setupThreadMgr (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax);
+extern void waitThreadMgr (void);
 extern void teardownThreadMgr (void);
+
 extern void setupDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper extension */
 
 #ifdef __cplusplus

@@ -152,7 +152,13 @@ bool CThreadMgr::setup (CThreadMgrBase *pThreads[], int threadNum)
 	return true;
 }
 
-void CThreadMgr::teardown (void) {
+void CThreadMgr::wait (void)
+{
+	waitThreadMgr ();
+}
+
+void CThreadMgr::teardown (void)
+{
 	if (mpExtIf) {
 		delete mpExtIf;
 		mpExtIf = NULL;

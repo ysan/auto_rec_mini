@@ -1,8 +1,7 @@
 /*
  * 簡易スレッドマネージャ
  */
-//TODO SIGTERMで終了 EN_QUE_TYPE_TERMがきたら今やってるsectionが終わったらthread return
-//		ついでに終了前に全threadのbacktrace
+//TODO 終了前に全threadのbacktrace
 //TODO segv でbacktrace  thread毎sighandler
 //TODO reqId類の配列は THREAD_IDX_MAX +1でもつのがわかりにくい
 //TODO baseThreadで workerキューの状態check
@@ -23,6 +22,7 @@
 #include <sys/time.h>
 #include <signal.h>
 #include <semaphore.h>
+#include <limits.h>
 
 #include "threadmgr.h"
 #include "threadmgr_if.h"
@@ -85,12 +85,14 @@ typedef enum {
 	EN_STATE_READY,
 	EN_STATE_BUSY,
 	EN_STATE_WAIT_REPLY, // for requestSync
+	EN_STATE_DESTROY,
 	EN_STATE_MAX
 } EN_STATE;
 
 typedef enum {
 	EN_MONI_TYPE_INIT = 0,
 	EN_MONI_TYPE_DEBUG,
+	EN_MONI_TYPE_DESTROY,
 
 } EN_MONI_TYPE;
 
@@ -101,6 +103,7 @@ typedef enum {
 	EN_QUE_TYPE_NOTIFY,
 	EN_QUE_TYPE_SEQ_TIMEOUT,
 	EN_QUE_TYPE_REQ_TIMEOUT,
+	EN_QUE_TYPE_DESTROY,
 	EN_QUE_TYPE_MAX
 } EN_QUE_TYPE;
 
@@ -193,6 +196,7 @@ typedef struct inner_info {
 	uint8_t nThreadIdx;
 	char *pszName;
 	pthread_t nPthreadId;
+	pid_t tid;
 	uint8_t nQueWorkerNum;
 	ST_QUE_WORKER *pstQueWorker; // nQueWorkerNum数分の配列をさします
 	uint8_t nSeqNum;
@@ -308,6 +312,9 @@ static pthread_mutex_t gMutexOpeExtInfoList;
 static sigset_t gSigset; // プロセス全体のシグナルセット
 static sem_t gSem;
 
+static pid_t gnTid_baseThread = 0;
+static pid_t gnTid_sigWaitThread = 0;
+
 static bool gIsEnableLog = false;
 
 static const char *gpszState [EN_STATE_MAX] = {
@@ -316,6 +323,7 @@ static const char *gpszState [EN_STATE_MAX] = {
 	"STATE_READY",
 	"STATE_BUSY",
 	"STATE_WAIT_REPLY",
+	"STATE_DESTROY",
 };
 static const char *gpszQueType [EN_QUE_TYPE_MAX] = {
 	// for debug log
@@ -325,6 +333,7 @@ static const char *gpszQueType [EN_QUE_TYPE_MAX] = {
 	"TYPE_NOTIFY",
 	"TYPE_SEQ_TIMEOUT",
 	"TYPE_REQ_TIMEOUT",
+	"TYPE_DESTROY",
 };
 static const char *gpszRslt [EN_THM_RSLT_MAX] = {
 	// for debug log
@@ -372,6 +381,8 @@ static void clearInnerInfo (ST_INNER_INFO *p);
 static EN_STATE getState (uint8_t nThreadIdx);
 static void setState (uint8_t nThreadIdx, EN_STATE enState);
 static void setThreadName (char *p);
+static pid_t gettid (void);
+static bool isExistThread (pid_t tid);
 static void checkWorkerThread (void);
 static bool createBaseThread (void);
 static bool createWorkerThread (uint8_t nThreadIdx);
@@ -509,6 +520,12 @@ void destroyExternalCp (void); // extern
 ST_THM_SRC_INFO *receiveExternal (void); // extern
 static void clearExternalControlInfo (ST_EXTERNAL_CONTROL_INFO *p);
 void finalize (void); // extern
+static bool destroyInner (uint8_t nThreadIdx);
+static bool destroyWorkerThread (uint8_t nThreadIdx);
+static bool destroyAllWorkerThread (void);
+void waitAll (void); // extern
+static void waitBaseThread (void);
+static void waitWorkerThread (uint8_t nThreadIdx);
 static bool isEnableLog (void);
 static void enableLog (void);
 static void disableLog (void);
@@ -870,6 +887,7 @@ static void clearInnerInfo (ST_INNER_INFO *p)
 		p->nThreadIdx = THREAD_IDX_BLANK;
 		p->pszName = NULL;
 		p->nPthreadId = 0L;
+		p->tid = 0;
 		p->nQueWorkerNum = 0;
 		p->pstQueWorker = NULL;
 		p->nSeqNum = 0;
@@ -916,13 +934,39 @@ void setThreadName (char *p)
 }
 
 /**
+ * gettid
+ * getting kernel taskid
+ */
+static pid_t gettid (void)
+{
+	return syscall(SYS_gettid);
+}
+
+/**
+ * isExistThread
+ * check exist thread by kernel taskid
+ */
+static bool isExistThread (pid_t tid)
+{
+	char path[PATH_MAX] = {0};
+	sprintf(path, "/proc/%d/task/%d", getpid(), tid);
+	struct stat st;
+	int ret = stat (path, &st);
+	if (ret == 0) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
  * checkWorkerThread
  * workerThreadの確認
  */
 static void checkWorkerThread (void)
 {
 	uint8_t i = 0;
-	int nRtn = 0;
+//	int nRtn = 0;
 
 	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
 
@@ -933,11 +977,16 @@ static void checkWorkerThread (void)
 			THM_INNER_LOG_E ("[%s] EN_STATE flag is abnromal !!!\n", gstInnerInfo [i].pszName);
 		}
 
-		nRtn = pthread_kill (gstInnerInfo [i].nPthreadId, 0);
-		if (nRtn != SYS_RETURN_NORMAL) {
+//		nRtn = pthread_kill (gstInnerInfo [i].nPthreadId, 0);
+//		if (nRtn != SYS_RETURN_NORMAL) {
+//			/* 異常 */
+//			//TODO とりあえずログをだす
+//			THM_INNER_LOG_E ("[%s] pthread_kill(0) abnromal !!!\n", gstInnerInfo [i].pszName);
+//		}
+		if (!isExistThread(gstInnerInfo [i].tid)) {
 			/* 異常 */
 			//TODO とりあえずログをだす
-			THM_INNER_LOG_E ("[%s] pthread_kill(0) abnromal !!!\n", gstInnerInfo [i].pszName);
+			THM_INNER_LOG_E ("[%s] thread abnromal !!!\n", gstInnerInfo [i].pszName);
 		}
 	}
 }
@@ -1681,6 +1730,15 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 
 
 
+			} else if (pstQueWorker->enQueType == EN_QUE_TYPE_DESTROY) {
+				/* * -------------------- DESTROY_QUE -------------------- * */
+
+				/* そのまま実行してok */
+				memcpy (&rtn, pstQueWorker, sizeof(ST_QUE_WORKER));
+				break;
+
+
+
 			} else {
 				THM_INNER_LOG_E ("BUG: unexpected queType.\n");
 			}
@@ -1778,10 +1836,13 @@ static void clearQueWorker (ST_QUE_WORKER *p)
 static void *baseThread (void *pArg)
 {
 	int nRtn = 0;
+	bool isDestroy = false;
 	ST_QUE_BASE stRtnQue;
 	struct timespec stTimeout = {0};
 	struct timeval stNowTimeval = {0};
 
+
+	gnTid_baseThread = gettid ();
 
 	/* set thread name */
 	setThreadName (BASE_THREAD_NAME);
@@ -1856,14 +1917,22 @@ static void *baseThread (void *pArg)
 				dumpNotifyClientInfo ();
 				break;
 
+			case EN_MONI_TYPE_DESTROY:
+				isDestroy = true;
+				break;
+
 			default:
 				break;
 			}
 		}
 
+		if (isDestroy) {
+			break;
+		}
 	}
 
 
+	THM_INNER_FORCE_LOG_I ("----- %s destryed. -----\n", BASE_THREAD_NAME);
 	return NULL;
 }
 
@@ -1873,7 +1942,10 @@ static void *baseThread (void *pArg)
 static void *sigwaitThread (void *pArg)
 {
 	int nSig = 0;
+	bool isDestroy = false;
 
+
+	gnTid_sigWaitThread = gettid ();
 
 	/* set thread name */
 	setThreadName (SIGWAIT_THREAD_NAME);
@@ -1890,6 +1962,12 @@ static void *sigwaitThread (void *pArg)
 				THM_INNER_FORCE_LOG_I ("catch SIGQUIT\n");
 				requestBaseThread (EN_MONI_TYPE_DEBUG);
 				break;
+			case SIGTERM:
+				THM_INNER_FORCE_LOG_I ("catch SIGTERM\n");
+				requestBaseThread (EN_MONI_TYPE_DESTROY);
+				destroyAllWorkerThread();
+				isDestroy = true;
+				break;
 			default:
 				THM_INNER_LOG_E ("BUG: unexpected signal.\n");
 				break;
@@ -1897,9 +1975,14 @@ static void *sigwaitThread (void *pArg)
 		} else {
 			THM_PERROR ("sigwait()");
 		}
+
+		if (isDestroy) {
+			break;
+		}
 	}
 
 
+	THM_INNER_FORCE_LOG_I ("----- %s destroyed. -----\n", SIGWAIT_THREAD_NAME);
 	return NULL;
 }
 
@@ -2039,11 +2122,14 @@ _F_END:
 static void *workerThread (void *pArg)
 {
 	uint8_t i = 0;
+	bool isDestroy = false;
 	ST_INNER_INFO *pstInnerInfo = (ST_INNER_INFO*)pArg;
 	ST_THM_REG_TBL *pTbl = gpstThmRegTbl [pstInnerInfo->nThreadIdx];
 	ST_QUE_WORKER stRtnQue;
 	ST_THM_SRC_INFO *pstThmSrcInfo = &gstThmSrcInfo [pstInnerInfo->nThreadIdx];
 
+
+	pstInnerInfo->tid = gettid ();
 
 	/* init thmIf */
 	ST_THM_IF stThmIf;
@@ -2348,6 +2434,10 @@ static void *workerThread (void *pArg)
 
 				break;
 
+			case EN_QUE_TYPE_DESTROY:
+				isDestroy = true;
+				break;
+
 			default:
 				THM_INNER_LOG_E ("BUG: unexpected queType.\n");
 				break;
@@ -2361,6 +2451,10 @@ static void *workerThread (void *pArg)
 		/* Seqタイムアウトチェック */
 		checkSeqTimeout (pstInnerInfo->nThreadIdx);
 
+
+		if (isDestroy) {
+			break;
+		}
 
 	} /* main while loop */
 
@@ -2391,8 +2485,8 @@ static void *workerThread (void *pArg)
 		}
 	}
 
-	setState (pstInnerInfo->nThreadIdx, EN_STATE_INIT);
-
+	setState (pstInnerInfo->nThreadIdx, EN_STATE_DESTROY);
+	THM_INNER_FORCE_LOG_I ("----- %s destroyed. -----\n", pstInnerInfo->pszName);
 
 	return NULL;
 }
@@ -5036,8 +5130,123 @@ static void clearExternalControlInfo (ST_EXTERNAL_CONTROL_INFO *p)
  */
 void finalize (void)
 {
-//TODO	
+	kill (0, SIGTERM);
+	waitAll ();
+}
 
+/**
+ * destroyInner
+ *
+ * 引数 nThreadIdx は宛先です
+ */
+static bool destroyInner (uint8_t nThreadIdx)
+{
+	/* lock */
+	pthread_mutex_lock (&gMutexWorker [nThreadIdx]);
+
+	/* キューに入れる */
+	if (!enQueWorker (nThreadIdx, SEQ_IDX_BLANK, EN_QUE_TYPE_DESTROY,
+						NULL, REQUEST_ID_BLANK, EN_THM_RSLT_IGNORE, NOTIFY_CLIENT_ID_BLANK, NULL, 0)) {
+		/* unlock */
+		pthread_mutex_unlock (&gMutexWorker [nThreadIdx]);
+
+		THM_INNER_LOG_E ("enQueWorker() is failure.\n");
+		return false;
+	}
+
+
+	/*
+	 * Notify
+	 * cond signal ---> workerThread
+	 */
+	pthread_cond_signal (&gCondWorker [nThreadIdx]);
+
+
+	/* unlock */
+	pthread_mutex_unlock (&gMutexWorker [nThreadIdx]);
+
+	return true;
+}
+
+/**
+ * destroyWorkerThread
+ * workerThread破棄 async
+ */
+static bool destroyWorkerThread (uint8_t nThreadIdx)
+{
+	if (!destroyInner(nThreadIdx)) {
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * createAllThread
+ * 全workerスレッド破棄 async
+ */
+static bool destroyAllWorkerThread (void)
+{
+	uint8_t i = 0;
+
+	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
+		if (!destroyWorkerThread (i)) {
+			return false;
+		}
+		THM_INNER_FORCE_LOG_I ("destroy workerThread. thIdx:[%d]\n", i);
+	}
+
+	return true;
+}
+
+/**
+ * waitAll
+ * busy wait
+ *
+ * 公開
+ */
+void waitAll (void)
+{
+	uint8_t i = 0;
+
+	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
+		waitWorkerThread (i);
+	}
+
+	waitBaseThread();
+}
+
+/**
+ * waitBaseThread
+ */
+static void waitBaseThread (void)
+{
+	while (1) {
+		if (!isExistThread(gnTid_sigWaitThread)) {
+			break;
+		}
+		sleep (1);
+	}
+
+	while (1) {
+		if (!isExistThread(gnTid_baseThread)) {
+			break;
+		}
+		sleep (1);
+	}
+}
+
+/**
+ * waitWorkerThread
+ */
+static void waitWorkerThread (uint8_t nThreadIdx)
+{
+	while (1) {
+		if (!isExistThread (gstInnerInfo [nThreadIdx].tid)) {
+			break;
+		}
+		sleep (1);
+	}
 }
 
 /**
