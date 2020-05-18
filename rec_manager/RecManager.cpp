@@ -2312,11 +2312,11 @@ bool CRecManager::isOverrapTimeReserve (const CRecReserve* p_reserve) const
 			continue;
 		}
 
-		if (m_reserves [i].start_time > p_reserve->start_time && m_reserves [i].start_time > p_reserve->end_time) {
+		if (m_reserves [i].start_time >= p_reserve->start_time && m_reserves [i].start_time >= p_reserve->end_time) {
 			continue;
 		}
 
-		if (m_reserves [i].end_time < p_reserve->start_time && m_reserves [i].end_time < p_reserve->end_time) {
+		if (m_reserves [i].end_time <= p_reserve->start_time && m_reserves [i].end_time <= p_reserve->end_time) {
 			continue;
 		}
 
