@@ -361,12 +361,12 @@ public:
 			E_FLG     = 0x0200, // end flag
 			N_FLG     = 0x0400, // need notify flag
 			R_FLG     = 0x0800, // need retry flag
-
 		} type_t;
 
 		CReserve (void) {
 			clear ();
 		}
+
 		CReserve (
 			uint16_t _transport_stream_id,
 			uint16_t _original_network_id,
@@ -383,6 +383,7 @@ public:
 			}
 			type = _type;
 		}
+
 		virtual ~CReserve (void) {
 			clear ();
 		}
@@ -432,7 +433,7 @@ public:
 		}
 
 		void dump (void) const {
-			_UTL_LOG_I ("tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] start_time:[%s] type:[%s%s%s%s]",
+			_UTL_LOG_I ("tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] start_time:[%s] type:[%s%s%s%s%s]",
 				transport_stream_id,
 				original_network_id,
 				service_id,
@@ -442,7 +443,8 @@ public:
 						(type & TYPE_MASK) == FORCE ? "FORCE" : "???",
 				type & S_FLG ? ",S" : "",
 				type & E_FLG ? ",E" : "",
-				type & N_FLG ? ",N" : ""
+				type & N_FLG ? ",N" : "",
+				type & R_FLG ? ",R" : ""
 			);
 		}
 
