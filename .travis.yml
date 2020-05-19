@@ -1,0 +1,31 @@
+language: cpp
+
+compiler:
+  - gcc
+
+branches:
+  only: 
+    - master
+
+before_install:
+#  - pip install --user cpp-coveralls
+  - sudo apt-get install pcscd libpcsclite-dev libccid pcsc-tools
+  - sudo apt-get install cmake g++
+  - git clone https://github.com/stz2012/libarib25.git
+  - cd libarib25
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
+  - sudo make install
+
+addons:
+  apt:
+    update: true
+
+script:
+  - make 
+  - sudo make INSTALLDIR=/usr/local install 
+
+#after_success:
+#  - coveralls -n --include threadmgr --include threadmgrpp

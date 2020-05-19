@@ -6,14 +6,7 @@
 
 #include <getopt.h>
 
-#include "threadmgr_if.h"
-#include "threadmgr_util.h"
-
-#include "ThreadMgrIf.h"
-#include "ThreadMgrExternalIf.h"
-
-#include "ThreadMgrBase.h"
-#include "ThreadMgr.h"
+#include "ThreadMgrpp.h"
 
 #include "CommandServerIf.h"
 #include "TunerControlIf.h"

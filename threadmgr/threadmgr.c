@@ -5130,7 +5130,7 @@ static void clearExternalControlInfo (ST_EXTERNAL_CONTROL_INFO *p)
  */
 void finalize (void)
 {
-	kill (0, SIGTERM);
+	kill (getpid(), SIGTERM);
 	waitAll ();
 }
 

@@ -13,14 +13,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "threadmgr_if.h"
-#include "threadmgr_util.h"
-
-#include "ThreadMgrIf.h"
-#include "ThreadMgrExternalIf.h"
-
-#include "ThreadMgrBase.h"
-#include "ThreadMgr.h"
+#include "ThreadMgrpp.h"
 
 #include "Utils.h"
 #include "TsAribCommon.h"

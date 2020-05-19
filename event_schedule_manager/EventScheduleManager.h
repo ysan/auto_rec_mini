@@ -12,14 +12,7 @@
 #include <string>
 #include <queue>
 
-#include "threadmgr_if.h"
-#include "threadmgr_util.h"
-
-#include "ThreadMgrIf.h"
-#include "ThreadMgrExternalIf.h"
-
-#include "ThreadMgrBase.h"
-#include "ThreadMgr.h"
+#include "ThreadMgrpp.h"
 
 #include "Settings.h"
 #include "Utils.h"

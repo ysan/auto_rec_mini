@@ -3,6 +3,8 @@
 auto_rec_mini
 ===============
 
+[![Build Status](https://travis-ci.org/ysan/auto_rec_mini.svg?branch=master)](https://travis-ci.org/ysan/auto_rec_mini)
+
 Like a minimum TV recorder middleware.  
 Small, light and simple, command line interface.
   

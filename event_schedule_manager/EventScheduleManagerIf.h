@@ -9,7 +9,7 @@
 
 #include <string>
 
-#include "ThreadMgrExternalIf.h"
+#include "ThreadMgrpp.h"
 #include "modules.h"
 #include "Utils.h"
 

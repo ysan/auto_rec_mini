@@ -3,6 +3,8 @@
 auto_rec_mini
 ===============
 
+[![Build Status](https://travis-ci.org/ysan/auto_rec_mini.svg?branch=master)](https://travis-ci.org/ysan/auto_rec_mini)
+
 最小機能のTV録画ミドルウェア。  
 小規模、軽量、簡易、コマンド操作。  
   

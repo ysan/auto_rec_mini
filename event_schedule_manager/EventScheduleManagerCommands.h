@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "ThreadMgrExternalIf.h"
+#include "ThreadMgrpp.h"
 #include "CommandTables.h"
 #include "Utils.h"
 
