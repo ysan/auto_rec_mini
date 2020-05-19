@@ -18,6 +18,7 @@ before_install:
   - cmake ..
   - make
   - sudo make install
+  - cd ../../
 
 addons:
   apt:
