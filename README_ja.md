@@ -233,8 +233,10 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 
 Component diagram
 ------------
+<!--
 ![component diagram](https://github.com/ysan/auto_rec_mini/blob/master/etc/component_diagram.png)
-
+-->
+<img src="https://github.com/ysan/auto_rec_mini/blob/master/etc/component_diagram.png" width="75%" height="75%">
 
 Others
 ------------
