@@ -14,6 +14,7 @@ endif
 AR			:=	/usr/bin/ar
 RANLIB		:=	/usr/bin/ranlib
 MKDIR		:=	/bin/mkdir
+RMDIR		:=	/bin/rmdir
 RM			:=	/bin/rm
 INSTALL		:=	/usr/bin/install
 LDD			:=	/usr/bin/ldd
@@ -158,7 +159,7 @@ gcov:
 	@for gcda in $(GCDAS) ; do \
 		if [ -e $$gcda ]; then \
 			$(ECHO) "found [$$gcda]";\
-			$(GCOV) -o $(OBJDIR) $$gcda; \
+			$(GCOV) -r -o $(OBJDIR) $$gcda; \
 		fi \
 	done
 
@@ -198,7 +199,7 @@ gcov:
 	@for gcda in $(GCDAS) ; do \
 		if [ -e $$gcda ]; then \
 			$(ECHO) "found [$$gcda]";\
-			$(GCOV) -o $(OBJDIR) $$gcda; \
+			$(GCOV) -r -o $(OBJDIR) $$gcda; \
 		fi \
 	done
 
@@ -235,7 +236,7 @@ gcov:
 	@for gcda in $(GCDAS) ; do \
 		if [ -e $$gcda ]; then \
 			$(ECHO) "found [$$gcda]";\
-			$(GCOV) -o $(OBJDIR) $$gcda; \
+			$(GCOV) -r -o $(OBJDIR) $$gcda; \
 		fi \
 	done
 
@@ -316,10 +317,10 @@ endif
 clean:
 	@$(MAKE) clean-r
 #ifneq ($(INSTALLDIR_BIN),)
-#	$(RM) -rf $(INSTALLDIR_BIN)
+#	$(RMDIR) $(INSTALLDIR_BIN)
 #endif
 #ifneq ($(INSTALLDIR_LIB),)
-#	$(RM) -rf $(INSTALLDIR_LIB)
+#	$(RMDIR) $(INSTALLDIR_LIB)
 #endif
 
 clean-r:
@@ -341,8 +342,6 @@ ifneq ($(GCNOS),)
 	$(RM) -f $(GCNOS)
 endif
 	$(RM) -f *.gcov
-
-
 
 ifeq ($(TARGET_TYPE), EXEC)
 ifneq ($(TARGET_OBJ),)
