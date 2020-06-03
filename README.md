@@ -5,11 +5,11 @@ auto_rec_mini
 
 [![Build Status](https://travis-ci.org/ysan/auto_rec_mini.svg?branch=master)](https://travis-ci.org/ysan/auto_rec_mini)
 
-Like a minimum TV recorder middleware.  
-Small, light and simple, command line interface.
+Minimal function TV recording middleware.  
+Small scale, light weight, simple, command operation.  
   
-feasibility study.  
-under development, in progress.
+For studying MPEG-2 TS and ARIB.  
+Because it is under development, the operation may not be stable depending on the environment.  
 
 <!--
 ![demo](https://github.com/ysan/auto_rec_mini/blob/master/etc/demo.gif)

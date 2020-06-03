@@ -388,6 +388,11 @@ bool CEventInformationTable::refreshSubTablesByVersionNumber (CTable* pNewTable)
 	}
 
 	if (pErase) {
+_UTL_LOG_W ("refreshSubTablesByVersionNumber erase vvvv");
+dumpTable_simple(pErase);
+_UTL_LOG_W ("refreshSubTablesByVersionNumber erase ^^^^");
+dumpTables_simple();
+dumpSectionList();
 		releaseTable (pErase);
 		return true;
 	} else {
