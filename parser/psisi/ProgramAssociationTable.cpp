@@ -197,10 +197,8 @@ bool CProgramAssociationTable::refreshSubTablesByVersionNumber (CTable* pNewTabl
 	// sub-table identify
 	uint8_t new_tblid = pNewTable->header.table_id;
 	uint16_t new_tsid = pNewTable->header.table_id_extension;
-
-
 	uint8_t new_ver = pNewTable->header.version_number;
-	uint8_t sec_num = pNewTable->header.section_number;
+	uint8_t new_sec_num = pNewTable->header.section_number;
 
 	CTable *pErase = NULL;
 
@@ -211,7 +209,8 @@ bool CProgramAssociationTable::refreshSubTablesByVersionNumber (CTable* pNewTabl
 		// check every sub-table
 		if (
 			(new_tblid == pTable->header.table_id) &&
-			(new_tsid == pTable->header.table_id_extension)
+			(new_tsid == pTable->header.table_id_extension) &&
+			(new_sec_num == pTable->header.section_number)
 		) {
 			uint8_t ver_tmp = pTable->header.version_number;
 			++ ver_tmp;
@@ -225,14 +224,12 @@ bool CProgramAssociationTable::refreshSubTablesByVersionNumber (CTable* pNewTabl
 
 			} else {
 				if (new_ver == pTable->header.version_number) {
-					if (sec_num == pTable->header.section_number) {
-						// duplicate sections should be checked by CSectionParser
-						_UTL_LOG_E (
-							"BUG: same version.  new_ver:[0x%02x]  pTable->header.version_number:[0x%02x]",
-							new_ver,
-							pTable->header.version_number
-						);
-					}
+					// duplicate sections should be checked by CSectionParser
+					_UTL_LOG_E (
+						"BUG: same version.  new_ver:[0x%02x]  pTable->header.version_number:[0x%02x]",
+						new_ver,
+						pTable->header.version_number
+					);
 				} else {
 					_UTL_LOG_E (
 						"BUG: unexpected version.  new_ver:[0x%02x]  pTable->header.version_number:[0x%02x]",

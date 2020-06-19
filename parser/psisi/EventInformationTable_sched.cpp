@@ -541,10 +541,8 @@ bool CEventInformationTable_sched::refreshSubTablesByVersionNumber (CTable* pNew
 	uint16_t new_svcid = pNewTable->header.table_id_extension;
 	uint16_t new_tsid = pNewTable->transport_stream_id;
 	uint16_t new_org_nid = pNewTable->original_network_id;
-
-
 	uint8_t new_ver = pNewTable->header.version_number;
-	uint8_t sec_num = pNewTable->header.section_number;
+	uint8_t new_sec_num = pNewTable->header.section_number;
 
 	CTable *pErase = NULL;
 
@@ -557,7 +555,8 @@ bool CEventInformationTable_sched::refreshSubTablesByVersionNumber (CTable* pNew
 			(new_tblid == pTable->header.table_id) &&
 			(new_svcid == pTable->header.table_id_extension) &&
 			(new_tsid == pTable->transport_stream_id) &&
-			(new_org_nid == pTable->original_network_id)
+			(new_org_nid == pTable->original_network_id) &&
+			(new_sec_num == pTable->header.section_number)
 		) {
 			uint8_t ver_tmp = pTable->header.version_number;
 			++ ver_tmp;
@@ -571,14 +570,12 @@ bool CEventInformationTable_sched::refreshSubTablesByVersionNumber (CTable* pNew
 
 			} else {
 				if (new_ver == pTable->header.version_number) {
-					if (sec_num == pTable->header.section_number) {
-						// duplicate sections should be checked by CSectionParser
-						_UTL_LOG_E (
-							"BUG: same version.  new_ver:[0x%02x]  pTable->header.version_number:[0x%02x]",
-							new_ver,
-							pTable->header.version_number
-						);
-					}
+					// duplicate sections should be checked by CSectionParser
+					_UTL_LOG_E (
+						"BUG: same version.  new_ver:[0x%02x]  pTable->header.version_number:[0x%02x]",
+						new_ver,
+						pTable->header.version_number
+					);
 				} else {
 					_UTL_LOG_E (
 						"BUG: unexpected version.  new_ver:[0x%02x]  pTable->header.version_number:[0x%02x]",
