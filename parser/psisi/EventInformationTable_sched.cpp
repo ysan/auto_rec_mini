@@ -588,6 +588,18 @@ bool CEventInformationTable_sched::refreshSubTablesByVersionNumber (CTable* pNew
 	}
 
 	if (pErase) {
+
+		_UTL_LOG_I (
+			"EITsched new ver >> tblid:[0x%02x] svcid:[0x%04x] tsid:[0x%04x] org_nid:[0x%04x] num:[0x%02x] ver:[0x%02x]->[0x%02x]",
+			new_tblid,
+			new_svcid,
+			new_tsid,
+			new_org_nid,
+			new_sec_num,
+			pErase->header.version_number,
+			new_ver
+		);
+
 		releaseTable (pErase);
 		return true;
 	} else {
