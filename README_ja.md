@@ -6,10 +6,10 @@ auto_rec_mini
 [![Build Status](https://travis-ci.org/ysan/auto_rec_mini.svg?branch=master)](https://travis-ci.org/ysan/auto_rec_mini)
 
 最小機能のTV録画ミドルウェア。  
-小規模、軽量、簡易、コマンド操作。  
+主にキーワード検索録画予約がメインになります。  
   
 MPEG-2TSやARIBの勉強のため。  
-開発中のため環境によっては動作が安定しない可能性があります。
+環境によっては動作が安定しない可能性があります。
 
 <!--
 ![demo](https://github.com/ysan/auto_rec_mini/blob/master/etc/demo.gif)
@@ -18,13 +18,13 @@ MPEG-2TSやARIBの勉強のため。
 Features
 ------------ 
 * 選局
-  * 1チューナー、地デジのみとなります。
-* 地デジ チャンネルスキャン
+  * 1チューナー、地デジのみ。
+* チャンネルスキャン
 * 録画 及び 録画予約
   * 予約は50件まで。
   * イベント追従。
   * 予約時間が被っている場合は先に録画していたものが終わり次第、次の録画を行います。
-  * EPG取得後に指定したキーワードを検索し録画予約を行います。
+  * EPG取得後に登録したキーワードを検索し録画予約を行います。
 * EPG
   * 定時EPG取得を行います。
 * コマンドラインインターフェース (CLI)
@@ -47,7 +47,6 @@ How to use
 
 #### Platforms ####
 一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspbian`で確認済。)  
-(requires -std=c++11)  
   
 メインで使用しているのは `Raspbian` Raspberry pi model B ですが、  
 パケットロスが起こり、ブロックノイズ、画飛びが起きやすいです。  

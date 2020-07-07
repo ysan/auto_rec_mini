@@ -6,10 +6,10 @@ auto_rec_mini
 [![Build Status](https://travis-ci.org/ysan/auto_rec_mini.svg?branch=master)](https://travis-ci.org/ysan/auto_rec_mini)
 
 Minimal function TV recording middleware.  
-Small scale, light weight, simple, command operation.  
+keyword search recording reservation is the main function.  
   
 For studying MPEG-2 TS and ARIB.  
-Because it is under development, the operation may not be stable depending on the environment.  
+The operation may not be stable depending on the environment.  
 
 <!--
 ![demo](https://github.com/ysan/auto_rec_mini/blob/master/etc/demo.gif)
@@ -34,7 +34,6 @@ one tuner. only terrestrial digital.
 
 #### Platforms ####
 Generic Linux will be ok. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
-(requires -std=c++11)  
   
 `Raspbian` Raspberry pi model B is used in the main,  
 Packet loss occurs, block noise and image skipping are likely to occur.  

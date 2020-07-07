@@ -206,15 +206,11 @@ public:
 			if (state & RESERVE_STATE__NOW_RECORDING) {
 				CEtime _cur;
 				_cur.setCurrentTime ();
-//				struct timespec d = _cur - recording_start_time;
-//				CEtime::CDiff diff (&d);
-				CEtime::CDiff diff (recording_start_time, _cur);
+				CEtime::CABS diff = _cur - recording_start_time;
 				_UTL_LOG_I ("recording_time:[%s]", diff.toString());
 
 			} else {
-//				struct timespec d = recording_end_time - recording_start_time;
-//				CEtime::CDiff diff (&d);
-				CEtime::CDiff diff (recording_start_time, recording_end_time);
+				CEtime::CABS diff = recording_end_time - recording_start_time;
 				_UTL_LOG_I ("recording_time:[%s]", diff.toString());
 			}
 		}

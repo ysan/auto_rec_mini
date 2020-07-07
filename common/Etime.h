@@ -17,41 +17,46 @@
 class CEtime
 {
 public:
-	class CDiff {
+	class CABS {
 	public:
-		explicit CDiff (const struct timespec *p_diff) {
-			if (p_diff) {
-				m_diff.tv_sec = p_diff->tv_sec;
-				m_diff.tv_nsec = p_diff->tv_nsec;
-			}
-			memset (m_string, 0x00, sizeof(m_string));
+//		explicit CABS (const struct timespec &obj) {
+		CABS (const struct timespec &obj) {
+			m_val.tv_sec = obj.tv_sec;
+			m_val.tv_nsec = obj.tv_nsec;
+			updateStrings();
 		}
-		CDiff (const CEtime &st, const CEtime &sp) {
-			m_diff = sp - st;
-			memset (m_string, 0x00, sizeof(m_string));
-		}
-		virtual ~CDiff (void) {
-			m_diff.tv_sec = 0;
-			m_diff.tv_nsec = 0;
+
+		virtual ~CABS (void) {
+			m_val.tv_sec = 0;
+			m_val.tv_nsec = 0;
 			memset (m_string, 0x00, sizeof(m_string));
 		}
 
-		char * toString (void) {
-			int h = m_diff.tv_sec / 3600;
-			int m = (m_diff.tv_sec % 3600) / 60;
-			int s =  (m_diff.tv_sec % 3600) % 60;
+		CABS & operator = (const struct timespec &obj) {
+			m_val.tv_sec = obj.tv_sec;
+			m_val.tv_nsec = obj.tv_nsec;
+			updateStrings();
+			return *this;
+		}
 
-#ifdef ENABLE_AFTER_DECIAML_POINT
-			sprintf (m_string, "%02d:%02d:%02d.%03ld", h, m, s, m_diff.tv_nsec/1000000);
-#else
-			sprintf (m_string, "%02d:%02d:%02d", h, m, s);
-#endif
-
+		const char * toString (void) const {
 			return m_string;
 		}
 
 	private:
-		struct timespec m_diff;
+		void updateStrings (void) {
+			int h = m_val.tv_sec / 3600;
+			int m = (m_val.tv_sec % 3600) / 60;
+			int s =  (m_val.tv_sec % 3600) % 60;
+
+#ifdef ENABLE_AFTER_DECIAML_POINT
+			sprintf (m_string, "%02d:%02d:%02d.%03ld", h, m, s, m_val.tv_nsec/1000000);
+#else
+			sprintf (m_string, "%02d:%02d:%02d", h, m, s);
+#endif
+		}
+
+		struct timespec m_val;
 		char m_string [12+1]; // 00:00:00.000
 	};
 
