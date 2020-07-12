@@ -51,6 +51,7 @@ TARGET_TYPE	:=	SHARED
 SRCS_CPP	:= \
 	EventScheduleManager.cpp \
 	EventScheduleManagerCommands.cpp \
+	EventScheduleContainer.cpp \
 
 
 #
