@@ -1892,12 +1892,12 @@ bool CPsisiManager::cacheEventPfInfos (
 		pInfo->is_used = true;
 		++ m;
 
-		_UTL_LOG_I ("cacheEventPfInfos 0x%04x 0x%04x 0x%04x 0x%04x",
-			pInfo->transport_stream_id,
-			pInfo->original_network_id,
-			pInfo->service_id,
-			pInfo->event_id
-		);
+//		_UTL_LOG_I ("cacheEventPfInfos 0x%04x 0x%04x 0x%04x 0x%04x",
+//			pInfo->transport_stream_id,
+//			pInfo->original_network_id,
+//			pInfo->service_id,
+//			pInfo->event_id
+//		);
 	} // loop tables
 
 
