@@ -1326,7 +1326,8 @@ void CEventScheduleManager::onReq_getEvent (CThreadMgrIf *pIf)
 
 	} else {
 
-		const CEvent *p = m_container.getEvent (_param.arg.key);
+		SERVICE_KEY_t _service_key = {_param.arg.key.transport_stream_id, _param.arg.key.original_network_id, _param.arg.key.service_id};
+		const CEvent *p = m_container.getEvent (_service_key, _param.arg.key.event_id);
 		CEvent* p_event = const_cast <CEvent*> (p);
 		if (p_event) {
 

@@ -10,6 +10,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <memory>
 
 #include "Settings.h"
 #include "Utils.h"
@@ -35,7 +36,7 @@ public:
 	void dumpScheduleMap (void) const;
 	void dumpScheduleMap (const SERVICE_KEY_t &key) const;
 
-	const CEvent *getEvent (const CEventScheduleManagerIf::EVENT_KEY_t &key) const;
+	const CEvent *getEvent (const SERVICE_KEY_t &key, uint16_t event_id) const;
 	const CEvent *getEvent (const SERVICE_KEY_t &key, int index) const;
 	int getEvents (
 		const char *p_keyword,

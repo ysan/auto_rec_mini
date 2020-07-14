@@ -105,18 +105,16 @@ void CEventScheduleContainer::dumpScheduleMap (const SERVICE_KEY_t &key) const
 	}
 }
 
-const CEvent *CEventScheduleContainer::getEvent (const CEventScheduleManagerIf::EVENT_KEY_t &key) const
+const CEvent *CEventScheduleContainer::getEvent (const SERVICE_KEY_t &key, uint16_t event_id) const
 {
-	SERVICE_KEY_t _service_key = {key.transport_stream_id, key.original_network_id, key.service_id};
-
-	if (!hasScheduleMap (_service_key)) {
+	if (!hasScheduleMap (key)) {
 		_UTL_LOG_I ("not hasScheduleMap...");
 		return NULL;
 	}
 
 
 	CEvent *r = NULL;
-	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (_service_key);
+	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
 
 	if (iter == m_sched_map.end()) {
 		return NULL;
@@ -134,7 +132,7 @@ const CEvent *CEventScheduleContainer::getEvent (const CEventScheduleManagerIf::
 					(p->transport_stream_id == key.transport_stream_id) &&
 					(p->original_network_id == key.original_network_id) &&
 					(p->service_id == key.service_id) &&
-					(p->event_id == key.event_id)
+					(p->event_id == event_id)
 				) {
 					r = p;
 					break;
