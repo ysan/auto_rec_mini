@@ -5,10 +5,11 @@
 #include "EventScheduleContainer.h"
 
 
-CEventScheduleContainer::CEventScheduleContainer (void)
+CEventScheduleContainer::CEventScheduleContainer (std::string sched_map_path)
 	:mp_settings (NULL)
 {
 	mp_settings = CSettings::getInstance();
+	m_sched_map_path = sched_map_path;
 	m_sched_map.clear ();
 }
 
@@ -373,4 +374,127 @@ void CEventScheduleContainer::clear (void)
 	}
 
 	m_sched_map.clear();
+}
+
+void CEventScheduleContainer::saveScheduleMap (void)
+{
+	std::stringstream ss;
+	{
+		cereal::JSONOutputArchive out_archive (ss);
+		out_archive (CEREAL_NVP(m_sched_map));
+	}
+
+	if (m_sched_map_path.length() == 0) {
+		_UTL_LOG_E("m_sched_map_path.length 0.");
+		return;
+	}
+
+	std::ofstream ofs (m_sched_map_path.c_str(), std::ios::out);
+	ofs << ss.str();
+
+	ofs.close();
+	ss.clear();
+}
+
+void CEventScheduleContainer::loadScheduleMap (void)
+{
+	if (m_sched_map_path.length() == 0) {
+		_UTL_LOG_E("m_sched_map_path.length 0.");
+		return;
+	}
+
+	std::ifstream ifs (m_sched_map_path.c_str(), std::ios::in);
+	if (!ifs.is_open()) {
+		_UTL_LOG_I("[%s] is not found.", m_sched_map_path.c_str());
+		return;
+	}
+
+	std::stringstream ss;
+	ss << ifs.rdbuf();
+
+	cereal::JSONInputArchive in_archive (ss);
+	in_archive (CEREAL_NVP(m_sched_map));
+
+	ifs.close();
+	ss.clear();
+}
+
+
+//--------------------------------------------------------------------------------
+
+template <class Archive>
+void serialize (Archive &archive, struct _service_key &k)
+{
+	archive (
+		cereal::make_nvp("transport_stream_id", k.transport_stream_id)
+		,cereal::make_nvp("original_network_id", k.original_network_id)
+		,cereal::make_nvp("service_id", k.service_id)
+		,cereal::make_nvp("service_type", k.service_type)
+		,cereal::make_nvp("service_name", k.service_name)
+	);
+}
+
+template <class Archive>
+void serialize (Archive &archive, struct timespec &t)
+{
+	archive (
+		cereal::make_nvp("tv_sec", t.tv_sec)
+		,cereal::make_nvp("tv_nsec", t.tv_nsec)
+	);
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEtime &t)
+{
+	archive (
+		cereal::make_nvp("m_time", t.m_time)
+	);
+
+	// CEtimeの値は直接 tv_sec,tvnsecに書いてるので toString用の文字はここで作ります
+	t.updateStrings();
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEvent::CExtendedInfo &ex)
+{
+	archive (
+		cereal::make_nvp("item_description", ex.item_description)
+		,cereal::make_nvp("item", ex.item)
+	);
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEvent::CGenre &g)
+{
+	archive (
+		cereal::make_nvp("content_nibble_level_1", g.content_nibble_level_1)
+		,cereal::make_nvp("content_nibble_level_2", g.content_nibble_level_2)
+	);
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEvent &e)
+{
+	archive (
+		cereal::make_nvp("table_id", e.table_id)
+		,cereal::make_nvp("transport_stream_id", e.transport_stream_id)
+		,cereal::make_nvp("original_network_id", e.original_network_id)
+		,cereal::make_nvp("service_id", e.service_id)
+		,cereal::make_nvp("section_number", e.section_number)
+		,cereal::make_nvp("event_id", e.event_id)
+		,cereal::make_nvp("start_time", e.start_time)
+		,cereal::make_nvp("end_time", e.end_time)
+		,cereal::make_nvp("event_name", e.event_name)
+		,cereal::make_nvp("text", e.text)
+		,cereal::make_nvp("component_type", e.component_type)
+		,cereal::make_nvp("component_tag", e.component_tag)
+		,cereal::make_nvp("audio_component_type", e.audio_component_type)
+		,cereal::make_nvp("audio_component_tag", e.audio_component_tag)
+		,cereal::make_nvp("ES_multi_lingual_flag", e.ES_multi_lingual_flag)
+		,cereal::make_nvp("main_component_flag", e.main_component_flag)
+		,cereal::make_nvp("quality_indicator", e.quality_indicator)
+		,cereal::make_nvp("sampling_rate", e.sampling_rate)
+		,cereal::make_nvp("genres", e.genres)
+		,cereal::make_nvp("extendedInfos", e.extendedInfos)
+	);
 }

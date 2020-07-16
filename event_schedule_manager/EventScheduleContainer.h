@@ -22,12 +22,14 @@
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
 #include "cereal/types/vector.hpp"
+#include "cereal/types/map.hpp"
+#include "cereal/types/memory.hpp"
 
 
 class CEventScheduleContainer
 {
 public:
-	CEventScheduleContainer (void);
+	CEventScheduleContainer (std::string sched_map_path);
 	virtual ~CEventScheduleContainer (void);
 
 	bool addScheduleMap (const SERVICE_KEY_t &key, std::vector <CEvent*> *p_sched);
@@ -47,6 +49,9 @@ public:
 
 	void clear (void);
 
+	void saveScheduleMap (void);
+	void loadScheduleMap (void);
+
 private:
 //	void clearSchedule (std::vector <CEvent*> *p_sched);
 	void clearSchedule (std::vector<std::unique_ptr<CEvent>> &sched);
@@ -54,6 +59,7 @@ private:
 	void dumpSchedule (const std::vector<std::unique_ptr<CEvent>> &sched) const;
 
 	CSettings *mp_settings;
+	std::string m_sched_map_path;
 
 //	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> m_sched_map;
 	std::map <SERVICE_KEY_t, std::unique_ptr<std::vector<std::unique_ptr<CEvent>>>> m_sched_map;

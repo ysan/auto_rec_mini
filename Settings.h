@@ -77,7 +77,9 @@ public:
 		std::string *getExtendedEventKeywordsJsonPath (void) {
 			return &m_extended_event_keywords_json_path;
 		}
-
+		std::string *getEventScheduleMapJsonPath (void) {
+			return &m_event_schedule_map_json_path;
+		}
 
 		void dump (void) {
 			_UTL_LOG_I ("--------------------------------");
@@ -98,6 +100,7 @@ public:
 			_UTL_LOG_I ("event_schedule_cache_histories_json_path:[%s]", m_event_schedule_cache_histories_json_path.c_str());
 			_UTL_LOG_I ("event_name_keywords_json_path:[%s]", m_event_name_keywords_json_path.c_str());
 			_UTL_LOG_I ("extended_event_keywords_json_path:[%s]", m_extended_event_keywords_json_path.c_str());
+			_UTL_LOG_I ("event_schedule_map_json_path:[%s]", m_event_schedule_map_json_path.c_str());
 			_UTL_LOG_I ("--------------------------------");
 		}
 
@@ -146,12 +149,12 @@ public:
 				,cereal::make_nvp("event_schedule_cache_histories_json_path", m_event_schedule_cache_histories_json_path)
 				,cereal::make_nvp("event_name_keywords_json_path", m_event_name_keywords_json_path)
 				,cereal::make_nvp("extended_event_keywords_json_path", m_extended_event_keywords_json_path)
+				,cereal::make_nvp("event_schedule_map_json_path", m_event_schedule_map_json_path)
 
 			);
 		}
 
 	private:
-
 		bool m_is_syslog_output;
 		uint16_t m_command_server_port;
 		std::string m_channels_json_path;
@@ -169,6 +172,7 @@ public:
 		std::string m_event_schedule_cache_histories_json_path;
 		std::string m_event_name_keywords_json_path;
 		std::string m_extended_event_keywords_json_path;
+		std::string m_event_schedule_map_json_path;
 
 	};
 

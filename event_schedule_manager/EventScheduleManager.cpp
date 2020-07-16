@@ -47,6 +47,7 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	,m_eventChangeNotify_clientId (0xff)
 	,mp_EIT_H_sched (NULL)
 	,m_is_need_stop (false)
+	,m_container (*mp_settings->getParams()->getEventScheduleMapJsonPath())
 {
 	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_UP] =
 		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp,                           (char*)"onReq_moduleUp"};
@@ -163,7 +164,7 @@ void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		m_schedule_cache_next_day.setCurrentDay();
 
 		loadHistories ();
-
+		m_container.loadScheduleMap();
 
 		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -944,6 +945,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 				dumpReserves();
 				m_retry_reserves.clear();
 			}
+
+			m_container.saveScheduleMap();
 		}
 
 		if (m_executing_reserve.type & CReserve::type_t::N_FLG) {
