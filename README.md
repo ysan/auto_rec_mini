@@ -5,7 +5,7 @@ auto_rec_mini
 
 [![Build Status](https://travis-ci.org/ysan/auto_rec_mini.svg?branch=master)](https://travis-ci.org/ysan/auto_rec_mini)
 
-Minimal function TV recording middleware.  
+Digital broadcast recording system for Japan. The middleware daemon with minimal functions.  
 keyword search recording reservation is the main function.  
   
 For studying MPEG-2 TS and ARIB.  

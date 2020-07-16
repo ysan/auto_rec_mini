@@ -29,8 +29,10 @@
 class CEventScheduleContainer
 {
 public:
-	CEventScheduleContainer (std::string sched_map_path);
+	CEventScheduleContainer (void);
 	virtual ~CEventScheduleContainer (void);
+
+	void setScheduleMapJsonPath (std::string sched_map_json_path);
 
 	bool addScheduleMap (const SERVICE_KEY_t &key, std::vector <CEvent*> *p_sched);
 	void deleteScheduleMap (const SERVICE_KEY_t &key);
@@ -59,7 +61,7 @@ private:
 	void dumpSchedule (const std::vector<std::unique_ptr<CEvent>> &sched) const;
 
 	CSettings *mp_settings;
-	std::string m_sched_map_path;
+	std::string m_sched_map_json_path;
 
 //	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> m_sched_map;
 	std::map <SERVICE_KEY_t, std::unique_ptr<std::vector<std::unique_ptr<CEvent>>>> m_sched_map;

@@ -5,19 +5,26 @@
 #include "EventScheduleContainer.h"
 
 
-CEventScheduleContainer::CEventScheduleContainer (std::string sched_map_path)
+CEventScheduleContainer::CEventScheduleContainer (void)
 	:mp_settings (NULL)
 {
 	mp_settings = CSettings::getInstance();
-	m_sched_map_path = sched_map_path;
+	m_sched_map_json_path.clear();
 	m_sched_map.clear ();
 }
 
 CEventScheduleContainer::~CEventScheduleContainer (void)
 {
+	mp_settings = NULL;
+	m_sched_map_json_path.clear();
 	m_sched_map.clear ();
 }
 
+
+void CEventScheduleContainer::setScheduleMapJsonPath (std::string sched_map_json_path)
+{
+	m_sched_map_json_path = sched_map_json_path;
+}
 
 bool CEventScheduleContainer::addScheduleMap (const SERVICE_KEY_t &key, std::vector <CEvent*> *p_sched)
 {
@@ -384,12 +391,12 @@ void CEventScheduleContainer::saveScheduleMap (void)
 		out_archive (CEREAL_NVP(m_sched_map));
 	}
 
-	if (m_sched_map_path.length() == 0) {
-		_UTL_LOG_E("m_sched_map_path.length 0.");
+	if (m_sched_map_json_path.length() == 0) {
+		_UTL_LOG_E("m_sched_map_json_path.length 0.");
 		return;
 	}
 
-	std::ofstream ofs (m_sched_map_path.c_str(), std::ios::out);
+	std::ofstream ofs (m_sched_map_json_path.c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -398,14 +405,14 @@ void CEventScheduleContainer::saveScheduleMap (void)
 
 void CEventScheduleContainer::loadScheduleMap (void)
 {
-	if (m_sched_map_path.length() == 0) {
-		_UTL_LOG_E("m_sched_map_path.length 0.");
+	if (m_sched_map_json_path.length() == 0) {
+		_UTL_LOG_I("m_sched_map_json_path.length 0.");
 		return;
 	}
 
-	std::ifstream ifs (m_sched_map_path.c_str(), std::ios::in);
+	std::ifstream ifs (m_sched_map_json_path.c_str(), std::ios::in);
 	if (!ifs.is_open()) {
-		_UTL_LOG_I("[%s] is not found.", m_sched_map_path.c_str());
+		_UTL_LOG_I("[%s] is not found.", m_sched_map_json_path.c_str());
 		return;
 	}
 
