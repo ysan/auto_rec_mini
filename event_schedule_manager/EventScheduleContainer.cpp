@@ -24,37 +24,49 @@ bool CEventScheduleContainer::addScheduleMap (const SERVICE_KEY_t &key, std::vec
 		return false;
 	}
 
-	m_sched_map.insert (pair<SERVICE_KEY_t, std::vector <CEvent*> *>(key, p_sched));
+//	m_sched_map.insert (pair<SERVICE_KEY_t, std::vector <CEvent*> *>(key, p_sched));
+	std::vector<std::unique_ptr<CEvent>> *_p_sched = new std::vector<std::unique_ptr<CEvent>>;
+	for (const auto e : *p_sched) {
+		std::unique_ptr<CEvent> up_e (e);
+		_p_sched->push_back (std::move(up_e));
+	}
+	std::unique_ptr<std::vector<std::unique_ptr<CEvent>>> _up_sched(_p_sched);
+	m_sched_map.insert (std::make_pair(key, std::move(_up_sched)));
 
 	return true;
 }
 
 void CEventScheduleContainer::deleteScheduleMap (const SERVICE_KEY_t &key)
 {
-	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+//	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+	const auto iter = m_sched_map.find (key);
 
 	if (iter == m_sched_map.end()) {
 		return ;
 	}
 
-	std::vector <CEvent*> *p_sched = iter->second;
+//	std::vector <CEvent*> *p_sched = iter->second;
+	std::vector <std::unique_ptr<CEvent>> *p_sched = iter->second.get();
 
-	clearSchedule (p_sched);
+//	clearSchedule (p_sched);
+	clearSchedule (*p_sched);
 
-	delete p_sched;
+//	delete p_sched;
 
 	m_sched_map.erase (iter);
 }
 
 bool CEventScheduleContainer::hasScheduleMap (const SERVICE_KEY_t &key) const
 {
-	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+//	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+	const auto iter = m_sched_map.find (key);
 
 	if (iter == m_sched_map.end()) {
 		return false;
 
 	} else {
-		std::vector <CEvent*> *p_sched = iter->second;
+//		std::vector <CEvent*> *p_sched = iter->second;
+		std::vector <std::unique_ptr<CEvent>> *p_sched = iter->second.get();
 		if (!p_sched || (p_sched->size() == 0)) {
 			return false;
 		}
@@ -65,7 +77,8 @@ bool CEventScheduleContainer::hasScheduleMap (const SERVICE_KEY_t &key) const
 
 void CEventScheduleContainer::dumpScheduleMap (void) const
 {
-	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.begin ();
+//	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.begin ();
+	auto iter = m_sched_map.cbegin ();
 
 	if (iter == m_sched_map.end()) {
 		return ;
@@ -75,7 +88,8 @@ void CEventScheduleContainer::dumpScheduleMap (void) const
 		SERVICE_KEY_t key = iter->first;
 		key.dump();
 
-		std::vector <CEvent*> *p_sched = iter->second;
+//		std::vector <CEvent*> *p_sched = iter->second;
+		std::vector <std::unique_ptr<CEvent>> *p_sched = iter->second.get();
 		if (p_sched) {
 			_UTL_LOG_I ("  [%d] items", p_sched->size());
 		}
@@ -89,18 +103,21 @@ void CEventScheduleContainer::dumpScheduleMap (const SERVICE_KEY_t &key) const
 		return ;
 	}
 
-	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+//	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+	const auto iter = m_sched_map.find (key);
 
 	if (iter == m_sched_map.end()) {
 		return ;
 
 	} else {
-		std::vector <CEvent*> *p_sched = iter->second;
+//		std::vector <CEvent*> *p_sched = iter->second;
+		std::vector <std::unique_ptr<CEvent>> *p_sched = iter->second.get();
 		if (!p_sched || (p_sched->size() == 0)) {
 			return ;
 
 		} else {
-			dumpSchedule (p_sched);
+//			dumpSchedule (p_sched);
+			dumpSchedule (*p_sched);
 		}
 	}
 }
@@ -114,20 +131,24 @@ const CEvent *CEventScheduleContainer::getEvent (const SERVICE_KEY_t &key, uint1
 
 
 	CEvent *r = NULL;
-	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+//	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+	const auto iter = m_sched_map.find (key);
 
 	if (iter == m_sched_map.end()) {
 		return NULL;
 
 	} else {
-		std::vector <CEvent*> *p_sched = iter->second;
+//		std::vector <CEvent*> *p_sched = iter->second;
+		std::vector <std::unique_ptr<CEvent>> *p_sched = iter->second.get();
 		if (p_sched->size() == 0) {
 			return NULL;
 
 		} else {
-			std::vector<CEvent*>::const_iterator iter_event = p_sched->begin();
+//			std::vector<CEvent*>::const_iterator iter_event = p_sched->begin();
+			std::vector<std::unique_ptr<CEvent>>::const_iterator iter_event = p_sched->begin();
 			for (; iter_event != p_sched->end(); ++ iter_event) {
-				CEvent* p = *iter_event;
+//				CEvent* p = *iter_event;
+				CEvent* p = iter_event->get();
 				if (
 					(p->transport_stream_id == key.transport_stream_id) &&
 					(p->original_network_id == key.original_network_id) &&
@@ -153,22 +174,26 @@ const CEvent *CEventScheduleContainer::getEvent (const SERVICE_KEY_t &key, int i
 
 
 	CEvent *r = NULL;
-	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+//	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.find (key);
+	const auto iter = m_sched_map.find (key);
 
 	if (iter == m_sched_map.end()) {
 		return NULL;
 
 	} else {
-		std::vector <CEvent*> *p_sched = iter->second;
+//		std::vector <CEvent*> *p_sched = iter->second;
+		std::vector <std::unique_ptr<CEvent>> *p_sched = iter->second.get();
 		if (p_sched->size() == 0) {
 			return NULL;
 
 		} else {
 			int _idx = 0;
-			std::vector<CEvent*>::const_iterator iter_event = p_sched->begin();
+//			std::vector<CEvent*>::const_iterator iter_event = p_sched->begin();
+			std::vector<std::unique_ptr<CEvent>>::const_iterator iter_event = p_sched->begin();
 			for (; iter_event != p_sched->end(); ++ iter_event) {
 				if (index == _idx) {
-					CEvent* p = *iter_event;
+//					CEvent* p = *iter_event;
+					CEvent* p = iter_event->get();
 					r = p;
 					break;
 				}
@@ -192,7 +217,8 @@ int CEventScheduleContainer::getEvents (
 		return -1;
 	}
 
-	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.begin ();
+//	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.begin ();
+	auto iter = m_sched_map.cbegin ();
 	if (iter == m_sched_map.end()) {
 		return 0;
 	}
@@ -204,16 +230,19 @@ int CEventScheduleContainer::getEvents (
 			break;
 		}
 
-		std::vector <CEvent*> *p_sched = iter->second;
+//		std::vector <CEvent*> *p_sched = iter->second;
+		std::vector <std::unique_ptr<CEvent>> *p_sched = iter->second.get();
 		if (p_sched) {
 
-			std::vector<CEvent*>::const_iterator iter_event = p_sched->begin();
+//			std::vector<CEvent*>::const_iterator iter_event = p_sched->begin();
+			std::vector<std::unique_ptr<CEvent>>::const_iterator iter_event = p_sched->begin();
 			for (; iter_event != p_sched->end(); ++ iter_event) {
 				if (out_array_num == 0) {
 					break;
 				}
 
-				CEvent* p_event = *iter_event;
+//				CEvent* p_event = *iter_event;
+				CEvent* p_event = iter_event->get();
 				if (p_event) {
 
 					char *s_evt_name = NULL;
@@ -279,34 +308,42 @@ int CEventScheduleContainer::getEvents (
 	return n;
 }
 
-void CEventScheduleContainer::clearSchedule (std::vector <CEvent*> *p_sched)
+//void CEventScheduleContainer::clearSchedule (std::vector <CEvent*> *p_sched)
+void CEventScheduleContainer::clearSchedule (std::vector<std::unique_ptr<CEvent>> &sched)
 {
-	if (!p_sched || p_sched->size() == 0) {
+//	if (!p_sched || p_sched->size() == 0) {
+	if (sched.size() == 0) {
 		return;
 	}
 
-	std::vector<CEvent*>::const_iterator iter = p_sched->begin();
-	for (; iter != p_sched->end(); ++ iter) {
-		CEvent* p = *iter;
-		if (p) {
-			p->clear();
-			delete p;
-		}
-	}
+//	std::vector<CEvent*>::const_iterator iter = p_sched->begin();
+//	for (; iter != p_sched->end(); ++ iter) {
+//		CEvent* p = *iter;
+//		if (p) {
+//			p->clear();
+//			delete p;
+//		}
+//	}
 
-	p_sched->clear();
+//	p_sched->clear();
+	sched.clear();
 }
 
-void CEventScheduleContainer::dumpSchedule (const std::vector <CEvent*> *p_sched) const
+//void CEventScheduleContainer::dumpSchedule (const std::vector <CEvent*> *p_sched) const
+void CEventScheduleContainer::dumpSchedule (const std::vector<std::unique_ptr<CEvent>> &sched) const
 {
-	if (!p_sched || p_sched->size() == 0) {
+//	if (!p_sched || p_sched->size() == 0) {
+	if (sched.size() == 0) {
 		return;
 	}
 
 	int i = 0;
-	std::vector<CEvent*>::const_iterator iter = p_sched->begin();
-	for (; iter != p_sched->end(); ++ iter) {
-		CEvent* p = *iter;
+//	std::vector<CEvent*>::const_iterator iter = p_sched->begin();
+	std::vector<std::unique_ptr<CEvent>>::const_iterator iter = sched.begin();
+//	for (; iter != p_sched->end(); ++ iter) {
+	for (; iter != sched.end(); ++ iter) {
+//		CEvent* p = *iter;
+		CEvent* p = (*iter).get();
 		if (p) {
 			_UTL_LOG_I ("-----------------------------------");
 			_UTL_LOG_I ("[[[ %d ]]]", i);
@@ -321,7 +358,8 @@ void CEventScheduleContainer::dumpSchedule (const std::vector <CEvent*> *p_sched
 
 void CEventScheduleContainer::clear (void)
 {
-	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.begin ();
+//	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> ::const_iterator iter = m_sched_map.begin ();
+	auto iter = m_sched_map.cbegin ();
 
 	if (iter == m_sched_map.end()) {
 		m_sched_map.clear();

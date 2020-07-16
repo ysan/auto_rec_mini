@@ -48,12 +48,15 @@ public:
 	void clear (void);
 
 private:
-	void clearSchedule (std::vector <CEvent*> *p_sched);
-	void dumpSchedule (const std::vector <CEvent*> *p_sched) const;
+//	void clearSchedule (std::vector <CEvent*> *p_sched);
+	void clearSchedule (std::vector<std::unique_ptr<CEvent>> &sched);
+//	void dumpSchedule (const std::vector <CEvent*> *p_sched) const;
+	void dumpSchedule (const std::vector<std::unique_ptr<CEvent>> &sched) const;
 
 	CSettings *mp_settings;
 
-	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> m_sched_map;
+//	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> m_sched_map;
+	std::map <SERVICE_KEY_t, std::unique_ptr<std::vector<std::unique_ptr<CEvent>>>> m_sched_map;
 
 };
 
