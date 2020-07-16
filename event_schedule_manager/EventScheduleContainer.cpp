@@ -424,6 +424,23 @@ void CEventScheduleContainer::loadScheduleMap (void)
 
 	ifs.close();
 	ss.clear();
+
+
+	// CEtimeの値は直接 tv_sec,tv_nsecに書いてるので toString用の文字はここで作ります
+	auto iter = m_sched_map.cbegin ();
+	for (; iter != m_sched_map.end(); ++ iter) {
+		std::vector <std::unique_ptr<CEvent>> *p_sched = iter->second.get();
+		if (p_sched) {
+			auto iter_event = p_sched->cbegin();
+			for (; iter_event != p_sched->end(); ++ iter_event) {
+				CEvent* p_event = iter_event->get();
+				if (p_event) {
+					p_event->start_time.updateStrings();
+					p_event->end_time.updateStrings();
+				}
+			}
+		}
+	}
 }
 
 
@@ -456,9 +473,6 @@ void serialize (Archive &archive, CEtime &t)
 	archive (
 		cereal::make_nvp("m_time", t.m_time)
 	);
-
-	// CEtimeの値は直接 tv_sec,tvnsecに書いてるので toString用の文字はここで作ります
-	t.updateStrings();
 }
 
 template <class Archive>
