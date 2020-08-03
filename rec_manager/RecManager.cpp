@@ -427,10 +427,11 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 				// disk 残量チェック
 				std::string *p_path = mp_settings->getParams()->getRecTsPath();
+				int limit = mp_settings->getParams()->getRecDiskSpaceLowLimitMB();
 				int df = CUtils::getDiskFreeMB(p_path->c_str());
-				if (df < 1000) {
+				if (df < limit) {
 					_UTL_LOG_E ("(%s) disk free space [%d] Mbytes !!", pIf->getSeqName(), df);
-					// 1GB満たない場合は 強制終了します
+					// HDD残量たりない場合は 強制終了します
 					m_recording.state |= RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW;
 
 					uint32_t opt = getRequestOption ();
@@ -842,9 +843,11 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	case SECTID_CHECK_DISK_FREE_SPACE: {
 
 		std::string *p_path = mp_settings->getParams()->getRecTsPath();
+		int limit = mp_settings->getParams()->getRecDiskSpaceLowLimitMB();
 		int df = CUtils::getDiskFreeMB(p_path->c_str());
 		_UTL_LOG_I ("(%s) disk free space [%d] Mbytes.", pIf->getSeqName(), df);
-		if (df < 1000) {
+		if (df < limit) {
+			// HDD残量たりないので 録画実行しません
 			m_recording.state |= RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW;
 			setResult (&m_recording);
 			m_recording.clear ();
