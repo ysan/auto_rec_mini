@@ -846,6 +846,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		_UTL_LOG_I ("(%s) disk free space [%d] Mbytes.", pIf->getSeqName(), df);
 		if (df < 1000) {
 			m_recording.state |= RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW;
+			setResult (&m_recording);
+			m_recording.clear ();
 
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
