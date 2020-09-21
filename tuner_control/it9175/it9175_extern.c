@@ -256,11 +256,13 @@ int it9175_tune (unsigned int freqKHz)
 	//# main loop
 	msg("# Start!\n");
 	while (1) {
+if (g_is_force_tune_end) {msg("g_is_force_tune_end step0\n");}
 		if (g_is_force_tune_end) {
 			msg ("g_is_force_tune_end is true --> main loop break.\n");
 			g_is_force_tune_end = false;
 			break;
 		}
+if (g_is_force_tune_end) {msg("g_is_force_tune_end step1\n");}
 		if (g_ts_callbacks.pcb_check_ts_receive_loop) {
 			if (!g_ts_callbacks.pcb_check_ts_receive_loop (g_ts_callbacks.p_shared_data)) {
 				msg ("g_ts_callbacks.pcb_check_ts_receive_loop is false --> main loop break.\n");
@@ -268,17 +270,22 @@ int it9175_tune (unsigned int freqKHz)
 			}
 		}
 
+if (g_is_force_tune_end) {msg("g_is_force_tune_end step2\n");}
 		void* pBuffer;
 		int rlen;
 		if((rlen = tsthread_read(tsthr, &pBuffer)) > 0) {
+if (g_is_force_tune_end) {msg("g_is_force_tune_end step3\n");}
 			if (g_ts_callbacks.pcb_ts_received) {
+if (g_is_force_tune_end) {msg("g_is_force_tune_end step4\n");}
 				if (!g_ts_callbacks.pcb_ts_received (g_ts_callbacks.p_shared_data, pBuffer, rlen)) {
 					msg ("g_ts_callbacks.pcb_ts_received is false --> main loop break.\n");
 					break;
 				}
+if (g_is_force_tune_end) {msg("g_is_force_tune_end step5\n");}
 			}
 
 		}else{
+if (g_is_force_tune_end) {msg("g_is_force_tune_end step6\n");}
 			static unsigned  countVerboseMsg = 0;
 			countVerboseMsg ++;
 			usleep(250000);
@@ -298,7 +305,10 @@ int it9175_tune (unsigned int freqKHz)
 				}
 				msg("\n");
 			}
+if (g_is_force_tune_end) {msg("g_is_force_tune_end step8\n");}
 		}
+
+if (g_is_force_tune_end) {msg("g_is_force_tune_end step9\n");}
 	}
 	ret = 0;
 
@@ -323,7 +333,9 @@ _END:
 
 void it9175_force_tune_end (void)
 {
+	msg ("it9175_force_tune_end\n");
 	if (g_en_state == EN_IT9175_STATE__TUNED) {
+		msg ("g_is_force_tune_end = true\n");
 		g_is_force_tune_end = true;
 	}
 }
