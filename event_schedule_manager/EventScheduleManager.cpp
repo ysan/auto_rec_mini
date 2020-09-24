@@ -2117,6 +2117,15 @@ void CEventScheduleManager::check2executeReserves (void)
 			continue;
 		}
 
+		CEtime chk_time = iter->start_time;
+		chk_time.addHour(1);
+		if (cur_time >= chk_time) {
+			_UTL_LOG_I ("delete reserve because more time than the start time...");
+			iter->dump();
+			m_reserves.erase (iter);
+			break;
+		}
+
 		if (cur_time >= iter->start_time) {
 
 			CEventScheduleManagerIf::SERVICE_KEY_t _key = {
@@ -2133,6 +2142,8 @@ void CEventScheduleManager::check2executeReserves (void)
 			);
 
 			if (r) {
+				_UTL_LOG_I ("requestAsync EXEC_CACHE_SCHEDULE");
+				iter->dump();
 				m_executing_reserve = *iter;
 			} else {
 				_UTL_LOG_E ("requestAsync EXEC_CACHE_SCHEDULE failure!");
