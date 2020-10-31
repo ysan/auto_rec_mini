@@ -29,5 +29,5 @@ endif
 
 
 
-INSTALLDIR_LIB_BASE		:=	auto_rec_mini
+#INSTALLDIR_LIB_BASE		:=	auto_rec_mini
 

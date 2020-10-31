@@ -26,7 +26,7 @@ addons:
 
 script:
   - make 
-  - sudo make INSTALLDIR=/usr/local install 
+  - sudo make INSTALLDIR=/opt/auto_rec_mini install 
 
 #after_success:
 #  - coveralls -n --include threadmgr --include threadmgrpp

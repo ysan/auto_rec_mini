@@ -78,36 +78,35 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 	$ git clone https://github.com/ysan/auto_rec_mini.git
 	$ cd auto_rec_mini
 	$ make
-	$ sudo make INSTALLDIR=/usr/local install
+	$ sudo make INSTALLDIR=/opt/auto_rec_mini install
 
 インストールファイル：
 
-	/usr/local/
+	/opt/auto_rec_mini/
 	├── bin
-	│   └── auto_rec_mini
+	│   └── auto_rec_mini
 	└── lib
-	   	└── auto_rec_mini
-	        ├── libchannelmanager.so
-	        ├── libcommandserver.so
-	        ├── libcommon.so
-	        ├── libdsmccparser.so
-	        ├── libeventschedulemanager.so
-	        ├── libeventsearch.so
-	        ├── libit9175.so
-	        ├── libparser.so
-	        ├── libpsisimanager.so
-	        ├── libpsisiparser.so
-	        ├── librecmanager.so
-	        ├── libthreadmgr.so
-	        ├── libthreadmgrpp.so
-	        ├── libtunercontrol.so
-	        └── libtunethread.so
+	    ├── libchannelmanager.so
+	    ├── libcommandserver.so
+	    ├── libcommon.so
+	    ├── libdsmccparser.so
+	    ├── libeventschedulemanager.so
+	    ├── libeventsearch.so
+	    ├── libit9175.so
+	    ├── libparser.so
+	    ├── libpsisimanager.so
+	    ├── libpsisiparser.so
+	    ├── librecmanager.so
+	    ├── libthreadmgr.so
+	    ├── libthreadmgrpp.so
+	    ├── libtunercontrol.so
+	    └── libtunethread.so
 
 ### Running as a Linux service (use systemd) ###
-設定ファイル(`settings.json`) を /etc/auto_rec_mini/ にコピーします。
+設定ファイル(`settings.json`) を /opt/auto_rec_mini/ にコピーします。
 
-	$ sudo mkdir -p /etc/auto_rec_mini/data
-	$ sudo cp settings.json /etc/auto_rec_mini
+	$ sudo mkdir -p /opt/auto_rec_mini/data
+	$ sudo cp settings.json /opt/auto_rec_mini
 
 systemdユニット設定ファイルをコピーします。(`auto_rec_mini.service`)
 

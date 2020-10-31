@@ -5,8 +5,8 @@ After=network.service
 [Service]
 Type=simple
 Restart=on-success
-ExecStartPre=/sbin/ldconfig /usr/local/lib/auto_rec_mini
-ExecStart=/usr/local/bin/auto_rec_mini -c /etc/auto_rec_mini/settings.json -d /etc/auto_rec_mini
+ExecStartPre=/sbin/ldconfig /opt/auto_rec_mini/lib
+ExecStart=/opt/auto_rec_mini/bin/auto_rec_mini -c /opt/auto_rec_mini/settings.json -d /opt/auto_rec_mini
 KillSignal=SIGINT
 Nice=-15
 
