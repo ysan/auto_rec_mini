@@ -37,15 +37,14 @@ Future tasks
 * データ放送のBMLの取得を行う。 (dsmccの実装)
 
 
-How to use
+System requirements
 ------------
-### System requirements ###
 
-#### Tuner ####
+### Tuner ###
 対象のチューナーは [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) です。 (S/N: K1212 以降)  
 1チューナーで地デジのみとなります。  
 
-#### Platforms ####
+### Platforms ###
 一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspbian`で確認済。)  
   
 メインで使用しているのは `Raspbian` Raspberry pi model B ですが、  
@@ -54,7 +53,7 @@ How to use
   
 B-CASカードは別途USB接続のICカードリーダを用意して使用しています。
 
-#### Dependencies ####
+### Dependencies ###
 下記のライブラリに依存します。  
 適宜インストールをお願いします。  
   
@@ -73,7 +72,8 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 	$ make
 	$ sudo make install
 
-### Build and install ###
+Build and install
+------------
 
 	$ git clone https://github.com/ysan/auto_rec_mini.git
 	$ cd auto_rec_mini
@@ -120,13 +120,23 @@ systemctlコマンドでサービスを開始します。
 
 `auto_rec_mini` プロセスは起動し、チューナーを使用する準備ができた状態になります。  
 `command server` はポート20001で接続を待ち受けています。
-最初にCLIコマンドよりチャンネルスキャンを行ってください。  
+最初にCLIコマンドより `channel scan` を行ってください。  
   
 サービスを停止するには以下のコマンドを実行します。
 
 	$ sudo systemctl stop auto_rec_mini
 
-### settings.json ###
+### Clean ###
+	$ sudo systemctl stop auto_rec_mini
+	$ sudo systemctl disable auto_rec_mini
+	$ sudo rm /etc/systemd/system/auto_rec_mini.service
+	$ sudo systemctl daemon-reload
+	$ sudo make INSTALLDIR=/opt/auto_rec_mini clean
+	$ make clean
+
+
+settings.json
+------------
 
 `settings.json`は設定ファイルです。  
 `auto_rec_mini` プロセスの起動時に読み込みます。  
@@ -134,23 +144,24 @@ systemctlコマンドでサービスを開始します。
 
 | item | description |
 |:-----|:------------|
-| `m_is_syslog_output` | ログを`syslog`に出力するかどうかを切り替えます。 |
-| `m_command_server_port` | `command server` の待受ポートです。 |
-| `m_channels_json_path` | チャンネルスキャン結果の書き込み/読み込み先パスです。 |
-| `m_rec_reserves_json_path` | 録画予約リストの書き込み/読み込み先パスです。 |
-| `m_rec_results_json_path` | 録画結果リストの書き込み/読み込み先パスです。 |
-| `m_rec_ts_path` | 録画ストリームの保存先パスです。(.m2ts) |
-| `m_dummy_tuner_ts_path` | unused |
-| `m_event_schedule_cache_is_enable` | EPGを有効にするスイッチ。 |
-| `m_event_schedule_cache_start_interval_day` | EPG取得の間隔日。 |
-| `m_event_schedule_cache_start_time` | EPG取得の開始時間。(HH:mm) |
-| `m_event_schedule_cache_timeout_min` | EPG取得タイムアウト時間。(分) |
-| `m_event_schedule_cache_retry_interval_min` | EPG取得リトライ間隔。(分) |
-| `m_event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
-| `m_event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
-| `m_extended_event_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
+| `is_syslog_output` | ログを`syslog`に出力するかどうかを切り替えます。 |
+| `command_server_port` | `command server` の待受ポートです。 |
+| `channels_json_path` | チャンネルスキャン結果の書き込み/読み込み先パスです。 |
+| `rec_reserves_json_path` | 録画予約リストの書き込み/読み込み先パスです。 |
+| `rec_results_json_path` | 録画結果リストの書き込み/読み込み先パスです。 |
+| `rec_ts_path` | 録画ストリームの保存先パスです。(.m2ts) |
+| `dummy_tuner_ts_path` | unused |
+| `event_schedule_cache_is_enable` | EPGを有効にするスイッチ。 |
+| `event_schedule_cache_start_interval_day` | EPG取得の間隔日。 |
+| `event_schedule_cache_start_time` | EPG取得の開始時間。(HH:mm) |
+| `event_schedule_cache_timeout_min` | EPG取得タイムアウト時間。(分) |
+| `event_schedule_cache_retry_interval_min` | EPG取得リトライ間隔。(分) |
+| `event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
+| `event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
+| `extended_event_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
+| `event_schedule_map_json_path` | 取得したEPGデータの保存パスです。 | 
 
-#### m_is_syslog_output ####
+### is_syslog_output ###
 `syslog facirity` を `user` に設定することで、ログを `/var/log/user.log` に出力できます。  
 以下 `/etc/rsyslog.d/50-default.conf` を編集する必要があります。(`ubuntu16.04`の場合)
 
@@ -163,7 +174,7 @@ systemctlコマンドでサービスを開始します。
 	---
 	> user.*                -/var/log/user.log
 
-#### m_event_name_keywords_json_path ####
+### event_name_keywords_json_path ###
 
 `m_extended_event_keywords_json_path` に下記形式の json を作成することにより   
 EPG取得後に番組名にキーワードが含まれる番組を検索して録画予約を入れます。  
@@ -177,7 +188,7 @@ EPG取得後に番組名にキーワードが含まれる番組を検索して�
 	    ]
 	}
 
-#### m_extended_event_keywords_json_path ####
+### extended_event_keywords_json_path ###
 
 `m_extended_event_keywords_json_path` に下記形式の json を作成することにより  
 EPG取得後に番組詳細にキーワードが含まれる番組を検索して録画予約を入れます。  
@@ -191,9 +202,11 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 	    ]
 	}
 
-### How to use CLI ###
 
-#### Connect to command server ####
+How to use CLI
+------------
+
+### Connect to command server ###
 端末から`netcat` や `telnet` で接続できます。
 `localhost` でも外部アドレスからでも接続可能です。
 `command server` はシングルクライアントとなります。
@@ -214,7 +227,7 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 	/ >
 	/ >
 
-#### channel scan ####
+### channel scan ###
 
 	/ > cm
 	
@@ -226,7 +239,19 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 	/channel manager > 
 	/channel manager > scan
 
-チャンネルスキャンが開始します。
+チャンネルスキャンが開始します。しばらく時間がかかります。
+
+### dump recording reserve ###
+...
+
+### dump recording result ###
+...
+
+### run EPG cache (manually) ###
+...
+
+### dump EPG cache result ###
+...
 
 
 Component diagram

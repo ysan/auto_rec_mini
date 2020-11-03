@@ -24,15 +24,14 @@ Features
 * Command line interface. (connect via telnet. port 20001)
   
 
-How to use
+System requirements
 ----------
-### System requirements ###
 
-#### Tuner ####
+### Tuner ###
 Target tuner is [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table). (S/N: K1212 later)  
 one tuner. only terrestrial digital.
 
-#### Platforms ####
+### Platforms ###
 Generic Linux will be ok. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
   
 `Raspbian` Raspberry pi model B is used in the main,  
@@ -41,7 +40,7 @@ Packet loss occurs, block noise and image skipping are likely to occur.
   
 Also using B-CAS card with IC card reader.
 
-#### Dependencies ####
+### Dependencies ###
 Depends on the following libraries.  
 Please install as appropriate.  
   
@@ -60,7 +59,8 @@ Please install as appropriate.
 	$ make
 	$ sudo make install
 
-### Build and install ###
+Build and install
+------------
 
 	$ git clone https://github.com/ysan/auto_rec_mini.git
 	$ cd auto_rec_mini
@@ -107,13 +107,23 @@ To start the service for the first time, do the usual systemctl dance.
 
 `auto_rec_mini` process is up and ready to use the tuner.  
 `command server` is listening for connections on port 20001.  
-First, please execute the channel scan CLI command.  
+First, please execute the `channel scan` CLI command.  
   
 You can stop the service with this command.
 
     $ sudo systemctl stop auto_rec_mini
 
-### settings.json ###
+### Clean ###  
+	$ sudo systemctl stop auto_rec_mini
+	$ sudo systemctl disable auto_rec_mini
+	$ sudo rm /etc/systemd/system/auto_rec_mini.service
+	$ sudo systemctl daemon-reload
+	$ sudo make INSTALLDIR=/opt/auto_rec_mini clean
+	$ make clean
+
+
+settings.json
+------------
 
 `settings.json` is a configuration file.  
 Read at `auto_rec_mini` process startup.  
@@ -136,8 +146,9 @@ Please you set according to the environment.
 | `event_schedule_cache_histories_json_path` | save/load destination of EPG cache history. |
 | `event_name_keywords_json_path` | load destination of keywords for `event name` search. |
 | `extended_event_keywords_json_path` | load destination of keywords for `extended event` search. |
+| `event_schedule_map_json_path` | EPG cached json data store path. |
 
-#### is_syslog_output ####
+### is_syslog_output ###
 Logs can be output to `/var/log/user.log` by setting the `syslog facility` is `user`.  
 You need modify `/etc/rsyslog.d/50-default.conf`. (case `ubuntu16.04`)
 
@@ -150,7 +161,7 @@ You need modify `/etc/rsyslog.d/50-default.conf`. (case `ubuntu16.04`)
 	---
 	> user.*				-/var/log/user.log
 
-#### event_name_keywords_json_path ####
+### event_name_keywords_json_path ###
 
 By creating json of the following format in `event_name_keywords_json_path`  
 Search for programs whose keywords are included in the program name after EPG acquisition and  
@@ -165,7 +176,7 @@ No limit to the number of keywords.
 		]
 	}
 
-#### extended_event_keywords_json_path ####
+### extended_event_keywords_json_path ###
 
 By creating json of the following format in `extended_event_keywords_json_path`  
 Search for programs whose keywords are included in the program name after EPG acquisition and  
@@ -180,9 +191,10 @@ No limit to the number of keywords.
 		]
 	}
 
-### How to use CLI ###
+How to use CLI
+------------
 
-#### Connect to command server ####
+### Connect to command server ###
 At a new terminal with run `netcat` , `telnet`.  
 `localhost` or external address.  
 `command server` is single client.
@@ -203,7 +215,7 @@ At a new terminal with run `netcat` , `telnet`.
 	/ >
 	/ >
 
-#### channel scan ####
+### channel scan ###
 
 	/ > cm
 	
@@ -215,7 +227,19 @@ At a new terminal with run `netcat` , `telnet`.
 	/channel manager > 
 	/channel manager > scan
 
-channel scan is start.
+Channel scan will start. Please wait a moment.
+
+### dump recording reserve ###
+...
+
+### dump recording result ###
+...
+
+### run EPG cache (manually) ###
+...
+
+### dump EPG cache result ###
+...
 
 
 Component diagram
