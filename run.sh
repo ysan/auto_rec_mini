@@ -7,7 +7,7 @@ ulimit -c unlimited
 BASE_DIR=./
 
 
-export LD_LIBRARY_PATH=${BASE_DIR}/local_build/lib/auto_rec_mini:
+export LD_LIBRARY_PATH=${BASE_DIR}/local_build/lib:
 
 
 if [ "$1" = "gdb" ]; then

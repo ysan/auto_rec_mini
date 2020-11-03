@@ -22,12 +22,18 @@ CEventSearch::CEventSearch (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch"};
 	mSeqs [EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX] =
 		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch(ex)"};
+	mSeqs [EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES] =
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_dumpHistories,               (char*)"onReq_dumpHistories"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SEARCH__NUM);
 
 
 	m_event_name_keywords.clear();
 	m_extended_event_keywords.clear();
 
+	m_event_name_search_histories.clear();
+	m_extended_event_search_histories.clear();
+	m_current_history.clear();
+	m_current_history_keyword.clear();
 }
 
 CEventSearch::~CEventSearch (void)
@@ -146,8 +152,8 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-	static std::vector<std::string>::const_iterator s_iter ;
-	static std::vector<std::string>::const_iterator s_iter_end ;
+	static std::vector<std::string>::const_iterator s_iter_keyword ;
+	static std::vector<std::string>::const_iterator s_iter_keyword_end ;
 	static CEventScheduleManagerIf::EVENT_t s_events [30];
 	static int s_events_idx = 0;
 	static int s_get_events_num = 0;
@@ -161,19 +167,24 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		// lockで対応します
 		pIf->lock();
 
+
+		// history ----------------
+		m_current_history.clear();
+
+
 		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH) {
 			loadEventNameKeywords ();
 			dumpEventNameKeywords ();
 
-			s_iter = m_event_name_keywords.begin();
-			s_iter_end = m_event_name_keywords.end();
+			s_iter_keyword     = m_event_name_keywords.begin();
+			s_iter_keyword_end = m_event_name_keywords.end();
 
 		} else if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX) {
 			loadExtendedEventKeywords ();
 			dumpExtendedEventKeywords ();
 
-			s_iter = m_extended_event_keywords.begin();
-			s_iter_end = m_extended_event_keywords.end();
+			s_iter_keyword     = m_extended_event_keywords.begin();
+			s_iter_keyword_end = m_extended_event_keywords.end();
 
 		} else {
 			_UTL_LOG_E ("unexpected seqIdx [%d]", pIf->getSeqIdx());
@@ -183,7 +194,7 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		}
 
 
-		if (s_iter == s_iter_end) {
+		if (s_iter_keyword == s_iter_keyword_end) {
 			sectId = SECTID_END;
 			enAct = EN_THM_ACT_CONTINUE;
 			break;
@@ -200,8 +211,13 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		s_get_events_num = 0;
 
 
+		// history ----------------
+		m_current_history_keyword.clear();
+		m_current_history_keyword.keyword_string = *s_iter_keyword;
+
+
 		CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param;
-		_param.arg.p_keyword = s_iter->c_str();
+		_param.arg.p_keyword = s_iter_keyword->c_str();
 		_param.p_out_event = s_events;
 		_param.array_max_num = 30;
 
@@ -292,6 +308,18 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 
 	case SECTID_REQ_ADD_RESERVE: {
 
+		// history ----------------
+		CHistory::event _event;
+		_event.transport_stream_id = s_events [s_events_idx].transport_stream_id;
+		_event.original_network_id = s_events [s_events_idx].original_network_id;
+		_event.service_id = s_events [s_events_idx].service_id;
+		_event.event_id = s_events [s_events_idx].event_id;
+		_event.start_time = s_events [s_events_idx].start_time;
+		_event.end_time = s_events [s_events_idx].end_time;
+		_event.event_name = *(s_events [s_events_idx].p_event_name);
+		m_current_history_keyword.events.push_back(_event);
+
+
 		CRecManagerIf::ADD_RESERVE_PARAM_t _param;
 		_param.transport_stream_id = s_events [s_events_idx].transport_stream_id;
 		_param.original_network_id = s_events [s_events_idx].original_network_id;
@@ -327,9 +355,9 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		} else {
 			// getEventsで取得したリストを全て見終わりました
 			s_events_idx = 0;
-			++ s_iter;
+			++ s_iter_keyword;
 
-			if (s_iter == s_iter_end) {
+			if (s_iter_keyword == s_iter_keyword_end) {
 				// キーワドリストすべて見終わりました
 				sectId = SECTID_END;
 				enAct = EN_THM_ACT_CONTINUE;
@@ -338,12 +366,26 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 				// キーワドリスト残りがあります
 				sectId = SECTID_REQ_GET_EVENTS;
 				enAct = EN_THM_ACT_CONTINUE;
+
+				
+				// history ----------------
+				m_current_history.keywords.push_back(m_current_history_keyword);
+				CEtime _t;
+				_t.setCurrentTime();
+				m_current_history.timestamp = _t;
 			}
 		}
 
 		break;
 
 	case SECTID_END:
+
+		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH) {
+			pushHistories (m_current_history, m_event_name_search_histories);
+		} else {
+			// EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX
+			pushHistories (m_current_history, m_extended_event_search_histories);
+		}
 
 		pIf->unlock();
 
@@ -357,6 +399,30 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		break;
 	}
 
+	pIf->setSectId (sectId, enAct);
+}
+
+void CEventSearch::onReq_dumpHistories (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	dumpHistories (m_event_name_search_histories);
+	dumpHistories (m_extended_event_search_histories);
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
 	pIf->setSectId (sectId, enAct);
 }
 
@@ -410,6 +476,30 @@ void CEventSearch::dumpExtendedEventKeywords (void) const
 	std::vector<std::string>::const_iterator iter = m_extended_event_keywords.begin();
 	for (; iter != m_extended_event_keywords.end(); ++ iter) {
 		_UTL_LOG_I ("  [%s]", iter->c_str());
+	}
+}
+
+void CEventSearch::pushHistories (const CHistory &history, std::vector<CHistory> &histories)
+{
+	// fifo 30
+	// pop -> delete
+	while (histories.size() >= 30) {
+		histories.erase (histories.begin());
+	}
+
+	// push
+	histories.push_back (history);
+
+	_UTL_LOG_I ("pushHistories  size=[%d]", histories.size());
+}
+
+void CEventSearch::dumpHistories (const std::vector<CHistory> &histories) const
+{
+	_UTL_LOG_I (__PRETTY_FUNCTION__);
+
+	for (const auto & history : histories) {
+		_UTL_LOG_I ("---------------------------------------");
+		history.dump();
 	}
 }
 

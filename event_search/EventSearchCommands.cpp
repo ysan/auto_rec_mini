@@ -46,6 +46,22 @@ static void _addRecReserve_keywordSearch_ex (int argc, char* argv[], CThreadMgrB
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void _dump_histories (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_COM_SVR_PRINT ("ignore arguments.\n");
+	}
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CEventSearchIf mgr(pBase->getExternalIf());
+	mgr.reqDumpHistories ();
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
 
 
 ST_COMMAND_INFO g_eventSearchCommands [] = { // extern
@@ -59,6 +75,12 @@ ST_COMMAND_INFO g_eventSearchCommands [] = { // extern
 		"rx",
 		"add rec reserve (extended event keyword search)",
 		_addRecReserve_keywordSearch_ex,
+		NULL,
+	},
+	{
+		"h",
+		"dump histories",
+		_dump_histories,
 		NULL,
 	},
 
