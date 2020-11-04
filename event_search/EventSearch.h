@@ -150,6 +150,12 @@ private:
 	void saveExtendedEventKeywords (void);
 	void loadExtendedEventKeywords (void);
 
+	void saveEventNameSearchHistories (void);
+	void loadEventNameSearchHistories (void);
+
+	void saveExtendedEventSearchHistories (void);
+	void loadExtendedEventSearchHistories (void);
+
 
 	ST_SEQ_BASE mSeqs [EN_SEQ_EVENT_SEARCH__NUM]; // entity
 

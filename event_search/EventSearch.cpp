@@ -24,6 +24,8 @@ CEventSearch::CEventSearch (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch(ex)"};
 	mSeqs [EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES] =
 		{(PFN_SEQ_BASE)&CEventSearch::onReq_dumpHistories,               (char*)"onReq_dumpHistories"};
+	mSeqs [EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES_EX] =
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_dumpHistories,               (char*)"onReq_dumpHistories(ex)"};
 	setSeqs (mSeqs, EN_SEQ_EVENT_SEARCH__NUM);
 
 
@@ -61,6 +63,11 @@ void CEventSearch::onReq_moduleUp (CThreadMgrIf *pIf)
 
 	switch (sectId) {
 	case SECTID_ENTRY:
+
+		loadEventNameSearchHistories ();
+		loadExtendedEventSearchHistories ();
+
+
 		sectId = SECTID_REQ_REG_CACHE_SCHED_STATE_NOTIFY;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
@@ -382,9 +389,11 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 
 		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH) {
 			pushHistories (m_current_history, m_event_name_search_histories);
+			saveEventNameSearchHistories();
 		} else {
 			// EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX
 			pushHistories (m_current_history, m_extended_event_search_histories);
+			saveExtendedEventSearchHistories();
 		}
 
 		pIf->unlock();
@@ -415,8 +424,12 @@ void CEventSearch::onReq_dumpHistories (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	dumpHistories (m_event_name_search_histories);
-	dumpHistories (m_extended_event_search_histories);
+	if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES) {
+		dumpHistories (m_event_name_search_histories);
+	} else {
+		// EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES_EX
+		dumpHistories (m_extended_event_search_histories);
+	}
 
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
@@ -503,10 +516,6 @@ void CEventSearch::dumpHistories (const std::vector<CHistory> &histories) const
 	}
 }
 
-
-
-//--------------------------------------------------------------------------------
-
 void CEventSearch::saveEventNameKeywords (void)
 {
 	std::stringstream ss;
@@ -575,4 +584,148 @@ void CEventSearch::loadExtendedEventKeywords (void)
 
 	ifs.close();
 	ss.clear();
+}
+
+void CEventSearch::saveEventNameSearchHistories (void)
+{
+	std::stringstream ss;
+	{
+		cereal::JSONOutputArchive out_archive (ss);
+		out_archive (CEREAL_NVP(m_event_name_search_histories));
+	}
+
+	std::string *p_path = CSettings::getInstance()->getParams()->getEventNameSearchHistoriesJsonPath();
+	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	ofs << ss.str();
+
+	ofs.close();
+	ss.clear();
+}
+
+void CEventSearch::loadEventNameSearchHistories (void)
+{
+	std::string *p_path = CSettings::getInstance()->getParams()->getEventNameSearchHistoriesJsonPath();
+	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	if (!ifs.is_open()) {
+		_UTL_LOG_I ("event_name_search_histories.json is not found.");
+		return;
+	}
+
+	std::stringstream ss;
+	ss << ifs.rdbuf();
+
+	cereal::JSONInputArchive in_archive (ss);
+	in_archive (CEREAL_NVP(m_event_name_search_histories));
+
+	ifs.close();
+	ss.clear();
+
+
+	// CEtimeの値は直接 tv_sec,tv_nsecに書いてるので toString用の文字はここで作ります
+	for (auto &history : m_event_name_search_histories) {
+		history.timestamp.updateStrings();
+		for (auto keyword : history.keywords) {
+			for (auto event: keyword.events) {
+				event.start_time.updateStrings();
+				event.end_time.updateStrings();
+			}
+		}
+	}
+}
+
+void CEventSearch::saveExtendedEventSearchHistories (void)
+{
+	std::stringstream ss;
+	{
+		cereal::JSONOutputArchive out_archive (ss);
+		out_archive (CEREAL_NVP(m_extended_event_search_histories));
+	}
+
+	std::string *p_path = CSettings::getInstance()->getParams()->getExtendedEventSearchHistoriesJsonPath();
+	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	ofs << ss.str();
+
+	ofs.close();
+	ss.clear();
+}
+
+void CEventSearch::loadExtendedEventSearchHistories (void)
+{
+	std::string *p_path = CSettings::getInstance()->getParams()->getExtendedEventSearchHistoriesJsonPath();
+	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	if (!ifs.is_open()) {
+		_UTL_LOG_I ("extended_event_search_histories.json is not found.");
+		return;
+	}
+
+	std::stringstream ss;
+	ss << ifs.rdbuf();
+
+	cereal::JSONInputArchive in_archive (ss);
+	in_archive (CEREAL_NVP(m_extended_event_search_histories));
+
+	ifs.close();
+	ss.clear();
+
+
+	// CEtimeの値は直接 tv_sec,tv_nsecに書いてるので toString用の文字はここで作ります
+	for (auto &history : m_extended_event_search_histories) {
+		history.timestamp.updateStrings();
+		for (auto keyword : history.keywords) {
+			for (auto event: keyword.events) {
+				event.start_time.updateStrings();
+				event.end_time.updateStrings();
+			}
+		}
+	}
+}
+
+
+//--------------------------------------------------------------------------------
+
+template <class Archive>
+void serialize (Archive &archive, struct timespec &t)
+{
+	archive (
+		cereal::make_nvp("tv_sec", t.tv_sec)
+		,cereal::make_nvp("tv_nsec", t.tv_nsec)
+	);
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEtime &t)
+{
+	archive (cereal::make_nvp("m_time", t.m_time));
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEventSearch::CHistory::event &e)
+{
+	archive (
+		cereal::make_nvp("transport_stream_id", e.transport_stream_id)
+		,cereal::make_nvp("original_network_id", e.original_network_id)
+		,cereal::make_nvp("service_id", e.service_id)
+		,cereal::make_nvp("event_id", e.event_id)
+		,cereal::make_nvp("start_time", e.start_time)
+		,cereal::make_nvp("end_time", e.end_time)
+		,cereal::make_nvp("event_name", e.event_name)
+	);
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEventSearch::CHistory::keyword &k)
+{
+	archive (
+		cereal::make_nvp("keyword_string", k.keyword_string)
+		,cereal::make_nvp("events", k.events)
+	);
+}
+
+template <class Archive>
+void serialize (Archive &archive, CEventSearch::CHistory &h)
+{
+	archive (
+		cereal::make_nvp("keywords", h.keywords)
+		,cereal::make_nvp("timestamp", h.timestamp)
+	);
 }

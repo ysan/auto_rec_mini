@@ -61,6 +61,7 @@ Please install as appropriate.
 
 Build and install
 ------------
+### Build and install ###
 
 	$ git clone https://github.com/ysan/auto_rec_mini.git
 	$ cd auto_rec_mini
@@ -109,10 +110,6 @@ To start the service for the first time, do the usual systemctl dance.
 `command server` is listening for connections on port 20001.  
 First, please execute the `channel scan` CLI command.  
   
-You can stop the service with this command.
-
-    $ sudo systemctl stop auto_rec_mini
-
 ### Clean ###  
 	$ sudo systemctl stop auto_rec_mini
 	$ sudo systemctl disable auto_rec_mini
@@ -143,10 +140,12 @@ Please you set according to the environment.
 | `event_schedule_cache_start_time` | EPG cache start time. (HH:mm) |
 | `event_schedule_cache_timeout_min` | EPG cache timeout minute. |
 | `event_schedule_cache_retry_interval_min` | EPG cache retry interval minute. |
+| `event_schedule_cache_data_json_path` | save/load EPG cached json data. |
 | `event_schedule_cache_histories_json_path` | save/load destination of EPG cache history. |
-| `event_name_keywords_json_path` | load destination of keywords for `event name` search. |
-| `extended_event_keywords_json_path` | load destination of keywords for `extended event` search. |
-| `event_schedule_map_json_path` | EPG cached json data store path. |
+| `event_name_keywords_json_path` | save/load destination of keywords for `event name` search. |
+| `extended_event_keywords_json_path` | save/load destination of keywords for `extended event` search. |
+| `event_name_search_histories_json_path` | save/load destination of `event name` search history. |
+| `extended_event_search_histories_json_path` | save/load destination of `extended event` search history. |
 
 ### is_syslog_output ###
 Logs can be output to `/var/log/user.log` by setting the `syslog facility` is `user`.  
@@ -195,11 +194,9 @@ How to use CLI
 ------------
 
 ### Connect to command server ###
-At a new terminal with run `netcat` , `telnet`.  
-`localhost` or external address.  
-`command server` is single client.
+At a new terminal with run `netcat` , `telnet`.
 
-	$ nc -C localhost 20001
+	$ nc -C 127.0.0.1 20001
 	
 	###  command line  begin. ###
 	

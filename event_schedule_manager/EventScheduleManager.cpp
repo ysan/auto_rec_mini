@@ -164,7 +164,7 @@ void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
 
 		loadHistories ();
 
-		m_container.setScheduleMapJsonPath(*mp_settings->getParams()->getEventScheduleMapJsonPath());
+		m_container.setScheduleMapJsonPath(*mp_settings->getParams()->getEventScheduleCacheDataJsonPath());
 		m_container.loadScheduleMap();
 
 		sectId = SECTID_REQ_REG_TUNER_NOTIFY;

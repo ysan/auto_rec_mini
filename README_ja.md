@@ -74,6 +74,7 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 
 Build and install
 ------------
+### Build and install ###
 
 	$ git clone https://github.com/ysan/auto_rec_mini.git
 	$ cd auto_rec_mini
@@ -121,10 +122,6 @@ systemctlコマンドでサービスを開始します。
 `auto_rec_mini` プロセスは起動し、チューナーを使用する準備ができた状態になります。  
 `command server` はポート20001で接続を待ち受けています。
 最初にCLIコマンドより `channel scan` を行ってください。  
-  
-サービスを停止するには以下のコマンドを実行します。
-
-	$ sudo systemctl stop auto_rec_mini
 
 ### Clean ###
 	$ sudo systemctl stop auto_rec_mini
@@ -156,10 +153,12 @@ settings.json
 | `event_schedule_cache_start_time` | EPG取得の開始時間。(HH:mm) |
 | `event_schedule_cache_timeout_min` | EPG取得タイムアウト時間。(分) |
 | `event_schedule_cache_retry_interval_min` | EPG取得リトライ間隔。(分) |
+| `event_schedule_cache_data_json_path` | 取得したEPGデータの書き込み/読み込み先パスです。 | 
 | `event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
-| `event_name_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
-| `extended_event_keywords_json_path` | `event name` 検索のキーワードリストの読み込み先パスです。 |
-| `event_schedule_map_json_path` | 取得したEPGデータの保存パスです。 | 
+| `event_name_keywords_json_path` | `event name` 検索のキーワードリストの書き込み/読み込み先パスです。 |
+| `extended_event_keywords_json_path` | `extended event` 検索のキーワードリストの書き込み/読み込み先パスです。 |
+| `event_name_search_histories_json_path` | `event name` 検索履歴の書き込み/読み込み先パスです。 |
+| `extended_event_search_histories_json_path` | `extended event` 検索履歴の書き込み/読み込み先パスです。 |
 
 ### is_syslog_output ###
 `syslog facirity` を `user` に設定することで、ログを `/var/log/user.log` に出力できます。  
@@ -208,10 +207,8 @@ How to use CLI
 
 ### Connect to command server ###
 端末から`netcat` や `telnet` で接続できます。
-`localhost` でも外部アドレスからでも接続可能です。
-`command server` はシングルクライアントとなります。
 
-	$ nc -C localhost 20001
+	$ nc -C 127.0.0.1 20001
 	
 	###  command line  begin. ###
 	
