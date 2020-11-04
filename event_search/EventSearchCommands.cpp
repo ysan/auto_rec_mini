@@ -63,6 +63,23 @@ static void _dump_histories (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void _dump_histories_ex (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_COM_SVR_PRINT ("ignore arguments.\n");
+	}
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CEventSearchIf mgr(pBase->getExternalIf());
+	mgr.reqDumpHistories_ex ();
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
 
 ST_COMMAND_INFO g_eventSearchCommands [] = { // extern
 	{
@@ -79,10 +96,17 @@ ST_COMMAND_INFO g_eventSearchCommands [] = { // extern
 	},
 	{
 		"h",
-		"dump histories",
+		"dump histories (event name keyword search)",
 		_dump_histories,
 		NULL,
 	},
+	{
+		"hx",
+		"dump histories (extended event keyword search)",
+		_dump_histories_ex,
+		NULL,
+	},
+
 
 	//-- term --//
 	{

@@ -624,8 +624,8 @@ void CEventSearch::loadEventNameSearchHistories (void)
 	// CEtimeの値は直接 tv_sec,tv_nsecに書いてるので toString用の文字はここで作ります
 	for (auto &history : m_event_name_search_histories) {
 		history.timestamp.updateStrings();
-		for (auto keyword : history.keywords) {
-			for (auto event: keyword.events) {
+		for (auto &keyword : history.keywords) {
+			for (auto &event: keyword.events) {
 				event.start_time.updateStrings();
 				event.end_time.updateStrings();
 			}
@@ -671,8 +671,8 @@ void CEventSearch::loadExtendedEventSearchHistories (void)
 	// CEtimeの値は直接 tv_sec,tv_nsecに書いてるので toString用の文字はここで作ります
 	for (auto &history : m_extended_event_search_histories) {
 		history.timestamp.updateStrings();
-		for (auto keyword : history.keywords) {
-			for (auto event: keyword.events) {
+		for (auto &keyword : history.keywords) {
+			for (auto &event: keyword.events) {
 				event.start_time.updateStrings();
 				event.end_time.updateStrings();
 			}
