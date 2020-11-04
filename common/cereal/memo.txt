@@ -1,4 +1,6 @@
-git clone 後
-git checkout -b v1.2.2 refs/tags/v1.2.2
+git clone https://github.com/USCiLab/cereal.git
+cd cereal
+git checkout -b v1.3.0 refs/tags/v1.3.0
+cd include/cereal
 
-v1.2.2を使用します
+この中身をコピーする
