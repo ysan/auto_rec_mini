@@ -250,9 +250,6 @@ private:
 	void loadChannels (void);
 
 
-	ST_SEQ_BASE mSeqs [EN_SEQ_CHANNEL_MANAGER__NUM]; // entity
-
-
 	uint8_t m_tuneCompNotify_clientId;
 	EN_PSISI_STATE m_psisiState;
 

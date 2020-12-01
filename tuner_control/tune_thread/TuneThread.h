@@ -35,7 +35,6 @@ public:
 	void tune (CThreadMgrIf *pIf);
 
 private:
-	ST_SEQ_BASE mSeqs [EN_SEQ_TUNE_THREAD_NUM]; // entity
 };
 
 #endif

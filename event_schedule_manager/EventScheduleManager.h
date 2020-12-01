@@ -336,9 +336,6 @@ private:
 	void loadHistories (void) ;
 
 
-
-	ST_SEQ_BASE mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM]; // entity
-
 	CSettings *mp_settings;
 
 	EN_CACHE_SCHEDULE_STATE_t m_state;

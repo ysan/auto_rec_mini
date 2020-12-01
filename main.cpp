@@ -156,8 +156,6 @@ int main (int argc, char *argv[])
 
 
 	p_mgr->teardown();
-	delete p_mgr;
-	p_mgr = NULL;
 
 
 	// syslog finalize

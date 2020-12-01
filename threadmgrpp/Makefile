@@ -3,6 +3,8 @@
 #
 BASEDIR		:=	../
 
+CFLAGS		:=	-std=c++11
+
 INCLUDES	:= \
 	-I./ \
 	-I../threadmgr \

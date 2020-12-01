@@ -14,19 +14,15 @@ CEventSearch::CEventSearch (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,m_cache_sched_state_notify_client_id (0xff)
 {
-	mSeqs [EN_SEQ_EVENT_SEARCH__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_moduleUp,                    (char*)"onReq_moduleUp"};
-	mSeqs [EN_SEQ_EVENT_SEARCH__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_moduleDown,                  (char*)"onReq_moduleDown"};
-	mSeqs [EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH] =
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch"};
-	mSeqs [EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX] =
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch(ex)"};
-	mSeqs [EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES] =
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_dumpHistories,               (char*)"onReq_dumpHistories"};
-	mSeqs [EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES_EX] =
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_dumpHistories,               (char*)"onReq_dumpHistories(ex)"};
-	setSeqs (mSeqs, EN_SEQ_EVENT_SEARCH__NUM);
+	SEQ_BASE_t seqs [EN_SEQ_EVENT_SEARCH__NUM] = {
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_moduleUp, (char*)"onReq_moduleUp"},                                           // EN_SEQ_EVENT_SEARCH__MODULE_UP
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_moduleDown, (char*)"onReq_moduleDown"},                                       // EN_SEQ_EVENT_SEARCH__MODULE_DOWN
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch"},     // EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch(ex)"}, // EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_dumpHistories, (char*)"onReq_dumpHistories"},                                 // EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES
+		{(PFN_SEQ_BASE)&CEventSearch::onReq_dumpHistories, (char*)"onReq_dumpHistories(ex)"},                             // EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES_EX
+	};
+	setSeqs (seqs, EN_SEQ_EVENT_SEARCH__NUM);
 
 
 	m_event_name_keywords.clear();

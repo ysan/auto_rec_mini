@@ -40,47 +40,29 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	,mEIT_H_sched (4096*100, 100, this)
 	,m_isEnableEITSched (false)
 {
-	mSeqs [EN_SEQ_PSISI_MANAGER__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_moduleUp,                    (char*)"onReq_moduleUp"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_moduleDown,                  (char*)"onReq_moduleDown"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__CHECK_LOOP] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_checkLoop,                   (char*)"onReq_checkLoop"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__PARSER_NOTICE] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_parserNotice,                (char*)"onReq_parserNotice"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__STABILIZATION_AFTER_TUNING] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_stabilizationAfterTuning,    (char*)"onReq_stabilizationAfterTuning"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__REG_PAT_DETECT_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerPatDetectNotify,     (char*)"onReq_registerPatDetectNotify"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__UNREG_PAT_DETECT_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterPatDetectNotify,   (char*)"onReq_unregisterPatDetectNotify"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__REG_EVENT_CHANGE_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerEventChangeNotify,   (char*)"onReq_registerEventChangeNotify"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__UNREG_EVENT_CHANGE_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterEventChangeNotify, (char*)"onReq_unregisterEventChangeNotify"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__REG_PSISI_STATE_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerPsisiStateNotify,    (char*)"onReq_registerPsisiStateNotify"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__UNREG_PSISI_STATE_NOTIFY] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterPsisiStateNotify,  (char*)"onReq_unregisterPsisiStateNotify"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__GET_PAT_DETECT_STATE] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getPatDetectState,           (char*)"onReq_getPatDetectState"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__GET_CURRENT_SERVICE_INFOS] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getCurrentServiceInfos,      (char*)"onReq_getCurrentServiceInfos"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__GET_PRESENT_EVENT_INFO] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getPresentEventInfo,         (char*)"onReq_getPresentEventInfo"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__GET_FOLLOW_EVENT_INFO] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getFollowEventInfo,          (char*)"onReq_getFollowEventInfo"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__GET_CURRENT_NETWORK_INFO] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getCurrentNetworkInfo,       (char*)"onReq_getCurrentNetworkInfo"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__ENABLE_PARSE_EIT_SCHED] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_enableParseEITSched,         (char*)"onReq_enableParseEITSched"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__DISABLE_PARSE_EIT_SCHED] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_disableParseEITSched,        (char*)"onReq_disableParseEITSched"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__DUMP_CACHES] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_dumpCaches,                  (char*)"onReq_dumpCaches"};
-	mSeqs [EN_SEQ_PSISI_MANAGER__DUMP_TABLES] =
-		{(PFN_SEQ_BASE)&CPsisiManager::onReq_dumpTables,                  (char*)"onReq_dumpTables"};
-	setSeqs (mSeqs, EN_SEQ_PSISI_MANAGER__NUM);
+	SEQ_BASE_t seqs [EN_SEQ_PSISI_MANAGER__NUM] = {
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_moduleUp, (char*)"onReq_moduleUp"},                                       // EN_SEQ_PSISI_MANAGER__MODULE_UP
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_moduleDown, (char*)"onReq_moduleDown"},                                   // EN_SEQ_PSISI_MANAGER__MODULE_DOWN
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_checkLoop, (char*)"onReq_checkLoop"},                                     // EN_SEQ_PSISI_MANAGER__CHECK_LOOP
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_parserNotice, (char*)"onReq_parserNotice"},                               // EN_SEQ_PSISI_MANAGER__PARSER_NOTICE
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_stabilizationAfterTuning, (char*)"onReq_stabilizationAfterTuning"},       // EN_SEQ_PSISI_MANAGER__STABILIZATION_AFTER_TUNING
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerPatDetectNotify, (char*)"onReq_registerPatDetectNotify"},         // EN_SEQ_PSISI_MANAGER__REG_PAT_DETECT_NOTIFY
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterPatDetectNotify, (char*)"onReq_unregisterPatDetectNotify"},     // EN_SEQ_PSISI_MANAGER__UNREG_PAT_DETECT_NOTIFY
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerEventChangeNotify, (char*)"onReq_registerEventChangeNotify"},     // EN_SEQ_PSISI_MANAGER__REG_EVENT_CHANGE_NOTIFY
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterEventChangeNotify, (char*)"onReq_unregisterEventChangeNotify"}, // EN_SEQ_PSISI_MANAGER__UNREG_EVENT_CHANGE_NOTIFY
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerPsisiStateNotify, (char*)"onReq_registerPsisiStateNotify"},       // EN_SEQ_PSISI_MANAGER__REG_PSISI_STATE_NOTIFY
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterPsisiStateNotify, (char*)"onReq_unregisterPsisiStateNotify"},   // EN_SEQ_PSISI_MANAGER__UNREG_PSISI_STATE_NOTIFY
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getPatDetectState, (char*)"onReq_getPatDetectState"},                     // EN_SEQ_PSISI_MANAGER__GET_PAT_DETECT_STATE
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getCurrentServiceInfos, (char*)"onReq_getCurrentServiceInfos"},           // EN_SEQ_PSISI_MANAGER__GET_CURRENT_SERVICE_INFOS
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getPresentEventInfo, (char*)"onReq_getPresentEventInfo"},                 // EN_SEQ_PSISI_MANAGER__GET_PRESENT_EVENT_INFO
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getFollowEventInfo, (char*)"onReq_getFollowEventInfo"},                   // EN_SEQ_PSISI_MANAGER__GET_FOLLOW_EVENT_INFO
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getCurrentNetworkInfo, (char*)"onReq_getCurrentNetworkInfo"},             // EN_SEQ_PSISI_MANAGER__GET_CURRENT_NETWORK_INFO
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_enableParseEITSched, (char*)"onReq_enableParseEITSched"},                 // EN_SEQ_PSISI_MANAGER__ENABLE_PARSE_EIT_SCHED
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_disableParseEITSched, (char*)"onReq_disableParseEITSched"},               // EN_SEQ_PSISI_MANAGER__DISABLE_PARSE_EIT_SCHED
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_dumpCaches, (char*)"onReq_dumpCaches"},                                   // EN_SEQ_PSISI_MANAGER__DUMP_CACHES
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_dumpTables, (char*)"onReq_dumpTables"},                                   // EN_SEQ_PSISI_MANAGER__DUMP_TABLES
+	};
+	setSeqs (seqs, EN_SEQ_PSISI_MANAGER__NUM);
 
 
 	// references

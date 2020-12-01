@@ -48,49 +48,30 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	,mp_EIT_H_sched (NULL)
 	,m_is_need_stop (false)
 {
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp,                           (char*)"onReq_moduleUp"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleDown,                         (char*)"onReq_moduleDown"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__REG_CACHE_SCHEDULE_STATE_NOTIFY] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_registerCacheScheduleStateNotify,   (char*)"onReq_registerCacheScheduleStateNotify"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__UNREG_CACHE_SCHEDULE_STATE_NOTIFY] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_unregisterCacheScheduleStateNotify, (char*)"onReq_unregisterCacheScheduleStateNotify"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_CACHE_SCHEDULE_STATE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getCacheScheduleState,              (char*)"onReq_getCacheScheduleState"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop,                          (char*)"onReq_checkLoop"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice,                       (char*)"onReq_parserNotice"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__EXEC_CACHE_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_execCacheSchedule,                  (char*)"onReq_execCacheSchedule"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule,                      (char*)"onReq_cacheSchedule"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_FORCE_CURRENT_SERVICE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule_forceCurrentService,  (char*)"onReq_cacheSchedule_forceCurrentService"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__STOP_CACHE_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_stopCacheSchedule,                  (char*)"onReq_stopCacheSchedule"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent,                           (char*)"onReq_getEvent"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent_latestDumpedSchedule,      (char*)"onReq_getEvent_latestDumpedSchedule"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_EVENT__LATEST_DUMPED_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpEvent_latestDumpedSchedule,     (char*)"onReq_dumpEvent_latestDumpedSchedule"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch,            (char*)"onReq_getEvents_keywordSearch"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch,            (char*)"onReq_getEvents_keywordSearch(ex)"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__ADD_RESERVES] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_addReserves,                        (char*)"onReq_addReserves"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap,                    (char*)"onReq_dumpScheduleMap"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule,                       (char*)"onReq_dumpSchedule"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_RESERVES] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpReserves,                       (char*)"onReq_dumpReserves"};
-	mSeqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_HISTORIES] =
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpHistories,                      (char*)"onReq_dumpHistories"};
-	setSeqs (mSeqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
+	SEQ_BASE_t seqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM] = {
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp, (char*)"onReq_moduleUp"},                                                     // EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_UP
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleDown, (char*)"onReq_moduleDown"},                                                 // EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_DOWN
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_registerCacheScheduleStateNotify, (char*)"onReq_registerCacheScheduleStateNotify"},     // EN_SEQ_EVENT_SCHEDULE_MANAGER__REG_CACHE_SCHEDULE_STATE_NOTIFY
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_unregisterCacheScheduleStateNotify, (char*)"onReq_unregisterCacheScheduleStateNotify"}, // EN_SEQ_EVENT_SCHEDULE_MANAGER__UNREG_CACHE_SCHEDULE_STATE_NOTIFY
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getCacheScheduleState, (char*)"onReq_getCacheScheduleState"},                           // EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_CACHE_SCHEDULE_STATE
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop, (char*)"onReq_checkLoop"},                                                   // EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice, (char*)"onReq_parserNotice"},                                             // EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_execCacheSchedule, (char*)"onReq_execCacheSchedule"},                                   // EN_SEQ_EVENT_SCHEDULE_MANAGER__EXEC_CACHE_SCHEDULE
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule, (char*)"onReq_cacheSchedule"},                                           // EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule_forceCurrentService, (char*)"onReq_cacheSchedule_forceCurrentService"},   // EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_FORCE_CURRENT_SERVICE
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_stopCacheSchedule, (char*)"onReq_stopCacheSchedule"},                                   // EN_SEQ_EVENT_SCHEDULE_MANAGER__STOP_CACHE_SCHEDULE
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent, (char*)"onReq_getEvent"},                                                     // EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent_latestDumpedSchedule, (char*)"onReq_getEvent_latestDumpedSchedule"},           // EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpEvent_latestDumpedSchedule, (char*)"onReq_dumpEvent_latestDumpedSchedule"},         // EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_EVENT__LATEST_DUMPED_SCHEDULE
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch, (char*)"onReq_getEvents_keywordSearch"},                       // EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch, (char*)"onReq_getEvents_keywordSearch(ex)"},                   // EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_addReserves, (char*)"onReq_addReserves"},                                               // EN_SEQ_EVENT_SCHEDULE_MANAGER__ADD_RESERVES
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap, (char*)"onReq_dumpScheduleMap"},                                       // EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule, (char*)"onReq_dumpSchedule"},                                             // EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpReserves, (char*)"onReq_dumpReserves"},                                             // EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_RESERVES
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpHistories, (char*)"onReq_dumpHistories"},                                           // EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_HISTORIES
+	};
+	setSeqs (seqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
 
 
 	mp_settings = CSettings::getInstance();

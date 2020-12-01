@@ -54,8 +54,6 @@ private:
 	static void onCommandWaitEnd (void);
 
 
-	ST_SEQ_BASE mSeqs [EN_SEQ_COMMAND_SERVER_NUM]; // entity
-
 	int mClientfd;
 	bool m_isConnectionClose;
 

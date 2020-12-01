@@ -508,8 +508,6 @@ private:
 
 
 
-	ST_SEQ_BASE mSeqs [EN_SEQ_PSISI_MANAGER__NUM]; // entity
-
 	CTsParser m_parser;
 
 	uint8_t m_tuner_notify_client_id;

@@ -300,8 +300,6 @@ private:
 	void loadResults (void);
 
 
-	ST_SEQ_BASE mSeqs [EN_SEQ_REC_MANAGER__NUM]; // entity
-
 	CSettings *mp_settings;
 	
 	uint8_t m_tunerNotify_clientId;

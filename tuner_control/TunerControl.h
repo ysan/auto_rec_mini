@@ -79,8 +79,6 @@ private:
 	CTunerControlIf::ITsReceiveHandler *mpRegTsReceiveHandlers [TS_RECEIVE_HANDLER_REGISTER_NUM_MAX];
 
 	EN_TUNER_STATE mState;
-
-	ST_SEQ_BASE mSeqs [EN_SEQ_TUNER_CONTROL_NUM]; // entity
 };
 
 #endif

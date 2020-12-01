@@ -20,10 +20,12 @@
 CTuneThread::CTuneThread (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 {
-	mSeqs [EN_SEQ_TUNE_THREAD_MODULE_UP]   = {(PFN_SEQ_BASE)&CTuneThread::moduleUp, (char*)"moduleUp"};
-	mSeqs [EN_SEQ_TUNE_THREAD_MODULE_DOWN] = {(PFN_SEQ_BASE)&CTuneThread::moduleDown, (char*)"moduleDown"};
-	mSeqs [EN_SEQ_TUNE_THREAD_TUNE]        = {(PFN_SEQ_BASE)&CTuneThread::tune, (char*)"tune"};
-	setSeqs (mSeqs, EN_SEQ_TUNE_THREAD_NUM);
+	SEQ_BASE_t seqs [EN_SEQ_TUNE_THREAD_NUM] = {
+		{(PFN_SEQ_BASE)&CTuneThread::moduleUp, (char*)"moduleUp"},     // EN_SEQ_TUNE_THREAD_MODULE_UP
+		{(PFN_SEQ_BASE)&CTuneThread::moduleDown, (char*)"moduleDown"}, // EN_SEQ_TUNE_THREAD_MODULE_DOWN
+		{(PFN_SEQ_BASE)&CTuneThread::tune, (char*)"tune"},             // EN_SEQ_TUNE_THREAD_TUNE
+	};
+	setSeqs (seqs, EN_SEQ_TUNE_THREAD_NUM);
 }
 
 CTuneThread::~CTuneThread (void)

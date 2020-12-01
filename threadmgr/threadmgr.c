@@ -68,6 +68,7 @@
 #define NOTIFY_CLIENT_ID_BLANK			(0xE0) // 224
 
 #define SECT_ID_MAX						(0x40) // 64  1sequenceあたりsection分割可能な最大数
+#define SECT_ID_BLANK					(0x80) // 128
 #define SECT_ID_INIT					THM_SECT_ID_INIT
 
 #define SEQ_TIMEOUT_BLANK				(0)
@@ -188,6 +189,8 @@ typedef struct seq_info {
 		uint32_t nVal; // unit:mS
 		struct timespec stTime;
 	} timeout;
+
+	uint8_t nRunningSectId; // 現在実行中のセクションid dump用
 
 } ST_SEQ_INFO;
 
@@ -545,6 +548,7 @@ void setDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper exte
 	putsLog (getLogFileptr(), EN_LOG_TYPE_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 
+#ifdef _ENABLE_INNER_LOG
 #define THM_INNER_LOG_D(fmt, ...) do {\
 	if (isEnableLog()) {\
 		putsLog (getLogFileptr(), EN_LOG_TYPE_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
@@ -560,6 +564,15 @@ void setDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper exte
 		putsLog (getLogFileptr(), EN_LOG_TYPE_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 	}\
 } while (0)
+#else // not _ENABLE_INNER_LOG
+#define THM_INNER_LOG_D(fmt, ...) do {\
+} while (0)
+#define THM_INNER_LOG_I(fmt, ...) do {\
+} while (0)
+#define THM_INNER_LOG_W(fmt, ...) do {\
+} while (0)
+#endif
+
 #define THM_INNER_LOG_E(fmt, ...) do {\
 	putsLog (getLogFileptr(), EN_LOG_TYPE_E, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
@@ -838,7 +851,7 @@ static void dumpInnerInfo (void)
 //TODO 参照だけ ログだけだからmutexしない
 
 	THM_LOG_I ("####  dumpInnerInfo  ####\n");
-	THM_LOG_I (" thread-idx thread-name       pthread_id      que-max seq-num req-opt    req-opt-timeout\n");
+	THM_LOG_I (" thread-idx  thread-name  pthread_id  que-max  seq-num  req-opt  req-opt-timeout[ms]\n");
 
 	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
 		THM_LOG_I (
@@ -854,8 +867,9 @@ static void dumpInnerInfo (void)
 	}
 
 	THM_LOG_I ("####  dumpSeqInfo  ####\n");
+	THM_LOG_I (" seq-idx  seq-name  sect-id  action  isOverwrite  isLock  timeout-state  timeout[ms]\n");
 	for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
-		THM_LOG_I (" --- thread:[%s]\n", gstInnerInfo [i].pszName);
+		THM_LOG_I (" --- thread:[0x%02x][%s]\n", gstInnerInfo [i].nThreadIdx, gstInnerInfo [i].pszName);
 		int n = gstInnerInfo [i].nSeqNum;
 		ST_SEQ_INFO *pstSeqInfo = gstInnerInfo [i].pstSeqInfo;
 		for (j = 0; j < n; ++ j) {
@@ -863,10 +877,11 @@ static void dumpInnerInfo (void)
 			const char *p_name = (p + pstSeqInfo->nSeqIdx)->pszName;
 
 			THM_LOG_I (
-				"   0x%02x [%-15.15s] %2d %s %s %s %s %d\n",
+				"   0x%02x [%-15.15s] %2d%s %s %s %s %s %d\n",
 				pstSeqInfo->nSeqIdx,
 				p_name,
 				pstSeqInfo->nSectId,
+				pstSeqInfo->nSectId == pstSeqInfo->nRunningSectId ? "<-" : "  ",
 				gpszAct [pstSeqInfo->enAct],
 				pstSeqInfo->isOverwrite ? "OW" : "--",
 				pstSeqInfo->isLock ? "lock" : "----",
@@ -2275,12 +2290,17 @@ static void *workerThread (void *pArg)
 
 
 					while (1) { // EN_THM_ACT_CONTINUE の為のloopです
+						
+						// 現在実行中のセクションid 保管します dump用
+						getSeqInfo (pstInnerInfo->nThreadIdx, stRtnQue.nDestSeqIdx)->nRunningSectId = getSeqInfo (pstInnerInfo->nThreadIdx, stRtnQue.nDestSeqIdx)->nSectId;
+						
 						/*
 						 * 関数実行
 						 * 主処理
 						 * ユーザ側で sectId enActをセットするはず
 						 */
 						if (gpfnDispatcher) {
+
 
 							/* c++ wrapper extension */
 							gpfnDispatcher (
@@ -2290,11 +2310,16 @@ static void *workerThread (void *pArg)
 								&stThmIf
 							);
 
+
 						} else {
 
 							(void) (((pTbl->pstSeqArray)+stRtnQue.nDestSeqIdx)->pcbSeq) (&stThmIf);
 
 						}
+
+						// 現在実行中のセクションid クリアします dump用
+						getSeqInfo (pstInnerInfo->nThreadIdx, stRtnQue.nDestSeqIdx)->nRunningSectId = SECT_ID_BLANK;
+
 
 						if (((pstInnerInfo->pstSeqInfo)+stRtnQue.nDestSeqIdx)->enAct == EN_THM_ACT_CONTINUE) {
 //TODO
@@ -4609,6 +4634,8 @@ static void clearSeqInfo (ST_SEQ_INFO *p)
 	p->timeout.enState = EN_TIMEOUT_STATE_INIT;
 	p->timeout.nVal = SEQ_TIMEOUT_BLANK;
 	memset (&(p->timeout.stTime), 0x00, sizeof(struct timespec));
+
+	p->nRunningSectId = SEQ_IDX_BLANK;
 }
 
 /**

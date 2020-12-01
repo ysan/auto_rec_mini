@@ -15,22 +15,19 @@ CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
 	,mFreq (0)
 	,mState (EN_TUNER_STATE__TUNE_STOP)
 {
-	mSeqs [EN_SEQ_TUNER_CONTROL_MODULE_UP]   = {(PFN_SEQ_BASE)&CTunerControl::moduleUp,   (char*)"moduleUp"};
-	mSeqs [EN_SEQ_TUNER_CONTROL_MODULE_DOWN] = {(PFN_SEQ_BASE)&CTunerControl::moduleDown, (char*)"moduleDown"};
-	mSeqs [EN_SEQ_TUNER_CONTROL_TUNE]        = {(PFN_SEQ_BASE)&CTunerControl::tune,       (char*)"tune"};
-	mSeqs [EN_SEQ_TUNER_CONTROL_TUNE_START]  = {(PFN_SEQ_BASE)&CTunerControl::tuneStart,  (char*)"tuneStart"};
-	mSeqs [EN_SEQ_TUNER_CONTROL_TUNE_STOP]   = {(PFN_SEQ_BASE)&CTunerControl::tuneStop,   (char*)"tuneStop"};
-	mSeqs [EN_SEQ_TUNER_CONTROL_REG_TUNER_NOTIFY] =
-		{(PFN_SEQ_BASE)&CTunerControl::registerTunerNotify, (char*)"registerTunerNotify"};
-	mSeqs [EN_SEQ_TUNER_CONTROL_UNREG_TUNER_NOTIFY] = 
-		{(PFN_SEQ_BASE)&CTunerControl::unregisterTunerNotify, (char*)"unregisterTunerNotify"};
-	mSeqs [EN_SEQ_TUNER_CONTROL_REG_TS_RECEIVE_HANDLER] =
-		{(PFN_SEQ_BASE)&CTunerControl::registerTsReceiveHandler, (char*)"registerTsReceiveHandler"};
-	mSeqs [EN_SEQ_TUNER_CONTROL_UNREG_TS_RECEIVE_HANDLER] = 
-		{(PFN_SEQ_BASE)&CTunerControl::unregisterTsReceiveHandler, (char*)"unregisterTsReceiveHandler"};
-	mSeqs [EN_SEQ_TUNER_CONTROL_GET_STATE] = 
-		{(PFN_SEQ_BASE)&CTunerControl::getState, (char*)"getState"};
-	setSeqs (mSeqs, EN_SEQ_TUNER_CONTROL_NUM);
+	SEQ_BASE_t seqs [EN_SEQ_TUNER_CONTROL_NUM] = {
+		{(PFN_SEQ_BASE)&CTunerControl::moduleUp, (char*)"moduleUp"},                                     // EN_SEQ_TUNER_CONTROL_MODULE_UP
+		{(PFN_SEQ_BASE)&CTunerControl::moduleDown, (char*)"moduleDown"},                                 // EN_SEQ_TUNER_CONTROL_MODULE_DOWN
+		{(PFN_SEQ_BASE)&CTunerControl::tune, (char*)"tune"},                                             // EN_SEQ_TUNER_CONTROL_TUNE
+		{(PFN_SEQ_BASE)&CTunerControl::tuneStart, (char*)"tuneStart"},                                   // EN_SEQ_TUNER_CONTROL_TUNE_START
+		{(PFN_SEQ_BASE)&CTunerControl::tuneStop, (char*)"tuneStop"},                                     // EN_SEQ_TUNER_CONTROL_TUNE_STOP
+		{(PFN_SEQ_BASE)&CTunerControl::registerTunerNotify, (char*)"registerTunerNotify"},               // EN_SEQ_TUNER_CONTROL_REG_TUNER_NOTIFY
+		{(PFN_SEQ_BASE)&CTunerControl::unregisterTunerNotify, (char*)"unregisterTunerNotify"},           // EN_SEQ_TUNER_CONTROL_UNREG_TUNER_NOTIFY
+		{(PFN_SEQ_BASE)&CTunerControl::registerTsReceiveHandler, (char*)"registerTsReceiveHandler"},     // EN_SEQ_TUNER_CONTROL_REG_TS_RECEIVE_HANDLER
+		{(PFN_SEQ_BASE)&CTunerControl::unregisterTsReceiveHandler, (char*)"unregisterTsReceiveHandler"}, // EN_SEQ_TUNER_CONTROL_UNREG_TS_RECEIVE_HANDLER
+		{(PFN_SEQ_BASE)&CTunerControl::getState, (char*)"getState"},                                     // EN_SEQ_TUNER_CONTROL_GET_STATE
+	};
+	setSeqs (seqs, EN_SEQ_TUNER_CONTROL_NUM);
 
 
 	// it9175 ts callbacks

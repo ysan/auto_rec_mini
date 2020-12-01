@@ -15,33 +15,22 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 	,m_tuneCompNotify_clientId (0xff)
 	,m_psisiState (EN_PSISI_STATE__NOT_READY)
 {
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleUp,                              (char*)"onReq_moduleUp"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleDown,                            (char*)"onReq_moduleDown"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__CHANNEL_SCAN] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_channelScan,                           (char*)"onReq_channelScan"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_SERVICE_ID] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByServiceId,          (char*)"onReq_getPysicalChannelByServiceId"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_REMOTE_CONTROL_KEY_ID] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByRemoteControlKeyId, (char*)"onReq_getPysicalChannelByRemoteControlKeyId"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByServiceId,                       (char*)"onReq_tuneByServiceId"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID_WITH_RETRY] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByServiceId_withRetry,             (char*)"onReq_tuneByServiceId_withRetry"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByRemoteControlKeyId,              (char*)"onReq_tuneByRemoteControlKeyId"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__TUNE_STOP] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneStop,                              (char*)"onReq_tuneStop"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_getChannels,                           (char*)"onReq_getChannels"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_getTransportStreamName,                (char*)"onReq_getTransportStreamName"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__GET_SERVICE_NAME] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_getServiceName,                        (char*)"onReq_getServiceName"};
-	mSeqs [EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS] =
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpChannels,                          (char*)"onReq_dumpChannels"};
-	setSeqs (mSeqs, EN_SEQ_CHANNEL_MANAGER__NUM);
+	SEQ_BASE_t seqs [EN_SEQ_CHANNEL_MANAGER__NUM] = {
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleUp, (char*)"onReq_moduleUp"},                                                           // EN_SEQ_CHANNEL_MANAGER__MODULE_UP
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleDown, (char*)"onReq_moduleDown"},                                                       // EN_SEQ_CHANNEL_MANAGER__MODULE_DOWN
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_channelScan, (char*)"onReq_channelScan"},                                                     // EN_SEQ_CHANNEL_MANAGER__CHANNEL_SCAN
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByServiceId, (char*)"onReq_getPysicalChannelByServiceId"},                   // EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_SERVICE_ID
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByRemoteControlKeyId, (char*)"onReq_getPysicalChannelByRemoteControlKeyId"}, // EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_REMOTE_CONTROL_KEY_ID
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByServiceId, (char*)"onReq_tuneByServiceId"},                                             // EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByServiceId_withRetry, (char*)"onReq_tuneByServiceId_withRetry"},                         // EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID_WITH_RETRY
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByRemoteControlKeyId, (char*)"onReq_tuneByRemoteControlKeyId"},                           // EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneStop, (char*)"onReq_tuneStop"},                                                           // EN_SEQ_CHANNEL_MANAGER__TUNE_STOP
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_getChannels, (char*)"onReq_getChannels"},                                                     // EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_getTransportStreamName, (char*)"onReq_getTransportStreamName"},                               // EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_getServiceName, (char*)"onReq_getServiceName"},                                               // EN_SEQ_CHANNEL_MANAGER__GET_SERVICE_NAME
+		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpChannels, (char*)"onReq_dumpChannels"},                                                   // EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS
+	};
+	setSeqs (seqs, EN_SEQ_CHANNEL_MANAGER__NUM);
 
 
 	m_channels.clear ();

@@ -33,10 +33,12 @@ CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
 	,mClientfd (0)
 	,m_isConnectionClose (false)
 {
-	mSeqs [EN_SEQ_COMMAND_SERVER_MODULE_UP]   = {(PFN_SEQ_BASE)&CCommandServer::moduleUp, (char*)"moduleUp"};
-	mSeqs [EN_SEQ_COMMAND_SERVER_MODULE_DOWN] = {(PFN_SEQ_BASE)&CCommandServer::moduleDown, (char*)"moduleDown"};
-	mSeqs [EN_SEQ_COMMAND_SERVER_SERVER_LOOP] = {(PFN_SEQ_BASE)&CCommandServer::serverLoop, (char*)"serverLoop"};
-	setSeqs (mSeqs, EN_SEQ_COMMAND_SERVER_NUM);
+	SEQ_BASE_t seqs [EN_SEQ_COMMAND_SERVER_NUM] = {
+		{(PFN_SEQ_BASE)&CCommandServer::moduleUp, (char*)"moduleUp"}, // EN_SEQ_COMMAND_SERVER_MODULE_UP
+		{(PFN_SEQ_BASE)&CCommandServer::moduleDown, (char*)"moduleDown"}, // EN_SEQ_COMMAND_SERVER_MODULE_DOWN
+		{(PFN_SEQ_BASE)&CCommandServer::serverLoop, (char*)"serverLoop"}, // EN_SEQ_COMMAND_SERVER_SERVER_LOOP
+	};
+	setSeqs (seqs, EN_SEQ_COMMAND_SERVER_NUM);
 
 
 	on_command_wait_begin = onCommandWaitBegin;

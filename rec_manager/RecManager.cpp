@@ -97,37 +97,24 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	,m_recProgress (EN_REC_PROGRESS__INIT)
 	,mp_outputBuffer (NULL)
 {
-	mSeqs [EN_SEQ_REC_MANAGER__MODULE_UP] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUp,                (char*)"onReq_moduleUp"};
-	mSeqs [EN_SEQ_REC_MANAGER__MODULE_DOWN] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleDown,              (char*)"onReq_moduleDown"};
-	mSeqs [EN_SEQ_REC_MANAGER__CHECK_LOOP] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_checkLoop,               (char*)"onReq_checkLoop"};
-	mSeqs [EN_SEQ_REC_MANAGER__CHECK_EVENT_LOOP] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_checkEventLoop,          (char*)"onReq_checkEventLoop"};
-	mSeqs [EN_SEQ_REC_MANAGER__RECORDING_NOTICE] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_recordingNotice,         (char*)"onReq_recordingNotice"};
-	mSeqs [EN_SEQ_REC_MANAGER__START_RECORDING] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_startRecording,          (char*)"onReq_startRecording"};
-	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_currentEvent, (char*)"onReq_addReserve_currentEvent"};
-	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_event,        (char*)"onReq_addReserve_event"};
-	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_eventHelper,  (char*)"onReq_addReserve_eventHelper"};
-	mSeqs [EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_manual,       (char*)"onReq_addReserve_manual"};
-	mSeqs [EN_SEQ_REC_MANAGER__REMOVE_RESERVE] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve,           (char*)"onReq_removeReserve"};
-	mSeqs [EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve_byIndex,   (char*)"onReq_removeReserve_byIndex"};
-	mSeqs [EN_SEQ_REC_MANAGER__GET_RESERVES] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_getReserves,             (char*)"onReq_getReserves"};
-	mSeqs [EN_SEQ_REC_MANAGER__STOP_RECORDING] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_stopRecording,           (char*)"onReq_stopRecording"};
-	mSeqs [EN_SEQ_REC_MANAGER__DUMP_RESERVES] =
-		{(PFN_SEQ_BASE)&CRecManager::onReq_dumpReserves,            (char*)"onReq_dumpReserves"};
-	setSeqs (mSeqs, EN_SEQ_REC_MANAGER__NUM);
+	SEQ_BASE_t seqs [EN_SEQ_REC_MANAGER__NUM] = {
+		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUp, (char*)"onReq_moduleUp"},                               // EN_SEQ_REC_MANAGER__MODULE_UP
+		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleDown, (char*)"onReq_moduleDown"},                           // EN_SEQ_REC_MANAGER__MODULE_DOWN
+		{(PFN_SEQ_BASE)&CRecManager::onReq_checkLoop, (char*)"onReq_checkLoop"},                             // EN_SEQ_REC_MANAGER__CHECK_LOOP
+		{(PFN_SEQ_BASE)&CRecManager::onReq_checkEventLoop, (char*)"onReq_checkEventLoop"},                   // EN_SEQ_REC_MANAGER__CHECK_EVENT_LOOP
+		{(PFN_SEQ_BASE)&CRecManager::onReq_recordingNotice, (char*)"onReq_recordingNotice"},                 // EN_SEQ_REC_MANAGER__RECORDING_NOTICE
+		{(PFN_SEQ_BASE)&CRecManager::onReq_startRecording, (char*)"onReq_startRecording"},                   // EN_SEQ_REC_MANAGER__START_RECORDING
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_currentEvent, (char*)"onReq_addReserve_currentEvent"}, // EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_event, (char*)"onReq_addReserve_event"},               // EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_eventHelper, (char*)"onReq_addReserve_eventHelper"},   // EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_manual, (char*)"onReq_addReserve_manual"},             // EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL
+		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve, (char*)"onReq_removeReserve"},                     // EN_SEQ_REC_MANAGER__REMOVE_RESERVE
+		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve_byIndex, (char*)"onReq_removeReserve_byIndex"},     // EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX
+		{(PFN_SEQ_BASE)&CRecManager::onReq_getReserves, (char*)"onReq_getReserves"},                         // EN_SEQ_REC_MANAGER__GET_RESERVES
+		{(PFN_SEQ_BASE)&CRecManager::onReq_stopRecording, (char*)"onReq_stopRecording"},                     // EN_SEQ_REC_MANAGER__STOP_RECORDING
+		{(PFN_SEQ_BASE)&CRecManager::onReq_dumpReserves, (char*)"onReq_dumpReserves"},                       // EN_SEQ_REC_MANAGER__DUMP_RESERVES
+	};
+	setSeqs (seqs, EN_SEQ_REC_MANAGER__NUM);
 
 
 	mp_settings = CSettings::getInstance();

@@ -157,8 +157,6 @@ private:
 	void loadExtendedEventSearchHistories (void);
 
 
-	ST_SEQ_BASE mSeqs [EN_SEQ_EVENT_SEARCH__NUM]; // entity
-
 	uint8_t m_cache_sched_state_notify_client_id;
 	std::vector <std::string> m_event_name_keywords;
 	std::vector <std::string> m_extended_event_keywords;

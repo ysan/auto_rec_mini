@@ -35,6 +35,7 @@ CThreadMgr::CThreadMgr (void)
 	,mpRegTbl (NULL)
 	,mpExtIf (NULL)
 {
+	mThreads.clear();
 }
 
 CThreadMgr:: ~CThreadMgr (void)
@@ -55,26 +56,27 @@ bool CThreadMgr::registerThreads (CThreadMgrBase *pThreads[], int threadNum)
 		return false;
 	}
 
-	int i = 0;
-	while (i < threadNum) {
-		if (i == THREAD_IDX_MAX) {
+	int idx = 0;
+	while (idx < threadNum) {
+		if (idx == THREAD_IDX_MAX) {
 			// over flow
 			THM_LOG_E ("thread idx is over. (inner thread table)\n");
 			return false;
 		}
 
-		if ((pThreads [i]->mQueNum < QUE_WORKER_MIN) && (pThreads [i]->mQueNum > QUE_WORKER_MAX)) {
+		if ((pThreads [idx]->mQueNum < QUE_WORKER_MIN) && (pThreads [idx]->mQueNum > QUE_WORKER_MAX)) {
 			THM_LOG_E ("que num is invalid. (inner thread table)\n");
 			return false;
 		}
 
-		if ((pThreads [i]->mSeqNum <= 0) && (pThreads [i]->mSeqNum > SEQ_IDX_MAX)) {
+		if ((pThreads [idx]->mSeqNum <= 0) && (pThreads [idx]->mSeqNum > SEQ_IDX_MAX)) {
 			THM_LOG_E ("func idx is invalid. (inner thread table)\n");
 			return false;
 		}
 
-		gpThreads [i] = pThreads [i];
-		++ i;
+		pThreads[idx]->setIdx(idx);
+		gpThreads [idx] = pThreads [idx];
+		++ idx;
 	}
 
 	return true;
@@ -89,18 +91,8 @@ void CThreadMgr::unRegisterThreads (void)
 	}
 }
 
-bool CThreadMgr::setup (CThreadMgrBase *pThreads[], int threadNum)
+bool CThreadMgr::setup (void)
 {
-	if (!registerThreads (pThreads, threadNum)) {
-		THM_LOG_E ("registerThreads() is failure.\n");
-		return false;
-	}
-
-	mThreadNum = threadNum;
-
-	setupDispatcher (dispatcher);
-
-
 	mpRegTbl = (ST_THM_REG_TBL*) malloc (sizeof(ST_THM_REG_TBL) * mThreadNum);
 	if (!mpRegTbl) {
 		THM_PERROR ("malloc");
@@ -127,7 +119,7 @@ bool CThreadMgr::setup (CThreadMgrBase *pThreads[], int threadNum)
 		for (int j = 0; j < gpThreads[i]->mSeqNum; ++ j) {
 			ST_THM_SEQ *p = pThmSeq + j;
 			const_cast <PCB_THM_SEQ&> (p->pcbSeq) = NULL;
-			p->pszName = ((gpThreads[i]->mpSeqsBase) + j)->pszName;
+			p->pszName = ((gpThreads[i]->mpSeqsBase) + j)->name.c_str();
 		}
 		p->pstSeqArray = pThmSeq;
 
@@ -146,6 +138,38 @@ bool CThreadMgr::setup (CThreadMgrBase *pThreads[], int threadNum)
 	mpExtIf = new CThreadMgrExternalIf (pExtIf);
 	if (!mpExtIf) {
 		THM_LOG_E ("mpExtIf is null.\n");
+		return false;
+	}
+
+	return true;
+}
+
+bool CThreadMgr::setup (CThreadMgrBase *pThreads[], int threadNum)
+{
+	if (!registerThreads (pThreads, threadNum)) {
+		THM_LOG_E ("registerThreads() is failure.\n");
+		return false;
+	}
+
+	mThreadNum = threadNum;
+
+	setupDispatcher (dispatcher);
+
+	return setup();
+}
+
+bool CThreadMgr::setup (std::vector<CThreadMgrBase*> &threads)
+{
+	int _size = threads.size();
+	CThreadMgrBase *p_bases [_size];
+	int idx = 0;
+	for (const auto &th : threads) {
+		p_bases[idx] = th;
+		++ idx ;
+	}
+
+	if (!setup (p_bases, _size)) {
+		THM_LOG_E ("setup() is failure.\n");
 		return false;
 	}
 

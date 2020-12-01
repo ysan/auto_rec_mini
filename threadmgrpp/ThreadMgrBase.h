@@ -7,6 +7,9 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <string>
+#include <vector>
+
 #include "threadmgr_if.h"
 #include "threadmgr_util.h"
 
@@ -22,8 +25,8 @@ typedef void (CThreadMgrBase:: *PFN_SEQ_BASE) (CThreadMgrIf *pIf);
 
 typedef struct _seq_base {
 	PFN_SEQ_BASE pfnSeqBase;
-	char *pszName;
-} ST_SEQ_BASE;
+	std::string name;
+} SEQ_BASE_t;
 
 
 class CThreadMgrBase
@@ -33,6 +36,7 @@ public:
 
 
 	CThreadMgrBase (const char *pszName, uint8_t nQueNum);
+	CThreadMgrBase (std::string name, uint8_t nQueNum);
 	virtual ~CThreadMgrBase (void);
 
 
@@ -41,8 +45,13 @@ public:
 	CThreadMgrExternalIf *getExternalIf (void) const;
 	CThreadMgrIf *getIf (void) const;
 
+	void setIdx (uint8_t idx);
+	uint8_t getIdx (void);
+
+
 protected:
-	void setSeqs (ST_SEQ_BASE pstSeqs [], uint8_t seqNum);
+	void setSeqs (const SEQ_BASE_t pstSeqs [], uint8_t seqNum);
+	void setSeqs (const std::vector<SEQ_BASE_t> &seqs);
 
 	virtual void onCreate (void);
 	virtual void onDestroy (void);
@@ -66,14 +75,18 @@ private:
 	void setIf (CThreadMgrIf *pIf);
 
 
-	ST_SEQ_BASE *mpSeqsBase ;
+	const SEQ_BASE_t *mpSeqsBase ;
 
 	char mName [16];
 	uint8_t mQueNum;
+
+	std::vector<SEQ_BASE_t> mSeqs;
 	uint8_t mSeqNum;
 	
 	CThreadMgrExternalIf **mpExtIf;
 	CThreadMgrIf *mpThmIf;
+
+	uint8_t mIdx;
 };
 
 } // namespace ThreadManager
