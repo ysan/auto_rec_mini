@@ -619,6 +619,7 @@ bool setup (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax)
 	waitSem ();
 	THM_INNER_FORCE_LOG_I ("----- setup complete. -----\n");
 
+
 	return true;
 }
 
@@ -1864,7 +1865,23 @@ static void *baseThread (void *pArg)
 
 	/* スレッド立ち上がり通知 */
 	postSem ();
-	THM_INNER_FORCE_LOG_I ("----- %s created. -----\n", BASE_THREAD_NAME);
+
+	int policy;
+	struct sched_param param;
+	if (pthread_getschedparam (pthread_self(), &policy, &param) != 0) {
+		THM_PERROR ("pthread_getschedparam()");
+	}
+
+	THM_INNER_FORCE_LOG_I (
+		"-----> %s created. (pthread_id:[%lu] policy:[%s] priority:[%d])\n",
+		BASE_THREAD_NAME,
+		pthread_self(),
+		policy == SCHED_FIFO ? "SCHED_FIFO" :
+			policy == SCHED_RR ? "SCHED_RR" :
+				policy == SCHED_OTHER ? "SCHED_OTHER" :
+					"???",
+		param.sched_priority
+	);
 
 
 	while (1) {
@@ -1967,7 +1984,23 @@ static void *sigwaitThread (void *pArg)
 
 	/* スレッド立ち上がり通知 */
 	postSem ();
-	THM_INNER_FORCE_LOG_I ("----- %s created. -----\n", SIGWAIT_THREAD_NAME);
+
+	int policy;
+	struct sched_param param;
+	if (pthread_getschedparam (pthread_self(), &policy, &param) != 0) {
+		THM_PERROR ("pthread_getschedparam()");
+	}
+
+	THM_INNER_FORCE_LOG_I (
+		"-----> %s created. (pthread_id:[%lu] policy:[%s] priority:[%d])\n",
+		SIGWAIT_THREAD_NAME,
+		pthread_self(),
+		policy == SCHED_FIFO ? "SCHED_FIFO" :
+			policy == SCHED_RR ? "SCHED_RR" :
+				policy == SCHED_OTHER ? "SCHED_OTHER" :
+					"???",
+		param.sched_priority
+	);
 
 
 	while (1) {
@@ -2205,7 +2238,24 @@ static void *workerThread (void *pArg)
 
 	/* スレッド立ち上がり通知 */
 	postSem ();
-	THM_INNER_FORCE_LOG_I ("----- %s created. -----\n", pstInnerInfo->pszName);
+
+	int policy;
+	struct sched_param param;
+	if (pthread_getschedparam (pstInnerInfo->nPthreadId, &policy, &param) != 0) {
+		THM_PERROR ("pthread_getschedparam()");
+	}
+
+	THM_INNER_FORCE_LOG_I (
+		"-----> %s created. (thIdx:[%d] pthread_id:[%lu] policy:[%s] priority:[%d])\n",
+		pstInnerInfo->pszName,
+		pstInnerInfo->nThreadIdx,
+		pstInnerInfo->nPthreadId,
+		policy == SCHED_FIFO ? "SCHED_FIFO" :
+			policy == SCHED_RR ? "SCHED_RR" :
+				policy == SCHED_OTHER ? "SCHED_OTHER" :
+					"???",
+		param.sched_priority
+	);
 
 
 	while (1) {

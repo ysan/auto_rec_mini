@@ -8,7 +8,7 @@ Restart=on-success
 ExecStartPre=/sbin/ldconfig /opt/auto_rec_mini/lib
 ExecStart=/opt/auto_rec_mini/bin/auto_rec_mini -c /opt/auto_rec_mini/settings.json -d /opt/auto_rec_mini
 KillSignal=SIGINT
-Nice=-15
+#Nice=-15
 
 [Install]
 WantedBy=multi-user.target

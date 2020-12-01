@@ -406,6 +406,8 @@ public:
 	virtual ~CPsisiManager (void);
 
 
+	void onCreate (void) override;
+
 	void onReq_moduleUp (CThreadMgrIf *pIf);
 	void onReq_moduleDown (CThreadMgrIf *pIf);
 	void onReq_checkLoop (CThreadMgrIf *pIf);

@@ -99,6 +99,19 @@ CPsisiManager::~CPsisiManager (void)
 }
 
 
+void CPsisiManager::onCreate (void)
+{
+	// SCHED_FIFOにして優先度上げてみます
+	// 確認コマンド (FFやRRで99のtaskとか存在する)
+	// $ ps -em -o pid,tid,policy,pri,ni,rtprio,comm
+	int policy = SCHED_FIFO;
+	struct sched_param param;
+	param.sched_priority = 80;
+	if (pthread_setschedparam(pthread_self(), policy, &param) != 0) {
+		_UTL_PERROR ("pthread_setschedparam");
+	}
+}
+
 void CPsisiManager::onReq_moduleUp (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
