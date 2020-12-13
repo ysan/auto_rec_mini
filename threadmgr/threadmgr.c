@@ -2895,6 +2895,8 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		 */
 		if (pstTmpSyncReplyInfo) {
 			clearThmSrcInfo (&gstThmSrcInfo [stContext.nThreadIdx]);
+			// タイムアウトしたことだけわかるようにしておきます
+			gstThmSrcInfo [stContext.nThreadIdx].enRslt = EN_THM_RSLT_REQ_TIMEOUT;
 		}
 		break;
 

@@ -11,3 +11,4 @@ event_schedule_cache_histories.json
 event_schedule_map.json
 compile_commands.json
 .clangd
+.cache
