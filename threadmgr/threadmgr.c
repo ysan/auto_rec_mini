@@ -744,6 +744,7 @@ static void setupSignal (void)
 	sigemptyset (&gSigset);
 
 	sigaddset (&gSigset, SIGQUIT); //TODO terminal (ctrl + \)
+	sigaddset (&gSigset, SIGINT);
 	sigaddset (&gSigset, SIGTERM);
 	sigprocmask (SIG_BLOCK, &gSigset, NULL);
 }
@@ -1236,6 +1237,7 @@ static bool enQueWorker (
 				if (msgSize > MSG_SIZE) {
 					THM_INNER_FORCE_LOG_W ("truncate request message. size:[%d]->[%d] thIdx:[%d]\n", msgSize, MSG_SIZE, nThreadIdx);
 				}
+				memset (pstQueWorker->msg.msg, 0x00, MSG_SIZE);
 				memcpy (pstQueWorker->msg.msg, pMsg, msgSize < MSG_SIZE ? msgSize : MSG_SIZE);
 				pstQueWorker->msg.size = msgSize < MSG_SIZE ? msgSize : MSG_SIZE;
 				pstQueWorker->msg.isUsed = true;
@@ -1863,9 +1865,6 @@ static void *baseThread (void *pArg)
 	/* set thread name */
 	setThreadName (BASE_THREAD_NAME);
 
-	/* スレッド立ち上がり通知 */
-	postSem ();
-
 	int policy;
 	struct sched_param param;
 	if (pthread_getschedparam (pthread_self(), &policy, &param) != 0) {
@@ -1873,7 +1872,7 @@ static void *baseThread (void *pArg)
 	}
 
 	THM_INNER_FORCE_LOG_I (
-		"-----> %s created. (pthread_id:[%lu] policy:[%s] priority:[%d])\n",
+		"----- %s created. ----- (pthread_id:[%lu] policy:[%s] priority:[%d])\n",
 		BASE_THREAD_NAME,
 		pthread_self(),
 		policy == SCHED_FIFO ? "SCHED_FIFO" :
@@ -1882,6 +1881,9 @@ static void *baseThread (void *pArg)
 					"???",
 		param.sched_priority
 	);
+
+	/* スレッド立ち上がり通知 */
+	postSem ();
 
 
 	while (1) {
@@ -1982,9 +1984,6 @@ static void *sigwaitThread (void *pArg)
 	/* set thread name */
 	setThreadName (SIGWAIT_THREAD_NAME);
 
-	/* スレッド立ち上がり通知 */
-	postSem ();
-
 	int policy;
 	struct sched_param param;
 	if (pthread_getschedparam (pthread_self(), &policy, &param) != 0) {
@@ -1992,7 +1991,7 @@ static void *sigwaitThread (void *pArg)
 	}
 
 	THM_INNER_FORCE_LOG_I (
-		"-----> %s created. (pthread_id:[%lu] policy:[%s] priority:[%d])\n",
+		"----- %s created. ----- (pthread_id:[%lu] policy:[%s] priority:[%d])\n",
 		SIGWAIT_THREAD_NAME,
 		pthread_self(),
 		policy == SCHED_FIFO ? "SCHED_FIFO" :
@@ -2002,6 +2001,9 @@ static void *sigwaitThread (void *pArg)
 		param.sched_priority
 	);
 
+	/* スレッド立ち上がり通知 */
+	postSem ();
+
 
 	while (1) {
 		if (sigwait(&gSigset, &nSig) == SYS_RETURN_NORMAL) {
@@ -2010,8 +2012,9 @@ static void *sigwaitThread (void *pArg)
 				THM_INNER_FORCE_LOG_I ("catch SIGQUIT\n");
 				requestBaseThread (EN_MONI_TYPE_DEBUG);
 				break;
+			case SIGINT:
 			case SIGTERM:
-				THM_INNER_FORCE_LOG_I ("catch SIGTERM\n");
+				THM_INNER_FORCE_LOG_I ("catch SIGINT or SIGTERM\n");
 				requestBaseThread (EN_MONI_TYPE_DESTROY);
 				destroyAllWorkerThread();
 				isDestroy = true;
@@ -2236,9 +2239,6 @@ static void *workerThread (void *pArg)
 
 	setState (pstInnerInfo->nThreadIdx, EN_STATE_READY);
 
-	/* スレッド立ち上がり通知 */
-	postSem ();
-
 	int policy;
 	struct sched_param param;
 	if (pthread_getschedparam (pstInnerInfo->nPthreadId, &policy, &param) != 0) {
@@ -2246,7 +2246,7 @@ static void *workerThread (void *pArg)
 	}
 
 	THM_INNER_FORCE_LOG_I (
-		"-----> %s created. (thIdx:[%d] pthread_id:[%lu] policy:[%s] priority:[%d])\n",
+		"----- %s created. ----- (thIdx:[%d] pthread_id:[%lu] policy:[%s] priority:[%d])\n",
 		pstInnerInfo->pszName,
 		pstInnerInfo->nThreadIdx,
 		pstInnerInfo->nPthreadId,
@@ -2256,6 +2256,9 @@ static void *workerThread (void *pArg)
 					"???",
 		param.sched_priority
 	);
+
+	/* スレッド立ち上がり通知 */
+	postSem ();
 
 
 	while (1) {
@@ -3167,7 +3170,7 @@ static bool replyInner (
 	/* Reqタイムアウトしてないか確認する */
 	EN_TIMEOUT_STATE enState = getReqTimeoutState (nThreadIdx, nReqId);
 	if ((enState != EN_TIMEOUT_STATE_MEAS) && (enState != EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT)) {
-		THM_INNER_LOG_E ("getReqTimeoutState() is unexpected. [%d]   maybe timeout occured. not reply...\n", enState);
+		THM_INNER_FORCE_LOG_W ("getReqTimeoutState() is unexpected. [%d]   maybe timeout occured. not reply...\n", enState);
 
 		/* unlock */
 		pthread_mutex_unlock (&gMutexWorker [nThreadIdx]);
@@ -3237,6 +3240,7 @@ static bool replyOuter (
 	}
 	pstExtInfo->stThmSrcInfo.enRslt = enRslt;
 	if (pMsg && msgSize > 0) {
+		memset (pstExtInfo->msgEntity.msg, 0x00, MSG_SIZE);
 		memcpy (pstExtInfo->msgEntity.msg, pMsg, msgSize < MSG_SIZE ? msgSize : MSG_SIZE);
 		pstExtInfo->msgEntity.size = msgSize < MSG_SIZE ? msgSize : MSG_SIZE;
 		pstExtInfo->stThmSrcInfo.msg.pMsg = pstExtInfo->msgEntity.msg;
@@ -3289,7 +3293,7 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 		}
 
 		if (!isActiveRequestId (THREAD_IDX_EXTERNAL, nReqId)) {
-			THM_INNER_LOG_E ("reqId:[0x%x] is inActive. maybe timeout occured. not reply...\n", nReqId);
+			THM_INNER_FORCE_LOG_W ("reqId:[0x%x] is inActive. maybe timeout occured. not reply...\n", nReqId);
 			return false;
 		}
 
@@ -3311,7 +3315,7 @@ static bool reply (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize)
 		}
 
 		if (!isActiveRequestId (nThreadIdx, nReqId)) {
-			THM_INNER_LOG_E ("reqId:[0x%x] is inActive. maybe timeout occured. not reply...\n", nReqId);
+			THM_INNER_FORCE_LOG_W ("reqId:[0x%x] is inActive. maybe timeout occured. not reply...\n", nReqId);
 			return false;
 		}
 
