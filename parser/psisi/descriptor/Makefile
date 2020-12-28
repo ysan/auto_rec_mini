@@ -51,6 +51,7 @@ SRCS_CPP	:= \
 	CAIdentifierDescriptor.cpp \
 	ConditionalAccessDescriptor.cpp \
 	StreamIdentifierDescriptor.cpp \
+	LogoTransmissionDescriptor.cpp \
 
 #
 #   Configurations

@@ -20,6 +20,7 @@
 #include "CAIdentifierDescriptor.h"
 #include "ConditionalAccessDescriptor.h"
 #include "StreamIdentifierDescriptor.h"
+#include "LogoTransmissionDescriptor.h"
 
 
 #define DESC_TAG__NETWORK_NAME_DESCRIPTOR					(0x40) // ネットワーク名記述子
@@ -296,6 +297,17 @@ public:
 					sid.dump();
 				} else {
 					_UTL_LOG_W ("invalid StreamIdentifierDescriptor\n");
+				}
+			}
+			break;
+
+		case DESC_TAG__LOGO_TRANSMISSION_DESCRIPTOR:
+			{
+				CLogoTransmissionDescriptor ltd (desc);
+				if (ltd.isValid) {
+					ltd.dump();
+				} else {
+					_UTL_LOG_W ("invalid LogoTransmissionDescriptor\n");
 				}
 			}
 			break;
