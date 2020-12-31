@@ -86,6 +86,7 @@ public:
 public:
 	CCommonDataTable (void);
 	explicit CCommonDataTable (int fifoNum);
+	explicit CCommonDataTable (size_t poolSize);
 	virtual ~CCommonDataTable (void);
 
 

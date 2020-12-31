@@ -89,6 +89,9 @@ public:
 		std::string *getExtendedEventSearchHistoriesJsonPath (void) {
 			return &m_extended_event_search_histories_json_path;
 		}
+		std::string *getLogoPath (void) {
+			return &m_logo_path;
+		}
 
 		void dump (void) {
 			_UTL_LOG_I ("--------------------------------");
@@ -113,6 +116,7 @@ public:
 			_UTL_LOG_I ("extended_event_keywords_json_path:[%s]", m_extended_event_keywords_json_path.c_str());
 			_UTL_LOG_I ("event_name_search_histories_json_path:[%s]", m_event_name_search_histories_json_path.c_str());
 			_UTL_LOG_I ("extended_event_search_histories_json_path:[%s]", m_extended_event_search_histories_json_path.c_str());
+			_UTL_LOG_I ("logo_path:[%s]", m_logo_path.c_str());
 			_UTL_LOG_I ("--------------------------------");
 		}
 
@@ -165,6 +169,7 @@ public:
 				,cereal::make_nvp("extended_event_keywords_json_path", m_extended_event_keywords_json_path)
 				,cereal::make_nvp("event_name_search_histories_json_path", m_event_name_search_histories_json_path)
 				,cereal::make_nvp("extended_event_search_histories_json_path", m_extended_event_search_histories_json_path)
+				,cereal::make_nvp("logo_path", m_logo_path)
 
 			);
 		}
@@ -191,6 +196,7 @@ public:
 		std::string m_extended_event_keywords_json_path;
 		std::string m_event_name_search_histories_json_path;
 		std::string m_extended_event_search_histories_json_path;
+		std::string m_logo_path;
 
 	};
 

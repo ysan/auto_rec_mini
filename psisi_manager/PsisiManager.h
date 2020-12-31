@@ -10,6 +10,7 @@
 #include "ThreadMgrpp.h"
 
 #include "Utils.h"
+#include "Settings.h"
 #include "PsisiManagerIf.h"
 
 #include "TunerControlIf.h"
@@ -26,6 +27,7 @@
 #include "BroadcasterInformationTable.h"
 #include "TimeOffsetTable.h"
 #include "ConditionalAccessTable.h"
+#include "CommonDataTable.h"
 
 
 using namespace ThreadManager;
@@ -509,6 +511,7 @@ private:
 	void onScheduleUpdate (void) override;
 
 
+	CSettings *mp_settings;
 
 	CTsParser m_parser;
 
@@ -520,12 +523,14 @@ private:
 
 	bool m_isDetectedPAT;
 
+	EN_PSISI_STATE m_state;
 
 	CProgramAssociationTable mPAT;
 	CEventInformationTable mEIT_H;
 	CNetworkInformationTable mNIT;
 	CServiceDescriptionTable mSDT;
 	CConditionalAccessTable mCAT;
+	CCommonDataTable mCDT;
 
 // TODO 現状配列の排他は入れません
 // tuner thread との排他

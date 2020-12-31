@@ -1,8 +1,13 @@
+#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+
+#include<iostream>
+#include<fstream>
+#include<sstream>
 
 #include "PsisiManager.h"
 #include "PsisiManagerIf.h"
@@ -35,8 +40,10 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	,m_ts_receive_handler_id (-1)
 	,m_tunerIsTuned (false)
 	,m_isDetectedPAT (false)
+	,m_state (EN_PSISI_STATE__NOT_READY)
 	,mPAT (16)
 	,mEIT_H (4096*100, 100)
+	,mCDT (4096*100)
 	,mEIT_H_sched (4096*100, 100, this)
 	,m_isEnableEITSched (false)
 {
@@ -64,6 +71,8 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
 	};
 	setSeqs (seqs, EN_SEQ_PSISI_MANAGER__NUM);
 
+
+	mp_settings = CSettings::getInstance();
 
 	// references
 //	mPAT_ref = mPAT.reference();
@@ -386,6 +395,7 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 	mNIT.checkAsyncDelete ();
 	mSDT.checkAsyncDelete ();
 	mCAT.checkAsyncDelete ();
+	mCDT.checkAsyncDelete ();
 	for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
 		m_tmpProgramMaps[i].m_parser.checkAsyncDelete ();
 	}
@@ -481,6 +491,52 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 		if (r == EN_CHECK_SECTION__COMPLETED) {
 			_UTL_LOG_I ("notice new CAT");
 //TODO
+		}
+
+		break;
+
+	case EN_PSISI_TYPE__CDT:
+
+		r = mCDT.checkSection (&p_notice->ts_header, p_notice->payload, p_notice->payload_size);
+		if (r == EN_CHECK_SECTION__COMPLETED) {
+			_UTL_LOG_I ("notice new CDT");
+
+			if (m_state == EN_PSISI_STATE__NOT_READY) {
+				break;
+			}
+
+			const auto *p_tables = mCDT.getTables();
+			if (!p_tables) {
+				break;
+			}
+
+			for (auto it = p_tables->cbegin(); it != p_tables->cend(); ++ it) {
+				if ((*it)->data_type != 0x01) {
+					continue;
+				}
+
+				std::string *p_path = mp_settings->getParams()->getLogoPath();
+				char _name[PATH_MAX] = {0};
+				snprintf (
+					_name,
+					sizeof(_name),
+					"%s/logo_%s_0x%04x_0x%04x_0x%04x_0x%02x%04x%04x.png",
+					p_path->c_str(),
+					m_networkInfo.ts_name_char,
+					m_networkInfo.transport_stream_id,
+					m_networkInfo.original_network_id,
+					(*it)->header.table_id_extension,
+					(*it)->data.logo_type,
+					(*it)->data.logo_id,
+					(*it)->data.logo_version
+				);
+				std::ofstream ofs (_name, std::ios::out|ios::binary);
+				ofs.write((char*)(*it)->data.data_byte.get(), (*it)->data.data_size);
+				ofs.flush();
+				ofs.close();
+			}
+
+
 		}
 
 		break;
@@ -617,6 +673,7 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 		mNIT.clear();
 		mSDT.clear();
 		mCAT.clear();
+		mCDT.clear();
 //		mRST.clear();
 //		mBIT.clear();
 
@@ -656,8 +713,8 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 			m_tunerIsTuned = true;
 
 			// fire notify
-			EN_PSISI_STATE state = EN_PSISI_STATE__READY;
-			pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&state, sizeof(state));
+			m_state = EN_PSISI_STATE__READY;
+			pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&m_state, sizeof(m_state));
 
 
 			sectId = SECTID_END;
@@ -1268,6 +1325,10 @@ void CPsisiManager::onReq_dumpTables (CThreadMgrIf *pIf)
 		mCAT.dumpTables();
 		break;
 
+	case EN_PSISI_TYPE__CDT:
+		mCDT.dumpTables();
+		break;
+
 //	case EN_PSISI_TYPE__RST:
 //		mRST.dumpTables();
 //		break;
@@ -1300,8 +1361,8 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_BEGIN");
 
 		// fire notify
-		EN_PSISI_STATE state = EN_PSISI_STATE__NOT_READY;
-		pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&state, sizeof(state));
+		m_state = EN_PSISI_STATE__NOT_READY;
+		pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&m_state, sizeof(m_state));
 
 		m_tunerIsTuned = false;
 
@@ -1344,8 +1405,8 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 		_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP");
 
 		// fire notify
-		EN_PSISI_STATE state = EN_PSISI_STATE__NOT_READY;
-		pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&state, sizeof(state));
+		m_state = EN_PSISI_STATE__NOT_READY;
+		pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&m_state, sizeof(m_state));
 
 
 		// tune stopで一連の動作が終わった時の対策
@@ -1363,8 +1424,8 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 		_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP");
 
 		// fire notify
-		EN_PSISI_STATE state = EN_PSISI_STATE__NOT_READY;
-		pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&state, sizeof(state));
+		m_state = EN_PSISI_STATE__NOT_READY;
+		pIf->notify (NOTIFY_CAT__PSISI_STATE, (uint8_t*)&m_state, sizeof(m_state));
 
 
 		// tune stopで一連の動作が終わった時の対策
@@ -2246,6 +2307,19 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 	case PID_CAT: {
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__CAT, p_ts_header, p_payload, payload_size);
+		requestAsync (
+			EN_MODULE_PSISI_MANAGER,
+			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
+			(uint8_t*)&_notice,
+			sizeof(_notice)
+		);
+
+		}
+		break;
+
+	case PID_CDT: {
+
+		_PARSER_NOTICE _notice (EN_PSISI_TYPE__CDT, p_ts_header, p_payload, payload_size);
 		requestAsync (
 			EN_MODULE_PSISI_MANAGER,
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,

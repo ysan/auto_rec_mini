@@ -24,8 +24,8 @@
         "event_name_keywords_json_path": "./data/event_name_keywords.json",
         "extended_event_keywords_json_path": "./data/extended_event_keywords.json",
         "event_name_search_histories_json_path": "./data/event_name_search_histories.json",
-        "extended_event_search_histories_json_path": "./data/extended_event_search_histories.json"
-
-
+        "extended_event_search_histories_json_path": "./data/extended_event_search_histories.json",
+    
+        "logo_path": "./data/"
     }
 }
