@@ -51,6 +51,7 @@ typedef enum {
 	EN_PSISI_TYPE__RST,
 	EN_PSISI_TYPE__BIT,
 	EN_PSISI_TYPE__CAT,
+	EN_PSISI_TYPE__CDT,
 
 	// for dump command
 	EN_PSISI_TYPE__EIT_H_PF,

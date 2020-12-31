@@ -248,6 +248,23 @@ static void dump_cat (int argc, char* argv[], CThreadMgrBase *pBase)
 	pBase->getExternalIf()->setRequestOption (opt);
 }
 
+static void dump_cdt (int argc, char* argv[], CThreadMgrBase *pBase)
+{
+	if (argc != 0) {
+		_COM_SVR_PRINT ("ignore arguments.\n");
+	}
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+
+	CPsisiManagerIf mgr(pBase->getExternalIf());
+	mgr.reqDumpTables (EN_PSISI_TYPE__CDT);
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+}
+
 static void dump_rst (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
@@ -342,6 +359,12 @@ ST_COMMAND_INFO g_psisiManagerDumpTables [] = { // extern
 		"cat",
 		"dump CAT",
 		dump_cat,
+		NULL,
+	},
+	{
+		"cdt",
+		"dump CDT",
+		dump_cdt,
 		NULL,
 	},
 	{

@@ -1,9 +1,10 @@
-#include <memory>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+
+#include <memory>
 
 #include "CommonDataTable.h"
 #include "Utils.h"
@@ -16,6 +17,12 @@ CCommonDataTable::CCommonDataTable (void)
 
 CCommonDataTable::CCommonDataTable (int fifoNum)
 	:CSectionParser (fifoNum)
+{
+	mTables.clear();
+}
+
+CCommonDataTable::CCommonDataTable (size_t poolSize)
+	:CSectionParser (poolSize)
 {
 	mTables.clear();
 }
