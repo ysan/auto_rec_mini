@@ -384,7 +384,7 @@ static void clearInnerInfo (ST_INNER_INFO *p);
 static EN_STATE getState (uint8_t nThreadIdx);
 static void setState (uint8_t nThreadIdx, EN_STATE enState);
 static void setThreadName (char *p);
-static pid_t gettid (void);
+static pid_t getTaskId (void);
 static bool isExistThread (pid_t tid);
 static void checkWorkerThread (void);
 static bool createBaseThread (void);
@@ -951,10 +951,10 @@ void setThreadName (char *p)
 }
 
 /**
- * gettid
+ * getTaskId
  * getting kernel taskid
  */
-static pid_t gettid (void)
+static pid_t getTaskId (void)
 {
 	return syscall(SYS_gettid);
 }
@@ -1860,7 +1860,7 @@ static void *baseThread (void *pArg)
 	struct timeval stNowTimeval = {0};
 
 
-	gnTid_baseThread = gettid ();
+	gnTid_baseThread = getTaskId ();
 
 	/* set thread name */
 	setThreadName (BASE_THREAD_NAME);
@@ -1979,7 +1979,7 @@ static void *sigwaitThread (void *pArg)
 	bool isDestroy = false;
 
 
-	gnTid_sigWaitThread = gettid ();
+	gnTid_sigWaitThread = getTaskId ();
 
 	/* set thread name */
 	setThreadName (SIGWAIT_THREAD_NAME);
@@ -2180,7 +2180,7 @@ static void *workerThread (void *pArg)
 	ST_THM_SRC_INFO *pstThmSrcInfo = &gstThmSrcInfo [pstInnerInfo->nThreadIdx];
 
 
-	pstInnerInfo->tid = gettid ();
+	pstInnerInfo->tid = getTaskId ();
 
 	/* init thmIf */
 	ST_THM_IF stThmIf;
