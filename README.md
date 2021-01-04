@@ -21,6 +21,7 @@ Features
 * Channel scan.
 * Recording and recording reservation. (keyword search)
 * EPG.
+* Download broadcaster Logo.
 * Command line interface. (connect via telnet. port 20001)
   
 
@@ -32,7 +33,7 @@ Target tuner is [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#
 one tuner. only terrestrial digital.
 
 ### Platforms ###
-Generic Linux will be ok. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
+Will work on generic linux destributions. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
   
 `Raspbian` Raspberry pi model B is used in the main,  
 Packet loss occurs, block noise and image skipping are likely to occur.  
@@ -146,6 +147,7 @@ Please you set according to the environment.
 | `extended_event_keywords_json_path` | save/load destination of keywords for `extended event` search. |
 | `event_name_search_histories_json_path` | save/load destination of `event name` search history. |
 | `extended_event_search_histories_json_path` | save/load destination of `extended event` search history. |
+| `logo_path` | save/load destination of broadcaster logo png. |
 
 ### is_syslog_output ###
 Logs can be output to `/var/log/user.log` by setting the `syslog facility` is `user`.  

@@ -497,6 +497,9 @@ private:
 	void clearNetworkInfo (void);
 
 
+	// -- logo --
+	void storeLogo (void);
+
 
 	// CTunerControlIf::ITsReceiveHandler
 	bool onPreTsReceive (void) override;

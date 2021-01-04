@@ -501,42 +501,7 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 		if (r == EN_CHECK_SECTION__COMPLETED) {
 			_UTL_LOG_I ("notice new CDT");
 
-			if (m_state == EN_PSISI_STATE__NOT_READY) {
-				break;
-			}
-
-			const auto *p_tables = mCDT.getTables();
-			if (!p_tables) {
-				break;
-			}
-
-			for (auto it = p_tables->cbegin(); it != p_tables->cend(); ++ it) {
-				if ((*it)->data_type != 0x01) {
-					continue;
-				}
-
-				std::string *p_path = mp_settings->getParams()->getLogoPath();
-				char _name[PATH_MAX] = {0};
-				snprintf (
-					_name,
-					sizeof(_name),
-					"%s/logo_%s_0x%04x_0x%04x_0x%04x_0x%02x%04x%04x.png",
-					p_path->c_str(),
-					m_networkInfo.ts_name_char,
-					m_networkInfo.transport_stream_id,
-					m_networkInfo.original_network_id,
-					(*it)->header.table_id_extension,
-					(*it)->data.logo_type,
-					(*it)->data.logo_id,
-					(*it)->data.logo_version
-				);
-				std::ofstream ofs (_name, std::ios::out|ios::binary);
-				ofs.write((char*)(*it)->data.data_byte.get(), (*it)->data.data_size);
-				ofs.flush();
-				ofs.close();
-			}
-
-
+			storeLogo();
 		}
 
 		break;
@@ -2200,6 +2165,59 @@ void CPsisiManager::clearNetworkInfo (void)
 	m_networkInfo.clear();
 }
 
+void CPsisiManager::storeLogo (void)
+{
+	if (m_state == EN_PSISI_STATE__NOT_READY) {
+		return;
+	}
+
+	const auto *p_tables = mCDT.getTables();
+	if (!p_tables) {
+		return;
+	}
+
+	for (auto it = p_tables->cbegin(); it != p_tables->cend(); ++ it) {
+		if ((*it)->data_type != 0x01) {
+			continue;
+		}
+
+		uint8_t png_include_plte [(*it)->data.data_size + CTsAribCommon::getCommonPaletCLUTSize()];
+		// 元pngのヘッダをコピーします
+		memcpy (png_include_plte, (*it)->data.data_byte.get(), 33);
+		// CLUT共通固定色(PLTEチャンク)をコピー(挿入)します
+		memcpy (
+			png_include_plte + 33,
+			CTsAribCommon::getCommonPaletCLUT(),
+			CTsAribCommon::getCommonPaletCLUTSize()
+		);
+		// 元pngの残りをコピーします
+		memcpy (
+			png_include_plte + 33 + CTsAribCommon::getCommonPaletCLUTSize(),
+			(*it)->data.data_byte.get() + 33,
+			(*it)->data.data_size - 33
+		);
+
+		std::string *p_path = mp_settings->getParams()->getLogoPath();
+		char _name[PATH_MAX] = {0};
+		snprintf (
+			_name,
+			sizeof(_name),
+			"%s/logo_%s_0x%04x_0x%04x_0x%04x_0x%02x%04x%04x.png",
+			p_path->c_str(),
+			m_networkInfo.ts_name_char,
+			m_networkInfo.transport_stream_id,
+			m_networkInfo.original_network_id,
+			(*it)->header.table_id_extension,
+			(*it)->data.logo_type,
+			(*it)->data.logo_id,
+			(*it)->data.logo_version
+		);
+		std::ofstream ofs (_name, std::ios::out|ios::binary);
+		ofs.write((char*)png_include_plte, sizeof(png_include_plte));
+		ofs.flush();
+		ofs.close();
+	}
+}
 
 
 

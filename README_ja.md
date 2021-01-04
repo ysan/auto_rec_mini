@@ -27,6 +27,9 @@ Features
   * EPG取得後に登録したキーワードを検索し録画予約を行います。
 * EPG
   * 定時EPG取得を行います。
+* 放送局ロゴダウンロード
+  * 選曲中に降ってきたものをPNG形式で保存します。
+  * パレット情報（CLUT共通固定色）を付加するのでそのまま閲覧できます。
 * コマンドラインインターフェース (CLI)
   * `telnet`や`netcat`等で`command server`に接続して、各機能にアクセスするコマンドの実行等を行います。
 
@@ -159,6 +162,7 @@ settings.json
 | `extended_event_keywords_json_path` | `extended event` 検索のキーワードリストの書き込み/読み込み先パスです。 |
 | `event_name_search_histories_json_path` | `event name` 検索履歴の書き込み/読み込み先パスです。 |
 | `extended_event_search_histories_json_path` | `extended event` 検索履歴の書き込み/読み込み先パスです。 |
+| `logo_path` | 放送局ロゴの書き込み/読み込み先パスです。 |
 
 ### is_syslog_output ###
 `syslog facirity` を `user` に設定することで、ログを `/var/log/user.log` に出力できます。  

@@ -278,7 +278,8 @@ public:
 	static const char* getAudioQuality (uint8_t quality);
 	static uint16_t freqKHz2pysicalCh (uint32_t freqKHz);
 	static uint32_t pysicalCh2freqKHz (uint16_t ch);
-
+	static const uint8_t *getCommonPaletCLUT (void);
+	static size_t getCommonPaletCLUTSize (void);
 
 };
 
