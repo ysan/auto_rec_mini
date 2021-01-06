@@ -1026,10 +1026,10 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 
 
 	EN_CHECK_SECTION r = EN_CHECK_SECTION__COMPLETED;
-	bool isEvenOnceComplete = false;
+	bool isEvenOnceCompleted = false;
 
 	// payload_unit_start_indicator == 1 のパケット内に
-	// 複数のセクションが含まれる場合がある そのためのループ
+	// 複数のセクションが含まれる場合があるので そのためのループ
 	while ((size > 0) && (*p != 0xff)) {
 
 //TODO mpWorkSectInfo check
@@ -1062,9 +1062,10 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 
 		if (!onSectionStarted (mpWorkSectInfo)) {
 			r = EN_CHECK_SECTION__IGNORE;
-			size_t shift = SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
-			if (shift >= size) {
-				// もしパケットをまたいだものだとすると shift分はsizeを超えてくるのでループを抜けるようにします
+			size_t tmp_total_len = SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
+			if (tmp_total_len >= size) {
+				// ignoreしたセクションがパケットをまたいだものだとすると
+				// tmp_total_len分はsizeを超えてくるので ループを抜けて次のパケットを見に行きます
 				size = 0;
 			} else {
 				size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
@@ -1090,7 +1091,11 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 		} else {
 			// パケットをまたいだ
 			mpWorkSectInfo->mState = EN_SECTION_STATE__RECEIVING;
-			return EN_CHECK_SECTION__RECEIVING;
+			if (isEvenOnceCompleted) {
+				return EN_CHECK_SECTION__COMPLETED;
+			} else {
+				return EN_CHECK_SECTION__RECEIVING;
+			}
 		}
 
 
@@ -1149,7 +1154,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 		} else {
 			// new section
 			_UTL_LOG_D ("new section");
-			isEvenOnceComplete = true;
+			isEvenOnceCompleted = true;
 			r = EN_CHECK_SECTION__COMPLETED;
 			size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
 			p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
@@ -1165,7 +1170,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 
 	} // while ((size > 0) && (*p != 0xff))
 
-	if (isEvenOnceComplete) {
+	if (isEvenOnceCompleted) {
 		return EN_CHECK_SECTION__COMPLETED;
 	} else {
 		return r;
