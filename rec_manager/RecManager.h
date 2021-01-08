@@ -1,6 +1,7 @@
 #ifndef _REC_MANAGER_H_
 #define _REC_MANAGER_H_
 
+#include <memory>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +18,7 @@
 #include "Utils.h"
 #include "Settings.h"
 #include "RecManagerIf.h"
+#include "RecAribB25.h"
 #include "TsAribCommon.h"
 
 #include "TunerControlIf.h"
@@ -314,7 +316,11 @@ private:
 	CRecReserve m_recording;
 
 	char m_recording_tmpfile [PATH_MAX];
+#if defined(USE_IT9175_IMPL)
 	struct OutputBuffer *mp_outputBuffer;
+#else 
+	unique_ptr<CRecAribB25> msp_b25;
+#endif
 };
 
 #endif

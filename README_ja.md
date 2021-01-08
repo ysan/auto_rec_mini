@@ -29,7 +29,7 @@ Features
   * 定時EPG取得を行います。
 * 放送局ロゴダウンロード
   * 選曲中に降ってきたものをPNG形式で保存します。
-  * パレット情報（CLUT共通固定色）を付加するのでそのまま閲覧できます。
+  * パレット情報（CLUT共通固定色）を付加するのでそのまま閲覧できます。(暫定)
 * コマンドラインインターフェース (CLI)
   * `telnet`や`netcat`等で`command server`に接続して、各機能にアクセスするコマンドの実行等を行います。
 
@@ -50,9 +50,9 @@ System requirements
 ### Platforms ###
 一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspbian`で確認済。)  
   
-メインで使用しているのは `Raspbian` Raspberry pi model B ですが、  
+メインで使用しているのは Raspberry pi model B ですが、  
 パケットロスが起こり、ブロックノイズ、画飛びが起きやすいです。  
-~~また選局開始時に電力が足りないせいかtsが取れないケースがありました。~~
+~~また選局開始時に電力が足りないせいかtsが取れないことがあります。~~
   
 B-CASカードは別途USB接続のICカードリーダを用意して使用しています。
 
@@ -124,7 +124,7 @@ systemctlコマンドでサービスを開始します。
 
 `auto_rec_mini` プロセスは起動し、チューナーを使用する準備ができた状態になります。  
 `command server` はポート20001で接続を待ち受けています。
-最初にCLIコマンドより `channel scan` を行ってください。  
+最初にCLIコマンドより `channel scan` を行う必要があります。  
 
 ### Clean ###
 	$ sudo systemctl stop auto_rec_mini
@@ -140,7 +140,7 @@ settings.json
 
 `settings.json`は設定ファイルです。  
 `auto_rec_mini` プロセスの起動時に読み込みます。  
-環境に合わせて設定してください。
+環境に合わせてお好みで設定できます。
 
 | item | description |
 |:-----|:------------|
@@ -264,7 +264,7 @@ Component diagram
 
 Others
 ------------
-設定値などの静的データの読み込み/書き込みは [`cereal`](https://github.com/USCiLab/cereal) のjsonシリアライザを使用しています。  
+設定値や保持するデータの読み込み/書き込みは [`cereal`](https://github.com/USCiLab/cereal) のjsonシリアライザを使用しています。  
 (現状DBは使用していません。)
 
 
@@ -277,6 +277,10 @@ Others
 流用させていただいているもの:
 * aribstr of [`epgdump`](https://github.com/Piro77/epgdump)
 * [`recfsusb2i`](https://github.com/jeeb/recfsusb2i) (tuner<->USB control)
+
+Contribute
+------------
+This project is still at its beginning. If you can offer suggestions, additional information or help please contact me.
 
 LICENSE
 ------------

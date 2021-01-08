@@ -263,6 +263,9 @@ What is being used:
 * aribstr of [`epgdump`](https://github.com/Piro77/epgdump)
 * [`recfsusb2i`](https://github.com/jeeb/recfsusb2i) (tuner<->USB control)
 
+Contribute
+------------
+This project is still at its beginning. If you can offer suggestions, additional information or help please contact me.
 
 LICENSE
 ------------
