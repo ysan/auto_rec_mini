@@ -29,6 +29,7 @@ USERDEFS	:= \
 SUBDIRS		:= \
 	it9175 \
 	it9175_test \
+	recfsusb2i \
 	tune_thread \
 
 

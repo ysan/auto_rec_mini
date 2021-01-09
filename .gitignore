@@ -4,7 +4,8 @@
 *.d
 auto_rec_mini
 parser_test
-recfsusb2i
+tuner_control/it9175_test/recfsusb2i
+tuner_control/recfsusb2i/src/recfsusb2i
 rec_reserves.json
 rec_results.json
 event_schedule_cache_histories.json
