@@ -4,6 +4,9 @@
 BASEDIR		:=	../
 
 CFLAGS		:=	-std=c++11
+ifeq ($(shell getconf LONG_BIT),32)
+CFLAGS		+=	-D_FILE_OFFSET_BITS=64
+endif
 
 INCLUDES	:= \
 	-I$(BASEDIR)/threadmgr \
