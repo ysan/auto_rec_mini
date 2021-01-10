@@ -64,7 +64,7 @@ Build and install
 ------------
 ### Build and install ###
 
-	$ git clone https://github.com/ysan/auto_rec_mini.git
+	$ git clone --recursive https://github.com/ysan/auto_rec_mini.git
 	$ cd auto_rec_mini
 	$ make
 	$ sudo make INSTALLDIR=/opt/auto_rec_mini install
