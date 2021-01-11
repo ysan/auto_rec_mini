@@ -36,6 +36,8 @@ typedef enum {
 
 } EN_TUNER_STATE;
 
+#define TS_RECEIVE_HANDLER_REGISTER_NUM_MAX		(10)
+
 
 class CTunerControlIf : public CThreadMgrExternalIf
 {

@@ -22,9 +22,6 @@ using namespace ThreadManager;
 // notify category
 #define _TUNER_NOTIFY							((uint8_t)0)
 
-#define TS_RECEIVE_HANDLER_REGISTER_NUM_MAX		(10)
-
-
 class CTunerControl : public CThreadMgrBase
 {
 public:
@@ -79,6 +76,7 @@ private:
 	CTunerControlIf::ITsReceiveHandler *mpRegTsReceiveHandlers [TS_RECEIVE_HANDLER_REGISTER_NUM_MAX];
 
 	EN_TUNER_STATE mState;
+	bool mIsReqStop;
 };
 
 #endif

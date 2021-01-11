@@ -14,6 +14,7 @@ CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,mFreq (0)
 	,mState (EN_TUNER_STATE__TUNE_STOP)
+	,mIsReqStop (false)
 {
 	SEQ_BASE_t seqs [EN_SEQ_TUNER_CONTROL_NUM] = {
 		{(PFN_SEQ_BASE)&CTunerControl::moduleUp, (char*)"moduleUp"},                                     // EN_SEQ_TUNER_CONTROL_MODULE_UP
@@ -29,7 +30,7 @@ CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
 	};
 	setSeqs (seqs, EN_SEQ_TUNER_CONTROL_NUM);
 
-
+#if 0
 	// it9175 ts callbacks
 	memset (&m_it9175_ts_callbacks, 0x00, sizeof(m_it9175_ts_callbacks));
 	m_it9175_ts_callbacks.pcb_pre_ts_receive = this->onPreTsReceive;
@@ -38,6 +39,7 @@ CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
 	m_it9175_ts_callbacks.pcb_ts_received = this->onTsReceived;
 	m_it9175_ts_callbacks.p_shared_data = this;
 	it9175_extern_setup_ts_callbacks (&m_it9175_ts_callbacks);
+#endif
 
 	for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
 		mpRegTsReceiveHandlers [i] = NULL;
@@ -246,11 +248,21 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		}
 		break;
 
-	case SECTID_REQ_TUNE_THREAD_TUNE:
+	case SECTID_REQ_TUNE_THREAD_TUNE: {
+		CTuneThread::TUNE_PARAM_t _param = {
+			s_freq,
+			&mMutexTsReceiveHandlers,
+			mpRegTsReceiveHandlers,
+			&mIsReqStop
+		};
+#if 0
 		requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_TUNE, (uint8_t*)&s_freq, sizeof(s_freq));
+#endif
+		requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_TUNE, (uint8_t*)&_param, sizeof(_param));
 
 		sectId = SECTID_WAIT_TUNE_THREAD_TUNE;
 		enAct = EN_THM_ACT_WAIT;
+		}
 		break;
 
 	case SECTID_WAIT_TUNE_THREAD_TUNE:
@@ -273,9 +285,12 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-
+#if 0
 			if (it9175_get_state() != EN_IT9175_STATE__TUNED) {
-				++ chkcnt ;
+#endif
+			CTuneThread *p_tuneThread = (CTuneThread*)(getModule(EN_MODULE_TUNE_THREAD));
+			if (p_tuneThread->getState() != CTuneThread::STATE_t::TUNED) {
+					++ chkcnt ;
 				pIf->setTimeout (200);
 				sectId = SECTID_CHECK_TUNED;
 				enAct = EN_THM_ACT_WAIT;
@@ -343,11 +358,22 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 
 	static int chkcnt = 0;
 
+	CTuneThread *p_tuneThread = (CTuneThread*)(getModule(EN_MODULE_TUNE_THREAD));
+#if 0
 	if (it9175_get_state() == EN_IT9175_STATE__TUNED) {
+#endif
+	if (p_tuneThread->getState() == CTuneThread::STATE_t::TUNED) {
+#if 0
 		it9175_force_tune_end ();
+#endif
+		mIsReqStop = true;
 
 		while (chkcnt < 20) {
+#if 0
 			if (it9175_get_state() == EN_IT9175_STATE__TUNE_ENDED) {
+#endif
+			if (p_tuneThread->getState() == CTuneThread::STATE_t::TUNE_ENDED || 
+				p_tuneThread->getState() == CTuneThread::STATE_t::CLOSED) {
 				break;
 			}
 
@@ -358,9 +384,9 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 		if (chkcnt < 20) {
 			_UTL_LOG_I ("success tune stop.");
 			mFreq = 0;
-
+#if 0
 			it9175_close ();
-
+#endif
 			setState (EN_TUNER_STATE__TUNE_STOP);
 
 			// fire notify
@@ -370,16 +396,19 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 			pIf->reply (EN_THM_RSLT_SUCCESS);
 
 		} else {
+#if 0
 			_UTL_LOG_E ("tune stop transition failure. (EN_IT9175_STATE__TUNED -> EN_IT9175_STATE__TUNE_ENDED)");
 			it9175_reset_force_tune_end ();
+#endif
+			_UTL_LOG_E ("tune stop transition failure. (TUNED -> TUNE_ENDED)");
 			pIf->reply (EN_THM_RSLT_ERROR);
 		}
 
 	} else {
 		_UTL_LOG_I ("already tune stoped.");
-
+#if 0
 		it9175_close ();
-
+#endif
 		setState (EN_TUNER_STATE__TUNE_STOP);
 
 #ifdef _DUMMY_TUNER
@@ -392,6 +421,7 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 	}
 
 	chkcnt = 0;
+	mIsReqStop = false;
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
@@ -581,7 +611,7 @@ void CTunerControl::setState (EN_TUNER_STATE s)
 }
 
 
-
+#if 0
 //////////  it9175 ts callbacks  //////////
 
 // static 
@@ -665,3 +695,4 @@ bool CTunerControl::onTsReceived (void *p_shared_data, void *p_ts_data, int leng
 
 	return true;
 }
+#endif

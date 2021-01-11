@@ -7,10 +7,15 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <mutex>
+
 #include "ThreadMgrpp.h"
 
 #include "Utils.h"
+#include "TunerControlIf.h"
+#if 0
 #include "it9175_extern.h"
+#endif
 
 
 using namespace ThreadManager;
@@ -26,6 +31,22 @@ enum {
 class CTuneThread : public CThreadMgrBase
 {
 public:
+	typedef enum {
+		CLOSED = 0,
+		OPENED,
+		TUNE_BEGINED,
+		TUNED,
+		TUNE_ENDED,
+	} STATE_t;
+
+	typedef struct tune_param {
+		uint32_t freq;
+		std::mutex * pMutexTsReceiveHandlers;
+		CTunerControlIf::ITsReceiveHandler ** pTsReceiveHandlers;
+		bool *pIsReqStop;
+	} TUNE_PARAM_t;
+
+public:
 	CTuneThread (char *pszName, uint8_t nQueNum);
 	virtual ~CTuneThread (void);
 
@@ -34,7 +55,13 @@ public:
 	void moduleDown (CThreadMgrIf *pIf);
 	void tune (CThreadMgrIf *pIf);
 
+	// direct getter
+	STATE_t getState (void) {
+		return mState;
+	}
+
 private:
+	STATE_t mState;
 };
 
 #endif

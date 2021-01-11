@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>     
 
 #include "TuneThread.h"
 
@@ -19,6 +20,7 @@
 
 CTuneThread::CTuneThread (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
+	,mState (CLOSED)
 {
 	SEQ_BASE_t seqs [EN_SEQ_TUNE_THREAD_NUM] = {
 		{(PFN_SEQ_BASE)&CTuneThread::moduleUp, (char*)"moduleUp"},     // EN_SEQ_TUNE_THREAD_MODULE_UP
@@ -88,7 +90,9 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	// このスレッドでit9175_tune のループが回るので先にリプライしときます
+#if 0
+	// ここ以下はループが回りスレッド占有するので
+	// 先にリプライしときます
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 
@@ -99,7 +103,188 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		it9175_tune (freq);
 	}
 	////////////////////////////////////////
+#endif
 
+
+	CTuneThread::TUNE_PARAM_t param = *(CTuneThread::TUNE_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+	if (mState != CLOSED) {
+		_UTL_LOG_E ("mState != CLOSED");
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		pIf->setSectId (sectId, enAct);
+		return;
+	}
+
+	int r = 0;
+	int pipeC2P [2];
+	r = pipe(pipeC2P);
+	if (r < 0) {
+		_UTL_PERROR("pipe");
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		pIf->setSectId (sectId, enAct);
+		return;
+	}
+
+	pid_t pidChild = fork();
+	if (pidChild == -1) {
+		_UTL_PERROR("fork");
+		close (pipeC2P[0]);
+		close (pipeC2P[1]);
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		pIf->setSectId (sectId, enAct);
+		return;
+
+	} else if (pidChild == 0) {
+		// ----------------- child -----------------
+		close (pipeC2P[0]);
+		dup2 (pipeC2P[1], STDOUT_FILENO);
+		close (pipeC2P[1]);
+		char freq_str [32] = {0};
+		snprintf (freq_str, sizeof(freq_str), "%d", param.freq);
+		r = execlp ("./bin/recfsusb2i", "./bin/recfsusb2i", "--np", freq_str, "-", "-", NULL);
+		if (r < 0) {
+			_UTL_PERROR("execlp");
+			pIf->reply (EN_THM_RSLT_ERROR);
+			sectId = THM_SECT_ID_INIT;
+			enAct = EN_THM_ACT_DONE;
+			pIf->setSectId (sectId, enAct);
+			return;
+		}
+	}
+
+	// ----------------- parent -----------------
+	_UTL_LOG_I ("pidChild:[%lu]", pidChild);
+	close (pipeC2P[1]);
+
+	_UTL_LOG_I ("mState => OPENED");
+	mState = OPENED;
+
+	// ここ以下はループが回りスレッド占有するので
+	// 先にリプライしときます
+	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	_UTL_LOG_I ("mState => TUNE_BEGINED");
+	mState = TUNE_BEGINED;
+
+	{ //---------------------------
+		_UTL_LOG_I ("onPreTsReceive");
+		std::lock_guard<std::mutex> lock (*param.pMutexTsReceiveHandlers);
+		CTunerControlIf::ITsReceiveHandler **p_handlers = param.pTsReceiveHandlers;
+		for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
+			if (p_handlers[i]) {
+				(p_handlers[i])->onPreTsReceive ();
+			}
+		}
+	} //---------------------------
+
+	int fd = pipeC2P[0];
+	uint8_t buff [1024] = {0};
+	uint64_t _total_size = 0;
+
+	fd_set _fds;
+	struct timeval _timeout;
+
+	while (1) {
+		FD_ZERO (&_fds);
+		FD_SET (fd, &_fds);
+		_timeout.tv_sec = 1;
+		_timeout.tv_usec = 0;
+		r = select (fd+1, &_fds, NULL, NULL, &_timeout);
+		if (r < 0) {
+			_UTL_PERROR ("select");
+			continue;
+
+		} else if (r == 0) {
+			// timeout
+			// check tuner stop request
+			if (*(param.pIsReqStop)) {
+				_UTL_LOG_I ("req stoped.");
+				break;
+			}
+		}
+
+		if (FD_ISSET (fd, &_fds)) {
+			int _size = read (fd, buff, sizeof(buff));
+			if (_size < 0) {
+				_UTL_PERROR ("read");
+				break;
+
+			} else if (_size == 0) {
+				// file end
+				_UTL_LOG_I ("ts read end");
+				break;
+
+			} else {
+				if (mState == TUNE_BEGINED) {
+					_UTL_LOG_I ("ts read _size=[%d]", _size);
+					_UTL_LOG_I ("mState => TUNED");
+					mState = TUNED;
+				}
+
+				{ //---------------------------
+					std::lock_guard<std::mutex> lock (*param.pMutexTsReceiveHandlers);
+					CTunerControlIf::ITsReceiveHandler **p_handlers = param.pTsReceiveHandlers;
+					for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
+						if (p_handlers[i]) {
+							(p_handlers[i])->onTsReceived (buff, _size);
+						}
+					}
+				} //---------------------------
+
+				_total_size += _size;
+
+				// check tuner stop request
+				if (*(param.pIsReqStop)) {
+					_UTL_LOG_I ("req stoped.");
+					break;
+				}
+			}
+		}
+	}
+	_UTL_LOG_I ("mState => TUNE_ENDED");
+	mState = TUNE_ENDED;
+
+	_UTL_LOG_I ("ts read total_size=[%llu]", _total_size);
+
+	{ //---------------------------
+		_UTL_LOG_I ("onPostTsReceive");
+		std::lock_guard<std::mutex> lock (*param.pMutexTsReceiveHandlers);
+		CTunerControlIf::ITsReceiveHandler **p_handlers = param.pTsReceiveHandlers;
+		for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
+			if (p_handlers[i]) {
+				(p_handlers[i])->onPostTsReceive ();
+			}
+		}
+	} //---------------------------
+
+	close (fd);
+
+	r = kill (pidChild, SIGUSR1);
+	if (r < 0) {
+		_UTL_PERROR ("kill");
+	}
+
+	_UTL_LOG_I ("kill [%lu]", pidChild);
+
+	int _status = 0;
+	r = waitpid (pidChild, &_status, 0);
+	if (r < 0) {
+		_UTL_PERROR ("waitpid");
+	}
+	if (WIFEXITED(_status)) {
+		_UTL_LOG_I ("child is exit successful.");
+	} else {
+		_UTL_LOG_I ("child is exit failure.");
+	}
+
+	_UTL_LOG_I ("mState => CLSOED");
+	mState = CLOSED;
 
 
 	sectId = THM_SECT_ID_INIT;
