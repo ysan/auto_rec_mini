@@ -31,6 +31,9 @@
 #include <android/log.h>
 #endif
 
+#include <string>
+#include <vector>
+
 #include "Defs.h"
 #include "Etime.h"
 #include "Stack.h"
@@ -241,6 +244,8 @@ public:
 	static void putsBackTrace (void);
 
 	static void dumper (const uint8_t *pSrc, int nSrcLen, bool isAddAscii=true);
+
+	static std::vector<std::string> split (std::string s, char delim, bool ignore_empty=true);
 
 
 	class CScopedMutex

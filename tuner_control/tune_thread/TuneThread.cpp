@@ -129,11 +129,24 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		return;
 	}
 
+	int pipeC2P_err [2];
+	r = pipe(pipeC2P_err);
+	if (r < 0) {
+		_UTL_PERROR("pipe");
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		pIf->setSectId (sectId, enAct);
+		return;
+	}
+
 	pid_t pidChild = fork();
 	if (pidChild == -1) {
 		_UTL_PERROR("fork");
 		close (pipeC2P[0]);
 		close (pipeC2P[1]);
+		close (pipeC2P_err[0]);
+		close (pipeC2P_err[1]);
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -145,11 +158,25 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		close (pipeC2P[0]);
 		dup2 (pipeC2P[1], STDOUT_FILENO);
 		close (pipeC2P[1]);
-		char freq_str [32] = {0};
-		snprintf (freq_str, sizeof(freq_str), "%d", param.freq);
-		r = execlp ("./bin/recfsusb2i", "./bin/recfsusb2i", "--np", freq_str, "-", "-", NULL);
+		
+		close (pipeC2P_err[0]);
+		dup2 (pipeC2P_err[1], STDERR_FILENO);
+		close (pipeC2P_err[1]);
+
+		char *p_com_form = (char*)"./bin/recfsusb2i --np %d - -";
+		char com_str [128] = {0};
+		snprintf (com_str, sizeof(com_str), p_com_form, param.freq);
+		std::vector<std::string> com = CUtils::split (com_str, ' ');
+		char *p_coms[com.size() +1] ;
+		_UTL_LOG_I ("execv args");
+		for (size_t i = 0; i < com.size(); ++ i) {
+			p_coms [i] = (char*)com[i].c_str();
+			_UTL_LOG_I ("  [%s]", p_coms [i]);
+		}
+		p_coms [com.size()] = NULL;
+		r = execv (com[0].c_str(), p_coms);
 		if (r < 0) {
-			_UTL_PERROR("execlp");
+			_UTL_PERROR("exec");
 			pIf->reply (EN_THM_RSLT_ERROR);
 			sectId = THM_SECT_ID_INIT;
 			enAct = EN_THM_ACT_DONE;
@@ -159,7 +186,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	}
 
 	// ----------------- parent -----------------
-	_UTL_LOG_I ("pidChild:[%lu]", pidChild);
+	_UTL_LOG_I ("child pid:[%lu]", pidChild);
 	close (pipeC2P[1]);
 
 	_UTL_LOG_I ("mState => OPENED");
@@ -184,6 +211,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	} //---------------------------
 
 	int fd = pipeC2P[0];
+	int fd_err = pipeC2P_err[0];
 	uint8_t buff [1024] = {0};
 	uint64_t _total_size = 0;
 
@@ -193,9 +221,10 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	while (1) {
 		FD_ZERO (&_fds);
 		FD_SET (fd, &_fds);
+		FD_SET (fd_err, &_fds);
 		_timeout.tv_sec = 1;
 		_timeout.tv_usec = 0;
-		r = select (fd+1, &_fds, NULL, NULL, &_timeout);
+		r = select (fd > fd_err ? fd + 1 : fd_err + 1, &_fds, NULL, NULL, &_timeout);
 		if (r < 0) {
 			_UTL_PERROR ("select");
 			continue;
@@ -204,11 +233,12 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 			// timeout
 			// check tuner stop request
 			if (*(param.pIsReqStop)) {
-				_UTL_LOG_I ("req stoped.");
+				_UTL_LOG_I ("req stoped. (timeout check)");
 				break;
 			}
 		}
 
+		// read stdout
 		if (FD_ISSET (fd, &_fds)) {
 			int _size = read (fd, buff, sizeof(buff));
 			if (_size < 0) {
@@ -222,7 +252,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 
 			} else {
 				if (mState == TUNE_BEGINED) {
-					_UTL_LOG_I ("ts read _size=[%d]", _size);
+					_UTL_LOG_I ("first ts read _size=[%d]", _size);
 					_UTL_LOG_I ("mState => TUNED");
 					mState = TUNED;
 				}
@@ -238,6 +268,30 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 				} //---------------------------
 
 				_total_size += _size;
+
+				// check tuner stop request
+				if (*(param.pIsReqStop)) {
+					_UTL_LOG_I ("req stoped.");
+					break;
+				}
+			}
+		}
+
+		// read stderr
+		if (FD_ISSET (fd_err, &_fds)) {
+			memset (buff, 0x00, sizeof(buff));
+			int _size = read (fd_err, buff, sizeof(buff));
+			if (_size < 0) {
+				_UTL_PERROR ("read");
+				break;
+
+			} else if (_size == 0) {
+				// file end
+				_UTL_LOG_I ("ts read end");
+				break;
+
+			} else {
+				_UTL_LOG_I ("%s", buff);
 
 				// check tuner stop request
 				if (*(param.pIsReqStop)) {
@@ -264,6 +318,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	} //---------------------------
 
 	close (fd);
+	close (fd_err);
 
 	r = kill (pidChild, SIGUSR1);
 	if (r < 0) {
