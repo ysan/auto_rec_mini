@@ -616,6 +616,10 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 
 	switch (sectId) {
 	case SECTID_ENTRY:
+
+		// workaround que overflow
+		pIf->enableOverwrite();
+
 		// 先にreplyしておく
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 
@@ -693,6 +697,9 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_END:
+		// workaround que overflow
+		pIf->disableOverwrite();
+
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		break;
