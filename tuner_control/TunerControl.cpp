@@ -362,7 +362,8 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 #if 0
 	if (it9175_get_state() == EN_IT9175_STATE__TUNED) {
 #endif
-	if (p_tuneThread->getState() == CTuneThread::STATE_t::TUNED) {
+	if (p_tuneThread->getState() == CTuneThread::STATE_t::TUNED ||
+			p_tuneThread->getState() == CTuneThread::STATE_t::TUNE_BEGINED) {
 #if 0
 		it9175_force_tune_end ();
 #endif
