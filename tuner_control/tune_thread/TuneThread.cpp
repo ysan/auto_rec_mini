@@ -163,9 +163,10 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		dup2 (pipeC2P_err[1], STDERR_FILENO);
 		close (pipeC2P_err[1]);
 
-		char *p_com_form = (char*)"./bin/recfsusb2i --np %d - -";
+//		char *p_com_form = (char*)"./bin/recfsusb2i --np %d - -";
+		char *p_com_form = (char*)"./bin/recdvb %d - -";
 		char com_str [128] = {0};
-		snprintf (com_str, sizeof(com_str), p_com_form, param.freq);
+		snprintf (com_str, sizeof(com_str), p_com_form, CTsAribCommon::freqKHz2pysicalCh(param.freq));
 		std::vector<std::string> com = CUtils::split (com_str, ' ');
 		char *p_coms[com.size() +1] ;
 		_UTL_LOG_I ("execv args");

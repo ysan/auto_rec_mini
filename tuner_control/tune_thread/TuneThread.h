@@ -13,6 +13,7 @@
 
 #include "Utils.h"
 #include "TunerControlIf.h"
+#include "TsAribCommon.h"
 #if 0
 #include "it9175_extern.h"
 #endif

@@ -10,6 +10,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/threadmgr \
 	-I$(BASEDIR)/threadmgrpp \
 	-I$(BASEDIR)/common \
+	-I$(BASEDIR)/parser \
 	-I./ \
 	-I../ \
 #	-I../it9175 \
