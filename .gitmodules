@@ -1,3 +1,6 @@
 [submodule "tuner_control/recfsusb2i"]
 	path = tuner_control/recfsusb2i
 	url = https://github.com/ysan/recfsusb2i
+[submodule "tuner_control/recdvb"]
+	path = tuner_control/recdvb
+	url = https://github.com/ysan/recdvb.git

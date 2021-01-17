@@ -30,6 +30,7 @@ SUBDIRS		:= \
 	it9175 \
 	it9175_test \
 	recfsusb2i \
+	recdvb \
 	tune_thread \
 
 
