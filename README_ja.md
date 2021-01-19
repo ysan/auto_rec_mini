@@ -44,10 +44,9 @@ System requirements
 ------------
 
 ### Tuner ###
-対応しているチューナーは以下のものです。
+対応しているチューナーは以下のものです。今のところ1チューナー、地デジのみとなります。orz
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 以降)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
-今のところ1チューナー、地デジのみとなります。orz
 
 ### Platforms ###
 一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspbian`で確認済。)  

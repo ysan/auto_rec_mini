@@ -29,10 +29,9 @@ System requirements
 ----------
 
 ### Tuner ###
-The supported tuners are as follows.
+The supported tuners are as follows. one tuner. only terrestrial digital. orz
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 later)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
-one tuner. only terrestrial digital. orz
 
 ### Platforms ###
 Will work on generic linux destributions. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
