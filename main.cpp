@@ -16,8 +16,6 @@
 #include "EventScheduleManagerIf.h"
 #include "EventSearchIf.h"
 
-#include "it9175_extern.h"
-
 #include "Utils.h"
 #include "modules.h"
 #include "Settings.h"
@@ -103,12 +101,10 @@ int main (int argc, char *argv[])
 
 
 	initLogStdout(); // threadmgr log init
-	it9175_initLogDefault();
 
 	// syslog initialize
 	if (s->getParams()->isSyslogOutput()) {
 		initSyslog(); // threadmgr syslog output
-		it9175_initSyslog();
 		CUtils::initSyslog();
 	}
 
@@ -161,7 +157,6 @@ int main (int argc, char *argv[])
 	// syslog finalize
 	if (s->getParams()->isSyslogOutput()) {
 		finalizSyslog(); // threadmgr syslog output
-		it9175_finalizSyslog();
 		CUtils::finalizSyslog();
 	}
 

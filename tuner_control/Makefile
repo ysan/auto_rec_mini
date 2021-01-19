@@ -13,22 +13,18 @@ INCLUDES	:= \
 	-I$(BASEDIR)/parser \
 	-I$(BASEDIR)/command_server \
 	-I./ \
-	-I./it9175 \
 	-I./tune_thread \
 
 LIBS		:= \
 	-L$(BASEDIR)/threadmgr -lthreadmgr \
 	-L$(BASEDIR)/threadmgrpp -lthreadmgrpp \
 	-L$(BASEDIR)/common -lcommon \
-	-L./it9175 -lit9175 \
 	-L./tune_thread -ltunethread \
 	-lpthread \
 
 USERDEFS	:= \
 
 SUBDIRS		:= \
-	it9175 \
-	it9175_test \
 	recfsusb2i \
 	recdvb \
 	tune_thread \

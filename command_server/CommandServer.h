@@ -15,7 +15,6 @@
 #include "CommandTables.h"
 #include "CommandServerLog.h"
 #include "Settings.h"
-#include "it9175_extern.h"
 
 
 using namespace ThreadManager;

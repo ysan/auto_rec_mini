@@ -90,22 +90,6 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-#if 0
-	// ここ以下はループが回りスレッド占有するので
-	// 先にリプライしときます
-	pIf->reply (EN_THM_RSLT_SUCCESS);
-
-
-	////////////////////////////////////////
-	uint32_t freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
-
-	if (it9175_open ()) {
-		it9175_tune (freq);
-	}
-	////////////////////////////////////////
-#endif
-
-
 	CTuneThread::TUNE_PARAM_t param = *(CTuneThread::TUNE_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
 	if (mState != CLOSED) {

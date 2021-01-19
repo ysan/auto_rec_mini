@@ -12,7 +12,6 @@ INCLUDES	:= \
 	-I$(BASEDIR)/common \
 	-I$(BASEDIR)/command_server \
 	-I$(BASEDIR)/tuner_control \
-	-I$(BASEDIR)/tuner_control/it9175 \
 	-I$(BASEDIR)/parser \
 	-I$(BASEDIR)/psisi_manager \
 	-I./ \

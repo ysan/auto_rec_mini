@@ -12,7 +12,6 @@ INCLUDES	:= \
 	-I$(BASEDIR)/common \
 	-I$(BASEDIR)/tuner_control/tune_thread \
 	-I$(BASEDIR)/tuner_control \
-	-I$(BASEDIR)/tuner_control/it9175 \
 	-I$(BASEDIR)/parser \
 	-I$(BASEDIR)/parser/aribstr \
 	-I$(BASEDIR)/parser/psisi \
@@ -33,7 +32,6 @@ LIBS		:= \
 	-L$(BASEDIR)/common -lcommon \
 	-L$(BASEDIR)/tuner_control/tune_thread -ltunethread \
 	-L$(BASEDIR)/tuner_control -ltunercontrol \
-	-L$(BASEDIR)/tuner_control/it9175 -lit9175 \
 	-L$(BASEDIR)/parser -lparser \
 	-L$(BASEDIR)/parser/psisi -lpsisiparser \
 	-L$(BASEDIR)/parser/dsmcc -ldsmccparser \

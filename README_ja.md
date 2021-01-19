@@ -37,15 +37,17 @@ Future tasks
 ------------
 * libarib25で行っているPMT周りの実装の勉強、と実装を取り込みたい。
 * 複数チューナー、BS/CS対応したい。
-* データ放送のBMLの取得を行う。 (dsmccの実装)
+* データ放送のBMLの取得してみたい。 (dsmccの実装)
 
 
 System requirements
 ------------
 
 ### Tuner ###
-対象のチューナーは [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) です。 (S/N: K1212 以降)  
-1チューナーで地デジのみとなります。  
+対応しているチューナーは以下のものです。
+* [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 以降)  
+* [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
+今のところ1チューナー、地デジのみとなります。orz
 
 ### Platforms ###
 一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspbian`で確認済。)  
@@ -88,7 +90,9 @@ Build and install
 
 	/opt/auto_rec_mini/
 	├── bin
-	│   └── auto_rec_mini
+	│   ├── auto_rec_mini
+	│   ├── recfsusb2i
+	│   └── recdvb
 	└── lib
 	    ├── libchannelmanager.so
 	    ├── libcommandserver.so
@@ -96,7 +100,6 @@ Build and install
 	    ├── libdsmccparser.so
 	    ├── libeventschedulemanager.so
 	    ├── libeventsearch.so
-	    ├── libit9175.so
 	    ├── libparser.so
 	    ├── libpsisimanager.so
 	    ├── libpsisiparser.so

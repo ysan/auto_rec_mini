@@ -13,7 +13,6 @@
 
 #include "Utils.h"
 #include "TunerControlIf.h"
-#include "it9175_extern.h"
 
 
 using namespace ThreadManager;
@@ -58,16 +57,6 @@ private:
 	int registerTsReceiveHandler (CTunerControlIf::ITsReceiveHandler *pHandler);
 	void unregisterTsReceiveHandler (int id);
 	void setState (EN_TUNER_STATE s);
-
-
-
-	// it9175 ts callbacks
-	static bool onPreTsReceive (void *p_shared_data);
-	static void onPostTsReceive (void *p_shared_data);
-	static bool onCheckTsReceiveLoop (void *p_shared_data);
-	static bool onTsReceived (void *p_shared_data, void *p_ts_data, int length);
-	ST_IT9175_TS_RECEIVE_CALLBACKS m_it9175_ts_callbacks;
-
 
 
 	uint32_t mFreq;

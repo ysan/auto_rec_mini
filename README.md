@@ -29,8 +29,10 @@ System requirements
 ----------
 
 ### Tuner ###
-Target tuner is [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table). (S/N: K1212 later)  
-one tuner. only terrestrial digital.
+The supported tuners are as follows.
+* [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 later)  
+* [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
+one tuner. only terrestrial digital. orz
 
 ### Platforms ###
 Will work on generic linux destributions. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
@@ -73,7 +75,9 @@ Installation files:
 
 	/opt/auto_rec_mini/
 	├── bin
-	│   └── auto_rec_mini
+	│   ├── auto_rec_mini
+	│   ├── recfsusb2i
+	│   └── recdvb
 	└── lib
 	    ├── libchannelmanager.so
 	    ├── libcommandserver.so
@@ -81,7 +85,6 @@ Installation files:
 	    ├── libdsmccparser.so
 	    ├── libeventschedulemanager.so
 	    ├── libeventsearch.so
-	    ├── libit9175.so
 	    ├── libparser.so
 	    ├── libpsisimanager.so
 	    ├── libpsisiparser.so

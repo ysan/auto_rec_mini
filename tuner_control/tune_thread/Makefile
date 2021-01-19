@@ -13,14 +13,12 @@ INCLUDES	:= \
 	-I$(BASEDIR)/parser \
 	-I./ \
 	-I../ \
-#	-I../it9175 \
 
 LIBS		:= \
 	-L$(BASEDIR)/threadmgr -lthreadmgr \
 	-L$(BASEDIR)/threadmgrpp -lthreadmgrpp \
 	-L$(BASEDIR)/common -lcommon \
 	-lpthread \
-#	-L../it9175 -lit9175 \
 
 USERDEFS	:= \
 
