@@ -148,9 +148,10 @@ int main (int argc, char *argv[])
 
 
 
-	pause ();
+	p_mgr->wait ();
 
 
+	p_mgr->getExternalIf()->destroyExternalCp();
 	p_mgr->teardown();
 
 

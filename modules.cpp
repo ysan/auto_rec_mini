@@ -16,25 +16,37 @@
 #include "modules.h"
 
 
-static CCommandServer        g_commandServer     ((char*)"CommandServer"       , 10);
-static CTunerControl         g_tunerControl      ((char*)"TunerControl"        , 10);
-static CTuneThread           g_tuneThread        ((char*)"TuneThread"          , 10);
-static CPsisiManager         g_psisiManager      ((char*)"PsisiManager"        , 100);
-static CRecManager           g_recManager        ((char*)"RecManager"          , 10);
-static CChannelManager       g_chennelManager    ((char*)"ChannelManager"      , 10);
-static CEventScheduleManager g_eventSchedManager ((char*)"EventScheduleManager", 50);
-static CEventSearch          g_eventSearch       ((char*)"EventSearch"         , 10);
+static CTuneThread           s_tuneThread_gr0    ((char*)"TuneTh_0"            , 10, 0);
+static CTuneThread           s_tuneThread_gr1    ((char*)"TuneTh_1"            , 10, 1);
+static CTuneThread           s_tuneThread_gr2    ((char*)"TuneTh_2"            , 10, 2);
+
+static CTunerControl         s_tunerControl_gr0  ((char*)"TunerCtl_0"          , 10, 0);
+static CTunerControl         s_tunerControl_gr1  ((char*)"TunerCtl_1"          , 10, 1);
+static CTunerControl         s_tunerControl_gr2  ((char*)"TunerCtl_2"          , 10, 2);
+
+static CPsisiManager         s_psisiManager      ((char*)"PsisiManager"        , 100);
+static CRecManager           s_recManager        ((char*)"RecManager"          , 10);
+static CChannelManager       s_chennelManager    ((char*)"ChannelManager"      , 10);
+static CEventScheduleManager s_eventSchedManager ((char*)"EventScheduleManager", 50);
+static CEventSearch          s_eventSearch       ((char*)"EventSearch"         , 10);
+static CCommandServer        s_commandServer     ((char*)"CommandServer"       , 10);
 
 
 static CThreadMgrBase *gp_modules [] = {
-	&g_commandServer,
-	&g_tuneThread,
-	&g_tunerControl,
-	&g_psisiManager,
-	&g_recManager,
-	&g_chennelManager,
-	&g_eventSchedManager,
-	&g_eventSearch,
+	&s_tuneThread_gr0,		// group0
+	&s_tuneThread_gr1,		// group1
+	&s_tuneThread_gr2,		// group2
+
+	&s_tunerControl_gr0,	// group0
+	&s_tunerControl_gr1,	// group1
+	&s_tunerControl_gr2,	// group2
+
+	&s_psisiManager,
+	&s_recManager,
+	&s_chennelManager,
+	&s_eventSchedManager,
+	&s_eventSearch,
+	&s_commandServer,
 
 };
 

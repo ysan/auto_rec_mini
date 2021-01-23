@@ -12,6 +12,7 @@
 #include "ThreadMgrpp.h"
 
 #include "Utils.h"
+#include "Group.h"
 #include "TunerControlIf.h"
 
 
@@ -21,10 +22,10 @@ using namespace ThreadManager;
 // notify category
 #define _TUNER_NOTIFY							((uint8_t)0)
 
-class CTunerControl : public CThreadMgrBase
+class CTunerControl : public CThreadMgrBase, public CGroup
 {
 public:
-	CTunerControl (char *pszName, uint8_t nQueNum);
+	CTunerControl (char *pszName, uint8_t nQueNum, uint8_t groupId);
 	virtual ~CTunerControl (void);
 
 
@@ -60,6 +61,9 @@ private:
 
 
 	uint32_t mFreq;
+	uint32_t mWkFreq;
+	uint32_t mStartFreq;
+	int mChkcnt;
 
 	std::mutex mMutexTsReceiveHandlers;
 	CTunerControlIf::ITsReceiveHandler *mpRegTsReceiveHandlers [TS_RECEIVE_HANDLER_REGISTER_NUM_MAX];

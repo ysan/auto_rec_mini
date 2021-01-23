@@ -9,6 +9,7 @@
 
 #include "ThreadMgrpp.h"
 #include "modules.h"
+#include "Group.h"
 
 
 using namespace ThreadManager;
@@ -39,7 +40,7 @@ typedef enum {
 #define TS_RECEIVE_HANDLER_REGISTER_NUM_MAX		(10)
 
 
-class CTunerControlIf : public CThreadMgrExternalIf
+class CTunerControlIf : public CThreadMgrExternalIf, public CGroup
 {
 public:
 	class ITsReceiveHandler {
@@ -52,7 +53,10 @@ public:
 	};
 
 public:
-	explicit CTunerControlIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
+	explicit CTunerControlIf (CThreadMgrExternalIf *pIf, uint8_t groupId=0)
+		:CThreadMgrExternalIf (pIf)
+		,CGroup (groupId)
+	{
 	};
 
 	virtual ~CTunerControlIf (void) {
@@ -60,56 +64,56 @@ public:
 
 
 	bool reqModuleUp (void) {
-		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_MODULE_UP);
+		return requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_MODULE_UP);
 	};
 
 	bool reqModuleDown (void) {
-		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_MODULE_DOWN);
+		return requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_MODULE_DOWN);
 	};
 
 	bool reqTune (uint32_t freqKHz) {
 		uint32_t f = freqKHz;
-		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE, (uint8_t*)&f, sizeof(f));
+		return requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_TUNE, (uint8_t*)&f, sizeof(f));
 	};
 
 	bool reqTuneSync (uint32_t freqKHz) {
 		uint32_t f = freqKHz;
-		return requestSync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE, (uint8_t*)&f, sizeof(f));
+		return requestSync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_TUNE, (uint8_t*)&f, sizeof(f));
 	};
 
 	bool reqTuneStop (void) {
-		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_STOP);
+		return requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_TUNE_STOP);
 	};
 
 	bool reqTuneStopSync (void) {
-		return requestSync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_STOP);
+		return requestSync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_TUNE_STOP);
 	};
 
 	bool reqRegisterTunerNotify (void) {
-		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_REG_TUNER_NOTIFY);
+		return requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_REG_TUNER_NOTIFY);
 	};
 
 	bool reqUnregisterTunerNotify (int client_id) {
 		int _id = client_id;
-		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_UNREG_TUNER_NOTIFY, (uint8_t*)&_id, sizeof(_id));
+		return requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_UNREG_TUNER_NOTIFY, (uint8_t*)&_id, sizeof(_id));
 	};
 
 	bool reqRegisterTsReceiveHandler (ITsReceiveHandler **p_handler) {
 		ITsReceiveHandler **p = p_handler;
-		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_REG_TS_RECEIVE_HANDLER, (uint8_t*)p, sizeof(p));
+		return requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_REG_TS_RECEIVE_HANDLER, (uint8_t*)p, sizeof(p));
 	};
 
 	bool reqUnregisterTsReceiveHandler (int client_id) {
 		int _id = client_id;
-		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_UNREG_TS_RECEIVE_HANDLER, (uint8_t*)&_id, sizeof(_id));
+		return requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_UNREG_TS_RECEIVE_HANDLER, (uint8_t*)&_id, sizeof(_id));
 	};
 
 	bool reqGetState (void) {
-		return requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_GET_STATE);
+		return requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_GET_STATE);
 	};
 
 	bool reqGetStateSync (void) {
-		return requestSync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_GET_STATE);
+		return requestSync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_GET_STATE);
 	};
 
 };

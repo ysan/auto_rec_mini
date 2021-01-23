@@ -13,14 +13,16 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>     
 
+#include "Group.h"
 #include "TuneThread.h"
 
 #include "modules.h"
 
 
-CTuneThread::CTuneThread (char *pszName, uint8_t nQueNum)
+CTuneThread::CTuneThread (char *pszName, uint8_t nQueNum, uint8_t groupId)
 	:CThreadMgrBase (pszName, nQueNum)
-	,mState (CLOSED)
+	,CGroup (groupId)
+	,mState (state::CLOSED)
 {
 	SEQ_BASE_t seqs [EN_SEQ_TUNE_THREAD_NUM] = {
 		{(PFN_SEQ_BASE)&CTuneThread::moduleUp, (char*)"moduleUp"},     // EN_SEQ_TUNE_THREAD_MODULE_UP
@@ -92,7 +94,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 
 	CTuneThread::TUNE_PARAM_t param = *(CTuneThread::TUNE_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
 
-	if (mState != CLOSED) {
+	if (mState != state::CLOSED) {
 		_UTL_LOG_E ("mState != CLOSED");
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
@@ -100,6 +102,29 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		pIf->setSectId (sectId, enAct);
 		return;
 	}
+
+	// child process command
+//	char *p_com_form = (char*)"./bin/recfsusb2i --np %d - -";
+	char *p_com_form = (char*)"./bin/recdvb %d - -";
+	char com_str [128] = {0};
+	snprintf (com_str, sizeof(com_str), p_com_form, CTsAribCommon::freqKHz2pysicalCh(param.freq));
+	std::vector<std::string> com = CUtils::split (com_str, ' ');
+	if (com.size() == 0) {
+		_UTL_LOG_E ("invalid child process command");
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		pIf->setSectId (sectId, enAct);
+		return;
+	}
+	char *p_coms[com.size() +1] ;
+	_UTL_LOG_I ("execv args");
+	for (size_t i = 0; i < com.size(); ++ i) {
+		p_coms [i] = (char*)com[i].c_str();
+		_UTL_LOG_I ("  [%s]", p_coms [i]);
+	}
+	p_coms [com.size()] = NULL;
+
 
 	int r = 0;
 	int pipeC2P [2];
@@ -147,18 +172,6 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		dup2 (pipeC2P_err[1], STDERR_FILENO);
 		close (pipeC2P_err[1]);
 
-//		char *p_com_form = (char*)"./bin/recfsusb2i --np %d - -";
-		char *p_com_form = (char*)"./bin/recdvb %d - -";
-		char com_str [128] = {0};
-		snprintf (com_str, sizeof(com_str), p_com_form, CTsAribCommon::freqKHz2pysicalCh(param.freq));
-		std::vector<std::string> com = CUtils::split (com_str, ' ');
-		char *p_coms[com.size() +1] ;
-		_UTL_LOG_I ("execv args");
-		for (size_t i = 0; i < com.size(); ++ i) {
-			p_coms [i] = (char*)com[i].c_str();
-			_UTL_LOG_I ("  [%s]", p_coms [i]);
-		}
-		p_coms [com.size()] = NULL;
 		r = execv (com[0].c_str(), p_coms);
 		if (r < 0) {
 			_UTL_PERROR("exec");
@@ -175,14 +188,14 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	close (pipeC2P[1]);
 
 	_UTL_LOG_I ("mState => OPENED");
-	mState = OPENED;
+	mState = state::OPENED;
 
 	// ここ以下はループが回りスレッド占有するので
 	// 先にリプライしときます
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 	_UTL_LOG_I ("mState => TUNE_BEGINED");
-	mState = TUNE_BEGINED;
+	mState = state::TUNE_BEGINED;
 
 	{ //---------------------------
 		_UTL_LOG_I ("onPreTsReceive");
@@ -236,10 +249,10 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 				break;
 
 			} else {
-				if (mState == TUNE_BEGINED) {
+				if (mState == state::TUNE_BEGINED) {
 					_UTL_LOG_I ("first ts read _size=[%d]", _size);
 					_UTL_LOG_I ("mState => TUNED");
-					mState = TUNED;
+					mState = state::TUNED;
 				}
 
 				{ //---------------------------
@@ -287,7 +300,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		}
 	}
 	_UTL_LOG_I ("mState => TUNE_ENDED");
-	mState = TUNE_ENDED;
+	mState = state::TUNE_ENDED;
 
 	_UTL_LOG_I ("ts read total_size=[%llu]", _total_size);
 
@@ -324,7 +337,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	}
 
 	_UTL_LOG_I ("mState => CLSOED");
-	mState = CLOSED;
+	mState = state::CLOSED;
 
 
 	sectId = THM_SECT_ID_INIT;

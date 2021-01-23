@@ -12,6 +12,7 @@
 #include "ThreadMgrpp.h"
 
 #include "Utils.h"
+#include "Group.h"
 #include "TunerControlIf.h"
 #include "TsAribCommon.h"
 
@@ -26,16 +27,16 @@ enum {
 	EN_SEQ_TUNE_THREAD_NUM,
 };
 
-class CTuneThread : public CThreadMgrBase
+class CTuneThread : public CThreadMgrBase, public CGroup
 {
 public:
-	typedef enum {
+	enum class state : int {
 		CLOSED = 0,
 		OPENED,
 		TUNE_BEGINED,
 		TUNED,
 		TUNE_ENDED,
-	} STATE_t;
+	};
 
 	typedef struct tune_param {
 		uint32_t freq;
@@ -45,7 +46,7 @@ public:
 	} TUNE_PARAM_t;
 
 public:
-	CTuneThread (char *pszName, uint8_t nQueNum);
+	CTuneThread (char *pszName, uint8_t nQueNum, uint8_t groupId);
 	virtual ~CTuneThread (void);
 
 
@@ -54,12 +55,12 @@ public:
 	void tune (CThreadMgrIf *pIf);
 
 	// direct getter
-	STATE_t getState (void) {
+	state getState (void) {
 		return mState;
 	}
 
 private:
-	STATE_t mState;
+	state mState;
 };
 
 #endif

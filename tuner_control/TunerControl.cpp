@@ -9,10 +9,13 @@
 #include "modules.h"
 
 
-
-CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum)
+CTunerControl::CTunerControl (char *pszName, uint8_t nQueNum, uint8_t groupId)
 	:CThreadMgrBase (pszName, nQueNum)
+	,CGroup (groupId)
 	,mFreq (0)
+	,mWkFreq (0)
+	,mStartFreq (0)
+	,mChkcnt (0)
 	,mState (EN_TUNER_STATE__TUNE_STOP)
 	,mIsReqStop (false)
 {
@@ -61,7 +64,7 @@ void CTunerControl::moduleUp (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_REQ_TUNE_THREAD_MODULE_UP:
-		requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_MODULE_UP);
+		requestAsync (EN_MODULE_TUNE_THREAD + getGroupId(), EN_SEQ_TUNE_THREAD_MODULE_UP);
 
 		sectId = SECTID_WAIT_TUNE_THREAD_MODULE_UP;
 		enAct = EN_THM_ACT_WAIT;
@@ -125,15 +128,14 @@ void CTunerControl::tune (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-	static uint32_t freq = 0;
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
 	switch (sectId) {
 	case SECTID_ENTRY:
-		freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
-		_UTL_LOG_I ("freq [%d]kHz\n", freq);
-		if (mFreq == freq) {
-			_UTL_LOG_I ("already freq [%d]kHz\n", freq);
+		mWkFreq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
+		_UTL_LOG_I ("freq [%d]kHz\n", mWkFreq);
+		if (mFreq == mWkFreq) {
+			_UTL_LOG_I ("already freq [%d]kHz\n", mWkFreq);
 			sectId = SECTID_END_SUCCESS;
 			enAct = EN_THM_ACT_CONTINUE;
 
@@ -144,7 +146,7 @@ void CTunerControl::tune (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_REQ_TUNE_STOP:
-		requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_STOP);
+		requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_TUNE_STOP);
 		sectId = SECTID_WAIT_TUNE_STOP;
 		enAct = EN_THM_ACT_WAIT;
 		break;
@@ -162,7 +164,7 @@ void CTunerControl::tune (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_REQ_TUNE_START:
-		requestAsync (EN_MODULE_TUNER_CONTROL, EN_SEQ_TUNER_CONTROL_TUNE_START, (uint8_t*)&freq, sizeof(freq));
+		requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_TUNE_START, (uint8_t*)&mWkFreq, sizeof(mWkFreq));
 		sectId = SECTID_WAIT_TUNE_START;
 		enAct = EN_THM_ACT_WAIT;
 		break;
@@ -214,8 +216,6 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-	static uint32_t s_freq = 0;
-	static int chkcnt = 0;
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
 	switch (sectId) {
@@ -229,7 +229,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNING_BEGIN;
 		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
-		s_freq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
+		mStartFreq = *(uint32_t*)(pIf->getSrcInfo()->msg.pMsg);
 
 		sectId = SECTID_REQ_TUNE_THREAD_TUNE;
 		enAct = EN_THM_ACT_CONTINUE;
@@ -238,15 +238,13 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 
 	case SECTID_REQ_TUNE_THREAD_TUNE: {
 		CTuneThread::TUNE_PARAM_t _param = {
-			s_freq,
+			mStartFreq,
 			&mMutexTsReceiveHandlers,
 			mpRegTsReceiveHandlers,
 			&mIsReqStop
 		};
-#if 0
-		requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_TUNE, (uint8_t*)&s_freq, sizeof(s_freq));
-#endif
-		requestAsync (EN_MODULE_TUNE_THREAD, EN_SEQ_TUNE_THREAD_TUNE, (uint8_t*)&_param, sizeof(_param));
+		requestAsync (EN_MODULE_TUNE_THREAD + getGroupId(),
+						EN_SEQ_TUNE_THREAD_TUNE, (uint8_t*)&_param, sizeof(_param));
 
 		sectId = SECTID_WAIT_TUNE_THREAD_TUNE;
 		enAct = EN_THM_ACT_WAIT;
@@ -257,7 +255,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 			sectId = SECTID_CHECK_TUNED;
-			chkcnt = 0;
+			mChkcnt = 0;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
@@ -267,15 +265,16 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_CHECK_TUNED:
-		if (chkcnt > 40) {
+		if (mChkcnt > 40) {
 			pIf->clearTimeout ();
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			CTuneThread *p_tuneThread = (CTuneThread*)(getModule(EN_MODULE_TUNE_THREAD));
-			if (p_tuneThread->getState() != CTuneThread::STATE_t::TUNED) {
-					++ chkcnt ;
+			EN_MODULE _id = (EN_MODULE)(EN_MODULE_TUNE_THREAD + getGroupId());
+			CTuneThread *p_tuneThread = (CTuneThread*)(getModule(_id));
+			if (p_tuneThread->getState() != CTuneThread::state::TUNED) {
+					++ mChkcnt ;
 				pIf->setTimeout (200);
 				sectId = SECTID_CHECK_TUNED;
 				enAct = EN_THM_ACT_WAIT;
@@ -297,8 +296,8 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNING_SUCCESS;
 		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
-		mFreq = s_freq;
-		chkcnt = 0;
+		mFreq = mStartFreq;
+		mChkcnt = 0;
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		pIf->reply (EN_THM_RSLT_SUCCESS);
@@ -315,7 +314,7 @@ void CTunerControl::tuneStart (CThreadMgrIf *pIf)
 		EN_TUNER_STATE enNotify = EN_TUNER_STATE__TUNING_ERROR_STOP;
 		pIf->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 
-		chkcnt = 0;
+		mChkcnt = 0;
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		pIf->reply (EN_THM_RSLT_ERROR);
@@ -341,16 +340,17 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-	static int chkcnt = 0;
+	int chkcnt = 0;
 
-	CTuneThread *p_tuneThread = (CTuneThread*)(getModule(EN_MODULE_TUNE_THREAD));
-	if (p_tuneThread->getState() == CTuneThread::STATE_t::TUNED ||
-			p_tuneThread->getState() == CTuneThread::STATE_t::TUNE_BEGINED) {
+	EN_MODULE _id = (EN_MODULE)(EN_MODULE_TUNE_THREAD + getGroupId());
+	CTuneThread *p_tuneThread = (CTuneThread*)(getModule(_id));
+	if (p_tuneThread->getState() == CTuneThread::state::TUNED ||
+			p_tuneThread->getState() == CTuneThread::state::TUNE_BEGINED) {
 		mIsReqStop = true;
 
 		while (chkcnt < 20) {
-			if (p_tuneThread->getState() == CTuneThread::STATE_t::TUNE_ENDED || 
-				p_tuneThread->getState() == CTuneThread::STATE_t::CLOSED) {
+			if (p_tuneThread->getState() == CTuneThread::state::TUNE_ENDED || 
+				p_tuneThread->getState() == CTuneThread::state::CLOSED) {
 				break;
 			}
 
