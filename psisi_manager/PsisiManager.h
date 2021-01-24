@@ -10,6 +10,7 @@
 #include "ThreadMgrpp.h"
 
 #include "Utils.h"
+#include "Group.h"
 #include "Settings.h"
 #include "PsisiManagerIf.h"
 
@@ -399,12 +400,13 @@ private:
 
 class CPsisiManager
 	:public CThreadMgrBase
+	,public CGroup
 	,public CTunerControlIf::ITsReceiveHandler
 	,public CTsParser::IParserListener
 	,public CEventInformationTable_sched::IEventScheduleHandler
 {
 public:
-	CPsisiManager (char *pszName, uint8_t nQueNum);
+	CPsisiManager (char *pszName, uint8_t nQueNum, uint8_t groupId);
 	virtual ~CPsisiManager (void);
 
 
@@ -515,6 +517,8 @@ private:
 
 
 	CSettings *mp_settings;
+
+	CTunerControlIf::ITsReceiveHandler *mp_ts_handler;
 
 	CTsParser m_parser;
 

@@ -9,6 +9,7 @@
 
 #include "ThreadMgrpp.h"
 #include "modules.h"
+#include "Group.h"
 
 #include "PsisiManagerStructs.h"
 
@@ -76,10 +77,13 @@ typedef enum {
 } EN_PSISI_STATE;
 
 
-class CPsisiManagerIf : public CThreadMgrExternalIf
+class CPsisiManagerIf : public CThreadMgrExternalIf, public CGroup
 {
 public:
-	explicit CPsisiManagerIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
+	explicit CPsisiManagerIf (CThreadMgrExternalIf *pIf, uint8_t groupId=0)
+		:CThreadMgrExternalIf (pIf)
+		,CGroup (groupId)
+	{
 	};
 
 	virtual ~CPsisiManagerIf (void) {
@@ -87,16 +91,16 @@ public:
 
 
 	bool reqModuleUp (void) {
-		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER__MODULE_UP);
+		return requestAsync (EN_MODULE_PSISI_MANAGER + getGroupId(), EN_SEQ_PSISI_MANAGER__MODULE_UP);
 	};
 
 	bool reqModuleDown (void) {
-		return requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER__MODULE_DOWN);
+		return requestAsync (EN_MODULE_PSISI_MANAGER + getGroupId(), EN_SEQ_PSISI_MANAGER__MODULE_DOWN);
 	};
 
 	bool reqRegisterPatDetectNotify (void) {
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__REG_PAT_DETECT_NOTIFY
 				);
 	};
@@ -104,7 +108,7 @@ public:
 	bool reqUnregisterPatDetectNotify (int client_id) {
 		int _id = client_id;
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__UNREG_PAT_DETECT_NOTIFY,
 					(uint8_t*)&_id,
 					sizeof(_id)
@@ -113,7 +117,7 @@ public:
 
 	bool reqRegisterEventChangeNotify (void) {
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__REG_EVENT_CHANGE_NOTIFY
 				);
 	};
@@ -121,7 +125,7 @@ public:
 	bool reqUnregisterEventChangeNotify (int client_id) {
 		int _id = client_id;
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__UNREG_EVENT_CHANGE_NOTIFY,
 					(uint8_t*)&_id,
 					sizeof(_id)
@@ -130,7 +134,7 @@ public:
 
 	bool reqRegisterPsisiStateNotify (void) {
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__REG_PSISI_STATE_NOTIFY
 				);
 	};
@@ -138,7 +142,7 @@ public:
 	bool reqUnregisterPsisiStateNotify (int client_id) {
 		int _id = client_id;
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__UNREG_PSISI_STATE_NOTIFY,
 					(uint8_t*)&_id,
 					sizeof(_id)
@@ -147,7 +151,7 @@ public:
 
 	bool reqGetPatDetectState (void) {
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__GET_PAT_DETECT_STATE
 				);
 	};
@@ -159,7 +163,7 @@ public:
 
 		REQ_SERVICE_INFOS_PARAM param = {p_out_serviceInfos, array_max_num};
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__GET_CURRENT_SERVICE_INFOS,
 					(uint8_t*)&param,
 					sizeof(param)
@@ -173,7 +177,7 @@ public:
 
 		REQ_EVENT_INFO_PARAM param = {*p_key, p_out_eventInfo};
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__GET_PRESENT_EVENT_INFO,
 					(uint8_t*)&param,
 					sizeof(param)
@@ -187,7 +191,7 @@ public:
 
 		REQ_EVENT_INFO_PARAM param = {*p_key, p_out_eventInfo};
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__GET_FOLLOW_EVENT_INFO,
 					(uint8_t*)&param,
 					sizeof(param)
@@ -201,7 +205,7 @@ public:
 
 		REQ_NETWORK_INFO_PARAM param = {p_out_networkInfo};
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__GET_CURRENT_NETWORK_INFO,
 					(uint8_t*)&param,
 					sizeof(param)
@@ -210,14 +214,14 @@ public:
 
 	bool reqEnableParseEITSched (void) {
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__ENABLE_PARSE_EIT_SCHED
 				);
 	};
 
 	bool reqDisableParseEITSched (void) {
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__DISABLE_PARSE_EIT_SCHED
 				);
 	};
@@ -225,7 +229,7 @@ public:
 	bool reqDumpCaches (int type) {
 		int _type = type;
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__DUMP_CACHES,
 					(uint8_t*)&_type,
 					sizeof(_type)
@@ -235,7 +239,7 @@ public:
 	bool reqDumpTables (EN_PSISI_TYPE type) {
 		EN_PSISI_TYPE _type = type;
 		return requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__DUMP_TABLES,
 					(uint8_t*)&_type,
 					sizeof(_type)

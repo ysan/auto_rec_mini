@@ -33,8 +33,10 @@ typedef struct _parser_notice {
 } _PARSER_NOTICE;
 
 
-CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum)
+CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum, uint8_t groupId)
 	:CThreadMgrBase (pszName, nQueNum)
+	,CGroup (groupId)
+	,mp_ts_handler (this)
 	,m_parser (this)
 	,m_tuner_notify_client_id (0xff)
 	,m_ts_receive_handler_id (-1)
@@ -141,9 +143,6 @@ void CPsisiManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-	// request msgでインスタンスアドレス渡す用
-	static CTunerControlIf::ITsReceiveHandler *s_p = NULL;
-
 
 	switch (sectId) {
 	case SECTID_ENTRY:
@@ -176,10 +175,9 @@ void CPsisiManager::onReq_moduleUp (CThreadMgrIf *pIf)
 
 	case SECTID_REQ_REG_HANDLER: {
 
-		s_p = this;
-		_UTL_LOG_I ("CTunerControlIf::ITsReceiveHandler %p", s_p);
+		_UTL_LOG_I ("CTunerControlIf::ITsReceiveHandler %p", mp_ts_handler);
 		CTunerControlIf _if (getExternalIf());
-		_if.reqRegisterTsReceiveHandler (&s_p);
+		_if.reqRegisterTsReceiveHandler (&mp_ts_handler);
 
 		sectId = SECTID_WAIT_REG_HANDLER;
 		enAct = EN_THM_ACT_WAIT;
@@ -221,14 +219,12 @@ void CPsisiManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_END_SUCCESS:
-		s_p = NULL;
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		break;
 
 	case SECTID_END_ERROR:
-		s_p = NULL;
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
