@@ -133,6 +133,7 @@ Please you set according to the environment.
 |:-----|:------------|
 | `is_syslog_output` | switch whether to output log to `syslog`. |
 | `command_server_port` | `command server` listen port. |
+| `tuner_hal_allocates` | assign the tuner hal command. |
 | `channels_json_path` | save/load destination of channel scan result. |
 | `rec_reserves_json_path` | save/load destination of recording reservation. |
 | `rec_results_json_path` | save/load destination of recording result. |
@@ -164,6 +165,14 @@ You need modify `/etc/rsyslog.d/50-default.conf`. (case `ubuntu16.04`)
 	---
 	> user.*				-/var/log/user.log
 
+### tuner_hal_allocates ###
+Assign commands according to the tuner hardware you can use.
+
+	"tuner_hal_allocates": [
+		"./bin/recdvb %d - -",
+		"./bin/recfsusb2i --np %d - -"
+	],
+
 ### event_name_keywords_json_path ###
 
 By creating json of the following format in `event_name_keywords_json_path`  
@@ -172,11 +181,11 @@ make a recording reservation.
 No limit to the number of keywords.
 
 	{
-		"m_event_name_keywords": [
-			"ＸＸＸニュース",
-			"ＸＸＸスポーツ",
-			"ＸＸＸ報道"
-		]
+        "m_event_name_keywords": [
+	        "ＸＸＸニュース",
+	        "ＸＸＸスポーツ",
+	        "ＸＸＸ報道"
+	    ]
 	}
 
 ### extended_event_keywords_json_path ###
@@ -187,11 +196,11 @@ make a recording reservation.
 No limit to the number of keywords.
 
 	{
-		"m_extended_event_keywords": [
-			"ワールドカップ",
-			"オリンピック",
-			"野球"
-		]
+	    "m_extended_event_keywords": [
+	        "ワールドカップ",
+	        "オリンピック",
+	        "野球"
+	    ]
 	}
 
 How to use CLI

@@ -4,6 +4,11 @@
 
         "command_server_port": 20001,
 
+        "tuner_hal_allocates": [
+            "./bin/recdvb %d - -",
+            "./bin/recfsusb2i --np %d - -"
+        ],
+
         "channels_json_path": "./data/channels.json",
 
         "rec_reserves_json_path": "./data/rec_reserves.json",

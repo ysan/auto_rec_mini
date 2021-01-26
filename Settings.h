@@ -12,10 +12,12 @@
 #include <fstream>
 #include <string>
 #include <regex>
+#include <vector>
 
 #include "Utils.h"
 
 #include "cereal/cereal.hpp"
+#include "cereal/types/vector.hpp"
 #include "cereal/archives/json.hpp"
 
 
@@ -34,6 +36,9 @@ public:
 		}
 		uint16_t getCommandServerPort (void) {
 			return m_command_server_port;
+		}
+		std::vector<std::string> *getTunerHalAllocates (void) {
+			return &m_tuner_hal_allocates;
 		}
 		std::string *getChannelsJsonPath (void) {
 			return &m_channels_json_path;
@@ -99,6 +104,10 @@ public:
 			_UTL_LOG_I ("--------------------------------");
 			_UTL_LOG_I ("is_syslog_output:[%d]", m_is_syslog_output);
 			_UTL_LOG_I ("command_server_port:[%d]", m_command_server_port);
+			_UTL_LOG_I ("tuner_hal_allocates:");
+			for (const std::string &s : m_tuner_hal_allocates) {
+				_UTL_LOG_I ("  [%s]", s.c_str());
+			}
 			_UTL_LOG_I ("channels_json_path:[%s]", m_channels_json_path.c_str());
 			_UTL_LOG_I ("rec_reserves_json_path:[%s]", m_rec_reserves_json_path.c_str());
 			_UTL_LOG_I ("rec_results_json_path:[%s]", m_rec_results_json_path.c_str());
@@ -152,6 +161,7 @@ public:
 			archive (
 				cereal::make_nvp("is_syslog_output", m_is_syslog_output)
 				,cereal::make_nvp("command_server_port", m_command_server_port)
+				,cereal::make_nvp("tuner_hal_allocates", m_tuner_hal_allocates)
 				,cereal::make_nvp("channels_json_path", m_channels_json_path)
 				,cereal::make_nvp("rec_reserves_json_path", m_rec_reserves_json_path)
 				,cereal::make_nvp("rec_results_json_path", m_rec_results_json_path)
@@ -177,6 +187,7 @@ public:
 	private:
 		bool m_is_syslog_output;
 		uint16_t m_command_server_port;
+		std::vector<std::string> m_tuner_hal_allocates;
 		std::string m_channels_json_path;
 		std::string m_rec_reserves_json_path;
 		std::string m_rec_results_json_path;

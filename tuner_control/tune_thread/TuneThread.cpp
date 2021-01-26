@@ -30,6 +30,8 @@ CTuneThread::CTuneThread (char *pszName, uint8_t nQueNum, uint8_t groupId)
 		{(PFN_SEQ_BASE)&CTuneThread::tune, (char*)"tune"},             // EN_SEQ_TUNE_THREAD_TUNE
 	};
 	setSeqs (seqs, EN_SEQ_TUNE_THREAD_NUM);
+
+	mp_settings = CSettings::getInstance();
 }
 
 CTuneThread::~CTuneThread (void)
@@ -104,10 +106,18 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	}
 
 	// child process command
-//	char *p_com_form = (char*)"./bin/recfsusb2i --np %d - -";
-	char *p_com_form = (char*)"./bin/recdvb %d - -";
+	std::vector<std::string> *p_tuner_hal_allocates = mp_settings->getParams()->getTunerHalAllocates();
+	if (p_tuner_hal_allocates->size() <= getGroupId()) {
+		_UTL_LOG_E ("not allocated tuner hal command... (settings.json ->tuner_hal_allocates)");
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		pIf->setSectId (sectId, enAct);
+		return;
+	}
+	std::string com_form = (*p_tuner_hal_allocates) [getGroupId()];
 	char com_str [128] = {0};
-	snprintf (com_str, sizeof(com_str), p_com_form, CTsAribCommon::freqKHz2pysicalCh(param.freq));
+	snprintf (com_str, sizeof(com_str), com_form.c_str(), CTsAribCommon::freqKHz2pysicalCh(param.freq));
 	std::vector<std::string> com = CUtils::split (com_str, ' ');
 	if (com.size() == 0) {
 		_UTL_LOG_E ("invalid child process command");

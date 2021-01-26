@@ -148,6 +148,7 @@ settings.json
 |:-----|:------------|
 | `is_syslog_output` | ログを`syslog`に出力するかどうかを切り替えます。 |
 | `command_server_port` | `command server` の待受ポートです。 |
+| `tuner_hal_allocates` | チューナーHALコマンドを割り当てます。 |
 | `channels_json_path` | チャンネルスキャン結果の書き込み/読み込み先パスです。 |
 | `rec_reserves_json_path` | 録画予約リストの書き込み/読み込み先パスです。 |
 | `rec_results_json_path` | 録画結果リストの書き込み/読み込み先パスです。 |
@@ -178,6 +179,14 @@ settings.json
 	< #user.*               -/var/log/user.log
 	---
 	> user.*                -/var/log/user.log
+
+### tuner_hal_allocates ###
+手持ちのtunerハードに合わせてコマンドを割り当てます。
+
+	"tuner_hal_allocates": [
+		"./bin/recdvb %d - -",
+		"./bin/recfsusb2i --np %d - -"
+	],
 
 ### event_name_keywords_json_path ###
 

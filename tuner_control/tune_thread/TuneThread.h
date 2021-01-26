@@ -15,6 +15,7 @@
 #include "Group.h"
 #include "TunerControlIf.h"
 #include "TsAribCommon.h"
+#include "Settings.h"
 
 
 using namespace ThreadManager;
@@ -61,6 +62,7 @@ public:
 
 private:
 	state mState;
+	CSettings *mp_settings;
 };
 
 #endif
