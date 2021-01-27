@@ -316,11 +316,7 @@ private:
 	CRecReserve m_recording;
 
 	char m_recording_tmpfile [PATH_MAX];
-#if defined(USE_IT9175_IMPL)
-	struct OutputBuffer *mp_outputBuffer;
-#else 
 	unique_ptr<CRecAribB25> msp_b25;
-#endif
 };
 
 #endif

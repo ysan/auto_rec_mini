@@ -4,19 +4,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#if defined(USE_IT9175_IMPL)
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include "utils.h"
-#include "verstr.h"
-#include "message.h"
-#ifdef __cplusplus
-};
-#endif
-#include "it9175_extern.h"
-#endif
-
 #include "RecManager.h"
 #include "RecManagerIf.h"
 
@@ -96,9 +83,6 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	,m_patDetectNotify_clientId (0xff)
 	,m_eventChangeNotify_clientId (0xff)
 	,m_recProgress (EN_REC_PROGRESS__INIT)
-#if defined(USE_IT9175_IMPL)
-	,mp_outputBuffer (NULL)
-#endif
 {
 	SEQ_BASE_t seqs [EN_SEQ_REC_MANAGER__NUM] = {
 		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUp, (char*)"onReq_moduleUp"},                               // EN_SEQ_REC_MANAGER__MODULE_UP
@@ -2680,56 +2664,6 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 	case EN_REC_PROGRESS__PRE_PROCESS: {
 		_UTL_LOG_I ("EN_REC_PROGRESS__PRE_PROCESS");
 
-#if defined(USE_IT9175_IMPL)
-		mp_outputBuffer = create_FileBufferedWriter (768 * 1024, m_recording_tmpfile);
-		if (!mp_outputBuffer) {
-			_UTL_LOG_E ("failed to init FileBufferedWriter.");
-
-			RECORDING_NOTICE_t _notice = {m_recProgress, RESERVE_STATE__END_ERROR__INTERNAL_ERR};
-			requestAsync (
-				EN_MODULE_REC_MANAGER,
-				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
-				(uint8_t*)&_notice,
-				sizeof(_notice)
-			);
-
-			// next
-			m_recProgress = EN_REC_PROGRESS__END_ERROR;
-
-		} else {
-
-			struct OutputBuffer * const pFileBufferedWriter = mp_outputBuffer;
-			mp_outputBuffer = create_TSParser( 8192, pFileBufferedWriter, 1);
-			if (!mp_outputBuffer) {
-				_UTL_LOG_E ("failed to init TS Parser.");
-				OutputBuffer_release (pFileBufferedWriter);
-
-				RECORDING_NOTICE_t _notice = {m_recProgress, RESERVE_STATE__END_ERROR__INTERNAL_ERR};
-				requestAsync (
-					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
-					(uint8_t*)&_notice,
-					sizeof(_notice)
-				);
-
-				// next
-				m_recProgress = EN_REC_PROGRESS__END_ERROR;
-
-			}
-
-			RECORDING_NOTICE_t _notice = {m_recProgress, RESERVE_STATE__INIT};
-			requestAsync (
-				EN_MODULE_REC_MANAGER,
-				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
-				(uint8_t*)&_notice,
-				sizeof(_notice)
-			);
-
-			// next
-			m_recProgress = EN_REC_PROGRESS__NOW_RECORDING;
-			_UTL_LOG_I ("next  EN_REC_PROGRESS__NOW_RECORDING");
-		}
-#else
 		std::unique_ptr<CRecAribB25> b25 (new CRecAribB25(8192, m_recording_tmpfile));
 		msp_b25.swap (b25);
 
@@ -2744,7 +2678,6 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 		// next
 		m_recProgress = EN_REC_PROGRESS__NOW_RECORDING;
 		_UTL_LOG_I ("next  EN_REC_PROGRESS__NOW_RECORDING");
-#endif
 
 		}
 		break;
@@ -2752,11 +2685,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 	case EN_REC_PROGRESS__NOW_RECORDING: {
 
 		// recording
-#if defined(USE_IT9175_IMPL)
-		int r = OutputBuffer_put (mp_outputBuffer, p_ts_data, length);
-#else
 		int r = msp_b25->put ((uint8_t*)p_ts_data, length);
-#endif
 		if (r < 0) {
 			_UTL_LOG_W ("TS write failed");
 		}
@@ -2800,16 +2729,10 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 
 	case EN_REC_PROGRESS__POST_PROCESS: {
 		_UTL_LOG_I ("EN_REC_PROGRESS__POST_PROCESS");
-#if defined(USE_IT9175_IMPL)
-		if (mp_outputBuffer) {
-			OutputBuffer_flush (mp_outputBuffer);
-			OutputBuffer_release (mp_outputBuffer);
-			mp_outputBuffer = NULL;
-		}
-#else
+
 		msp_b25->flush();
 		msp_b25->release();
-#endif
+
 		RECORDING_NOTICE_t _notice = {m_recProgress, RESERVE_STATE__INIT};
 		requestAsync (
 			EN_MODULE_REC_MANAGER,
