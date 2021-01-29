@@ -126,7 +126,6 @@ static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
-		return;
 	}
 
 	for (uint8_t id = 0; id < GROUP_MAX; ++ id) {
@@ -137,25 +136,25 @@ static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
 
 		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			_COM_SVR_PRINT ("get state success\n");
+			_COM_SVR_PRINT ("  get state success\n");
 		} else {
-			_COM_SVR_PRINT ("get state error\n");
+			_COM_SVR_PRINT ("  get state error\n");
 			return;
 		}
 
 		EN_TUNER_STATE state = *(EN_TUNER_STATE*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
 		switch (state) {
 		case EN_TUNER_STATE__TUNING_BEGIN:
-			_COM_SVR_PRINT ("EN_TUNER_STATE__TUNING_BEGIN\n");
+			_COM_SVR_PRINT ("  EN_TUNER_STATE__TUNING_BEGIN\n");
 			break;
 		case EN_TUNER_STATE__TUNING_SUCCESS:
-			_COM_SVR_PRINT ("EN_TUNER_STATE__TUNING_SUCCESS\n");
+			_COM_SVR_PRINT ("  EN_TUNER_STATE__TUNING_SUCCESS\n");
 			break;
 		case EN_TUNER_STATE__TUNING_ERROR_STOP:
-			_COM_SVR_PRINT ("EN_TUNER_STATE__TUNING_ERROR_STOP\n");
+			_COM_SVR_PRINT ("  EN_TUNER_STATE__TUNING_ERROR_STOP\n");
 			break;
 		case EN_TUNER_STATE__TUNE_STOP:
-			_COM_SVR_PRINT ("EN_TUNER_STATE__TUNE_STOP\n");
+			_COM_SVR_PRINT ("  EN_TUNER_STATE__TUNE_STOP\n");
 			break;
 		default:
 			break;
@@ -184,7 +183,7 @@ ST_COMMAND_INFO g_tunerControlCommands [] = { // extern
 	},
 	{
 		"s",
-		"get tuner state (usage: s {tuner id})",
+		"get tuner state",
 		getState,
 		NULL,
 	},
