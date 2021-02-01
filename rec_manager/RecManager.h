@@ -1,7 +1,6 @@
 #ifndef _REC_MANAGER_H_
 #define _REC_MANAGER_H_
 
-#include <memory>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,12 +11,15 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <memory>
 
+#include "Group.h"
 #include "ThreadMgrpp.h"
 
 #include "Utils.h"
 #include "Settings.h"
 #include "RecManagerIf.h"
+#include "RecInstance.h"
 #include "RecAribB25.h"
 #include "TsAribCommon.h"
 
@@ -222,7 +224,7 @@ public:
 
 class CRecManager
 	:public CThreadMgrBase
-	,public CTunerControlIf::ITsReceiveHandler
+////	,public CTunerControlIf::ITsReceiveHandler
 {
 public:
 	CRecManager (char *pszName, uint8_t nQueNum);
@@ -231,6 +233,8 @@ public:
 
 	void onReq_moduleUp (CThreadMgrIf *pIf);
 	void onReq_moduleDown (CThreadMgrIf *pIf);
+	void onReq_moduleUpByGroupId (CThreadMgrIf *pIf);
+	void onReq_moduleDownByGroupId (CThreadMgrIf *pIf);
 	void onReq_checkLoop (CThreadMgrIf *pIf);
 	void onReq_checkEventLoop (CThreadMgrIf *pIf);
 	void onReq_recordingNotice (CThreadMgrIf *pIf);
@@ -289,10 +293,10 @@ private:
 
 
 	// CTunerControlIf::ITsReceiveHandler
-	bool onPreTsReceive (void) override;
-	void onPostTsReceive (void) override;
-	bool onCheckTsReceiveLoop (void) override;
-	bool onTsReceived (void *p_ts_data, int length) override;
+////	bool onPreTsReceive (void) override;
+////	void onPostTsReceive (void) override;
+////	bool onCheckTsReceiveLoop (void) override;
+////	bool onTsReceived (void *p_ts_data, int length) override;
 
 
 	void saveReserves (void);
@@ -304,19 +308,26 @@ private:
 
 	CSettings *mp_settings;
 	
-	uint8_t m_tunerNotify_clientId;
-	int m_tsReceive_handlerId;
-	uint8_t m_patDetectNotify_clientId;
-	uint8_t m_eventChangeNotify_clientId;
+////	uint8_t m_tunerNotify_clientId;
+////	int m_tsReceive_handlerId;
+////	uint8_t m_patDetectNotify_clientId;
+////	uint8_t m_eventChangeNotify_clientId;
+	uint8_t m_tunerNotify_clientId [GROUP_MAX];
+	int m_tsReceive_handlerId [GROUP_MAX];
+	uint8_t m_patDetectNotify_clientId [GROUP_MAX];
+	uint8_t m_eventChangeNotify_clientId [GROUP_MAX];
 
-	EN_REC_PROGRESS m_recProgress; // tuneThreadと共有する とりあえず排他はいれません
+////	EN_REC_PROGRESS m_recProgress; // tuneThreadと共有する とりあえず排他はいれません
 
 	CRecReserve m_reserves [RESERVE_NUM_MAX];
 	CRecReserve m_results [RESULT_NUM_MAX];
 	CRecReserve m_recording;
 
 	char m_recording_tmpfile [PATH_MAX];
-	unique_ptr<CRecAribB25> msp_b25;
+////	unique_ptr<CRecAribB25> msp_b25;
+
+	std::unique_ptr <CRecInstance> msp_rec_instances [GROUP_MAX];
+	CTunerControlIf::ITsReceiveHandler *mp_ts_handlers [GROUP_MAX];
 };
 
 #endif

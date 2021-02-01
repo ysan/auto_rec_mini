@@ -4,12 +4,16 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "Group.h"
+#include "RecInstance.h"
 #include "RecManager.h"
 #include "RecManagerIf.h"
 
+#include "Utils.h"
 #include "modules.h"
 
 #include "aribstr.h"
+#include "threadmgr_if.h"
 
 
 
@@ -70,22 +74,23 @@ const char *g_repeatability [] = {
 };
 
 
-typedef struct {
-	EN_REC_PROGRESS rec_progress;
-	uint32_t reserve_state;
-} RECORDING_NOTICE_t;
+////typedef struct {
+////	EN_REC_PROGRESS rec_progress;
+////	uint32_t reserve_state;
+////} RECORDING_NOTICE_t;
 
 
 CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
-	,m_tunerNotify_clientId (0xff)
-	,m_tsReceive_handlerId (-1)
-	,m_patDetectNotify_clientId (0xff)
-	,m_eventChangeNotify_clientId (0xff)
-	,m_recProgress (EN_REC_PROGRESS__INIT)
+////	,m_tunerNotify_clientId (0xff)
+////	,m_tsReceive_handlerId (-1)
+////	,m_patDetectNotify_clientId (0xff)
+////	,m_eventChangeNotify_clientId (0xff)
+////	,m_recProgress (EN_REC_PROGRESS__INIT)
 {
 	SEQ_BASE_t seqs [EN_SEQ_REC_MANAGER__NUM] = {
 		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUp, (char*)"onReq_moduleUp"},                               // EN_SEQ_REC_MANAGER__MODULE_UP
+		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUpByGroupId, (char*)"onReq_moduleUpByGroupId"},             // EN_SEQ_REC_MANAGER__MODULE_UP_BY_GROUPID
 		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleDown, (char*)"onReq_moduleDown"},                           // EN_SEQ_REC_MANAGER__MODULE_DOWN
 		{(PFN_SEQ_BASE)&CRecManager::onReq_checkLoop, (char*)"onReq_checkLoop"},                             // EN_SEQ_REC_MANAGER__CHECK_LOOP
 		{(PFN_SEQ_BASE)&CRecManager::onReq_checkEventLoop, (char*)"onReq_checkEventLoop"},                   // EN_SEQ_REC_MANAGER__CHECK_EVENT_LOOP
@@ -111,6 +116,13 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	m_recording.clear();
 
 	memset (m_recording_tmpfile, 0x00, sizeof (m_recording_tmpfile));
+
+	for (int _gr = 0; _gr < GROUP_MAX; ++ _gr) {
+		m_tunerNotify_clientId [_gr] = 0xff;
+		m_tsReceive_handlerId [_gr] = -1;
+		m_patDetectNotify_clientId [_gr] = 0xff;
+		m_eventChangeNotify_clientId [_gr] = 0xff;
+	}
 }
 
 CRecManager::~CRecManager (void)
@@ -129,14 +141,8 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_REG_TUNER_NOTIFY,
-		SECTID_WAIT_REG_TUNER_NOTIFY,
-		SECTID_REQ_REG_HANDLER,
-		SECTID_WAIT_REG_HANDLER,
-		SECTID_REQ_REG_PAT_DETECT_NOTIFY,
-		SECTID_WAIT_REG_PAT_DETECT_NOTIFY,
-		SECTID_REQ_REG_EVENT_CHANGE_NOTIFY,
-		SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY,
+		SECTID_REQ_MODULE_UP_BY_GROUPID,
+		SECTID_WAIT_MODULE_UP_BY_GROUPID,
 		SECTID_REQ_CHECK_LOOP,
 		SECTID_WAIT_CHECK_LOOP,
 		SECTID_REQ_CHECK_EVENT_LOOP,
@@ -149,9 +155,7 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-	// request msgでインスタンスアドレス渡す用
-	static CTunerControlIf::ITsReceiveHandler *s_p = NULL;
-
+	static uint8_t s_gr_cnt = 0;
 
 	switch (sectId) {
 	case SECTID_ENTRY:
@@ -159,100 +163,38 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		loadReserves ();
 		loadResults ();
 
-		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
+		// recInstance グループ数分の生成はここで
+		// getExternalIf()メンバ使ってるからコンストラクタ上では実行不可
+		for (int _gr = 0; _gr < GROUP_MAX; ++ _gr) {
+			std::unique_ptr <CRecInstance> _r(new CRecInstance(getExternalIf()));
+			msp_rec_instances[_gr].swap(_r);
+			mp_ts_handlers[_gr] = msp_rec_instances[_gr].get();
+		}
+
+		sectId = SECTID_REQ_MODULE_UP_BY_GROUPID;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_REQ_REG_TUNER_NOTIFY: {
-		CTunerControlIf _if (getExternalIf());
-		_if.reqRegisterTunerNotify ();
+	case SECTID_REQ_MODULE_UP_BY_GROUPID:
+		requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__MODULE_UP_BY_GROUPID, (uint8_t*)&s_gr_cnt, sizeof(s_gr_cnt));
+		++ s_gr_cnt;
 
-		sectId = SECTID_WAIT_REG_TUNER_NOTIFY;
+		sectId = SECTID_WAIT_MODULE_UP_BY_GROUPID;
 		enAct = EN_THM_ACT_WAIT;
-		}
 		break;
 
-	case SECTID_WAIT_REG_TUNER_NOTIFY:
+	case SECTID_WAIT_MODULE_UP_BY_GROUPID:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			m_tunerNotify_clientId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
-			sectId = SECTID_REQ_REG_HANDLER;
-			enAct = EN_THM_ACT_CONTINUE;
+			if (s_gr_cnt < GROUP_MAX) {
+				sectId = SECTID_REQ_MODULE_UP_BY_GROUPID;
+				enAct = EN_THM_ACT_CONTINUE;
+			} else {
+				sectId = SECTID_REQ_CHECK_LOOP;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
 
 		} else {
-			_UTL_LOG_E ("reqRegisterTunerNotify is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-		}
-		break;
-
-	case SECTID_REQ_REG_HANDLER: {
-
-		s_p = this;
-		_UTL_LOG_I ("CTunerControlIf::ITsReceiveHandler %p", s_p);
-		CTunerControlIf _if (getExternalIf());
-		_if.reqRegisterTsReceiveHandler (&s_p);
-
-		sectId = SECTID_WAIT_REG_HANDLER;
-		enAct = EN_THM_ACT_WAIT;
-		}
-		break;
-
-	case SECTID_WAIT_REG_HANDLER:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			m_tsReceive_handlerId = *(int*)(pIf->getSrcInfo()->msg.pMsg);
-			sectId = SECTID_REQ_REG_PAT_DETECT_NOTIFY;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-			_UTL_LOG_E ("reqRegisterTsReceiveHandler is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-		}
-		break;
-
-	case SECTID_REQ_REG_PAT_DETECT_NOTIFY: {
-		CPsisiManagerIf _if (getExternalIf());
-		_if.reqRegisterPatDetectNotify ();
-
-		sectId = SECTID_WAIT_REG_PAT_DETECT_NOTIFY;
-		enAct = EN_THM_ACT_WAIT;
-		}
-		break;
-
-	case SECTID_WAIT_REG_PAT_DETECT_NOTIFY:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			m_patDetectNotify_clientId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
-			sectId = SECTID_REQ_REG_EVENT_CHANGE_NOTIFY;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-			_UTL_LOG_E ("reqRegisterPatDetectNotify is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-		}
-		break;
-
-	case SECTID_REQ_REG_EVENT_CHANGE_NOTIFY: {
-		CPsisiManagerIf _if (getExternalIf());
-		_if.reqRegisterEventChangeNotify ();
-
-		sectId = SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY;
-		enAct = EN_THM_ACT_WAIT;
-		}
-		break;
-
-	case SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			m_eventChangeNotify_clientId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
-			sectId = SECTID_REQ_CHECK_LOOP;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-			_UTL_LOG_E ("reqRegisterEventChangeNotify is failure.");
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
@@ -299,14 +241,163 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_END_SUCCESS:
-		s_p = NULL;
+		s_gr_cnt = 0;
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		break;
 
 	case SECTID_END_ERROR:
-		s_p = NULL;
+		s_gr_cnt = 0;
+		pIf->reply (EN_THM_RSLT_ERROR);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+
+	pIf->setSectId (sectId, enAct);
+}
+
+void CRecManager::onReq_moduleUpByGroupId (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_REQ_REG_TUNER_NOTIFY,
+		SECTID_WAIT_REG_TUNER_NOTIFY,
+		SECTID_REQ_REG_HANDLER,
+		SECTID_WAIT_REG_HANDLER,
+		SECTID_REQ_REG_PAT_DETECT_NOTIFY,
+		SECTID_WAIT_REG_PAT_DETECT_NOTIFY,
+		SECTID_REQ_REG_EVENT_CHANGE_NOTIFY,
+		SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY,
+		SECTID_END_SUCCESS,
+		SECTID_END_ERROR,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	static uint8_t s_groupId = 0;
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+
+		// request msg から groupId を取得します
+		s_groupId = *(uint8_t*)(getIf()->getSrcInfo()->msg.pMsg);
+		_UTL_LOG_I("(%s) groupId:[%d]", pIf->getSeqName(), s_groupId);
+
+		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_REG_TUNER_NOTIFY: {
+		CTunerControlIf _if (getExternalIf(), s_groupId);
+		_if.reqRegisterTunerNotify ();
+
+		sectId = SECTID_WAIT_REG_TUNER_NOTIFY;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_REG_TUNER_NOTIFY:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			m_tunerNotify_clientId [s_groupId] = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+			sectId = SECTID_REQ_REG_HANDLER;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("reqRegisterTunerNotify is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_REQ_REG_HANDLER: {
+
+		_UTL_LOG_I ("CTunerControlIf::ITsReceiveHandler %p", msp_rec_instances[s_groupId].get());
+		CTunerControlIf _if (getExternalIf(), s_groupId);
+		_if.reqRegisterTsReceiveHandler (&(mp_ts_handlers[s_groupId]));
+
+		sectId = SECTID_WAIT_REG_HANDLER;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_REG_HANDLER:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			m_tsReceive_handlerId [s_groupId] = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+			sectId = SECTID_REQ_REG_PAT_DETECT_NOTIFY;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("reqRegisterTsReceiveHandler is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_REQ_REG_PAT_DETECT_NOTIFY: {
+		CPsisiManagerIf _if (getExternalIf(), s_groupId);
+		_if.reqRegisterPatDetectNotify ();
+
+		sectId = SECTID_WAIT_REG_PAT_DETECT_NOTIFY;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_REG_PAT_DETECT_NOTIFY:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			m_patDetectNotify_clientId [s_groupId] = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+			sectId = SECTID_REQ_REG_EVENT_CHANGE_NOTIFY;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("reqRegisterPatDetectNotify is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_REQ_REG_EVENT_CHANGE_NOTIFY: {
+		CPsisiManagerIf _if (getExternalIf(), s_groupId);
+		_if.reqRegisterEventChangeNotify ();
+
+		sectId = SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			m_eventChangeNotify_clientId [s_groupId] = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+			sectId = SECTID_END_SUCCESS;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("reqRegisterEventChangeNotify is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_END_SUCCESS:
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	case SECTID_END_ERROR:
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -593,7 +684,7 @@ void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 				continue;
 			}
 
-			if (!m_reserves [i].state == RESERVE_STATE__INIT) {
+			if (m_reserves [i].state == RESERVE_STATE__INIT) {
 				continue;
 			}
 
@@ -686,29 +777,36 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 
-	RECORDING_NOTICE_t _notice = *(RECORDING_NOTICE_t*)(pIf->getSrcInfo()->msg.pMsg);
+////	RECORDING_NOTICE_t _notice = *(RECORDING_NOTICE_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CRecInstance::RECORDING_NOTICE_t _notice = *(CRecInstance::RECORDING_NOTICE_t*)(pIf->getSrcInfo()->msg.pMsg);
 	switch (_notice.rec_progress) {
-	case EN_REC_PROGRESS__INIT:
+////	case EN_REC_PROGRESS__INIT:
+		case CRecInstance::progress::INIT:
 		break;
 
-	case EN_REC_PROGRESS__PRE_PROCESS:
-		// ここでは エラーが起きることがあるのでRESERVE_STATE をチェックします
-		if (_notice.reserve_state != RESERVE_STATE__INIT) {
-			m_recording.state |= _notice.reserve_state;
-		}
+////	case EN_REC_PROGRESS__PRE_PROCESS:
+		case CRecInstance::progress::PRE_PROCESS:
+////		// ここでは エラーが起きることがあるのでRESERVE_STATE をチェックします
+////		if (_notice.reserve_state != RESERVE_STATE__INIT) {
+////			m_recording.state |= _notice.reserve_state;
+////		}
 		break;
 
-	case EN_REC_PROGRESS__NOW_RECORDING:
+////	case EN_REC_PROGRESS__NOW_RECORDING:
+		case CRecInstance::progress::NOW_RECORDING:
 		break;
 
-	case EN_REC_PROGRESS__END_SUCCESS:
+////	case EN_REC_PROGRESS__END_SUCCESS:
+		case CRecInstance::progress::END_SUCCESS:
 		m_recording.state |= RESERVE_STATE__END_SUCCESS;
 		break;
 
-	case EN_REC_PROGRESS__END_ERROR:
+////	case EN_REC_PROGRESS__END_ERROR:
+		case CRecInstance::progress::END_ERROR:
 		break;
 
-	case EN_REC_PROGRESS__POST_PROCESS: {
+////	case EN_REC_PROGRESS__POST_PROCESS: {
+		case CRecInstance::progress::POST_PROCESS: {
 
 		// NOW_RECORDINGフラグは落としておきます
 		m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
@@ -1023,7 +1121,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 		// 録画開始
 		// ここはm_recProgressで判断いれとく
-		if (m_recProgress == EN_REC_PROGRESS__INIT) {
+////		if (m_recProgress == EN_REC_PROGRESS__INIT) {
+		if (msp_rec_instances[0]->getCurrentProgress() == CRecInstance::progress::INIT) {
 
 			_UTL_LOG_I ("start recording (on tune thread)");
 
@@ -1039,7 +1138,10 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 
 			// ######################################### //
-			m_recProgress = EN_REC_PROGRESS__PRE_PROCESS;
+////			m_recProgress = EN_REC_PROGRESS__PRE_PROCESS;
+			std::string s = m_recording_tmpfile;
+			msp_rec_instances[0]->setRecFilename(s);
+			msp_rec_instances[0]->setNextProgress(CRecInstance::progress::PRE_PROCESS);
 			// ######################################### //
 
 
@@ -1050,7 +1152,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			_UTL_LOG_E ("m_recProgress != EN_REC_PROGRESS__INIT ???  -> not start recording");
+////			_UTL_LOG_E ("m_recProgress != EN_REC_PROGRESS__INIT ???  -> not start recording");
+			_UTL_LOG_E ("progress != INIT ???  -> not start recording");
 
 			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
 			setResult (&m_recording);
@@ -1870,11 +1973,13 @@ void CRecManager::onReq_stopRecording (CThreadMgrIf *pIf)
 	if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
 
 		// stopRecording が呼ばれたらエラー終了にしておきます
-		_UTL_LOG_W ("m_recProgress = EN_REC_PROGRESS__END_ERROR");
+////		_UTL_LOG_W ("m_recProgress = EN_REC_PROGRESS__END_ERROR");
+		_UTL_LOG_W ("progress = END_ERROR");
 
 
 		// ######################################### //
-		m_recProgress = EN_REC_PROGRESS__END_ERROR;
+////		m_recProgress = EN_REC_PROGRESS__END_ERROR;
+		msp_rec_instances[0]->setNextProgress(CRecInstance::progress::END_ERROR);
 		// ######################################### //
 
 
@@ -1934,24 +2039,25 @@ void CRecManager::onReq_dumpReserves (CThreadMgrIf *pIf)
 
 void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 {
-	if (pIf->getSrcInfo()->nClientId == m_tunerNotify_clientId) {
+	for (int _gr = 0; _gr < GROUP_MAX; ++ _gr) {
+	if (pIf->getSrcInfo()->nClientId == m_tunerNotify_clientId[_gr]) {
 
 		EN_TUNER_STATE enState = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
 		switch (enState) {
 		case EN_TUNER_STATE__TUNING_BEGIN:
-			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_BEGIN");
+			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_BEGIN groupId:[%d]", _gr);
 			break;
 
 		case EN_TUNER_STATE__TUNING_SUCCESS:
-			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_SUCCESS");
+			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_SUCCESS groupId:[%d]", _gr);
 			break;
 
 		case EN_TUNER_STATE__TUNING_ERROR_STOP:
-			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP");
+			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP groupId:[%d]", _gr);
 			break;
 
 		case EN_TUNER_STATE__TUNE_STOP:
-			_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP");
+			_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP groupId:[%d]", _gr);
 			break;
 
 		default:
@@ -1959,7 +2065,7 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 		}
 
 
-	} else if (pIf->getSrcInfo()->nClientId == m_patDetectNotify_clientId) {
+	} else if (pIf->getSrcInfo()->nClientId == m_patDetectNotify_clientId[_gr]) {
 
 		EN_PAT_DETECT_STATE _state = *(EN_PAT_DETECT_STATE*)(pIf->getSrcInfo()->msg.pMsg);
 		if (_state == EN_PAT_DETECT_STATE__DETECTED) {
@@ -1972,7 +2078,8 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 			if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
 
 				// ######################################### //
-				m_recProgress = EN_REC_PROGRESS__POST_PROCESS;
+////				m_recProgress = EN_REC_PROGRESS__POST_PROCESS;
+				msp_rec_instances[_gr]->setNextProgress(CRecInstance::progress::NOW_RECORDING);
 				// ######################################### //
 
 
@@ -1988,7 +2095,8 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 				// REQUEST_OPTION__WITHOUT_REPLY を入れときます
 				//
 				// PAT途絶してTsReceiveHandlerは動いていない前提
-				this->onTsReceived (NULL, 0);
+////				this->onTsReceived (NULL, 0);
+				msp_rec_instances[_gr]->onTsReceived (NULL, 0);
 
 				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 				setRequestOption (opt);
@@ -1996,14 +2104,14 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 			}
 		}
 
-	} else if (pIf->getSrcInfo()->nClientId == m_eventChangeNotify_clientId) {
+	} else if (pIf->getSrcInfo()->nClientId == m_eventChangeNotify_clientId[_gr]) {
 
 		PSISI_NOTIFY_EVENT_INFO _info = *(PSISI_NOTIFY_EVENT_INFO*)(pIf->getSrcInfo()->msg.pMsg);
-		_UTL_LOG_I ("!!! event changed !!!");
+		_UTL_LOG_I ("!!! event changed !!! groupId:[%d]", _gr);
 		_info.dump ();
 
 	}
-
+	}
 }
 
 bool CRecManager::addReserve (
@@ -2464,12 +2572,15 @@ bool CRecManager::checkRecordingEnd (void)
 	if (m_recording.end_time <= current_time) {
 
 		// 録画 正常終了します
-		if (m_recProgress == EN_REC_PROGRESS__NOW_RECORDING) {
-			_UTL_LOG_I ("m_recProgress = EN_REC_PROGRESS__END_SUCCESS");
+////		if (m_recProgress == EN_REC_PROGRESS__NOW_RECORDING) {
+		if (msp_rec_instances[0]->getCurrentProgress() == CRecInstance::progress::NOW_RECORDING) {
+////			_UTL_LOG_I ("m_recProgress = EN_REC_PROGRESS__END_SUCCESS");
+			_UTL_LOG_I ("progress = END_SUCCESS");
 
 
 			// ######################################### //
-			m_recProgress = EN_REC_PROGRESS__END_SUCCESS;
+////			m_recProgress = EN_REC_PROGRESS__END_SUCCESS;
+			msp_rec_instances[0]->setNextProgress(CRecInstance::progress::END_SUCCESS);
 			// ######################################### //
 
 
@@ -2630,7 +2741,7 @@ void CRecManager::clearResults (void)
 }
 
 
-
+#if 0
 //////////  CTunerControlIf::ITsReceiveHandler  //////////
 
 bool CRecManager::onPreTsReceive (void)
@@ -2753,7 +2864,7 @@ bool CRecManager::onTsReceived (void *p_ts_data, int length)
 
 	return true;
 }
-
+#endif
 
 //--------------------------------------------------------------------------------
 
