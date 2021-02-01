@@ -121,8 +121,17 @@ int main (int argc, char *argv[])
 
 
 	CCommandServerIf *p_comSvrIf = new CCommandServerIf (p_mgr->getExternalIf());
+#if 0
 	CTunerControlIf *p_tunerCtlIf = new CTunerControlIf (p_mgr->getExternalIf());
 	CPsisiManagerIf *p_psisiMgrIf = new CPsisiManagerIf (p_mgr->getExternalIf());
+#else
+	CTunerControlIf *p_tunerCtlIf [GROUP_MAX];
+	CPsisiManagerIf *p_psisiMgrIf [GROUP_MAX];
+	for (uint8_t _gr = 0; _gr < GROUP_MAX; ++ _gr) {
+		p_tunerCtlIf [_gr] = new CTunerControlIf(p_mgr->getExternalIf(), _gr);
+		p_psisiMgrIf [_gr] = new CPsisiManagerIf(p_mgr->getExternalIf(), _gr);
+	}
+#endif
 	CRecManagerIf *p_recMgrIf = new CRecManagerIf (p_mgr->getExternalIf());
 	CChannelManagerIf *p_chMgrIf = new CChannelManagerIf (p_mgr->getExternalIf());
 	CEventScheduleManagerIf *p_schedMgrIf = new CEventScheduleManagerIf (p_mgr->getExternalIf());
@@ -139,8 +148,15 @@ int main (int argc, char *argv[])
 
 	// modules up
 	p_comSvrIf-> reqModuleUp ();
+#if 0
 	p_tunerCtlIf-> reqModuleUp ();
 	p_psisiMgrIf->reqModuleUp();
+#else
+	for (uint8_t _gr = 0; _gr < GROUP_MAX; ++ _gr) {
+		p_tunerCtlIf[_gr]->reqModuleUp();
+		p_psisiMgrIf[_gr]->reqModuleUp();
+	}
+#endif
 	p_recMgrIf->reqModuleUp();
 	p_chMgrIf->reqModuleUp();
 	p_schedMgrIf->reqModuleUp();

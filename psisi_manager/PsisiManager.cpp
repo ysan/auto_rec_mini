@@ -151,7 +151,7 @@ void CPsisiManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_REQ_REG_TUNER_NOTIFY: {
-		CTunerControlIf _if (getExternalIf());
+		CTunerControlIf _if (getExternalIf(), getGroupId());
 		_if.reqRegisterTunerNotify ();
 
 		sectId = SECTID_WAIT_REG_TUNER_NOTIFY;
@@ -176,7 +176,7 @@ void CPsisiManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	case SECTID_REQ_REG_HANDLER: {
 
 		_UTL_LOG_I ("CTunerControlIf::ITsReceiveHandler %p", mp_ts_handler);
-		CTunerControlIf _if (getExternalIf());
+		CTunerControlIf _if (getExternalIf(), getGroupId());
 		_if.reqRegisterTsReceiveHandler (&mp_ts_handler);
 
 		sectId = SECTID_WAIT_REG_HANDLER;
@@ -199,7 +199,7 @@ void CPsisiManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_REQ_CHECK_LOOP:
-		requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER__CHECK_LOOP);
+		requestAsync (EN_MODULE_PSISI_MANAGER + getGroupId(), EN_SEQ_PSISI_MANAGER__CHECK_LOOP);
 
 		sectId = SECTID_WAIT_CHECK_LOOP;
 		enAct = EN_THM_ACT_WAIT;
@@ -1360,7 +1360,7 @@ void CPsisiManager::onReceiveNotify (CThreadMgrIf *pIf)
 		opt |= REQUEST_OPTION__WITHOUT_REPLY;
 		setRequestOption (opt);
 
-		requestAsync (EN_MODULE_PSISI_MANAGER, EN_SEQ_PSISI_MANAGER__STABILIZATION_AFTER_TUNING);
+		requestAsync (EN_MODULE_PSISI_MANAGER + getGroupId(), EN_SEQ_PSISI_MANAGER__STABILIZATION_AFTER_TUNING);
 
 		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 		setRequestOption (opt);
@@ -2277,7 +2277,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__PAT, p_ts_header, p_payload, payload_size);
 		requestAsync (
-			EN_MODULE_PSISI_MANAGER,
+			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2290,7 +2290,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__EIT_H_PF, p_ts_header, p_payload, payload_size);
 		requestAsync (
-			EN_MODULE_PSISI_MANAGER,
+			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2303,7 +2303,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__NIT, p_ts_header, p_payload, payload_size);
 		requestAsync (
-			EN_MODULE_PSISI_MANAGER,
+			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2316,7 +2316,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__SDT, p_ts_header, p_payload, payload_size);
 		requestAsync (
-			EN_MODULE_PSISI_MANAGER,
+			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2329,7 +2329,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__CAT, p_ts_header, p_payload, payload_size);
 		requestAsync (
-			EN_MODULE_PSISI_MANAGER,
+			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2342,7 +2342,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__CDT, p_ts_header, p_payload, payload_size);
 		requestAsync (
-			EN_MODULE_PSISI_MANAGER,
+			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2370,7 +2370,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 			if (p_ts_header->pid == p_tmp->pid) {
 				_PARSER_NOTICE _notice (EN_PSISI_TYPE__PMT, p_ts_header, p_payload, payload_size);
 				requestAsync (
-					EN_MODULE_PSISI_MANAGER,
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 					(uint8_t*)&_notice,
 					sizeof(_notice)
