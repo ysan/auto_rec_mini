@@ -125,9 +125,9 @@ int main (int argc, char *argv[])
 	CTunerControlIf *p_tunerCtlIf = new CTunerControlIf (p_mgr->getExternalIf());
 	CPsisiManagerIf *p_psisiMgrIf = new CPsisiManagerIf (p_mgr->getExternalIf());
 #else
-	CTunerControlIf *p_tunerCtlIf [GROUP_MAX];
-	CPsisiManagerIf *p_psisiMgrIf [GROUP_MAX];
-	for (uint8_t _gr = 0; _gr < GROUP_MAX; ++ _gr) {
+	CTunerControlIf *p_tunerCtlIf [CGroup::GROUP_MAX];
+	CPsisiManagerIf *p_psisiMgrIf [CGroup::GROUP_MAX];
+	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
 		p_tunerCtlIf [_gr] = new CTunerControlIf(p_mgr->getExternalIf(), _gr);
 		p_psisiMgrIf [_gr] = new CPsisiManagerIf(p_mgr->getExternalIf(), _gr);
 	}
@@ -152,7 +152,7 @@ int main (int argc, char *argv[])
 	p_tunerCtlIf-> reqModuleUp ();
 	p_psisiMgrIf->reqModuleUp();
 #else
-	for (uint8_t _gr = 0; _gr < GROUP_MAX; ++ _gr) {
+	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
 		p_tunerCtlIf[_gr]->reqModuleUp();
 		p_psisiMgrIf[_gr]->reqModuleUp();
 	}

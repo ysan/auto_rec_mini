@@ -117,7 +117,7 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 
 	memset (m_recording_tmpfile, 0x00, sizeof (m_recording_tmpfile));
 
-	for (int _gr = 0; _gr < GROUP_MAX; ++ _gr) {
+	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
 		m_tunerNotify_clientId [_gr] = 0xff;
 		m_tsReceive_handlerId [_gr] = -1;
 		m_patDetectNotify_clientId [_gr] = 0xff;
@@ -165,7 +165,7 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 
 		// recInstance グループ数分の生成はここで
 		// getExternalIf()メンバ使ってるからコンストラクタ上では実行不可
-		for (int _gr = 0; _gr < GROUP_MAX; ++ _gr) {
+		for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
 			std::unique_ptr <CRecInstance> _r(new CRecInstance(getExternalIf()));
 			msp_rec_instances[_gr].swap(_r);
 			mp_ts_handlers[_gr] = msp_rec_instances[_gr].get();
@@ -186,7 +186,7 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	case SECTID_WAIT_MODULE_UP_BY_GROUPID:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			if (s_gr_cnt < GROUP_MAX) {
+			if (s_gr_cnt < CGroup::GROUP_MAX) {
 				sectId = SECTID_REQ_MODULE_UP_BY_GROUPID;
 				enAct = EN_THM_ACT_CONTINUE;
 			} else {
@@ -2039,7 +2039,7 @@ void CRecManager::onReq_dumpReserves (CThreadMgrIf *pIf)
 
 void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 {
-	for (int _gr = 0; _gr < GROUP_MAX; ++ _gr) {
+	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
 	if (pIf->getSrcInfo()->nClientId == m_tunerNotify_clientId[_gr]) {
 
 		EN_TUNER_STATE enState = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);

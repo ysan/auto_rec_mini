@@ -26,7 +26,7 @@ static void set_target_tuner_id (int argc, char* argv[], CThreadMgrBase *pBase)
 	}
 
 	s_tuner_id = atoi (argv[0]);
-	if (s_tuner_id >= GROUP_MAX) {
+	if (s_tuner_id >= CGroup::GROUP_MAX) {
 		_COM_SVR_PRINT ("invalid id:[%d]  -> force tuner id=0\n", s_tuner_id);
 		s_tuner_id = 0;
 	}

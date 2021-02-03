@@ -1,12 +1,11 @@
 #ifndef _GROUP_H_
 #define _GROUP_H_
 
-#include <cassert>
 #include "Utils.h"
 
-#define GROUP_MAX	(3)
-
 class CGroup {
+public:
+	static const uint8_t GROUP_MAX = 3;
 protected:
 	explicit CGroup (uint8_t id=0) {
 		if (id >= GROUP_MAX) {

@@ -312,10 +312,10 @@ private:
 ////	int m_tsReceive_handlerId;
 ////	uint8_t m_patDetectNotify_clientId;
 ////	uint8_t m_eventChangeNotify_clientId;
-	uint8_t m_tunerNotify_clientId [GROUP_MAX];
-	int m_tsReceive_handlerId [GROUP_MAX];
-	uint8_t m_patDetectNotify_clientId [GROUP_MAX];
-	uint8_t m_eventChangeNotify_clientId [GROUP_MAX];
+	uint8_t m_tunerNotify_clientId [CGroup::GROUP_MAX];
+	int m_tsReceive_handlerId [CGroup::GROUP_MAX];
+	uint8_t m_patDetectNotify_clientId [CGroup::GROUP_MAX];
+	uint8_t m_eventChangeNotify_clientId [CGroup::GROUP_MAX];
 
 ////	EN_REC_PROGRESS m_recProgress; // tuneThreadと共有する とりあえず排他はいれません
 
@@ -326,8 +326,8 @@ private:
 	char m_recording_tmpfile [PATH_MAX];
 ////	unique_ptr<CRecAribB25> msp_b25;
 
-	std::unique_ptr <CRecInstance> msp_rec_instances [GROUP_MAX];
-	CTunerControlIf::ITsReceiveHandler *mp_ts_handlers [GROUP_MAX];
+	std::unique_ptr <CRecInstance> msp_rec_instances [CGroup::GROUP_MAX];
+	CTunerControlIf::ITsReceiveHandler *mp_ts_handlers [CGroup::GROUP_MAX];
 };
 
 #endif

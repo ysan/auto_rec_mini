@@ -128,7 +128,7 @@ static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	for (uint8_t id = 0; id < GROUP_MAX; ++ id) {
+	for (uint8_t id = 0; id < CGroup::GROUP_MAX; ++ id) {
 		_COM_SVR_PRINT ("tuner id=[%d]\n", id);
 
 		CTunerControlIf ctl(pBase->getExternalIf(), id);
