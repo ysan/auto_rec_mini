@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "Utils.h"
+#include "Group.h"
 
 #include "cereal/cereal.hpp"
 #include "cereal/types/vector.hpp"
@@ -155,6 +156,12 @@ public:
 			return true;
 		}
 
+		void resizeTunerHalAllocates (void) {
+			if (m_tuner_hal_allocates.size() > CGroup::GROUP_MAX) {
+				m_tuner_hal_allocates.resize (CGroup::GROUP_MAX);
+				_UTL_LOG_W ("resize tuner hal allocates...");
+			}
+		}
 
 		template <class T>
 		void serialize (T & archive) {
@@ -263,6 +270,8 @@ public:
 		if (!m_params.isValidEventScheduleCacheStartTime()) {
 			return false;
 		}
+
+		m_params.resizeTunerHalAllocates();
 
 		return true;
 	}
