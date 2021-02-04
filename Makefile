@@ -19,6 +19,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/parser/dsmcc \
 	-I$(BASEDIR)/parser/dsmcc/dsmcc_descriptor \
 	-I$(BASEDIR)/psisi_manager \
+	-I$(BASEDIR)/tuner_service \
 	-I$(BASEDIR)/rec_manager \
 	-I$(BASEDIR)/channel_manager \
 	-I$(BASEDIR)/event_schedule_manager \
@@ -36,6 +37,7 @@ LIBS		:= \
 	-L$(BASEDIR)/parser/psisi -lpsisiparser \
 	-L$(BASEDIR)/parser/dsmcc -ldsmccparser \
 	-L$(BASEDIR)/psisi_manager -lpsisimanager \
+	-L$(BASEDIR)/tuner_service -ltunerservice \
 	-L$(BASEDIR)/rec_manager -lrecmanager \
 	-L$(BASEDIR)/channel_manager -lchannelmanager \
 	-L$(BASEDIR)/event_schedule_manager -leventschedulemanager \
@@ -53,6 +55,7 @@ SUBDIRS		:= \
 	parser_test \
 	tuner_control \
 	psisi_manager \
+	tuner_service \
 	rec_manager \
 	channel_manager \
 	event_schedule_manager \

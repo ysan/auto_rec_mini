@@ -11,6 +11,7 @@
 #include "CommandServerIf.h"
 #include "TunerControlIf.h"
 #include "PsisiManagerIf.h"
+#include "TunerServiceIf.h"
 #include "RecManagerIf.h"
 #include "ChannelManagerIf.h"
 #include "EventScheduleManagerIf.h"
@@ -132,6 +133,7 @@ int main (int argc, char *argv[])
 		p_psisiMgrIf [_gr] = new CPsisiManagerIf(p_mgr->getExternalIf(), _gr);
 	}
 #endif
+	CTunerServiceIf *p_tunerSvcIf = new CTunerServiceIf (p_mgr->getExternalIf());
 	CRecManagerIf *p_recMgrIf = new CRecManagerIf (p_mgr->getExternalIf());
 	CChannelManagerIf *p_chMgrIf = new CChannelManagerIf (p_mgr->getExternalIf());
 	CEventScheduleManagerIf *p_schedMgrIf = new CEventScheduleManagerIf (p_mgr->getExternalIf());
@@ -157,6 +159,7 @@ int main (int argc, char *argv[])
 		p_psisiMgrIf[_gr]->reqModuleUp();
 	}
 #endif
+	p_tunerSvcIf->reqModuleUp();
 	p_recMgrIf->reqModuleUp();
 	p_chMgrIf->reqModuleUp();
 	p_schedMgrIf->reqModuleUp();

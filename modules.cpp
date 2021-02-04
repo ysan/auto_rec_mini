@@ -8,6 +8,7 @@
 #include "TuneThread.h"
 #include "TunerControl.h"
 #include "PsisiManager.h"
+#include "TunerService.h"
 #include "RecManager.h"
 #include "ChannelManager.h"
 #include "EventScheduleManager.h"
@@ -28,6 +29,7 @@ static CPsisiManager         s_psisiManager_gr0  ((char*)"Psisi_0"             ,
 static CPsisiManager         s_psisiManager_gr1  ((char*)"Psisi_1"             , 100, 1);
 static CPsisiManager         s_psisiManager_gr2  ((char*)"Psisi_2"             , 100, 2);
 
+static CTunerService         s_tunerService      ((char*)"TunerService"        , 10);
 static CRecManager           s_recManager        ((char*)"RecManager"          , 10);
 static CChannelManager       s_chennelManager    ((char*)"ChannelManager"      , 10);
 static CEventScheduleManager s_eventSchedManager ((char*)"EventScheduleManager", 50);
@@ -48,6 +50,7 @@ static CThreadMgrBase *gp_modules [] = {
 	&s_psisiManager_gr1,	// group1
 	&s_psisiManager_gr2,	// group2
 
+	&s_tunerService,
 	&s_recManager,
 	&s_chennelManager,
 	&s_eventSchedManager,

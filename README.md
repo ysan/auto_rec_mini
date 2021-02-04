@@ -91,6 +91,7 @@ Installation files:
 	    ├── libthreadmgr.so
 	    ├── libthreadmgrpp.so
 	    ├── libtunercontrol.so
+	    ├── libtunerservice.so
 	    └── libtunethread.so
 
 ### Running as a Linux service (use systemd) ###
