@@ -12,6 +12,8 @@ INCLUDES	:= \
 	-I$(BASEDIR)/common \
 	-I$(BASEDIR)/command_server \
 	-I$(BASEDIR)/tuner_control \
+	-I$(BASEDIR)/parser \
+	-I$(BASEDIR)/psisi_manager \
 	-I./ \
 
 LIBS		:= \
@@ -40,6 +42,7 @@ TARGET_TYPE	:=	SHARED
 #
 SRCS_CPP	:= \
 	TunerService.cpp \
+	TunerServiceCommands.cpp \
 
 
 #

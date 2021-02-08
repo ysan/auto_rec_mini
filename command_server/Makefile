@@ -11,6 +11,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/common \
 	-I$(BASEDIR)/tuner_control \
 	-I$(BASEDIR)/psisi_manager \
+	-I$(BASEDIR)/tuner_service \
 	-I$(BASEDIR)/rec_manager \
 	-I$(BASEDIR)/channel_manager \
 	-I$(BASEDIR)/event_schedule_manager \

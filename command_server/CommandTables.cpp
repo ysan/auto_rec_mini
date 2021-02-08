@@ -13,6 +13,7 @@
 
 #include "TunerControlCommands.h"
 #include "PsisiManagerCommands.h"
+#include "TunerServiceCommands.h"
 #include "RecManagerCommands.h"
 #include "ChannelManagerCommands.h"
 #include "EventScheduleManagerCommands.h"
@@ -126,6 +127,12 @@ ST_COMMAND_INFO g_rootCommandTable [] = { // extern
 		"psisi manager",
 		NULL,
 		g_psisiManagerCommands,
+	},
+	{
+		"ts",
+		"tuner service",
+		NULL,
+		g_tunerServiceCommands,
 	},
 	{
 		"rec",

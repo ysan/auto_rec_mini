@@ -19,6 +19,7 @@ using namespace ThreadManager;
 enum {
 	EN_SEQ_PSISI_MANAGER__MODULE_UP = 0,
 	EN_SEQ_PSISI_MANAGER__MODULE_DOWN,
+	EN_SEQ_PSISI_MANAGER__GET_STATE,
 	EN_SEQ_PSISI_MANAGER__CHECK_LOOP,					// inner
 	EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,				// inner
 	EN_SEQ_PSISI_MANAGER__STABILIZATION_AFTER_TUNING,	// inner
@@ -96,6 +97,20 @@ public:
 
 	bool reqModuleDown (void) {
 		return requestAsync (EN_MODULE_PSISI_MANAGER + getGroupId(), EN_SEQ_PSISI_MANAGER__MODULE_DOWN);
+	};
+
+	bool reqGetState (void) {
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					EN_SEQ_PSISI_MANAGER__GET_STATE
+				);
+	};
+
+	bool reqGetStateSync (void) {
+		return requestSync (
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					EN_SEQ_PSISI_MANAGER__GET_STATE
+				);
 	};
 
 	bool reqRegisterPatDetectNotify (void) {

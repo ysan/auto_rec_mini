@@ -52,6 +52,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum, uint8_t groupId)
 	SEQ_BASE_t seqs [EN_SEQ_PSISI_MANAGER__NUM] = {
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_moduleUp, (char*)"onReq_moduleUp"},                                       // EN_SEQ_PSISI_MANAGER__MODULE_UP
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_moduleDown, (char*)"onReq_moduleDown"},                                   // EN_SEQ_PSISI_MANAGER__MODULE_DOWN
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getState, (char*)"onReq_getState"},                                       // EN_SEQ_PSISI_MANAGER__GET_STATE
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_checkLoop, (char*)"onReq_checkLoop"},                                     // EN_SEQ_PSISI_MANAGER__CHECK_LOOP
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_parserNotice, (char*)"onReq_parserNotice"},                               // EN_SEQ_PSISI_MANAGER__PARSER_NOTICE
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_stabilizationAfterTuning, (char*)"onReq_stabilizationAfterTuning"},       // EN_SEQ_PSISI_MANAGER__STABILIZATION_AFTER_TUNING
@@ -255,6 +256,27 @@ void CPsisiManager::onReq_moduleDown (CThreadMgrIf *pIf)
 //
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CPsisiManager::onReq_getState (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&m_state, sizeof(m_state));
+
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;

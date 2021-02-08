@@ -13,26 +13,26 @@
 
 using namespace ThreadManager;
 
-enum {
-	EN_SEQ_TUNER_SERVICE__MODULE_UP = 0,
-	EN_SEQ_TUNER_SERVICE__MODULE_DOWN,
-	EN_SEQ_TUNER_SERVICE__OPEN,
-	EN_SEQ_TUNER_SERVICE__CLOSE,
-
-	EN_SEQ_TUNER_SERVICE__NUM,
-};
-
-
 class CTunerServiceIf : public CThreadMgrExternalIf
 {
 public:
-	enum class client : int {
-		OTHER = 0,
-		LIVE_VIEW,
-		CACHE_EVENT_SCHEDULE,
-		RECORDING,
-		CHANNEL_SCAN,
+	enum sequence {
+		MODULE_UP = 0,
+		MODULE_DOWN,
+		OPEN,
+		CLOSE,
+		TUNE,
+		TUNE_WITH_RETRY,
+		TUNE_STOP,
+		DUMP_ALLOCATES,
+
+		NUM,
 	};
+
+	typedef struct _tune_param {
+		uint16_t physical_channel;
+		uint8_t tuner_id;
+	} tune_param_t;
 
 public:
 	explicit CTunerServiceIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
@@ -43,19 +43,65 @@ public:
 
 
 	bool reqModuleUp (void) {
-		return requestAsync (EN_MODULE_TUNER_SERVICE, EN_SEQ_TUNER_SERVICE__MODULE_UP);
+		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::MODULE_UP);
 	};
 
 	bool reqModuleDown (void) {
-		return requestAsync (EN_MODULE_TUNER_SERVICE, EN_SEQ_TUNER_SERVICE__MODULE_DOWN);
+		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::MODULE_DOWN);
 	};
 
-	bool reqOpen (client _client) {
-		return requestAsync (EN_MODULE_TUNER_SERVICE, EN_SEQ_TUNER_SERVICE__OPEN, (uint8_t*)&_client, sizeof(_client));
+	bool reqOpen (void) {
+		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::OPEN);
+	};
+
+	bool reqOpenSync (void) {
+		return requestSync (EN_MODULE_TUNER_SERVICE, sequence::OPEN);
 	};
 
 	bool reqClose (uint8_t tuner_id) {
-		return requestAsync (EN_MODULE_TUNER_SERVICE, EN_SEQ_TUNER_SERVICE__CLOSE, (uint8_t*)&tuner_id, sizeof(tuner_id));
+		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::CLOSE, (uint8_t*)&tuner_id, sizeof(tuner_id));
+	};
+
+	bool reqCloseSync (uint8_t tuner_id) {
+		return requestSync (EN_MODULE_TUNER_SERVICE, sequence::CLOSE, (uint8_t*)&tuner_id, sizeof(tuner_id));
+	};
+
+	bool reqTune (const tune_param_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_TUNER_SERVICE,
+					sequence::TUNE,
+					(uint8_t*)p_param,
+					sizeof(tune_param_t)
+				);
+	};
+
+	bool reqTune_withRetry (const tune_param_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_TUNER_SERVICE,
+					sequence::TUNE_WITH_RETRY,
+					(uint8_t*)p_param,
+					sizeof(tune_param_t)
+				);
+	};
+
+	bool reqTuneStop (uint8_t tuner_id) {
+		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::TUNE_STOP, (uint8_t*)&tuner_id, sizeof(tuner_id));
+	};
+
+	bool reqTuneStopSync (uint8_t tuner_id) {
+		return requestSync (EN_MODULE_TUNER_SERVICE, sequence::TUNE_STOP, (uint8_t*)&tuner_id, sizeof(tuner_id));
+	};
+
+	bool reqDumpAllocates (void) {
+		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::DUMP_ALLOCATES);
 	};
 };
 
