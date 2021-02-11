@@ -7,6 +7,7 @@ auto_rec_mini
 
 最小機能のTV録画ミドルウェア。  
 主にキーワード検索録画予約機能がメインになります。  
+複数チューナーによる同時録画が可能です。  
   
 MPEG-2TSやARIBの勉強のため。  
 環境によっては動作が安定しない可能性があります。
@@ -18,12 +19,11 @@ MPEG-2TSやARIBの勉強のため。
 Features
 ------------ 
 * 選局
-  * 1チューナー、地デジのみ。
+  * 地デジのみ。
 * チャンネルスキャン
 * 録画 及び 録画予約
   * 予約は50件まで。
   * イベント追従。
-  * 予約時間が被っている場合は先に録画していたものが終わり次第、次の録画を行います。
   * EPG取得後に登録したキーワードを検索し録画予約を行います。
 * EPG
   * 定時EPG取得を行います。
@@ -36,7 +36,7 @@ Features
 Future tasks
 ------------
 * libarib25で行っているPMT周りの実装の勉強、と実装を取り込みたい。
-* 複数チューナー、BS/CS対応したい。
+* BS/CS対応したい。
 * データ放送のBMLの取得してみたい。 (dsmccの実装)
 
 
@@ -44,7 +44,7 @@ System requirements
 ------------
 
 ### Tuner ###
-対応しているチューナーは以下のものです。今のところ1チューナー、地デジのみとなります。orz
+対応しているチューナーは以下のものです。今のところ地デジのみとなります。orz
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 以降)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
 
@@ -85,7 +85,7 @@ Build and install
 	$ make
 	$ sudo make INSTALLDIR=/opt/auto_rec_mini install
 
-インストールファイル：
+Installation files:
 
 	/opt/auto_rec_mini/
 	├── bin

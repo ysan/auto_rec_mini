@@ -6,7 +6,8 @@ auto_rec_mini
 [![Build Status](https://travis-ci.org/ysan/auto_rec_mini.svg?branch=master)](https://travis-ci.org/ysan/auto_rec_mini)
 
 Digital broadcast recording system for Japan. The middleware daemon with minimal functions.  
-keyword search recording reservation is the main function.  
+Keyword search recording reservation is the main function.  
+Simultaneous recording with multiple tuners is possible.   
   
 For studying MPEG-2 TS and ARIB.  
 The operation may not be stable depending on the environment.  
@@ -17,7 +18,7 @@ The operation may not be stable depending on the environment.
 
 Features
 ------------ 
-* Tuning. (one tuner. only terrestrial digital.)
+* Tuning. (only terrestrial digital.)
 * Channel scan.
 * Recording and recording reservation. (keyword search)
 * EPG.
@@ -29,7 +30,7 @@ System requirements
 ----------
 
 ### Tuner ###
-The supported tuners are as follows. one tuner. only terrestrial digital. orz
+The supported tuners are as follows. only terrestrial digitl. orz
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 later)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
 

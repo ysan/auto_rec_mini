@@ -43,13 +43,14 @@ public:
 
 	typedef struct {
 		progress rec_progress;
-		uint32_t reserve_state;
+		uint8_t groupId;
 	} RECORDING_NOTICE_t;
 
 public:
-	explicit CRecInstance (CThreadMgrExternalIf *p_ext_if)
+	explicit CRecInstance (CThreadMgrExternalIf *p_ext_if, uint8_t groupId)
 		: mp_ext_if (p_ext_if)
 		, m_recProgress (progress::INIT)
+		, m_groupId (groupId)
 	{
 		m_recording_tmpfile.clear();
 	}
@@ -102,7 +103,7 @@ public:
 			std::unique_ptr<CRecAribB25> b25 (new CRecAribB25(8192, m_recording_tmpfile));
 			msp_b25.swap (b25);
 
-			RECORDING_NOTICE_t _notice = {m_recProgress, 0};
+			RECORDING_NOTICE_t _notice = {m_recProgress, m_groupId};
 			mp_ext_if->requestAsync (
 				EN_MODULE_REC_MANAGER,
 				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
@@ -131,7 +132,7 @@ public:
 		case progress::END_SUCCESS: {
 			_UTL_LOG_I ("progress::END_SUCCESS");
 
-			RECORDING_NOTICE_t _notice = {m_recProgress, 0};
+			RECORDING_NOTICE_t _notice = {m_recProgress, m_groupId};
 			mp_ext_if->requestAsync (
 				EN_MODULE_REC_MANAGER,
 				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
@@ -148,7 +149,7 @@ public:
 		case progress::END_ERROR: {
 			_UTL_LOG_I ("progress::END_ERROR");
 
-			RECORDING_NOTICE_t _notice = {m_recProgress, 0};
+			RECORDING_NOTICE_t _notice = {m_recProgress, m_groupId};
 			mp_ext_if->requestAsync (
 				EN_MODULE_REC_MANAGER,
 				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
@@ -168,7 +169,7 @@ public:
 			msp_b25->flush();
 			msp_b25->release();
 
-			RECORDING_NOTICE_t _notice = {m_recProgress, 0};
+			RECORDING_NOTICE_t _notice = {m_recProgress, m_groupId};
 			mp_ext_if->requestAsync (
 				EN_MODULE_REC_MANAGER,
 				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
@@ -195,6 +196,7 @@ private:
 	progress m_recProgress;
 	std::string m_recording_tmpfile;
 	unique_ptr<CRecAribB25> msp_b25;
+	uint8_t m_groupId;
 };
 
 #endif

@@ -24,6 +24,7 @@
 #include "TsAribCommon.h"
 
 #include "TunerControlIf.h"
+#include "TunerServiceIf.h"
 #include "PsisiManagerIf.h"
 #include "ChannelManagerIf.h"
 #include "EventScheduleManagerIf.h"
@@ -127,6 +128,8 @@ public:
 	CEtime recording_start_time;
 	CEtime recording_end_time;
 
+	uint8_t group_id;
+
 	bool is_used;
 
 
@@ -181,6 +184,7 @@ public:
 		state = RESERVE_STATE__INIT;
 		recording_start_time.clear();
 		recording_end_time.clear();	
+		group_id = 0xff;
 		is_used = false;
 	}
 
@@ -212,10 +216,12 @@ public:
 				_cur.setCurrentTime ();
 				CEtime::CABS diff = _cur - recording_start_time;
 				_UTL_LOG_I ("recording_time:[%s]", diff.toString());
+				_UTL_LOG_I ("group_id:[0x%02x]", group_id);
 
 			} else {
 				CEtime::CABS diff = recording_end_time - recording_start_time;
 				_UTL_LOG_I ("recording_time:[%s]", diff.toString());
+				_UTL_LOG_I ("group_id:[0x%02x]", group_id);
 			}
 		}
 	}
@@ -236,7 +242,8 @@ public:
 	void onReq_moduleUpByGroupId (CThreadMgrIf *pIf);
 	void onReq_moduleDownByGroupId (CThreadMgrIf *pIf);
 	void onReq_checkLoop (CThreadMgrIf *pIf);
-	void onReq_checkEventLoop (CThreadMgrIf *pIf);
+	void onReq_checkReservesEventLoop (CThreadMgrIf *pIf);
+	void onReq_checkRecordingsEventLoop (CThreadMgrIf *pIf);
 	void onReq_recordingNotice (CThreadMgrIf *pIf);
 	void onReq_startRecording (CThreadMgrIf *pIf);
 	void onReq_addReserve_currentEvent (CThreadMgrIf *pIf);
@@ -280,9 +287,11 @@ private:
 	bool isOverrapTimeReserve (const CRecReserve* p_reserve) const;
 	void checkReserves (void);
 	void refreshReserves (uint32_t state);
-	bool pickReqStartRecordingReserve (void);
+	bool isExistReqStartRecordingReserve (void);
+	bool pickReqStartRecordingReserve (uint8_t groupId);
 	void setResult (CRecReserve *p);
-	bool checkRecordingEnd (void);
+	void checkRecordingEnd (void);
+	void checkDiskFree (void);
 	void checkRepeatability (const CRecReserve *p_reserve);
 	int getReserves (CRecManagerIf::RESERVE_t *p_out_reserves, int out_array_num) const;
 	void dumpReserves (void) const;
@@ -321,13 +330,17 @@ private:
 
 	CRecReserve m_reserves [RESERVE_NUM_MAX];
 	CRecReserve m_results [RESULT_NUM_MAX];
-	CRecReserve m_recording;
+////	CRecReserve m_recording;
+	CRecReserve m_recordings [CGroup::GROUP_MAX];
 
-	char m_recording_tmpfile [PATH_MAX];
+////	char m_recording_tmpfile [PATH_MAX];
+	char m_recording_tmpfiles [CGroup::GROUP_MAX][PATH_MAX];
 ////	unique_ptr<CRecAribB25> msp_b25;
 
 	std::unique_ptr <CRecInstance> msp_rec_instances [CGroup::GROUP_MAX];
 	CTunerControlIf::ITsReceiveHandler *mp_ts_handlers [CGroup::GROUP_MAX];
+
+	int m_tuner_resource_max;
 };
 
 #endif

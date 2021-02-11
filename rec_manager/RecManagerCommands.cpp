@@ -14,16 +14,24 @@
 
 static void addReserve_currentEvent (int argc, char* argv[], CThreadMgrBase *pBase)
 {
-	if (argc != 0) {
-		_COM_SVR_PRINT ("ignore arguments.\n");
+	if (argc != 1) {
+		_COM_SVR_PRINT ("ignore arguments. (usage: stop {groupId} )\n");
+		return ;
 	}
+
+	std::regex regex ("^[0-9]+$");
+	if (!std::regex_match (argv[0], regex)) {
+		_COM_SVR_PRINT ("invalid arguments. (groupId)");
+		return;
+	}
+	uint8_t groupId = atoi(argv[0]);
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqAddReserve_currentEvent ();
+	CRecManagerIf _if (pBase->getExternalIf());
+	_if.reqAddReserve_currentEvent (groupId);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -197,8 +205,8 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqAddReserve_manual (&_param);
+	CRecManagerIf _if (pBase->getExternalIf());
+	_if.reqAddReserve_manual (&_param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -291,8 +299,8 @@ static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqAddReserve_event (&_param);
+	CRecManagerIf _if (pBase->getExternalIf());
+	_if.reqAddReserve_event (&_param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -331,8 +339,8 @@ static void addReserve_eventHelper (int argc, char* argv[], CThreadMgrBase *pBas
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqAddReserve_eventHelper (&_param);
+	CRecManagerIf _if (pBase->getExternalIf());
+	_if.reqAddReserve_eventHelper (&_param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -421,8 +429,8 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 	param.isConsiderRepeatability = isConsiderRepeatability;
 	param.isApplyResult = true;
 
-	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqRemoveReserve (&param);
+	CRecManagerIf _if (pBase->getExternalIf());
+	_if.reqRemoveReserve (&param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -459,8 +467,8 @@ static void removeReserve_byIndex (int argc, char* argv[], CThreadMgrBase *pBase
 	param.isConsiderRepeatability = isConsiderRepeatability;
 	param.isApplyResult = true;
 
-	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqRemoveReserve_byIndex (&param);
+	CRecManagerIf _if (pBase->getExternalIf());
+	_if.reqRemoveReserve_byIndex (&param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -474,8 +482,8 @@ static void get_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	CRecManagerIf::RESERVE_t reserves[50] = {0}; // max 50
 	CRecManagerIf::GET_RESERVES_PARAM_t param = {reserves, 50};
-	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.syncGetReserves (&param);
+	CRecManagerIf _if (pBase->getExternalIf());
+	_if.syncGetReserves (&param);
 
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_SUCCESS) {
@@ -512,16 +520,24 @@ static void get_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
 
 static void stop (int argc, char* argv[], CThreadMgrBase *pBase)
 {
-	if (argc != 0) {
-		_COM_SVR_PRINT ("ignore arguments.\n");
+	if (argc != 1) {
+		_COM_SVR_PRINT ("ignore arguments. (usage: stop {groupId} )\n");
+		return ;
 	}
+
+	std::regex regex ("^[0-9]+$");
+	if (!std::regex_match (argv[0], regex)) {
+		_COM_SVR_PRINT ("invalid arguments. (groupId)");
+		return;
+	}
+	uint8_t groupId = atoi(argv[0]);
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqStopRecording ();
+	CRecManagerIf _if (pBase->getExternalIf());
+	_if.reqStopRecording (groupId);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -537,8 +553,8 @@ static void dump_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpReserves (0);
+	CRecManagerIf _if (pBase->getExternalIf());
+	_if.reqDumpReserves (0);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -554,8 +570,8 @@ static void dump_results (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpReserves (1);
+	CRecManagerIf _if (pBase->getExternalIf());
+	_if.reqDumpReserves (1);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -571,8 +587,8 @@ static void dump_recording (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CRecManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpReserves (2);
+	CRecManagerIf _if (pBase->getExternalIf());
+	_if.reqDumpReserves (2);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -583,7 +599,7 @@ static void dump_recording (int argc, char* argv[], CThreadMgrBase *pBase)
 ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 	{
 		"ce",
-		"add reserve - CurrentEvent",
+		"add reserve - CurrentEvent (usage: ce {groupId} )",
 		addReserve_currentEvent,
 		NULL,
 	},
@@ -634,7 +650,7 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 	},
 	{
 		"stop",
-		"force stop recording",
+		"force stop recording (usage: stop {groupId} )",
 		stop,
 		NULL,
 	},

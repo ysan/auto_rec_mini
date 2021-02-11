@@ -14,6 +14,7 @@ INCLUDES	:= \
 	-I$(BASEDIR)/common \
 	-I$(BASEDIR)/command_server \
 	-I$(BASEDIR)/tuner_control \
+	-I$(BASEDIR)/tuner_service \
 	-I$(BASEDIR)/parser \
 	-I$(BASEDIR)/parser/aribstr \
 	-I$(BASEDIR)/psisi_manager \
@@ -27,6 +28,7 @@ LIBS		:= \
 	-L$(BASEDIR)/threadmgrpp -lthreadmgrpp \
 	-L$(BASEDIR)/common -lcommon \
 	-L$(BASEDIR)/tuner_control -ltunercontrol \
+	-L$(BASEDIR)/tuner_service -ltunerservice \
 	-L$(BASEDIR)/parser -lparser \
 	-L$(BASEDIR)/parser/aribstr -laribstr \
 	-L$(BASEDIR)/psisi_manager -lpsisimanager \

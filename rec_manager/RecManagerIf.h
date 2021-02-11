@@ -18,12 +18,13 @@ using namespace ThreadManager;
 
 enum {
 	EN_SEQ_REC_MANAGER__MODULE_UP = 0,
-	EN_SEQ_REC_MANAGER__MODULE_UP_BY_GROUPID,	// inner
+	EN_SEQ_REC_MANAGER__MODULE_UP_BY_GROUPID,			// inner
 	EN_SEQ_REC_MANAGER__MODULE_DOWN,
-	EN_SEQ_REC_MANAGER__CHECK_LOOP,				// inner
-	EN_SEQ_REC_MANAGER__CHECK_EVENT_LOOP,		// inner
-	EN_SEQ_REC_MANAGER__RECORDING_NOTICE,		// inner
-	EN_SEQ_REC_MANAGER__START_RECORDING,		// inner
+	EN_SEQ_REC_MANAGER__CHECK_LOOP,						// inner
+	EN_SEQ_REC_MANAGER__CHECK_RESERVES_EVENT_LOOP,		// inner
+	EN_SEQ_REC_MANAGER__CHECK_RECORDINGS_EVENT_LOOP,	// inner
+	EN_SEQ_REC_MANAGER__RECORDING_NOTICE,				// inner
+	EN_SEQ_REC_MANAGER__START_RECORDING,				// inner
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT,
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT,
 	EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER,
@@ -135,10 +136,12 @@ public:
 		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__MODULE_DOWN);
 	};
 
-	bool reqAddReserve_currentEvent (void) {
+	bool reqAddReserve_currentEvent (uint8_t groupId) {
 		return requestAsync (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT
+					EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT,
+					(uint8_t*)&groupId,
+					sizeof(uint8_t)
 				);
 	};
 
@@ -233,8 +236,13 @@ public:
 				);
 	};
 
-	bool reqStopRecording (void) {
-		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__STOP_RECORDING);
+	bool reqStopRecording (uint8_t groupId) {
+		return requestAsync (
+					EN_MODULE_REC_MANAGER,
+					EN_SEQ_REC_MANAGER__STOP_RECORDING,
+					(uint8_t*)&groupId,
+					sizeof(uint8_t)
+				);
 	};
 
 	bool reqDumpReserves (int type) {

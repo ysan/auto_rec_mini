@@ -87,24 +87,26 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 ////	,m_patDetectNotify_clientId (0xff)
 ////	,m_eventChangeNotify_clientId (0xff)
 ////	,m_recProgress (EN_REC_PROGRESS__INIT)
+	,m_tuner_resource_max (0)
 {
 	SEQ_BASE_t seqs [EN_SEQ_REC_MANAGER__NUM] = {
-		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUp, (char*)"onReq_moduleUp"},                               // EN_SEQ_REC_MANAGER__MODULE_UP
-		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUpByGroupId, (char*)"onReq_moduleUpByGroupId"},             // EN_SEQ_REC_MANAGER__MODULE_UP_BY_GROUPID
-		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleDown, (char*)"onReq_moduleDown"},                           // EN_SEQ_REC_MANAGER__MODULE_DOWN
-		{(PFN_SEQ_BASE)&CRecManager::onReq_checkLoop, (char*)"onReq_checkLoop"},                             // EN_SEQ_REC_MANAGER__CHECK_LOOP
-		{(PFN_SEQ_BASE)&CRecManager::onReq_checkEventLoop, (char*)"onReq_checkEventLoop"},                   // EN_SEQ_REC_MANAGER__CHECK_EVENT_LOOP
-		{(PFN_SEQ_BASE)&CRecManager::onReq_recordingNotice, (char*)"onReq_recordingNotice"},                 // EN_SEQ_REC_MANAGER__RECORDING_NOTICE
-		{(PFN_SEQ_BASE)&CRecManager::onReq_startRecording, (char*)"onReq_startRecording"},                   // EN_SEQ_REC_MANAGER__START_RECORDING
-		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_currentEvent, (char*)"onReq_addReserve_currentEvent"}, // EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT
-		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_event, (char*)"onReq_addReserve_event"},               // EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT
-		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_eventHelper, (char*)"onReq_addReserve_eventHelper"},   // EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER
-		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_manual, (char*)"onReq_addReserve_manual"},             // EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL
-		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve, (char*)"onReq_removeReserve"},                     // EN_SEQ_REC_MANAGER__REMOVE_RESERVE
-		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve_byIndex, (char*)"onReq_removeReserve_byIndex"},     // EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX
-		{(PFN_SEQ_BASE)&CRecManager::onReq_getReserves, (char*)"onReq_getReserves"},                         // EN_SEQ_REC_MANAGER__GET_RESERVES
-		{(PFN_SEQ_BASE)&CRecManager::onReq_stopRecording, (char*)"onReq_stopRecording"},                     // EN_SEQ_REC_MANAGER__STOP_RECORDING
-		{(PFN_SEQ_BASE)&CRecManager::onReq_dumpReserves, (char*)"onReq_dumpReserves"},                       // EN_SEQ_REC_MANAGER__DUMP_RESERVES
+		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUp, (char*)"onReq_moduleUp"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleUpByGroupId, (char*)"onReq_moduleUpByGroupId"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_moduleDown, (char*)"onReq_moduleDown"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_checkLoop, (char*)"onReq_checkLoop"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_checkReservesEventLoop, (char*)"onReq_checkReservesEventLoop"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_checkRecordingsEventLoop, (char*)"onReq_checkRecordingsEventLoop"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_recordingNotice, (char*)"onReq_recordingNotice"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_startRecording, (char*)"onReq_startRecording"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_currentEvent, (char*)"onReq_addReserve_currentEvent"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_event, (char*)"onReq_addReserve_event"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_eventHelper, (char*)"onReq_addReserve_eventHelper"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_addReserve_manual, (char*)"onReq_addReserve_manual"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve, (char*)"onReq_removeReserve"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_removeReserve_byIndex, (char*)"onReq_removeReserve_byIndex"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_getReserves, (char*)"onReq_getReserves"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_stopRecording, (char*)"onReq_stopRecording"},
+		{(PFN_SEQ_BASE)&CRecManager::onReq_dumpReserves, (char*)"onReq_dumpReserves"},
 	};
 	setSeqs (seqs, EN_SEQ_REC_MANAGER__NUM);
 
@@ -113,9 +115,15 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 
 	clearReserves ();
 	clearResults ();
-	m_recording.clear();
+////	m_recordings[0].clear();
+	for (int i = 0; i < CGroup::GROUP_MAX; ++ i) {
+		m_recordings[i].clear();
+	}
 
-	memset (m_recording_tmpfile, 0x00, sizeof (m_recording_tmpfile));
+////	memset (m_recording_tmpfile, 0x00, sizeof (m_recording_tmpfile));
+	for (int i = 0; i < CGroup::GROUP_MAX; ++ i) {
+		memset (m_recording_tmpfiles[i], 0x00, PATH_MAX);
+	}
 
 	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
 		m_tunerNotify_clientId [_gr] = 0xff;
@@ -129,9 +137,15 @@ CRecManager::~CRecManager (void)
 {
 	clearReserves ();
 	clearResults ();
-	m_recording.clear();
+////	m_recordings[0].clear();
+	for (int i = 0; i < CGroup::GROUP_MAX; ++ i) {
+		m_recordings[i].clear();
+	}
 
-	memset (m_recording_tmpfile, 0x00, sizeof (m_recording_tmpfile));
+////	memset (m_recording_tmpfile, 0x00, sizeof (m_recording_tmpfile));
+	for (int i = 0; i < CGroup::GROUP_MAX; ++ i) {
+		memset (m_recording_tmpfiles[i], 0x00, PATH_MAX);
+	}
 }
 
 
@@ -145,8 +159,10 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		SECTID_WAIT_MODULE_UP_BY_GROUPID,
 		SECTID_REQ_CHECK_LOOP,
 		SECTID_WAIT_CHECK_LOOP,
-		SECTID_REQ_CHECK_EVENT_LOOP,
-		SECTID_WAIT_CHECK_EVENT_LOOP,
+		SECTID_REQ_CHECK_RESERVES_EVENT_LOOP,
+		SECTID_WAIT_CHECK_RESERVES_EVENT_LOOP,
+		SECTID_REQ_CHECK_RECORDINGS_EVENT_LOOP,
+		SECTID_WAIT_CHECK_RECORDINGS_EVENT_LOOP,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
 	};
@@ -160,13 +176,16 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	switch (sectId) {
 	case SECTID_ENTRY:
 
+		// settingsを使って初期化する場合はmodule upで
+		m_tuner_resource_max = CSettings::getInstance()->getParams()->getTunerHalAllocates()->size(); 
+
 		loadReserves ();
 		loadResults ();
 
 		// recInstance グループ数分の生成はここで
 		// getExternalIf()メンバ使ってるからコンストラクタ上では実行不可
 		for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-			std::unique_ptr <CRecInstance> _r(new CRecInstance(getExternalIf()));
+			std::unique_ptr <CRecInstance> _r(new CRecInstance(getExternalIf(), _gr));
 			msp_rec_instances[_gr].swap(_r);
 			mp_ts_handlers[_gr] = msp_rec_instances[_gr].get();
 		}
@@ -216,18 +235,38 @@ void CRecManager::onReq_moduleUp (CThreadMgrIf *pIf)
 //		}
 // EN_THM_RSLT_SUCCESSのみ
 
-		sectId = SECTID_REQ_CHECK_EVENT_LOOP;
+		sectId = SECTID_REQ_CHECK_RESERVES_EVENT_LOOP;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_REQ_CHECK_EVENT_LOOP:
-		requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__CHECK_EVENT_LOOP);
+	case SECTID_REQ_CHECK_RESERVES_EVENT_LOOP:
+		requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__CHECK_RESERVES_EVENT_LOOP);
 
-		sectId = SECTID_WAIT_CHECK_EVENT_LOOP;
+		sectId = SECTID_WAIT_CHECK_RESERVES_EVENT_LOOP;
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
-	case SECTID_WAIT_CHECK_EVENT_LOOP:
+	case SECTID_WAIT_CHECK_RESERVES_EVENT_LOOP:
+//		enRslt = pIf->getSrcInfo()->enRslt;
+//		if (enRslt == EN_THM_RSLT_SUCCESS) {
+//
+//		} else {
+//
+//		}
+// EN_THM_RSLT_SUCCESSのみ
+
+		sectId = SECTID_REQ_CHECK_RECORDINGS_EVENT_LOOP;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_REQ_CHECK_RECORDINGS_EVENT_LOOP:
+		requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__CHECK_RECORDINGS_EVENT_LOOP);
+
+		sectId = SECTID_WAIT_CHECK_RECORDINGS_EVENT_LOOP;
+		enAct = EN_THM_ACT_WAIT;
+		break;
+
+	case SECTID_WAIT_CHECK_RECORDINGS_EVENT_LOOP:
 //		enRslt = pIf->getSrcInfo()->enRslt;
 //		if (enRslt == EN_THM_RSLT_SUCCESS) {
 //
@@ -442,10 +481,7 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_CHECK,
 		SECTID_CHECK_WAIT,
-		SECTID_REQ_START_RECORDING,
 		SECTID_WAIT_START_RECORDING,
-		SECTID_REQ_GET_PRESENT_EVENT_INFO,
-		SECTID_WAIT_GET_PRESENT_EVENT_INFO,
 		SECTID_END,
 	};
 
@@ -453,7 +489,6 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-	static PSISI_EVENT_INFO s_presentEventInfo;
 
 
 	switch (sectId) {
@@ -473,64 +508,53 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 		enAct = EN_THM_ACT_WAIT;
 		break;
 
-	case SECTID_CHECK_WAIT:
+	case SECTID_CHECK_WAIT: {
 
-		// reserve check
 		checkReserves ();
 
+		checkRecordingEnd ();
 
-		if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
+		checkDiskFree ();
 
-			// recording end check
-			if (checkRecordingEnd ()) {
+		uint8_t groupId = 0;
+		if (isExistReqStartRecordingReserve ()) {
+			CTunerServiceIf _if (getExternalIf());
+			_if.reqOpenSync ();
+			
+			enRslt = getIf()->getSrcInfo()->enRslt;
+			if (enRslt == EN_THM_RSLT_SUCCESS) {
+				groupId = *(uint8_t*)(getIf()->getSrcInfo()->msg.pMsg);
+				_UTL_LOG_I ("reqOpen groupId:[0x%02x]", groupId);
 
-				// recording end
-				sectId = SECTID_CHECK;
-				enAct = EN_THM_ACT_CONTINUE;
-
-			} else {
-
-				// disk 残量チェック
-				std::string *p_path = mp_settings->getParams()->getRecTsPath();
-				int limit = mp_settings->getParams()->getRecDiskSpaceLowLimitMB();
-				int df = CUtils::getDiskFreeMB(p_path->c_str());
-				if (df < limit) {
-					_UTL_LOG_E ("(%s) disk free space [%d] Mbytes !!", pIf->getSeqName(), df);
-					// HDD残量たりない場合は 強制終了します
-					m_recording.state |= RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW;
-
-					uint32_t opt = getRequestOption ();
-					opt |= REQUEST_OPTION__WITHOUT_REPLY;
-					setRequestOption (opt);
-					requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__STOP_RECORDING);
-					opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-					setRequestOption (opt);
-
-					// recording end
+				if (m_recordings[groupId].is_used) {
+					// m_recordingsのidxはreqOpenで取ったtuner_idで決まります
+					// is_usedになってるはずない...
+					_UTL_LOG_E ("??? m_recordings[groupId].is_used ???  groupId:[0x%02x]", groupId);
 					sectId = SECTID_CHECK;
 					enAct = EN_THM_ACT_CONTINUE;
-
-				} else {
-					sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
-					enAct = EN_THM_ACT_CONTINUE;
+					break;
 				}
-			}
-
-		} else {
-
-			if (pickReqStartRecordingReserve ()) {
-				// request start recording
-				requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__START_RECORDING);
-
-				sectId = SECTID_WAIT_START_RECORDING;
-				enAct = EN_THM_ACT_WAIT;
 
 			} else {
 				sectId = SECTID_CHECK;
 				enAct = EN_THM_ACT_CONTINUE;
+				break;
 			}
 		}
 
+		if (pickReqStartRecordingReserve (groupId)) {
+			// request start recording
+			requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__START_RECORDING, (uint8_t*)&groupId, sizeof(uint8_t));
+
+			sectId = SECTID_WAIT_START_RECORDING;
+			enAct = EN_THM_ACT_WAIT;
+
+		} else {
+			sectId = SECTID_CHECK;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		}
 		break;
 
 	case SECTID_WAIT_START_RECORDING:
@@ -548,74 +572,6 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 		break;
 
-	case SECTID_REQ_GET_PRESENT_EVENT_INFO: {
-
-		PSISI_SERVICE_INFO _svc_info ;
-		// 以下３つの要素が入っていればOK
-		_svc_info.transport_stream_id = m_recording.transport_stream_id;
-		_svc_info.original_network_id = m_recording.original_network_id;
-		_svc_info.service_id = m_recording.service_id;
-
-		CPsisiManagerIf _if (getExternalIf());
-		if (_if.reqGetPresentEventInfo (&_svc_info, &s_presentEventInfo)) {
-			sectId = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
-			enAct = EN_THM_ACT_WAIT;
-		} else {
-			// キューが入らなかった時用
-			sectId = SECTID_CHECK;
-			enAct = EN_THM_ACT_CONTINUE;
-		}
-
-		}
-		break;
-
-	case SECTID_WAIT_GET_PRESENT_EVENT_INFO:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-//s_presentEventInfo.dump();
-			if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
-
-				if (m_recording.is_event_type) {
-					// event_typeの録画は event_idとend_timeの確認
-					if (m_recording.event_id == s_presentEventInfo.event_id) {
-						if (m_recording.end_time != s_presentEventInfo.end_time) {
-							_UTL_LOG_I (
-								"#####  recording end_time is update.  [%s] -> [%s]  #####",
-								m_recording.end_time.toString (),
-								s_presentEventInfo.end_time.toString ()
-							);
-							m_recording.end_time = s_presentEventInfo.end_time;
-						}
-
-					} else {
-//TODO 録画止めてもいいかも
-						// event_idが変わった とりあえずログだしとく
-						_UTL_LOG_W (
-							"#####  recording event_id changed.  [0x%04x] -> [0x%04x]  #####",
-							s_presentEventInfo.event_id,
-							m_recording.event_id
-						);
-						m_recording.dump();
-						s_presentEventInfo.dump();
-					}
-
-				} else {
-					// manual録画は event_name_charを代入しときます
-					m_recording.event_id = s_presentEventInfo.event_id;
-					m_recording.title_name = s_presentEventInfo.event_name_char;
-				}
-			}
-
-		} else {
-			_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
-		}
-
-		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
-
-		sectId = SECTID_CHECK;
-		enAct = EN_THM_ACT_CONTINUE;
-		break;
-
 	case SECTID_END:
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -629,7 +585,7 @@ void CRecManager::onReq_checkLoop (CThreadMgrIf *pIf)
 }
 
 //TODO  eventSchedMgrの stateNotify契機でチェックする方がいいかも
-void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
+void CRecManager::onReq_checkReservesEventLoop (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
 	EN_THM_ACT enAct;
@@ -764,6 +720,149 @@ void CRecManager::onReq_checkEventLoop (CThreadMgrIf *pIf)
 
 	pIf->setSectId (sectId, enAct);
 }
+
+void CRecManager::onReq_checkRecordingsEventLoop (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_CHECK,
+		SECTID_CHECK_WAIT,
+		SECTID_REQ_GET_PRESENT_EVENT_INFO,
+		SECTID_WAIT_GET_PRESENT_EVENT_INFO,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	static PSISI_EVENT_INFO s_presentEventInfo;
+	static uint8_t s_groupId = 0;
+
+	switch (sectId) {
+	case SECTID_ENTRY:
+		// 先にreplyしておく
+		pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		sectId = SECTID_CHECK;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_CHECK:
+
+		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+		if (s_groupId >= CGroup::GROUP_MAX) {
+			s_groupId = 0;
+		}
+
+		pIf->setTimeout (1000); // 1sec
+
+		sectId = SECTID_CHECK_WAIT;
+		enAct = EN_THM_ACT_WAIT;
+		break;
+
+	case SECTID_CHECK_WAIT:
+
+		if (m_recordings[s_groupId].state & RESERVE_STATE__NOW_RECORDING) {
+			sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+
+			++ s_groupId;
+
+			sectId = SECTID_CHECK;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		break;
+
+	case SECTID_REQ_GET_PRESENT_EVENT_INFO: {
+
+		PSISI_SERVICE_INFO _svc_info ;
+		// 以下３つの要素が入っていればOK
+		_svc_info.transport_stream_id = m_recordings[s_groupId].transport_stream_id;
+		_svc_info.original_network_id = m_recordings[s_groupId].original_network_id;
+		_svc_info.service_id = m_recordings[s_groupId].service_id;
+
+		CPsisiManagerIf _if (getExternalIf(), s_groupId);
+		if (_if.reqGetPresentEventInfo (&_svc_info, &s_presentEventInfo)) {
+			sectId = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
+			enAct = EN_THM_ACT_WAIT;
+		} else {
+			// キューが入らなかった時用
+
+			++ s_groupId;
+
+			sectId = SECTID_CHECK;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
+		}
+		break;
+
+	case SECTID_WAIT_GET_PRESENT_EVENT_INFO:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+//s_presentEventInfo.dump();
+			if (m_recordings[s_groupId].state & RESERVE_STATE__NOW_RECORDING) {
+
+				if (m_recordings[s_groupId].is_event_type) {
+					// event_typeの録画は event_idとend_timeの確認
+					if (m_recordings[s_groupId].event_id == s_presentEventInfo.event_id) {
+						if (m_recordings[s_groupId].end_time != s_presentEventInfo.end_time) {
+							_UTL_LOG_I (
+								"#####  recording end_time is update.  [%s] -> [%s]  #####",
+								m_recordings[s_groupId].end_time.toString (),
+								s_presentEventInfo.end_time.toString ()
+							);
+							m_recordings[s_groupId].end_time = s_presentEventInfo.end_time;
+							m_recordings[s_groupId].dump();
+						}
+
+					} else {
+//TODO 録画止めてもいいかも
+						// event_idが変わった とりあえずログだしとく
+						_UTL_LOG_W (
+							"#####  recording event_id changed.  [0x%04x] -> [0x%04x]  #####",
+							s_presentEventInfo.event_id,
+							m_recordings[s_groupId].event_id
+						);
+						m_recordings[s_groupId].dump();
+						s_presentEventInfo.dump();
+					}
+
+				} else {
+					// manual録画は event_name_charを代入しときます
+					m_recordings[s_groupId].event_id = s_presentEventInfo.event_id;
+					m_recordings[s_groupId].title_name = s_presentEventInfo.event_name_char;
+				}
+			}
+
+		} else {
+			_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
+		}
+
+		++ s_groupId;
+
+		sectId = SECTID_CHECK;
+		enAct = EN_THM_ACT_CONTINUE;
+		break;
+
+	case SECTID_END:
+		sectId = THM_SECT_ID_INIT;
+		enAct = EN_THM_ACT_DONE;
+		break;
+
+	default:
+		break;
+	}
+
+	pIf->setSectId (sectId, enAct);
+}
+
 void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -781,39 +880,39 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 	CRecInstance::RECORDING_NOTICE_t _notice = *(CRecInstance::RECORDING_NOTICE_t*)(pIf->getSrcInfo()->msg.pMsg);
 	switch (_notice.rec_progress) {
 ////	case EN_REC_PROGRESS__INIT:
-		case CRecInstance::progress::INIT:
+	case CRecInstance::progress::INIT:
 		break;
 
 ////	case EN_REC_PROGRESS__PRE_PROCESS:
-		case CRecInstance::progress::PRE_PROCESS:
+	case CRecInstance::progress::PRE_PROCESS:
 ////		// ここでは エラーが起きることがあるのでRESERVE_STATE をチェックします
 ////		if (_notice.reserve_state != RESERVE_STATE__INIT) {
-////			m_recording.state |= _notice.reserve_state;
+////			m_recordings[0].state |= _notice.reserve_state;
 ////		}
 		break;
 
 ////	case EN_REC_PROGRESS__NOW_RECORDING:
-		case CRecInstance::progress::NOW_RECORDING:
+	case CRecInstance::progress::NOW_RECORDING:
 		break;
 
 ////	case EN_REC_PROGRESS__END_SUCCESS:
-		case CRecInstance::progress::END_SUCCESS:
-		m_recording.state |= RESERVE_STATE__END_SUCCESS;
+	case CRecInstance::progress::END_SUCCESS:
+		m_recordings[_notice.groupId].state |= RESERVE_STATE__END_SUCCESS;
 		break;
 
 ////	case EN_REC_PROGRESS__END_ERROR:
-		case CRecInstance::progress::END_ERROR:
+	case CRecInstance::progress::END_ERROR:
 		break;
 
 ////	case EN_REC_PROGRESS__POST_PROCESS: {
-		case CRecInstance::progress::POST_PROCESS: {
+	case CRecInstance::progress::POST_PROCESS: {
 
 		// NOW_RECORDINGフラグは落としておきます
-		m_recording.state &= ~RESERVE_STATE__NOW_RECORDING;
+		m_recordings[_notice.groupId].state &= ~RESERVE_STATE__NOW_RECORDING;
 
-		m_recording.recording_end_time.setCurrentTime();
+		m_recordings[_notice.groupId].recording_end_time.setCurrentTime();
 
-		setResult (&m_recording);
+		setResult (&m_recordings[_notice.groupId]);
 
 
 		// rename
@@ -821,8 +920,8 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 
 		char newfile [PATH_MAX] = {0};
 		char *p_name = (char*)"rec";
-		if (m_recording.title_name.c_str()) {
-			p_name = (char*)m_recording.title_name.c_str();
+		if (m_recordings[_notice.groupId].title_name.c_str()) {
+			p_name = (char*)m_recordings[_notice.groupId].title_name.c_str();
 		}
 		CEtime t_end;
 		t_end.setCurrentTime();
@@ -832,13 +931,13 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 			"%s/%s_0x%08x_%s.m2ts",
 			p_path->c_str(),
 			p_name,
-			m_recording.state,
+			m_recordings[_notice.groupId].state,
 			t_end.toString()
 		);
 
-		rename (m_recording_tmpfile, newfile) ;
+		rename (m_recording_tmpfiles[_notice.groupId], newfile) ;
 
-		m_recording.clear ();
+		m_recordings[_notice.groupId].clear ();
 		_UTL_LOG_I ("recording end...");
 
 
@@ -850,8 +949,9 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 
 			// 選局を停止しときます tune stop
 			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-			CChannelManagerIf _if (getExternalIf());
-			_if.reqTuneStop ();
+			CTunerServiceIf _if (getExternalIf());
+			_if.reqTuneStop (_notice.groupId);
+			_if.reqClose (_notice.groupId);
 
 			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 			setRequestOption (opt);
@@ -882,8 +982,10 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		SECTID_CHECK_DISK_FREE_SPACE,
 		SECTID_REQ_STOP_CACHE_SCHED,
 		SECTID_WAIT_STOP_CACHE_SCHED,
-		SECTID_REQ_TUNE_BY_SERVICE_ID,
-		SECTID_WAIT_TUNE_BY_SERVICE_ID,
+		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
+		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
+		SECTID_REQ_TUNE,
+		SECTID_WAIT_TUNE,
 		SECTID_REQ_GET_PRESENT_EVENT_INFO,
 		SECTID_WAIT_GET_PRESENT_EVENT_INFO,
 		SECTID_REQ_CACHE_SCHEDULE,
@@ -900,16 +1002,29 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 	static PSISI_EVENT_INFO s_presentEventInfo;
+	static uint8_t s_groupId = 0;
+	static uint16_t s_ch = 0;
 
 
 	switch (sectId) {
 	case SECTID_ENTRY:
 
 		_UTL_LOG_I ("(%s) entry", pIf->getSeqName());
-		m_recording.dump();
 
-		sectId = SECTID_CHECK_DISK_FREE_SPACE;
-		enAct = EN_THM_ACT_CONTINUE;
+		s_groupId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+		if (s_groupId >= m_tuner_resource_max) {
+			_UTL_LOG_E ("invalid groupId:[0x%02x]", s_groupId);
+
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			m_recordings[s_groupId].dump();
+
+			sectId = SECTID_CHECK_DISK_FREE_SPACE;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+
 		break;
 
 	case SECTID_CHECK_DISK_FREE_SPACE: {
@@ -920,15 +1035,17 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		_UTL_LOG_I ("(%s) disk free space [%d] Mbytes.", pIf->getSeqName(), df);
 		if (df < limit) {
 			// HDD残量たりないので 録画実行しません
-			m_recording.state |= RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW;
-			setResult (&m_recording);
-			m_recording.clear ();
+			m_recordings[s_groupId].state |= RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW;
+			setResult (&m_recordings[s_groupId]);
+			m_recordings[s_groupId].clear ();
 
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			sectId = SECTID_REQ_STOP_CACHE_SCHED;
+//TODO
+//			sectId = SECTID_REQ_STOP_CACHE_SCHED;
+			sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 
@@ -949,31 +1066,62 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	case SECTID_WAIT_STOP_CACHE_SCHED:
 		// successのみ
-		sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
+		sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_REQ_TUNE_BY_SERVICE_ID: {
+	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
 
 		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
-			m_recording.transport_stream_id,
-			m_recording.original_network_id,
-			m_recording.service_id
+			m_recordings[s_groupId].transport_stream_id,
+			m_recordings[s_groupId].original_network_id,
+			m_recordings[s_groupId].service_id
 		};
 
 		CChannelManagerIf _if (getExternalIf());
-		_if.reqTuneByServiceId_withRetry (&param);
+		_if.reqGetPysicalChannelByServiceId (&param);
 
-		sectId = SECTID_WAIT_TUNE_BY_SERVICE_ID;
+		sectId = SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID;
 		enAct = EN_THM_ACT_WAIT;
 		}
 		break;
 
-	case SECTID_WAIT_TUNE_BY_SERVICE_ID:
+	case SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 
-			if (m_recording.is_event_type) {
+			s_ch = *(uint16_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+			sectId = SECTID_REQ_TUNE;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("reqGetPysicalChannelByServiceId is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_REQ_TUNE: {
+
+		CTunerServiceIf::tune_param_t param = {
+			s_ch,
+			s_groupId
+		};
+
+		CTunerServiceIf _if (getExternalIf());
+		_if.reqTune_withRetry (&param);
+
+		sectId = SECTID_WAIT_TUNE;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_TUNE:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+
+			if (m_recordings[s_groupId].is_event_type) {
 				// イベント開始時間を確認します
 				sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
 				enAct = EN_THM_ACT_CONTINUE;
@@ -985,12 +1133,12 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			}
 
 		} else {
-			_UTL_LOG_E ("reqTuneByServiceId is failure.");
+			_UTL_LOG_E ("reqTune is failure.");
 			_UTL_LOG_E ("tune is failure  -> not start recording");
 
-			m_recording.state |= RESERVE_STATE__END_ERROR__TUNE_ERR;
-			setResult (&m_recording);
-			m_recording.clear();
+			m_recordings[s_groupId].state |= RESERVE_STATE__END_ERROR__TUNE_ERR;
+			setResult (&m_recordings[s_groupId]);
+			m_recordings[s_groupId].clear();
 
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -1001,11 +1149,11 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 		PSISI_SERVICE_INFO _svc_info ;
 		// 以下３つの要素が入っていればOK
-		_svc_info.transport_stream_id = m_recording.transport_stream_id;
-		_svc_info.original_network_id = m_recording.original_network_id;
-		_svc_info.service_id = m_recording.service_id;
+		_svc_info.transport_stream_id = m_recordings[s_groupId].transport_stream_id;
+		_svc_info.original_network_id = m_recordings[s_groupId].original_network_id;
+		_svc_info.service_id = m_recordings[s_groupId].service_id;
 
-		CPsisiManagerIf _if (getExternalIf());
+		CPsisiManagerIf _if (getExternalIf(), s_groupId);
 		_if.reqGetPresentEventInfo (&_svc_info, &s_presentEventInfo);
 
 		sectId = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
@@ -1017,7 +1165,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 
-			if (s_presentEventInfo.event_id == m_recording.event_id) {
+			if (s_presentEventInfo.event_id == m_recordings[s_groupId].event_id) {
 				// 録画開始します
 				sectId = SECTID_START_RECORDING;
 				enAct = EN_THM_ACT_CONTINUE;
@@ -1025,17 +1173,29 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			} else {
 				// イベントが一致しないので 前番組の延長とかで開始時間が遅れたと予想します
 				// --> EIT schedule を取得してみます
+#if 0 //TODO
 				_UTL_LOG_E ("(%s) event tracking...", pIf->getSeqName());
 				sectId = SECTID_REQ_CACHE_SCHEDULE;
 				enAct = EN_THM_ACT_CONTINUE;
+#else
+				_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
+				_UTL_LOG_E ("(%s) TODO reqCacheSchedule_forceCurrentService", pIf->getSeqName());
+
+				m_recordings[s_groupId].state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+				setResult (&m_recordings[s_groupId]);
+				m_recordings[s_groupId].clear();
+
+				sectId = SECTID_END_ERROR;
+				enAct = EN_THM_ACT_CONTINUE;
+#endif
 			}
 
 		} else {
 			_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
 
-			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
-			setResult (&m_recording);
-			m_recording.clear();
+			m_recordings[s_groupId].state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+			setResult (&m_recordings[s_groupId]);
+			m_recordings[s_groupId].clear();
 
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -1065,9 +1225,9 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		} else {
 			_UTL_LOG_E ("(%s) reqCacheSchedule_forceCurrentService err", pIf->getSeqName());
 
-			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
-			setResult (&m_recording);
-			m_recording.clear();
+			m_recordings[s_groupId].state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+			setResult (&m_recordings[s_groupId]);
+			m_recordings[s_groupId].clear();
 
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -1077,11 +1237,11 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	case SECTID_REQ_ADD_RESERVE_RESCHEDULE: {
 
 		CRecManagerIf::ADD_RESERVE_PARAM_t _param;
-		_param.transport_stream_id = m_recording.transport_stream_id ;
-		_param.original_network_id = m_recording.original_network_id;
-		_param.service_id = m_recording.service_id;
-		_param.event_id = m_recording.event_id;
-		_param.repeatablity = m_recording.repeatability;
+		_param.transport_stream_id = m_recordings[s_groupId].transport_stream_id ;
+		_param.original_network_id = m_recordings[s_groupId].original_network_id;
+		_param.service_id = m_recordings[s_groupId].service_id;
+		_param.event_id = m_recordings[s_groupId].event_id;
+		_param.repeatablity = m_recordings[s_groupId].repeatability;
 		_param.dump();
 
 		requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT, (uint8_t*)&_param, sizeof(_param));
@@ -1099,7 +1259,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			_UTL_LOG_I ("(%s) add reserve reschedule ok.", pIf->getSeqName());
 
 			// 今回は録画は行いません
-			m_recording.clear();
+			m_recordings[s_groupId].clear();
 
 			// 選局止めたいのでエラーにしておきます
 			sectId = SECTID_END_ERROR;
@@ -1108,9 +1268,9 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		} else {
 			_UTL_LOG_E ("(%s) add reserve reschedule err...", pIf->getSeqName());
 
-			m_recording.state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
-			setResult (&m_recording);
-			m_recording.clear();
+			m_recordings[s_groupId].state |= RESERVE_STATE__END_ERROR__EVENT_NOT_FOUND;
+			setResult (&m_recordings[s_groupId]);
+			m_recordings[s_groupId].clear();
 
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -1122,31 +1282,32 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		// 録画開始
 		// ここはm_recProgressで判断いれとく
 ////		if (m_recProgress == EN_REC_PROGRESS__INIT) {
-		if (msp_rec_instances[0]->getCurrentProgress() == CRecInstance::progress::INIT) {
+		if (msp_rec_instances[s_groupId]->getCurrentProgress() == CRecInstance::progress::INIT) {
 
 			_UTL_LOG_I ("start recording (on tune thread)");
 
-			memset (m_recording_tmpfile, 0x00, sizeof(m_recording_tmpfile));
+			memset (m_recording_tmpfiles[s_groupId], 0x00, PATH_MAX);
 			std::string *p_path = mp_settings->getParams()->getRecTsPath();
 			snprintf (
-				m_recording_tmpfile,
-				sizeof(m_recording_tmpfile),
-				"%s/tmp.m2ts.%lu",
+				m_recording_tmpfiles[s_groupId],
+				PATH_MAX,
+				"%s/tmp.m2ts.%lu.%d",
 				p_path->c_str(),
-				pthread_self()
+				pthread_self(),
+				s_groupId
 			);
 
 
 			// ######################################### //
 ////			m_recProgress = EN_REC_PROGRESS__PRE_PROCESS;
-			std::string s = m_recording_tmpfile;
-			msp_rec_instances[0]->setRecFilename(s);
-			msp_rec_instances[0]->setNextProgress(CRecInstance::progress::PRE_PROCESS);
+			std::string s = m_recording_tmpfiles[s_groupId];
+			msp_rec_instances[s_groupId]->setRecFilename(s);
+			msp_rec_instances[s_groupId]->setNextProgress(CRecInstance::progress::PRE_PROCESS);
 			// ######################################### //
 
 
-			m_recording.state |= RESERVE_STATE__NOW_RECORDING;
-			m_recording.recording_start_time.setCurrentTime();
+			m_recordings[s_groupId].state |= RESERVE_STATE__NOW_RECORDING;
+			m_recordings[s_groupId].recording_start_time.setCurrentTime();
 
 			sectId = SECTID_END_SUCCESS;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -1155,9 +1316,9 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 ////			_UTL_LOG_E ("m_recProgress != EN_REC_PROGRESS__INIT ???  -> not start recording");
 			_UTL_LOG_E ("progress != INIT ???  -> not start recording");
 
-			m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
-			setResult (&m_recording);
-			m_recording.clear();
+			m_recordings[s_groupId].state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+			setResult (&m_recordings[s_groupId]);
+			m_recordings[s_groupId].clear();
 
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
@@ -1186,8 +1347,9 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 			// 選局を停止しときます tune stop
 			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-			CChannelManagerIf _if (getExternalIf());
-			_if.reqTuneStop ();
+			CTunerServiceIf _if (getExternalIf());
+			_if.reqTuneStop (s_groupId);
+			_if.reqClose (s_groupId);
 
 			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 			setRequestOption (opt);
@@ -1230,16 +1392,25 @@ void CRecManager::onReq_addReserve_currentEvent (CThreadMgrIf *pIf)
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 	static PSISI_SERVICE_INFO s_serviceInfos[10];
 	static PSISI_EVENT_INFO s_presentEventInfo;
+	static uint8_t s_groupId = 0;
 
 
 	switch (sectId) {
 	case SECTID_ENTRY:
-		sectId = SECTID_REQ_GET_TUNER_STATE;
-		enAct = EN_THM_ACT_CONTINUE;
+		s_groupId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+		if (s_groupId >= m_tuner_resource_max) {
+			_UTL_LOG_E ("invalid groupId:[0x%02x]", s_groupId);
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			sectId = SECTID_REQ_GET_TUNER_STATE;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
 		break;
 
 	case SECTID_REQ_GET_TUNER_STATE: {
-		CTunerControlIf _if (getExternalIf());
+		CTunerControlIf _if (getExternalIf(), s_groupId);
 		_if.reqGetState ();
 
 		sectId = SECTID_WAIT_GET_TUNER_STATE;
@@ -1274,7 +1445,7 @@ void CRecManager::onReq_addReserve_currentEvent (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_REQ_GET_PAT_DETECT_STATE: {
-		CPsisiManagerIf _if (getExternalIf());
+		CPsisiManagerIf _if (getExternalIf(), s_groupId);
 		_if.reqGetPatDetectState ();
 
 		sectId = SECTID_WAIT_GET_PAT_DETECT_STATE;
@@ -1308,7 +1479,7 @@ void CRecManager::onReq_addReserve_currentEvent (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_REQ_GET_SERVICE_INFOS: {
-		CPsisiManagerIf _if (getExternalIf());
+		CPsisiManagerIf _if (getExternalIf(), s_groupId);
 		_if.reqGetCurrentServiceInfos (s_serviceInfos, 10);
 
 		sectId = SECTID_WAIT_GET_SERVICE_INFOS;
@@ -1341,7 +1512,7 @@ s_serviceInfos[0].dump();
 		break;
 
 	case SECTID_REQ_GET_PRESENT_EVENT_INFO: {
-		CPsisiManagerIf _if (getExternalIf());
+		CPsisiManagerIf _if (getExternalIf(), s_groupId);
 //TODO s_serviceInfos[0] 暫定0番目を使います 大概service_type=0x01でHD画質だろうか
 		_if.reqGetPresentEventInfo (&s_serviceInfos[0], &s_presentEventInfo);
 
@@ -1969,28 +2140,33 @@ void CRecManager::onReq_stopRecording (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-
-	if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
-
-		// stopRecording が呼ばれたらエラー終了にしておきます
-////		_UTL_LOG_W ("m_recProgress = EN_REC_PROGRESS__END_ERROR");
-		_UTL_LOG_W ("progress = END_ERROR");
-
-
-		// ######################################### //
-////		m_recProgress = EN_REC_PROGRESS__END_ERROR;
-		msp_rec_instances[0]->setNextProgress(CRecInstance::progress::END_ERROR);
-		// ######################################### //
-
-
-		m_recording.state |= RESERVE_STATE__FORCE_STOPPED;
-
-		pIf->reply (EN_THM_RSLT_SUCCESS);
+	int groupId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+	if (groupId >= m_tuner_resource_max) {
+		_UTL_LOG_E ("invalid groupId:[0x%02x]", groupId);
+		pIf->reply (EN_THM_RSLT_ERROR);
 
 	} else {
+		if (m_recordings[groupId].state & RESERVE_STATE__NOW_RECORDING) {
 
-		_UTL_LOG_E ("invalid rec state (not recording now...)");
-		pIf->reply (EN_THM_RSLT_ERROR);
+			// stopRecording が呼ばれたらエラー終了にしておきます
+////		_UTL_LOG_W ("m_recProgress = EN_REC_PROGRESS__END_ERROR");
+			_UTL_LOG_W ("progress = END_ERROR");
+
+
+			// ######################################### //
+////		m_recProgress = EN_REC_PROGRESS__END_ERROR;
+			msp_rec_instances[groupId]->setNextProgress(CRecInstance::progress::END_ERROR);
+			// ######################################### //
+
+
+			m_recordings[groupId].state |= RESERVE_STATE__FORCE_STOPPED;
+
+			pIf->reply (EN_THM_RSLT_SUCCESS);
+
+		} else {
+			_UTL_LOG_E ("invalid rec state (not recording now...)");
+			pIf->reply (EN_THM_RSLT_ERROR);
+		}
 	}
 
 	sectId = THM_SECT_ID_INIT;
@@ -2040,77 +2216,77 @@ void CRecManager::onReq_dumpReserves (CThreadMgrIf *pIf)
 void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 {
 	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-	if (pIf->getSrcInfo()->nClientId == m_tunerNotify_clientId[_gr]) {
+		if (pIf->getSrcInfo()->nClientId == m_tunerNotify_clientId[_gr]) {
 
-		EN_TUNER_STATE enState = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
-		switch (enState) {
-		case EN_TUNER_STATE__TUNING_BEGIN:
-			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_BEGIN groupId:[%d]", _gr);
-			break;
+			EN_TUNER_STATE enState = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
+			switch (enState) {
+			case EN_TUNER_STATE__TUNING_BEGIN:
+				_UTL_LOG_I ("EN_TUNER_STATE__TUNING_BEGIN groupId:[%d]", _gr);
+				break;
 
-		case EN_TUNER_STATE__TUNING_SUCCESS:
-			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_SUCCESS groupId:[%d]", _gr);
-			break;
+			case EN_TUNER_STATE__TUNING_SUCCESS:
+				_UTL_LOG_I ("EN_TUNER_STATE__TUNING_SUCCESS groupId:[%d]", _gr);
+				break;
 
-		case EN_TUNER_STATE__TUNING_ERROR_STOP:
-			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP groupId:[%d]", _gr);
-			break;
+			case EN_TUNER_STATE__TUNING_ERROR_STOP:
+				_UTL_LOG_I ("EN_TUNER_STATE__TUNING_ERROR_STOP groupId:[%d]", _gr);
+				break;
 
-		case EN_TUNER_STATE__TUNE_STOP:
-			_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP groupId:[%d]", _gr);
-			break;
+			case EN_TUNER_STATE__TUNE_STOP:
+				_UTL_LOG_I ("EN_TUNER_STATE__TUNE_STOP groupId:[%d]", _gr);
+				break;
 
-		default:
-			break;
-		}
-
-
-	} else if (pIf->getSrcInfo()->nClientId == m_patDetectNotify_clientId[_gr]) {
-
-		EN_PAT_DETECT_STATE _state = *(EN_PAT_DETECT_STATE*)(pIf->getSrcInfo()->msg.pMsg);
-		if (_state == EN_PAT_DETECT_STATE__DETECTED) {
-			_UTL_LOG_I ("EN_PAT_DETECT_STATE__DETECTED");
-
-		} else if (_state == EN_PAT_DETECT_STATE__NOT_DETECTED) {
-			_UTL_LOG_E ("EN_PAT_DETECT_STATE__NOT_DETECTED");
-
-			// PAT途絶したら録画中止します
-			if (m_recording.state & RESERVE_STATE__NOW_RECORDING) {
-
-				// ######################################### //
-////				m_recProgress = EN_REC_PROGRESS__POST_PROCESS;
-				msp_rec_instances[_gr]->setNextProgress(CRecInstance::progress::NOW_RECORDING);
-				// ######################################### //
-
-
-				m_recording.state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
-
-
-				uint32_t opt = getRequestOption ();
-				opt |= REQUEST_OPTION__WITHOUT_REPLY;
-				setRequestOption (opt);
-
-				// 自ら呼び出します
-				// 内部で自リクエストするので
-				// REQUEST_OPTION__WITHOUT_REPLY を入れときます
-				//
-				// PAT途絶してTsReceiveHandlerは動いていない前提
-////				this->onTsReceived (NULL, 0);
-				msp_rec_instances[_gr]->onTsReceived (NULL, 0);
-
-				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-				setRequestOption (opt);
-
+			default:
+				break;
 			}
+
+
+		} else if (pIf->getSrcInfo()->nClientId == m_patDetectNotify_clientId[_gr]) {
+
+			EN_PAT_DETECT_STATE _state = *(EN_PAT_DETECT_STATE*)(pIf->getSrcInfo()->msg.pMsg);
+			if (_state == EN_PAT_DETECT_STATE__DETECTED) {
+				_UTL_LOG_I ("EN_PAT_DETECT_STATE__DETECTED");
+
+			} else if (_state == EN_PAT_DETECT_STATE__NOT_DETECTED) {
+				_UTL_LOG_E ("EN_PAT_DETECT_STATE__NOT_DETECTED");
+
+				// PAT途絶したら録画中止します
+				if (m_recordings[_gr].state & RESERVE_STATE__NOW_RECORDING) {
+
+					// ######################################### //
+////				m_recProgress = EN_REC_PROGRESS__POST_PROCESS;
+					msp_rec_instances[_gr]->setNextProgress(CRecInstance::progress::NOW_RECORDING);
+					// ######################################### //
+
+
+					m_recordings[_gr].state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+
+
+					uint32_t opt = getRequestOption ();
+					opt |= REQUEST_OPTION__WITHOUT_REPLY;
+					setRequestOption (opt);
+
+					// 自ら呼び出します
+					// 内部で自リクエストするので
+					// REQUEST_OPTION__WITHOUT_REPLY を入れときます
+					//
+					// PAT途絶してTsReceiveHandlerは動いていない前提
+////					this->onTsReceived (NULL, 0);
+					msp_rec_instances[_gr]->onTsReceived (NULL, 0);
+
+					opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+					setRequestOption (opt);
+
+				}
+			}
+
+		} else if (pIf->getSrcInfo()->nClientId == m_eventChangeNotify_clientId[_gr]) {
+
+			PSISI_NOTIFY_EVENT_INFO _info = *(PSISI_NOTIFY_EVENT_INFO*)(pIf->getSrcInfo()->msg.pMsg);
+			_UTL_LOG_I ("!!! event changed !!! groupId:[%d]", _gr);
+			_info.dump ();
+
 		}
-
-	} else if (pIf->getSrcInfo()->nClientId == m_eventChangeNotify_clientId[_gr]) {
-
-		PSISI_NOTIFY_EVENT_INFO _info = *(PSISI_NOTIFY_EVENT_INFO*)(pIf->getSrcInfo()->msg.pMsg);
-		_UTL_LOG_I ("!!! event changed !!! groupId:[%d]", _gr);
-		_info.dump ();
-
-	}
 	}
 }
 
@@ -2170,12 +2346,12 @@ bool CRecManager::addReserve (
 	}
 
 	if (!_is_rescheduled) {
-		if (m_recording.is_used) {
-			if (m_recording == tmp) {
-				_UTL_LOG_E ("reserve is now recording.");
-				return false;
-			}
-		}
+////		if (m_recordings[0].is_used) {
+////			if (m_recordings[0] == tmp) {
+////				_UTL_LOG_E ("reserve is now recording.");
+////				return false;
+////			}
+////		}
 	}
 
 
@@ -2444,15 +2620,16 @@ void CRecManager::checkReserves (void)
 				m_reserves [i].state |= RESERVE_STATE__START_TIME_PASSED;
 			}
 
-			if (!m_recording.is_used) {
-				// 録画中でなければ 録画開始フラグ立てます
+//			if (!m_recordings[0].is_used) {
+//				// 録画中でなければ 録画開始フラグ立てます
+// 録画してても関係なく録画開始フラグ立てます
 				m_reserves [i].state |= RESERVE_STATE__REQ_START_RECORDING;
 
 				// 見つかったのでbreakします。
 				// 同時刻で予約が入っていた場合 配列の並び順で先の方を録画開始します
 				// 先行の録画が終わらないと後続は始まらないです
 				break;
-			}
+//			}
 		}
 	}
 
@@ -2484,12 +2661,23 @@ void CRecManager::refreshReserves (uint32_t state)
 	}
 }
 
-bool CRecManager::pickReqStartRecordingReserve (void)
+bool CRecManager::isExistReqStartRecordingReserve (void)
 {
-	if (m_recording.is_used) {
-		return false;
+	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
+		if (!m_reserves [i].is_used) {
+			continue;
+		}
+
+		if (m_reserves[i].state & RESERVE_STATE__REQ_START_RECORDING) {
+			return true;
+		}
 	}
 
+	return false;
+}
+
+bool CRecManager::pickReqStartRecordingReserve (uint8_t groupId)
+{
 	for (int i = 0; i < RESERVE_NUM_MAX; ++ i) {
 		if (!m_reserves [i].is_used) {
 			continue;
@@ -2498,10 +2686,12 @@ bool CRecManager::pickReqStartRecordingReserve (void)
 		if (m_reserves[i].state & RESERVE_STATE__REQ_START_RECORDING) {
 
 			// 次に録画する予約を取り出します
-			m_recording = m_reserves[i];
+			m_recordings[groupId] = m_reserves[i];
 
 			// フラグは落としておきます
-			m_recording.state &= ~RESERVE_STATE__REQ_START_RECORDING;
+			m_recordings[groupId].state &= ~RESERVE_STATE__REQ_START_RECORDING;
+
+			m_recordings[groupId].group_id = groupId;
 
 
 			// 間詰め
@@ -2510,7 +2700,7 @@ bool CRecManager::pickReqStartRecordingReserve (void)
 			}
 			m_reserves [RESERVE_NUM_MAX -1].clear();
 
-			checkRepeatability (&m_recording);
+			checkRepeatability (&m_recordings[groupId]);
 
 			saveReserves ();
 
@@ -2556,39 +2746,65 @@ void CRecManager::setResult (CRecReserve *p)
 	saveResults ();
 }
 
-bool CRecManager::checkRecordingEnd (void)
+void CRecManager::checkRecordingEnd (void)
 {
-	if (!m_recording.is_used) {
-		return false;
-	}
+	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
+		if (!m_recordings[_gr].is_used) {
+			continue;
+		}
 
-	if (!(m_recording.state & RESERVE_STATE__NOW_RECORDING)) {
-		return false;
-	}
+		if (!(m_recordings[_gr].state & RESERVE_STATE__NOW_RECORDING)) {
+			continue;
+		}
 
-	CEtime current_time ;
-	current_time.setCurrentTime();
+		CEtime current_time ;
+		current_time.setCurrentTime();
 
-	if (m_recording.end_time <= current_time) {
+		if (m_recordings[_gr].end_time <= current_time) {
 
-		// 録画 正常終了します
-////		if (m_recProgress == EN_REC_PROGRESS__NOW_RECORDING) {
-		if (msp_rec_instances[0]->getCurrentProgress() == CRecInstance::progress::NOW_RECORDING) {
-////			_UTL_LOG_I ("m_recProgress = EN_REC_PROGRESS__END_SUCCESS");
-			_UTL_LOG_I ("progress = END_SUCCESS");
-
-
-			// ######################################### //
-////			m_recProgress = EN_REC_PROGRESS__END_SUCCESS;
-			msp_rec_instances[0]->setNextProgress(CRecInstance::progress::END_SUCCESS);
-			// ######################################### //
+			// 録画 正常終了します
+			if (msp_rec_instances[_gr]->getCurrentProgress() == CRecInstance::progress::NOW_RECORDING) {
+				_UTL_LOG_I ("progress = END_SUCCESS");
 
 
-			return true;
+				// ######################################### //
+				msp_rec_instances[_gr]->setNextProgress(CRecInstance::progress::END_SUCCESS);
+				// ######################################### //
+
+
+			}
 		}
 	}
+}
 
-	return false;
+void CRecManager::checkDiskFree (void)
+{
+	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
+		if (!m_recordings[_gr].is_used) {
+			continue;
+		}
+
+		if (m_recordings[_gr].state & RESERVE_STATE__NOW_RECORDING) {
+
+			std::string *p_path = mp_settings->getParams()->getRecTsPath();
+			int limit = mp_settings->getParams()->getRecDiskSpaceLowLimitMB();
+			int df = CUtils::getDiskFreeMB(p_path->c_str());
+			if (df < limit) {
+				_UTL_LOG_E ("(checkRecordingDiskFree) disk free space [%d] Mbytes !!", df);
+				// HDD残量たりない場合は 録画を止めます
+				m_recordings[_gr].state |= RESERVE_STATE__END_ERROR__HDD_FREE_SPACE_LOW;
+
+				uint8_t groupId = _gr;
+
+				uint32_t opt = getRequestOption ();
+				opt |= REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+				requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__STOP_RECORDING, (uint8_t*)&groupId, sizeof(uint8_t));
+				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+				setRequestOption (opt);
+			}
+		}
+	}
 }
 
 //TODO event_typeの場合はどうするか
@@ -2717,12 +2933,12 @@ void CRecManager::dumpRecording (void) const
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
-	if (m_recording.is_used) {
-		_UTL_LOG_I ("-----------   now recording   -----------");
-		m_recording.dump();
-		_UTL_LOG_I ("\n");
-	} else {
-		_UTL_LOG_I ("not recording now...");
+	int i = 0;
+	for (i = 0; i < CGroup::GROUP_MAX; ++ i) {
+		if (m_recordings[i].is_used) {
+			_UTL_LOG_I ("-----------   now recording   -----------");
+			m_recordings[i].dump();
+		}
 	}
 }
 
@@ -2900,6 +3116,7 @@ void serialize (Archive &archive, CRecReserve &r)
 		cereal::make_nvp("state", r.state),
 		cereal::make_nvp("recording_start_time", r.recording_start_time),
 		cereal::make_nvp("recording_end_time", r.recording_end_time),
+		cereal::make_nvp("group_id", r.group_id),
 		cereal::make_nvp("is_used", r.is_used)
 	);
 }
