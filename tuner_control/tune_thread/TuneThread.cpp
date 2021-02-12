@@ -328,22 +328,38 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	close (fd);
 	close (fd_err);
 
-	r = kill (pidChild, SIGUSR1);
-	if (r < 0) {
-		_UTL_PERROR ("kill");
-	}
-
-	_UTL_LOG_I ("kill [%lu]", pidChild);
-
 	int _status = 0;
-	r = waitpid (pidChild, &_status, 0);
-	if (r < 0) {
-		_UTL_PERROR ("waitpid");
-	}
-	if (WIFEXITED(_status)) {
-		_UTL_LOG_I ("child is exit successful.");
-	} else {
-		_UTL_LOG_I ("child is exit failure.");
+	pid_t _r_pid;
+	int _cnt = 0;
+	while (1) {
+		_r_pid = waitpid (pidChild, &_status, WNOHANG);
+		if (_r_pid == -1) {
+			_UTL_PERROR ("waitpid");
+
+		} else if (_r_pid == 0) {
+			if (_cnt < 50) {
+				r = kill (pidChild, SIGUSR1);
+				_UTL_LOG_I ("kill SIGUSR1 [%lu]", pidChild);
+			} else {
+				r = kill (pidChild, SIGKILL);
+				_UTL_LOG_I ("kill SIGKILL [%lu]", pidChild);
+			}
+			if (r < 0) {
+				_UTL_PERROR ("kill");
+			}
+
+		} else {
+			if (WIFEXITED(_status)) {
+				_UTL_LOG_I ("child exited with status of [%d]", WEXITSTATUS(_status));
+			} else {
+				_UTL_LOG_I ("child exited abnromal.");
+			}
+			_UTL_LOG_I ("---> [%s]", com_str);
+			break;
+		}
+
+		usleep (50000); // 50mS
+		++ _cnt;
 	}
 
 	_UTL_LOG_I ("mState => CLSOED");

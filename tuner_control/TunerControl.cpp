@@ -348,18 +348,18 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 			p_tuneThread->getState() == CTuneThread::state::TUNE_BEGINED) {
 		mIsReqStop = true;
 
-		while (chkcnt < 20) {
-			if (p_tuneThread->getState() == CTuneThread::state::TUNE_ENDED || 
-				p_tuneThread->getState() == CTuneThread::state::CLOSED) {
+		while (chkcnt < 300) {
+			if (p_tuneThread->getState() == CTuneThread::state::CLOSED) {
 				break;
 			}
 
-			usleep (200000);
+			usleep (100000);
 			++ chkcnt;
 		}
 
-		if (chkcnt < 20) {
+		if (chkcnt < 300) {
 			_UTL_LOG_I ("success tune stop.");
+			_UTL_LOG_I ("chkcnt=[%d]", chkcnt);
 			mFreq = 0;
 			setState (EN_TUNER_STATE__TUNE_STOP);
 
@@ -370,6 +370,7 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 			pIf->reply (EN_THM_RSLT_SUCCESS);
 
 		} else {
+			// 100mS * 300
 			_UTL_LOG_E ("tune stop transition failure. (TUNED -> TUNE_ENDED)");
 			pIf->reply (EN_THM_RSLT_ERROR);
 		}
