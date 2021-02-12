@@ -47,29 +47,31 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 	,m_eventChangeNotify_clientId (0xff)
 	,mp_EIT_H_sched (NULL)
 	,m_is_need_stop (false)
+	,m_force_cache_group_id (0xff)
+	,m_tuner_resource_max (0)
 {
 	SEQ_BASE_t seqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM] = {
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp, (char*)"onReq_moduleUp"},                                                     // EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_UP
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleDown, (char*)"onReq_moduleDown"},                                                 // EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_DOWN
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_registerCacheScheduleStateNotify, (char*)"onReq_registerCacheScheduleStateNotify"},     // EN_SEQ_EVENT_SCHEDULE_MANAGER__REG_CACHE_SCHEDULE_STATE_NOTIFY
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_unregisterCacheScheduleStateNotify, (char*)"onReq_unregisterCacheScheduleStateNotify"}, // EN_SEQ_EVENT_SCHEDULE_MANAGER__UNREG_CACHE_SCHEDULE_STATE_NOTIFY
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getCacheScheduleState, (char*)"onReq_getCacheScheduleState"},                           // EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_CACHE_SCHEDULE_STATE
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop, (char*)"onReq_checkLoop"},                                                   // EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice, (char*)"onReq_parserNotice"},                                             // EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_execCacheSchedule, (char*)"onReq_execCacheSchedule"},                                   // EN_SEQ_EVENT_SCHEDULE_MANAGER__EXEC_CACHE_SCHEDULE
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule, (char*)"onReq_cacheSchedule"},                                           // EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule_forceCurrentService, (char*)"onReq_cacheSchedule_forceCurrentService"},   // EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_FORCE_CURRENT_SERVICE
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_stopCacheSchedule, (char*)"onReq_stopCacheSchedule"},                                   // EN_SEQ_EVENT_SCHEDULE_MANAGER__STOP_CACHE_SCHEDULE
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent, (char*)"onReq_getEvent"},                                                     // EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent_latestDumpedSchedule, (char*)"onReq_getEvent_latestDumpedSchedule"},           // EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpEvent_latestDumpedSchedule, (char*)"onReq_dumpEvent_latestDumpedSchedule"},         // EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_EVENT__LATEST_DUMPED_SCHEDULE
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch, (char*)"onReq_getEvents_keywordSearch"},                       // EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch, (char*)"onReq_getEvents_keywordSearch(ex)"},                   // EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_addReserves, (char*)"onReq_addReserves"},                                               // EN_SEQ_EVENT_SCHEDULE_MANAGER__ADD_RESERVES
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap, (char*)"onReq_dumpScheduleMap"},                                       // EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule, (char*)"onReq_dumpSchedule"},                                             // EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpReserves, (char*)"onReq_dumpReserves"},                                             // EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_RESERVES
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpHistories, (char*)"onReq_dumpHistories"},                                           // EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_HISTORIES
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp, (char*)"onReq_moduleUp"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleDown, (char*)"onReq_moduleDown"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_registerCacheScheduleStateNotify, (char*)"onReq_registerCacheScheduleStateNotify"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_unregisterCacheScheduleStateNotify, (char*)"onReq_unregisterCacheScheduleStateNotify"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getCacheScheduleState, (char*)"onReq_getCacheScheduleState"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop, (char*)"onReq_checkLoop"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice, (char*)"onReq_parserNotice"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_execCacheSchedule, (char*)"onReq_execCacheSchedule"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule, (char*)"onReq_cacheSchedule"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule_forceCurrentService, (char*)"onReq_cacheSchedule_forceCurrentService"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_stopCacheSchedule, (char*)"onReq_stopCacheSchedule"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent, (char*)"onReq_getEvent"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent_latestDumpedSchedule, (char*)"onReq_getEvent_latestDumpedSchedule"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpEvent_latestDumpedSchedule, (char*)"onReq_dumpEvent_latestDumpedSchedule"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch, (char*)"onReq_getEvents_keywordSearch"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch, (char*)"onReq_getEvents_keywordSearch(ex)"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_addReserves, (char*)"onReq_addReserves"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap, (char*)"onReq_dumpScheduleMap"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule, (char*)"onReq_dumpSchedule"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpReserves, (char*)"onReq_dumpReserves"},
+		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpHistories, (char*)"onReq_dumpHistories"},
 	};
 	setSeqs (seqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
 
@@ -122,10 +124,10 @@ void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_REG_TUNER_NOTIFY,
-		SECTID_WAIT_REG_TUNER_NOTIFY,
-		SECTID_REQ_REG_EVENT_CHANGE_NOTIFY,
-		SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY,
+//		SECTID_REQ_REG_TUNER_NOTIFY,
+//		SECTID_WAIT_REG_TUNER_NOTIFY,
+//		SECTID_REQ_REG_EVENT_CHANGE_NOTIFY,
+//		SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY,
 		SECTID_REQ_CHECK_LOOP,
 		SECTID_WAIT_CHECK_LOOP,
 		SECTID_END_SUCCESS,
@@ -141,6 +143,9 @@ void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	switch (sectId) {
 	case SECTID_ENTRY:
 
+		// settingsを使って初期化する場合はmodule upで
+		m_tuner_resource_max = CSettings::getInstance()->getParams()->getTunerHalAllocates()->size();
+
 		m_schedule_cache_next_day.setCurrentDay();
 
 		loadHistories ();
@@ -148,10 +153,11 @@ void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		m_container.setScheduleMapJsonPath(*mp_settings->getParams()->getEventScheduleCacheDataJsonPath());
 		m_container.loadScheduleMap();
 
-		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
+//		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
+		sectId = SECTID_REQ_CHECK_LOOP;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
-
+/***
 	case SECTID_REQ_REG_TUNER_NOTIFY: {
 		CTunerControlIf _if (getExternalIf());
 		_if.reqRegisterTunerNotify ();
@@ -197,7 +203,7 @@ void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 		break;
-
+***/
 	case SECTID_REQ_CHECK_LOOP:
 		requestAsync (EN_MODULE_EVENT_SCHEDULE_MANAGER, EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP);
 
@@ -486,10 +492,12 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_GET_TUNE_STATE,
-		SECTID_WAIT_GET_TUNE_STATE,
-		SECTID_REQ_TUNE_BY_SERVICE_ID,
-		SECTID_WAIT_TUNE_BY_SERVICE_ID,
+		SECTID_REQ_OPEN,
+		SECTID_WAIT_OPEN,
+		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
+		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
+		SECTID_REQ_TUNE,
+		SECTID_WAIT_TUNE,
 		SECTID_REQ_GET_SERVICE_INFOS,
 		SECTID_WAIT_GET_SERVICE_INFOS,
 		SECTID_REQ_ENABLE_PARSE_EIT_SCHED,
@@ -513,6 +521,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 	static int s_num = 0;
 	static bool s_is_timeouted = false;
 	static bool s_is_already_using_tuner = false;
+	static uint8_t s_group_id = 0xff;
+	static uint16_t s_ch = 0;
 
 
 	switch (sectId) {
@@ -557,40 +567,41 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 		} else {
 			// NORMAL
-			sectId = SECTID_REQ_GET_TUNE_STATE;
+			sectId = SECTID_REQ_OPEN;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 
 		break;
 
-	case SECTID_REQ_GET_TUNE_STATE: {
+	case SECTID_REQ_OPEN: {
 
-		CTunerControlIf _if (getExternalIf());
-		_if.reqGetState ();
+		CTunerServiceIf _if (getExternalIf());
+		_if.reqOpen ();
 
-		sectId = SECTID_WAIT_GET_TUNE_STATE;
+		sectId = SECTID_WAIT_OPEN;
 		enAct = EN_THM_ACT_WAIT;
 		}
 		break;
 
-	case SECTID_WAIT_GET_TUNE_STATE: {
+	case SECTID_WAIT_OPEN: {
+		enRslt = getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			s_group_id = *(uint8_t*)(getIf()->getSrcInfo()->msg.pMsg);
+			_UTL_LOG_I ("reqOpen group_id:[0x%02x]", s_group_id);
+			sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+			enAct = EN_THM_ACT_CONTINUE;
 
-		EN_TUNER_STATE state = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
-		if (state != EN_TUNER_STATE__TUNE_STOP) {
+		} else {
 			_UTL_LOG_E ("someone is using a tuner.");
 			s_is_already_using_tuner = true;
 			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-		} else {
-			sectId = SECTID_REQ_TUNE_BY_SERVICE_ID;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 
 		}
 		break;
 
-	case SECTID_REQ_TUNE_BY_SERVICE_ID: {
-
+	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
 		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
 			s_service_key.transport_stream_id,
 			s_service_key.original_network_id,
@@ -598,28 +609,67 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		};
 
 		CChannelManagerIf _if (getExternalIf());
-		_if.reqTuneByServiceId_withRetry (&param);
+		_if.reqGetPysicalChannelByServiceId (&param);
 
-		sectId = SECTID_WAIT_TUNE_BY_SERVICE_ID;
+		sectId = SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID;
 		enAct = EN_THM_ACT_WAIT;
 		}
 		break;
 
-	case SECTID_WAIT_TUNE_BY_SERVICE_ID:
+	case SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID:
+		enRslt = pIf->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+
+			s_ch = *(uint16_t*)(pIf->getSrcInfo()->msg.pMsg);
+
+			sectId = SECTID_REQ_TUNE;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("reqGetPysicalChannelByServiceId is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_REQ_TUNE: {
+
+		CTunerServiceIf::tune_param_t param = {
+			s_ch,
+			s_group_id
+		};
+
+		CTunerServiceIf _if (getExternalIf());
+		_if.reqTune_withRetry (&param);
+
+		sectId = SECTID_WAIT_TUNE;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_TUNE:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 			sectId = SECTID_REQ_GET_SERVICE_INFOS;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			_UTL_LOG_E ("CChannelManagerIf::reqTuneByServiceId is failure.");
+			_UTL_LOG_E ("CChannelManagerIf::reqTune is failure.");
 			sectId = SECTID_END_ERROR;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 		break;
 
 	case SECTID_REQ_GET_SERVICE_INFOS: {
-		CPsisiManagerIf _if (getExternalIf());
+		uint8_t _group_id = 0xff;
+		if ((m_executing_reserve.type & CReserve::type_t::TYPE_MASK) == CReserve::type_t::FORCE) {
+			_group_id = m_force_cache_group_id;
+		} else {
+			// NORMAL
+			_group_id = s_group_id;
+		}
+
+		CPsisiManagerIf _if (getExternalIf(), _group_id);
 		_if.reqGetCurrentServiceInfos (s_serviceInfos, 10);
 
 		sectId = SECTID_WAIT_GET_SERVICE_INFOS;
@@ -652,7 +702,15 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_REQ_ENABLE_PARSE_EIT_SCHED: {
-		CPsisiManagerIf _if (getExternalIf());
+		uint8_t _group_id = 0xff;
+		if ((m_executing_reserve.type & CReserve::type_t::TYPE_MASK) == CReserve::type_t::FORCE) {
+			_group_id = m_force_cache_group_id;
+		} else {
+			// NORMAL
+			_group_id = s_group_id;
+		}
+
+		CPsisiManagerIf _if (getExternalIf(), _group_id);
 		_if.reqEnableParseEITSched ();
 
 		sectId = SECTID_WAIT_ENABLE_PARSE_EIT_SCHED;
@@ -738,7 +796,15 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_REQ_DISABLE_PARSE_EIT_SCHED: {
-		CPsisiManagerIf _if (getExternalIf());
+		uint8_t _group_id = 0xff;
+		if ((m_executing_reserve.type & CReserve::type_t::TYPE_MASK) == CReserve::type_t::FORCE) {
+			_group_id = m_force_cache_group_id;
+		} else {
+			// NORMAL
+			_group_id = s_group_id;
+		}
+
+		CPsisiManagerIf _if (getExternalIf(), _group_id);
 		_if.reqDisableParseEITSched ();
 
 		sectId = SECTID_WAIT_DISABLE_PARSE_EIT_SCHED;
@@ -872,7 +938,10 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_EXIT:
 
-		if (!s_is_already_using_tuner) {
+		if (
+			!s_is_already_using_tuner &&
+			!((m_executing_reserve.type & CReserve::type_t::TYPE_MASK) == CReserve::type_t::FORCE)
+		) {
 			//-----------------------------//
 			{
 				uint32_t opt = getRequestOption ();
@@ -881,8 +950,9 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 				// 選局を停止しときます tune stop
 				// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-				CChannelManagerIf _if (getExternalIf());
-				_if.reqTuneStop ();
+				CTunerServiceIf _if (getExternalIf());
+				_if.reqTuneStop (s_group_id);
+				_if.reqClose (s_group_id);
 
 				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 				setRequestOption (opt);
@@ -943,6 +1013,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		s_is_already_using_tuner = false;
 		mp_EIT_H_sched = NULL;
 		m_executing_reserve.clear();
+		s_group_id = 0xff;
+		s_ch = 0;
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -1064,47 +1136,21 @@ void CEventScheduleManager::onReq_cacheSchedule_forceCurrentService (CThreadMgrI
 	switch (sectId) {
 	case SECTID_ENTRY:
 
-		sectId = SECTID_REQ_GET_TUNER_STATE;
-		enAct = EN_THM_ACT_CONTINUE;
-		break;
-
-	case SECTID_REQ_GET_TUNER_STATE: {
-		CTunerControlIf _if (getExternalIf());
-		_if.reqGetState ();
-
-		sectId = SECTID_WAIT_GET_TUNER_STATE;
-		enAct = EN_THM_ACT_WAIT;
-
-		}
-		break;
-
-	case SECTID_WAIT_GET_TUNER_STATE: {
-
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			EN_TUNER_STATE _state = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
-			if (_state == EN_TUNER_STATE__TUNING_SUCCESS) {
-				sectId = SECTID_REQ_GET_SERVICE_INFOS;
-				enAct = EN_THM_ACT_CONTINUE;
-			} else {
-				_UTL_LOG_E ("not EN_TUNER_STATE__TUNING_SUCCESS %d", _state);
-#ifdef _DUMMY_TUNER
-				sectId = SECTID_REQ_GET_SERVICE_INFOS;
-#else
-				sectId = SECTID_END_ERROR;
-#endif
-				enAct = EN_THM_ACT_CONTINUE;
-			}
+		m_force_cache_group_id = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+		if (m_force_cache_group_id >= m_tuner_resource_max) {
+			_UTL_LOG_E ("invalid groupId:[0x%02x]", m_force_cache_group_id);
+			 sectId = SECTID_END_ERROR;
+			 enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
-			// success only
+			sectId = SECTID_REQ_GET_SERVICE_INFOS;
+			enAct = EN_THM_ACT_CONTINUE;
 		}
 
-		}
 		break;
 
 	case SECTID_REQ_GET_SERVICE_INFOS: {
-		CPsisiManagerIf _if (getExternalIf());
+		CPsisiManagerIf _if (getExternalIf(), m_force_cache_group_id);
 		_if.reqGetCurrentServiceInfos (s_serviceInfos, 10);
 
 		sectId = SECTID_WAIT_GET_SERVICE_INFOS;
@@ -1198,6 +1244,7 @@ void CEventScheduleManager::onReq_cacheSchedule_forceCurrentService (CThreadMgrI
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
 		s_tmp_reserve.clear();
+		m_force_cache_group_id = 0xff;
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -1210,6 +1257,7 @@ void CEventScheduleManager::onReq_cacheSchedule_forceCurrentService (CThreadMgrI
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
 		s_num = 0;
 		s_tmp_reserve.clear();
+		m_force_cache_group_id = 0xff;
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;

@@ -151,10 +151,12 @@ public:
 				);
 	};
 
-	bool reqCacheSchedule_forceCurrentService (void) {
+	bool reqCacheSchedule_forceCurrentService (uint8_t group_id) {
 		return requestAsync (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_FORCE_CURRENT_SERVICE
+					EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_FORCE_CURRENT_SERVICE,
+					(uint8_t*)&group_id,
+					sizeof(uint8_t)
 				);
 	};
 

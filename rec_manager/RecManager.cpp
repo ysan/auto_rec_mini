@@ -980,8 +980,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_CHECK_DISK_FREE_SPACE,
-		SECTID_REQ_STOP_CACHE_SCHED,
-		SECTID_WAIT_STOP_CACHE_SCHED,
+//		SECTID_REQ_STOP_CACHE_SCHED,
+//		SECTID_WAIT_STOP_CACHE_SCHED,
 		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
 		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
 		SECTID_REQ_TUNE,
@@ -1002,7 +1002,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 	static PSISI_EVENT_INFO s_presentEventInfo;
-	static uint8_t s_groupId = 0;
+	static uint8_t s_groupId = 0xff;
 	static uint16_t s_ch = 0;
 
 
@@ -1051,7 +1051,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 		}
 		break;
-
+/***
 	case SECTID_REQ_STOP_CACHE_SCHED: {
 
 		// EPG取得中だったら止めてから録画開始します
@@ -1069,7 +1069,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
-
+***/
 	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
 
 		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
@@ -1173,21 +1173,9 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			} else {
 				// イベントが一致しないので 前番組の延長とかで開始時間が遅れたと予想します
 				// --> EIT schedule を取得してみます
-#if 0 //TODO
 				_UTL_LOG_E ("(%s) event tracking...", pIf->getSeqName());
 				sectId = SECTID_REQ_CACHE_SCHEDULE;
 				enAct = EN_THM_ACT_CONTINUE;
-#else
-				_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
-				_UTL_LOG_E ("(%s) TODO reqCacheSchedule_forceCurrentService", pIf->getSeqName());
-
-				m_recordings[s_groupId].state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
-				setResult (&m_recordings[s_groupId]);
-				m_recordings[s_groupId].clear();
-
-				sectId = SECTID_END_ERROR;
-				enAct = EN_THM_ACT_CONTINUE;
-#endif
 			}
 
 		} else {
@@ -1205,7 +1193,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	case SECTID_REQ_CACHE_SCHEDULE: {
 
 		CEventScheduleManagerIf _if (getExternalIf());
-		_if.reqCacheSchedule_forceCurrentService ();
+		_if.reqCacheSchedule_forceCurrentService (s_groupId);
 
 		sectId = SECTID_WAIT_CACHE_SCHEDULE;
 		enAct = EN_THM_ACT_WAIT;
@@ -1329,6 +1317,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	case SECTID_END_SUCCESS:
 
 		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+		s_groupId = 0xff;
+		s_ch = 0;
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
@@ -1338,6 +1328,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	case SECTID_END_ERROR:
 
 		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+		s_groupId = 0xff;
+		s_ch = 0;
 
 		//-----------------------------//
 		{

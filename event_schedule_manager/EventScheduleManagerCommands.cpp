@@ -24,8 +24,8 @@ static void _cacheSchedule (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.reqCacheSchedule ();
+	CEventScheduleManagerIf _if (pBase->getExternalIf());
+	_if.reqCacheSchedule ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -33,16 +33,24 @@ static void _cacheSchedule (int argc, char* argv[], CThreadMgrBase *pBase)
 
 static void _cacheSchedule_forceCurrentService (int argc, char* argv[], CThreadMgrBase *pBase)
 {
-	if (argc != 0) {
-		_COM_SVR_PRINT ("ignore arguments.\n");
+	if (argc != 1) {
+		_COM_SVR_PRINT ("ignore arguments. (usage: csc {groupId} )\n");
+		return ;
 	}
+
+	std::regex regex ("^[0-9]+$");
+	if (!std::regex_match (argv[0], regex)) {
+		_COM_SVR_PRINT ("invalid arguments. (group_id)\n");
+		return;
+	}
+	uint8_t group_id = atoi(argv[0]);
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.reqCacheSchedule_forceCurrentService ();
+	CEventScheduleManagerIf _if (pBase->getExternalIf());
+	_if.reqCacheSchedule_forceCurrentService (group_id);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -54,8 +62,8 @@ static void _stopCacheSchedule (int argc, char* argv[], CThreadMgrBase *pBase)
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.syncStopCacheSchedule ();
+	CEventScheduleManagerIf _if (pBase->getExternalIf());
+	_if.syncStopCacheSchedule ();
 
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_SUCCESS) {
@@ -75,8 +83,8 @@ static void _dump_scheduleMap (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpScheduleMap ();
+	CEventScheduleManagerIf _if (pBase->getExternalIf());
+	_if.reqDumpScheduleMap ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -139,8 +147,8 @@ static void _dump_schedule (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpSchedule (&key);
+	CEventScheduleManagerIf _if (pBase->getExternalIf());
+	_if.reqDumpSchedule (&key);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -160,9 +168,9 @@ static void _dump_schedule_interactive (int argc, char* argv[], CThreadMgrBase *
 
 	CChannelManagerIf::CHANNEL_t channels[20] = {0};
 	CChannelManagerIf::REQ_CHANNELS_PARAM_t param = {channels, 20};
-	CChannelManagerIf mgr(pBase->getExternalIf());
+	CChannelManagerIf _if (pBase->getExternalIf());
 
-	mgr.syncGetChannels (&param);
+	_if.syncGetChannels (&param);
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_ERROR) {
 		_COM_SVR_PRINT ("syncGetChannels is failure.\n");
@@ -185,7 +193,7 @@ static void _dump_schedule_interactive (int argc, char* argv[], CThreadMgrBase *
 			channels[i].original_network_id,
 			0 // no need service_id
 		};
-		mgr.syncGetTransportStreamName (&param);
+		_if.syncGetTransportStreamName (&param);
 		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_ERROR) {
 			continue ;
@@ -226,7 +234,7 @@ static void _dump_schedule_interactive (int argc, char* argv[], CThreadMgrBase *
 			channels[sel_ch_num].original_network_id,
 			channels[sel_ch_num].service_ids[i]
 		};
-		mgr.syncGetServiceName (&param);
+		_if.syncGetServiceName (&param);
 		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_ERROR) {
 			continue ;
@@ -301,8 +309,8 @@ static void _dumpEvent_detail (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpEvent_latestDumpedSchedule (&_param);
+	CEventScheduleManagerIf _if (pBase->getExternalIf());
+	_if.reqDumpEvent_latestDumpedSchedule (&_param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -321,8 +329,8 @@ static void _getEvents_keywordSearch (int argc, char* argv[], CThreadMgrBase *pB
 	_param.p_out_event = _ev;
 	_param.array_max_num = 10;
 
-	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.syncGetEvents_keyword (&_param);
+	CEventScheduleManagerIf _if (pBase->getExternalIf());
+	_if.syncGetEvents_keyword (&_param);
 
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_SUCCESS) {
@@ -347,7 +355,7 @@ static void _getEvents_keywordSearch (int argc, char* argv[], CThreadMgrBase *pB
 		}
 
 	} else {
-		_COM_SVR_PRINT ("syncGetEvents_keyword error");
+		_COM_SVR_PRINT ("syncGetEvents_keyword error\n");
 	}
 }
 
@@ -364,8 +372,8 @@ static void _getEvents_keywordSearch_ex (int argc, char* argv[], CThreadMgrBase 
 	_param.p_out_event = _ev;
 	_param.array_max_num = 10;
 
-	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.syncGetEvents_keyword_ex (&_param);
+	CEventScheduleManagerIf _if (pBase->getExternalIf());
+	_if.syncGetEvents_keyword_ex (&_param);
 
 	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 	if (enRslt == EN_THM_RSLT_SUCCESS) {
@@ -404,8 +412,8 @@ static void _dump_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpReserves ();
+	CEventScheduleManagerIf _if (pBase->getExternalIf());
+	_if.reqDumpReserves ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -421,8 +429,8 @@ static void _dump_histories (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CEventScheduleManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpHistories ();
+	CEventScheduleManagerIf _if (pBase->getExternalIf());
+	_if.reqDumpHistories ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -438,7 +446,7 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	},
 	{
 		"csc",
-		"cache schedule --force current service--",
+		"cache schedule --force current service-- (usage: csc {group_id} )",
 		_cacheSchedule_forceCurrentService,
 		NULL,
 	},

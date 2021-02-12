@@ -15,13 +15,13 @@
 static void addReserve_currentEvent (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_COM_SVR_PRINT ("ignore arguments. (usage: stop {groupId} )\n");
+		_COM_SVR_PRINT ("ignore arguments. (usage: ce {groupId} )\n");
 		return ;
 	}
 
 	std::regex regex ("^[0-9]+$");
 	if (!std::regex_match (argv[0], regex)) {
-		_COM_SVR_PRINT ("invalid arguments. (groupId)");
+		_COM_SVR_PRINT ("invalid arguments. (groupId)\n");
 		return;
 	}
 	uint8_t groupId = atoi(argv[0]);
@@ -527,7 +527,7 @@ static void stop (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	std::regex regex ("^[0-9]+$");
 	if (!std::regex_match (argv[0], regex)) {
-		_COM_SVR_PRINT ("invalid arguments. (groupId)");
+		_COM_SVR_PRINT ("invalid arguments. (groupId)\n");
 		return;
 	}
 	uint8_t groupId = atoi(argv[0]);

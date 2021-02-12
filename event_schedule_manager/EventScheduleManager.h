@@ -19,7 +19,7 @@
 #include "EventScheduleManagerIf.h"
 #include "TsAribCommon.h"
 
-#include "TunerControlIf.h"
+#include "TunerServiceIf.h"
 #include "PsisiManagerIf.h"
 #include "ChannelManagerIf.h"
 
@@ -369,6 +369,10 @@ private:
 	std::vector <CHistory> m_histories;
 
 	CEventScheduleContainer m_container;
+
+	uint8_t m_force_cache_group_id;
+
+	int m_tuner_resource_max;
 };
 
 #endif
