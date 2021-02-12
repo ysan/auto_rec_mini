@@ -40,7 +40,7 @@ static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	std::regex regex ("^[0-9]+$");
 	if (!std::regex_match (argv[0], regex)) {
-			_COM_SVR_PRINT ("invalid arguments. (tuner_id)");
+			_COM_SVR_PRINT ("invalid arguments. (tuner_id)\n");
 			return;
 	}
 	uint8_t tuner_id = atoi(argv[0]);
@@ -65,13 +65,13 @@ static void _tune (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	std::regex regex_ch ("^[0-9]+$");
 	if (!std::regex_match (argv[0], regex_ch)) {
-		_COM_SVR_PRINT ("invalid arguments. (physical channel)");
+		_COM_SVR_PRINT ("invalid arguments. (physical channel)\n");
 		return;
 	}
 
 	std::regex regex_id ("^[0-9]+$");
 	if (!std::regex_match (argv[1], regex_id)) {
-		_COM_SVR_PRINT ("invalid arguments. (tuner id)");
+		_COM_SVR_PRINT ("invalid arguments. (tuner id)\n");
 		return;
 	}
 
@@ -99,7 +99,7 @@ static void _tune_stop (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	std::regex regex ("^[0-9]+$");
 	if (!std::regex_match (argv[0], regex)) {
-		_COM_SVR_PRINT ("invalid arguments. (tuner_id)");
+		_COM_SVR_PRINT ("invalid arguments. (tuner_id)\n");
 		return;
 	}
 	uint8_t tuner_id = atoi(argv[0]);

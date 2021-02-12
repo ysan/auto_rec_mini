@@ -62,11 +62,11 @@ public:
 
 		void dump (void) const {
 			_UTL_LOG_I (
-				"tuner_id:[0x%02x] module:[%d] prio:[%d] is_now_tuned:[%d]",
+				"tuner_id:[0x%02x] module:[%d] priority:[%d] [%s]",
 				tuner_id,
 				module,
 				static_cast<int>(priority),
-				is_now_tuned
+				is_now_tuned ? "now_tuned" : "---"
 			);
 		}
 

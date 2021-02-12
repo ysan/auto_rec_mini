@@ -25,9 +25,9 @@ static CTunerControl         s_tunerControl_gr0  ((char*)"TunerCtl_0"          ,
 static CTunerControl         s_tunerControl_gr1  ((char*)"TunerCtl_1"          , 10, 1);
 static CTunerControl         s_tunerControl_gr2  ((char*)"TunerCtl_2"          , 10, 2);
 
-static CPsisiManager         s_psisiManager_gr0  ((char*)"Psisi_0"             , 100, 0);
-static CPsisiManager         s_psisiManager_gr1  ((char*)"Psisi_1"             , 100, 1);
-static CPsisiManager         s_psisiManager_gr2  ((char*)"Psisi_2"             , 100, 2);
+static CPsisiManager         s_psisiManager_gr0  ((char*)"PsisiMgr_0"          , 100, 0);
+static CPsisiManager         s_psisiManager_gr1  ((char*)"PsisiMgr_1"          , 100, 1);
+static CPsisiManager         s_psisiManager_gr2  ((char*)"PsisiMgr_2"          , 100, 2);
 
 static CTunerService         s_tunerService      ((char*)"TunerService"        , 10);
 static CRecManager           s_recManager        ((char*)"RecManager"          , 10);
