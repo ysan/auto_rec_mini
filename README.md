@@ -7,7 +7,6 @@ auto_rec_mini
 
 Digital broadcast recording system for Japan. The middleware daemon with minimal functions.  
 Keyword search recording reservation is the main function.  
-Simultaneous recording with multiple tuners is possible.   
   
 For studying MPEG-2 TS and ARIB.  
 The operation may not be stable depending on the environment.  
@@ -37,7 +36,8 @@ The supported tuners are as follows. only terrestrial digitl. orz
 ### Platforms ###
 Will work on generic linux destributions. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
   
-`Raspbian` Raspberry pi model B is used in the main,  
+I usually use `Raspberry pi model B` to check the operation,  
+If the back EPG acquisition runs during recording, or if multiple simultaneous recordings are performed,  
 Packet loss occurs, block noise and image skipping are likely to occur.  
 ~~There was a case that ts could not be taken because of insufficient power at the start of tuning.~~
   
