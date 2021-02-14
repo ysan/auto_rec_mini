@@ -196,6 +196,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	// ----------------- parent -----------------
 	_UTL_LOG_I ("child pid:[%lu]", pidChild);
 	close (pipeC2P[1]);
+	close (pipeC2P_err[1]);
 
 	_UTL_LOG_I ("mState => OPENED");
 	mState = state::OPENED;
