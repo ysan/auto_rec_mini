@@ -116,13 +116,13 @@ CRecManager::CRecManager (char *pszName, uint8_t nQueNum)
 	clearReserves ();
 	clearResults ();
 ////	m_recordings[0].clear();
-	for (int i = 0; i < CGroup::GROUP_MAX; ++ i) {
-		m_recordings[i].clear();
+	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
+		m_recordings[_gr].clear();
 	}
 
 ////	memset (m_recording_tmpfile, 0x00, sizeof (m_recording_tmpfile));
-	for (int i = 0; i < CGroup::GROUP_MAX; ++ i) {
-		memset (m_recording_tmpfiles[i], 0x00, PATH_MAX);
+	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
+		memset (m_recording_tmpfiles[_gr], 0x00, PATH_MAX);
 	}
 
 	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
@@ -138,13 +138,20 @@ CRecManager::~CRecManager (void)
 	clearReserves ();
 	clearResults ();
 ////	m_recordings[0].clear();
-	for (int i = 0; i < CGroup::GROUP_MAX; ++ i) {
-		m_recordings[i].clear();
+	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
+		m_recordings[_gr].clear();
 	}
 
 ////	memset (m_recording_tmpfile, 0x00, sizeof (m_recording_tmpfile));
-	for (int i = 0; i < CGroup::GROUP_MAX; ++ i) {
-		memset (m_recording_tmpfiles[i], 0x00, PATH_MAX);
+	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
+		memset (m_recording_tmpfiles[_gr], 0x00, PATH_MAX);
+	}
+
+	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
+		m_tunerNotify_clientId [_gr] = 0xff;
+		m_tsReceive_handlerId [_gr] = -1;
+		m_patDetectNotify_clientId [_gr] = 0xff;
+		m_eventChangeNotify_clientId [_gr] = 0xff;
 	}
 }
 
@@ -1327,10 +1334,6 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	case SECTID_END_ERROR:
 
-		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
-		s_groupId = 0xff;
-		s_ch = 0;
-
 		//-----------------------------//
 		{
 			uint32_t opt = getRequestOption ();
@@ -1347,6 +1350,10 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			setRequestOption (opt);
 		}
 		//-----------------------------//
+
+		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+		s_groupId = 0xff;
+		s_ch = 0;
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
@@ -2338,12 +2345,14 @@ bool CRecManager::addReserve (
 	}
 
 	if (!_is_rescheduled) {
-////		if (m_recordings[0].is_used) {
-////			if (m_recordings[0] == tmp) {
-////				_UTL_LOG_E ("reserve is now recording.");
-////				return false;
-////			}
-////		}
+		for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
+			if (m_recordings[_gr].is_used) {
+				if (m_recordings[_gr] == tmp) {
+					_UTL_LOG_E ("reserve is now recording.");
+					return false;
+				}
+			}
+		}
 	}
 
 
