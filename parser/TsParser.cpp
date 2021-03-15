@@ -305,7 +305,10 @@ bool CTsParser::parse (void)
 		// TTS(Timestamped TS)(total192bytes) や
 		// FEC(Forward Error Correction:順方向誤り訂正)(total204bytes)
 		// は除外します
-		payload_size = TS_PACKET_LEN - (p_payload - p_cur);
+
+
+//		payload_size = TS_PACKET_LEN - (p_payload - p_cur);
+		payload_size = TS_PACKET_LEN - TS_HEADER_LEN;
 
 
 		if (mp_listener) {
