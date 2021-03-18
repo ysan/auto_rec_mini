@@ -494,7 +494,7 @@ CSectionInfo* CSectionParser::attachSectionList (uint8_t *pBuff, size_t size)
 	size_t remain = mPoolSize - mPoolInd;
 	if (remain < size) {
 		// pool full
-		_UTL_LOG_E ("pool full!!  mPoolSize:[%lu] mPoolInd:[%lu] remain:[%lu] attachSize:[%lu]", mPoolSize, mPoolInd, remain, size);
+		_UTL_LOG_E ("pid:[0x%04x] pool full!!  mPoolSize:[%lu] mPoolInd:[%lu] remain:[%lu] attachSize:[%lu]", mPid, mPoolSize, mPoolInd, remain, size);
 		return NULL;
 	}
 
@@ -509,7 +509,7 @@ CSectionInfo* CSectionParser::attachSectionList (uint8_t *pBuff, size_t size)
 	if (mpWorkSectInfo && (mpWorkSectInfo->mState == EN_SECTION_STATE__RECEIVING)) {
 		// follow
 		if (pCur != mpWorkSectInfo->mpTail) {
-			_UTL_LOG_E ("BUG: (pCur != mpWorkSectInfo->mpTail)");
+			_UTL_LOG_E ("BUG: pid:[0x%04x] (pCur != mpWorkSectInfo->mpTail)", mPid);
 		}
 		mpWorkSectInfo->mpTail = pCur + size;
 		pRtn = mpWorkSectInfo;
@@ -1005,9 +1005,9 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 
 	if((p + pointer_field) >= (pPayload + payloadSize)) {
 //TODO
-		_UTL_LOG_W ("payloadSize=[%d]", payloadSize);
-		_UTL_LOG_W ("pointer_field=[%d]", pointer_field);
-		_UTL_LOG_W ("input data is probably broken");
+		_UTL_LOG_W ("pid:[0x%04x] payloadSize=[%d]", mPid, payloadSize);
+		_UTL_LOG_W ("pid:[0x%04x] pointer_field=[%d]", mPid, pointer_field);
+		_UTL_LOG_W ("pid:[0x%04x] input data is probably broken", mPid);
 		return EN_CHECK_SECTION__INVALID;
 	}
 
@@ -1035,7 +1035,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 //TODO mpWorkSectInfo check
 		if (mpWorkSectInfo) {
 			if (mpWorkSectInfo->mState <= EN_SECTION_STATE__RECEIVING) {
-				_UTL_LOG_W ("unexpected first packet came. start over...");
+				_UTL_LOG_W ("pid:[0x%04x] unexpected first packet came. start over...", mPid);
 				detachSectionList (mpWorkSectInfo);
 				mpWorkSectInfo = NULL;
 			}
@@ -1113,7 +1113,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 //		if (mType == EN_SECTION_TYPE__PSISI) {
 			// check CRC
 			if (!mpWorkSectInfo->checkCRC32()) {
-				_UTL_LOG_E ("CRC32 fail");
+				_UTL_LOG_E ("pid:[0x%04x] CRC32 fail", mPid);
 				r = EN_CHECK_SECTION__CRC32_ERR;
 				size -= SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
 				p += SECTION_SHORT_HEADER_LEN + mpWorkSectInfo->getHeader()->section_length;
@@ -1127,7 +1127,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 //		} else if (mType == EN_SECTION_TYPE__DSMCC) {
 //
 //		} else {
-//			_UTL_LOG_E ("EN_SECTION_TYPE is invalid.");
+//			_UTL_LOG_E ("pid:[0x%04x] EN_SECTION_TYPE is invalid.", mPid);
 //		}
 
 
@@ -1191,12 +1191,12 @@ EN_CHECK_SECTION CSectionParser::checkSectionFollow (uint8_t *pPayload, size_t p
 	}
 
 	if (!mpWorkSectInfo) {
-		_UTL_LOG_W ("head packet has not arrived yet");
+		_UTL_LOG_W ("pid:[0x%04x] head packet has not arrived yet", mPid);
 		return EN_CHECK_SECTION__INVALID;
 	}
 
 	if (mpWorkSectInfo->mState != EN_SECTION_STATE__RECEIVING) {
-		_UTL_LOG_W ("head packet has not arrived yet (not EN_SECTION_STATE__RECEIVING)");
+		_UTL_LOG_W ("pid:[0x%04x] head packet has not arrived yet (not EN_SECTION_STATE__RECEIVING)", mPid);
 		return EN_CHECK_SECTION__INVALID;
 	}
 
@@ -1208,7 +1208,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFollow (uint8_t *pPayload, size_t p
 	}
 
 	if (pAttached != mpWorkSectInfo) {
-		_UTL_LOG_E ("BUG: (pAttached != mpWorkSectInfo)");
+		_UTL_LOG_E ("BUG: pid:[0x%04x] (pAttached != mpWorkSectInfo)", mPid);
 		return EN_CHECK_SECTION__INVALID;
 	}
 
@@ -1242,7 +1242,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFollow (uint8_t *pPayload, size_t p
 //	if (mType == EN_SECTION_TYPE__PSISI) {
 		// check CRC
 		if (!mpWorkSectInfo->checkCRC32()) {
-			_UTL_LOG_E ("CRC32 fail");
+			_UTL_LOG_E ("pid:[0x%04x] CRC32 fail", mPid);
 			detachSectionList (mpWorkSectInfo);
 			mpWorkSectInfo = NULL;
 			return EN_CHECK_SECTION__CRC32_ERR;
@@ -1252,7 +1252,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFollow (uint8_t *pPayload, size_t p
 //	} else if (mType == EN_SECTION_TYPE__DSMCC) {
 //
 //	} else {
-//		_UTL_LOG_E ("EN_SECTION_TYPE is invalid.");
+//		_UTL_LOG_E ("pid:[0x%04x] EN_SECTION_TYPE is invalid.", mPid);
 //	}
 
 
