@@ -288,11 +288,11 @@ Others
 * [`ariblib`](https://github.com/youzaka/ariblib)
 * [`eit_txtout_mod`](https://github.com/arairait/eit_txtout_mod)
  
-Contribute
-------------
-This project is still at its beginning. If you can offer suggestions, additional information or help please contact me.
-
 LICENSE
 ------------
 MIT
+
+Feedback
+------------
+何でもフィードバック頂けたら幸いです。
 
