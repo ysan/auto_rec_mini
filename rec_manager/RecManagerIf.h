@@ -60,6 +60,16 @@ public:
 
 		EN_RESERVE_REPEATABILITY repeatablity;
 
+		void clear (void) {
+			transport_stream_id = 0;
+			original_network_id = 0;
+			service_id = 0;
+			event_id = 0;
+			start_time.clear();
+			end_time.clear();
+			repeatablity = EN_RESERVE_REPEATABILITY__NONE;
+		}
+
 		void dump (void) const {
 			_UTL_LOG_I (
 				"reserve_param_t - tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x] time:[%s - %s] repeat:[%d]",

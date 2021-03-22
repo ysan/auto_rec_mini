@@ -79,6 +79,17 @@ public:
 		std::string *p_event_name;
 		std::string *p_text;
 
+		void clear () {
+			transport_stream_id = 0;
+			original_network_id = 0;
+			service_id = 0;
+			event_id = 0;
+			start_time.clear();
+			end_time.clear();
+			p_event_name = NULL;
+			p_text = NULL;
+		}
+
 	} EVENT_t;
 
 	typedef struct _req_event_param {

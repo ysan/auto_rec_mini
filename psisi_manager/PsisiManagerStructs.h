@@ -73,6 +73,17 @@ typedef struct {
 
 	char event_name_char [1024];
 
+	void clear (void) {
+		table_id = 0;
+		transport_stream_id = 0;
+		original_network_id = 0;
+		service_id = 0;
+		event_id = 0;
+		start_time.clear();
+		end_time.clear();
+		memset (event_name_char, 0x00, sizeof(event_name_char));
+	}
+
 	void dump (void) const {
 		_UTL_LOG_I (
 			"tblid:[0x%2x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",

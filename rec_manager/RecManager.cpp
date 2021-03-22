@@ -759,7 +759,8 @@ void CRecManager::onReq_checkRecordingsEventLoop (CThreadMgrIf *pIf)
 
 	case SECTID_CHECK:
 
-		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+//		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+		s_presentEventInfo.clear();
 		if (s_groupId >= CGroup::GROUP_MAX) {
 			s_groupId = 0;
 		}
@@ -1323,7 +1324,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	case SECTID_END_SUCCESS:
 
-		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+//		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+		s_presentEventInfo.clear();
 		s_groupId = 0xff;
 		s_ch = 0;
 
@@ -1351,7 +1353,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		}
 		//-----------------------------//
 
-		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+//		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+		s_presentEventInfo.clear();
 		s_groupId = 0xff;
 		s_ch = 0;
 
@@ -1570,7 +1573,8 @@ s_presentEventInfo.dump();
 	case SECTID_END_SUCCESS:
 
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
-		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+//		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+		s_presentEventInfo.clear();
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
@@ -1580,7 +1584,8 @@ s_presentEventInfo.dump();
 	case SECTID_END_ERROR:
 
 		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
-		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+//		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
+		s_presentEventInfo.clear();
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
@@ -1723,8 +1728,10 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 
 	case SECTID_END_SUCCESS:
 
-		memset (&s_param, 0x00, sizeof(s_param));
-		memset (&s_event, 0x00, sizeof(s_event));
+//		memset (&s_param, 0x00, sizeof(s_param));
+//		memset (&s_event, 0x00, sizeof(s_event));
+		s_param.clear();
+		s_event.clear();
 		s_is_rescheduled = false;
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
@@ -1734,8 +1741,10 @@ void CRecManager::onReq_addReserve_event (CThreadMgrIf *pIf)
 
 	case SECTID_END_ERROR:
 
-		memset (&s_param, 0x00, sizeof(s_param));
-		memset (&s_event, 0x00, sizeof(s_event));
+//		memset (&s_param, 0x00, sizeof(s_param));
+//		memset (&s_event, 0x00, sizeof(s_event));
+		s_param.clear();
+		s_event.clear();
 		s_is_rescheduled = false;
 
 		pIf->reply (EN_THM_RSLT_ERROR);
@@ -1864,7 +1873,8 @@ void CRecManager::onReq_addReserve_eventHelper (CThreadMgrIf *pIf)
 	case SECTID_END_SUCCESS:
 
 		memset (&s_param, 0x00, sizeof(s_param));
-		memset (&s_event, 0x00, sizeof(s_event));
+//		memset (&s_event, 0x00, sizeof(s_event));
+		s_event.clear();
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
@@ -1874,7 +1884,8 @@ void CRecManager::onReq_addReserve_eventHelper (CThreadMgrIf *pIf)
 	case SECTID_END_ERROR:
 
 		memset (&s_param, 0x00, sizeof(s_param));
-		memset (&s_event, 0x00, sizeof(s_event));
+//		memset (&s_event, 0x00, sizeof(s_event));
+		s_event.clear();
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
@@ -2000,7 +2011,8 @@ void CRecManager::onReq_addReserve_manual (CThreadMgrIf *pIf)
 
 	case SECTID_END_SUCCESS:
 
-		memset (&s_param, 0x00, sizeof(s_param));
+//		memset (&s_param, 0x00, sizeof(s_param));
+		s_param.clear();
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
@@ -2009,7 +2021,8 @@ void CRecManager::onReq_addReserve_manual (CThreadMgrIf *pIf)
 
 	case SECTID_END_ERROR:
 
-		memset (&s_param, 0x00, sizeof(s_param));
+//		memset (&s_param, 0x00, sizeof(s_param));
+		s_param.clear();
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;

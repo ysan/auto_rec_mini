@@ -1678,7 +1678,8 @@ void CPsisiManager::assignFollowEventToServiceInfos (void)
 //_UTL_LOG_I ("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
 //p_info->dump();
 //					m_serviceInfos [i].eventFollowInfo = *p_info;
-					memcpy (&m_serviceInfos [i].eventFollowInfo, p_info, sizeof(_EVENT_PF_INFO));
+//					memcpy (&m_serviceInfos [i].eventFollowInfo, p_info, sizeof(_EVENT_PF_INFO));
+					m_serviceInfos [i].eventFollowInfo.clear();
 					m_serviceInfos [i].eventFollowInfo.start_time = p_info->start_time;
 					m_serviceInfos [i].eventFollowInfo.end_time = p_info->end_time;
 					m_serviceInfos [i].eventFollowInfo.is_used = true;
