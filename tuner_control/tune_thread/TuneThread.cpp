@@ -23,15 +23,18 @@ CTuneThread::CTuneThread (char *pszName, uint8_t nQueNum, uint8_t groupId)
 	:CThreadMgrBase (pszName, nQueNum)
 	,CGroup (groupId)
 	,mState (state::CLOSED)
+	,mChildPid (0)
 {
 	SEQ_BASE_t seqs [EN_SEQ_TUNE_THREAD_NUM] = {
 		{(PFN_SEQ_BASE)&CTuneThread::moduleUp, (char*)"moduleUp"},     // EN_SEQ_TUNE_THREAD_MODULE_UP
 		{(PFN_SEQ_BASE)&CTuneThread::moduleDown, (char*)"moduleDown"}, // EN_SEQ_TUNE_THREAD_MODULE_DOWN
 		{(PFN_SEQ_BASE)&CTuneThread::tune, (char*)"tune"},             // EN_SEQ_TUNE_THREAD_TUNE
+		{(PFN_SEQ_BASE)&CTuneThread::forceKill, (char*)"forceKill"},   // EN_SEQ_TUNE_THREAD_FORCE_KILL
 	};
 	setSeqs (seqs, EN_SEQ_TUNE_THREAD_NUM);
 
 	mp_settings = CSettings::getInstance();
+	mChildCommand.clear();
 }
 
 CTuneThread::~CTuneThread (void)
@@ -116,9 +119,12 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		return;
 	}
 	std::string com_form = (*p_tuner_hal_allocates) [getGroupId()];
-	char com_str [128] = {0};
-	snprintf (com_str, sizeof(com_str), com_form.c_str(), CTsAribCommon::freqKHz2pysicalCh(param.freq));
-	std::vector<std::string> com = CUtils::split (com_str, ' ');
+//	char com_str [128] = {0};
+//	snprintf (com_str, sizeof(com_str), com_form.c_str(), CTsAribCommon::freqKHz2pysicalCh(param.freq));
+	mChildCommand.reserve(128);
+	snprintf ((char*)mChildCommand.c_str(), 128, com_form.c_str(), CTsAribCommon::freqKHz2pysicalCh(param.freq));
+//	std::vector<std::string> com = CUtils::split (com_str, ' ');
+	std::vector<std::string> com = CUtils::split (mChildCommand.c_str(), ' ');
 	if (com.size() == 0) {
 		_UTL_LOG_E ("invalid child process command");
 		pIf->reply (EN_THM_RSLT_ERROR);
@@ -159,8 +165,8 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		return;
 	}
 
-	pid_t pidChild = fork();
-	if (pidChild == -1) {
+	pid_t mChildPid = fork();
+	if (mChildPid == -1) {
 		_UTL_PERROR("fork");
 		close (pipeC2P[0]);
 		close (pipeC2P[1]);
@@ -172,7 +178,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		pIf->setSectId (sectId, enAct);
 		return;
 
-	} else if (pidChild == 0) {
+	} else if (mChildPid == 0) {
 		// ----------------- child -----------------
 		close (pipeC2P[0]);
 		dup2 (pipeC2P[1], STDOUT_FILENO);
@@ -194,7 +200,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	}
 
 	// ----------------- parent -----------------
-	_UTL_LOG_I ("child pid:[%lu]", pidChild);
+	_UTL_LOG_I ("child pid:[%lu]", mChildPid);
 	close (pipeC2P[1]);
 	close (pipeC2P_err[1]);
 
@@ -333,17 +339,17 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	pid_t _r_pid;
 	int _cnt = 0;
 	while (1) {
-		_r_pid = waitpid (pidChild, &_status, WNOHANG);
+		_r_pid = waitpid (mChildPid, &_status, WNOHANG);
 		if (_r_pid == -1) {
 			_UTL_PERROR ("waitpid");
 
 		} else if (_r_pid == 0) {
 			if (_cnt < 50) {
-				r = kill (pidChild, SIGUSR1);
-				_UTL_LOG_I ("kill SIGUSR1 [%lu]", pidChild);
+				r = kill (mChildPid, SIGUSR1);
+				_UTL_LOG_I ("kill SIGUSR1 [%lu]", mChildPid);
 			} else {
-				r = kill (pidChild, SIGKILL);
-				_UTL_LOG_I ("kill SIGKILL [%lu]", pidChild);
+				r = kill (mChildPid, SIGKILL);
+				_UTL_LOG_I ("kill SIGKILL [%lu]", mChildPid);
 			}
 			if (r < 0) {
 				_UTL_PERROR ("kill");
@@ -355,7 +361,8 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 			} else {
 				_UTL_LOG_I ("child exited abnromal.");
 			}
-			_UTL_LOG_I ("---> [%s]", com_str);
+//			_UTL_LOG_I ("---> [%s]", com_str);
+			_UTL_LOG_I ("---> [%s]", mChildCommand.c_str());
 			break;
 		}
 
@@ -366,6 +373,62 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	_UTL_LOG_I ("mState => CLSOED");
 	mState = state::CLOSED;
 
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
+void CTuneThread::forceKill (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	int r = 0;
+	int _status = 0;
+	pid_t _r_pid;
+	int _cnt = 0;
+	while (1) {
+		_r_pid = waitpid (mChildPid, &_status, WNOHANG);
+		if (_r_pid == -1) {
+			_UTL_PERROR ("waitpid");
+
+		} else if (_r_pid == 0) {
+			if (_cnt < 50) {
+				r = kill (mChildPid, SIGUSR1);
+				_UTL_LOG_I ("kill SIGUSR1 [%lu]", mChildPid);
+			} else {
+				r = kill (mChildPid, SIGKILL);
+				_UTL_LOG_I ("kill SIGKILL [%lu]", mChildPid);
+			}
+			if (r < 0) {
+				_UTL_PERROR ("kill");
+			}
+
+		} else {
+			if (WIFEXITED(_status)) {
+				_UTL_LOG_I ("child exited with status of [%d]", WEXITSTATUS(_status));
+			} else {
+				_UTL_LOG_I ("child exited abnromal.");
+			}
+			_UTL_LOG_I ("---> [%s]", mChildCommand.c_str());
+			break;
+		}
+
+		usleep (50000); // 50mS
+		++ _cnt;
+	}
+
+
+	pIf->reply (EN_THM_RSLT_SUCCESS);
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;

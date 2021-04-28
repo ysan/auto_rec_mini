@@ -250,7 +250,7 @@ void CTunerService::onReq_tune (CThreadMgrIf *pIf)
 
 			if (s_retry > 75) {
 				// 200ms * 75 = 約15秒 でタイムアウトします
-				_UTL_LOG_E ("psi/si state invalid.");
+				_UTL_LOG_E ("psi/si state invalid. (never transitioned EN_PSISI_STATE__READY)");
 				sectId = SECTID_REQ_TUNE_STOP;
 				enAct = EN_THM_ACT_CONTINUE;
 

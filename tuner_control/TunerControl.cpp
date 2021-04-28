@@ -355,6 +355,11 @@ void CTunerControl::tuneStop (CThreadMgrIf *pIf)
 
 			usleep (100000);
 			++ chkcnt;
+
+			if (chkcnt == 150) {
+				_UTL_LOG_W ("request force kill");
+				requestAsync (EN_MODULE_TUNE_THREAD + getGroupId(), EN_SEQ_TUNE_THREAD_FORCE_KILL);
+			}
 		}
 
 		if (chkcnt < 300) {

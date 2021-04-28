@@ -24,6 +24,7 @@ enum {
 	EN_SEQ_TUNE_THREAD_MODULE_UP = 0,
 	EN_SEQ_TUNE_THREAD_MODULE_DOWN,
 	EN_SEQ_TUNE_THREAD_TUNE,
+	EN_SEQ_TUNE_THREAD_FORCE_KILL,
 
 	EN_SEQ_TUNE_THREAD_NUM,
 };
@@ -54,6 +55,7 @@ public:
 	void moduleUp (CThreadMgrIf *pIf);
 	void moduleDown (CThreadMgrIf *pIf);
 	void tune (CThreadMgrIf *pIf);
+	void forceKill (CThreadMgrIf *pIf);
 
 	// direct getter
 	state getState (void) {
@@ -63,6 +65,8 @@ public:
 private:
 	state mState;
 	CSettings *mp_settings;
+	pid_t mChildPid;
+	std::string mChildCommand;
 };
 
 #endif
