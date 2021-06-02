@@ -10,6 +10,7 @@
 namespace ThreadManager {
 
 CThreadMgrIf::CThreadMgrIf (ST_THM_IF *pIf)
+	:mpIf (NULL)
 {
 	if (pIf) {
 		mpIf = pIf;
@@ -17,6 +18,7 @@ CThreadMgrIf::CThreadMgrIf (ST_THM_IF *pIf)
 }
 
 CThreadMgrIf::CThreadMgrIf (CThreadMgrIf *pIf)
+	:mpIf (NULL)
 {
 	if (pIf) {
 		if (pIf->mpIf) {

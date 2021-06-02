@@ -10,6 +10,7 @@
 namespace ThreadManager {
 
 CThreadMgrExternalIf::CThreadMgrExternalIf (ST_THM_EXTERNAL_IF *pExtIf)
+	:mpExtIf (NULL)
 {
 	if (pExtIf) {
 		mpExtIf = pExtIf;
@@ -17,6 +18,7 @@ CThreadMgrExternalIf::CThreadMgrExternalIf (ST_THM_EXTERNAL_IF *pExtIf)
 }
 
 CThreadMgrExternalIf::CThreadMgrExternalIf (CThreadMgrExternalIf *pExtIf)
+	:mpExtIf (NULL)
 {
 	if (pExtIf) {
 		if (pExtIf->mpExtIf) {

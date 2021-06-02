@@ -668,12 +668,17 @@ static void init (void)
 		clearNotifyClientInfo (&gstNotifyClientInfo [i]);
 	}
 
-	gpstExtInfoListTop = NULL;
-	gpstExtInfoListBtm = NULL;
-
 
 	initQue();
 	initCondMutex();
+
+
+	/* lock */
+	pthread_mutex_lock (&gMutexOpeExtInfoList);
+	gpstExtInfoListTop = NULL;
+	gpstExtInfoListBtm = NULL;
+	/* unlock */
+	pthread_mutex_unlock (&gMutexOpeExtInfoList);
 }
 
 /**
@@ -1235,7 +1240,7 @@ static bool enQueWorker (
 			pstQueWorker->nClientId = nClientId;
 			if (pMsg && msgSize > 0) {
 				if (msgSize > MSG_SIZE) {
-					THM_INNER_FORCE_LOG_W ("truncate request message. size:[%d]->[%d] thIdx:[%d]\n", msgSize, MSG_SIZE, nThreadIdx);
+					THM_INNER_FORCE_LOG_W ("truncate request message. size:[%lu]->[%d] thIdx:[%d]\n", msgSize, MSG_SIZE, nThreadIdx);
 				}
 				memset (pstQueWorker->msg.msg, 0x00, MSG_SIZE);
 				memcpy (pstQueWorker->msg.msg, pMsg, msgSize < MSG_SIZE ? msgSize : MSG_SIZE);
@@ -2226,7 +2231,7 @@ static void *workerThread (void *pArg)
 			gpfnDispatcher (
 				EN_THM_DISPATCH_TYPE_CREATE,
 				pstInnerInfo->nThreadIdx,
-				stRtnQue.nDestSeqIdx,
+				SEQ_IDX_BLANK,
 				NULL
 			);
 
@@ -2727,6 +2732,8 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 			return false;
 		}
 
+		/* lock */
+		pthread_mutex_lock (&(pstExtInfo->mutex));
 
 		if (pstExtInfo->requestOption & REQUEST_OPTION__WITHOUT_REPLY) {
 			/* 
@@ -2739,17 +2746,20 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		/* requestId */
 		reqId = getRequestId (THREAD_IDX_EXTERNAL, SEQ_IDX_BLANK);
 		if (reqId == REQUEST_ID_BLANK) {
+
+			/* unlock */
+			pthread_mutex_unlock (&(pstExtInfo->mutex));
 			return false;
 		}
 
-		/* lock */
-		pthread_mutex_lock (&(pstExtInfo->mutex));
 		pstExtInfo->nReqId = reqId;
-		pthread_mutex_unlock (&(pstExtInfo->mutex));
 
 		/* リクエスト投げる */
 		if (!requestInner (nThreadIdx, nSeqIdx, reqId, &stContext, pMsg, msgSize)) {
 			releaseRequestId (THREAD_IDX_EXTERNAL, reqId);
+
+			/* unlock */
+			pthread_mutex_unlock (&(pstExtInfo->mutex));
 			return false;
 		}
 
@@ -2758,6 +2768,8 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		enableReqTimeout (THREAD_IDX_EXTERNAL, reqId, pstExtInfo->requestTimeoutMsec);
 #endif
 
+		/* unlock */
+		pthread_mutex_unlock (&(pstExtInfo->mutex));
 		return true;
 	}
 
@@ -2970,6 +2982,8 @@ bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t ms
 			return false;
 		}
 
+		/* lock */
+		pthread_mutex_lock (&(pstExtInfo->mutex));
 
 		if (pstExtInfo->requestOption & REQUEST_OPTION__WITHOUT_REPLY) {
 			/* reply不要 reqIdは取得しない */
@@ -2979,6 +2993,9 @@ bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t ms
 			/* requestId */
 			reqId = getRequestId (THREAD_IDX_EXTERNAL, SEQ_IDX_BLANK);
 			if (reqId == REQUEST_ID_BLANK) {
+
+				/* unlock */
+				pthread_mutex_unlock (&(pstExtInfo->mutex));
 				return false;
 			}
 		}
@@ -2997,6 +3014,9 @@ bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t ms
 		/* リクエスト投げる */
 		if (!requestInner (nThreadIdx, nSeqIdx, reqId, &stContext, pMsg, msgSize)) {
 			releaseRequestId (THREAD_IDX_EXTERNAL, reqId);
+
+			/* unlock */
+			pthread_mutex_unlock (&(pstExtInfo->mutex));
 			return false;
 		}
 
@@ -3005,6 +3025,8 @@ bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t ms
 		enableReqTimeout (THREAD_IDX_EXTERNAL, reqId, pstExtInfo->requestTimeoutMsec);
 #endif
 
+		/* unlock */
+		pthread_mutex_unlock (&(pstExtInfo->mutex));
 		return true;
 	}
 
@@ -3937,7 +3959,7 @@ static bool cashSyncReplyInfo (uint8_t nThreadIdx, EN_THM_RSLT enRslt, uint8_t *
 	/* message 保存 */
 	if (pMsg && msgSize > 0) {
 		if (msgSize > MSG_SIZE) {
-			THM_INNER_FORCE_LOG_W ("truncate request message. size:[%d]->[%d]\n", msgSize, MSG_SIZE);
+			THM_INNER_FORCE_LOG_W ("truncate request message. size:[%lu]->[%d]\n", msgSize, MSG_SIZE);
 		}
 		memcpy (gstSyncReplyInfo [nThreadIdx].msg.msg, pMsg, msgSize < MSG_SIZE ? msgSize : MSG_SIZE);
 		gstSyncReplyInfo [nThreadIdx].msg.size = msgSize < MSG_SIZE ? msgSize : MSG_SIZE;

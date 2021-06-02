@@ -294,6 +294,7 @@ bool initLog (void)
 	struct stat s;
 	int r = stat (LOG_PATH "/" LOG_NAME "." LOG_EXT, &s);
 	if (r == 0) {
+		// backup rename file
 		timer = time (NULL);
 		pstTmLocal = localtime (&timer);
 		snprintf (
@@ -315,7 +316,10 @@ bool initLog (void)
 			LOG_PATH "/" LOG_NAME,
 			szTime
 		);
-		rename (LOG_PATH "/" LOG_NAME "." LOG_EXT, ne);
+		int r = rename (LOG_PATH "/" LOG_NAME "." LOG_EXT, ne);
+		if (r != 0) {
+			perror ("rename");
+		}
 	}
 	
 	if ((g_fpLog = fopen (LOG_PATH "/" LOG_NAME "." LOG_EXT, "a")) == NULL) {
