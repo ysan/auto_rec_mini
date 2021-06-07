@@ -88,9 +88,14 @@ void CThreadMgrBase::setIdx (uint8_t idx)
 	mIdx = idx;
 }
 
-uint8_t CThreadMgrBase::getIdx (void)
+uint8_t CThreadMgrBase::getIdx (void) const
 {
 	return mIdx;
+}
+
+const char* CThreadMgrBase::getName (void) const
+{
+	return mName;
 }
 
 void CThreadMgrBase::setSeqs (const SEQ_BASE_t pstSeqs [], uint8_t seqNum)

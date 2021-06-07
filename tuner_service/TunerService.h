@@ -62,9 +62,10 @@ public:
 
 		void dump (void) const {
 			_UTL_LOG_I (
-				"tuner_id:[0x%02x] module:[%d] priority:[%d] [%s]",
+				"tuner_id:[0x%02x] module:[%d:%.10s] priority:[%d] [%s]",
 				tuner_id,
 				module,
+				module != EN_MODULE_NUM ? getModule(module)->getName() : "----------",
 				static_cast<int>(priority),
 				is_now_tuned ? "now_tuned" : "---"
 			);
@@ -97,7 +98,8 @@ public:
 	void onReq_dumpAllocates (CThreadMgrIf *pIf);
 
 private:
-	uint8_t allocate (EN_MODULE module);
+	uint8_t allocateLinear (EN_MODULE module);
+	uint8_t allocateRoundRobin (EN_MODULE module);
 	bool release (uint8_t tuner_id);
 	bool preCheck (uint8_t tuner_id, EN_MODULE module, bool is_req_tune) const;
 	client_priority getPriority (EN_MODULE module) const;
@@ -105,6 +107,7 @@ private:
 
 	int m_tuner_resource_max;
 	std::vector <std::shared_ptr<resource_t>> m_resource_allcates;
+	uint8_t m_next_allocate_tuner_id;
 
 };
 

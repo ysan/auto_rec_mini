@@ -13,6 +13,7 @@
 CTunerService::CTunerService (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
 	,m_tuner_resource_max (0)
+	,m_next_allocate_tuner_id (0)
 {
 	SEQ_BASE_t seqs [CTunerServiceIf::sequence::NUM] = {
 		{(PFN_SEQ_BASE)&CTunerService::onReq_moduleUp, (char*)"onReq_moduleUp"},
@@ -103,7 +104,8 @@ void CTunerService::onReq_open (CThreadMgrIf *pIf)
 
 
 	uint8_t caller_module = pIf->getSrcInfo()->nThreadIdx;
-	uint8_t allcated_tuner_id = allocate ((EN_MODULE)caller_module);
+//	uint8_t allcated_tuner_id = allocateLinear ((EN_MODULE)caller_module);
+	uint8_t allcated_tuner_id = allocateRoundRobin ((EN_MODULE)caller_module);
 	if (allcated_tuner_id != 0xff) {
 		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&allcated_tuner_id, sizeof(allcated_tuner_id));
 	} else {
@@ -501,7 +503,7 @@ void CTunerService::onReq_dumpAllocates (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
-uint8_t CTunerService::allocate (EN_MODULE module)
+uint8_t CTunerService::allocateLinear (EN_MODULE module)
 {
 	uint8_t _id = 0;
 	// 未割り当てを探します
@@ -523,6 +525,47 @@ uint8_t CTunerService::allocate (EN_MODULE module)
 		_UTL_LOG_E ("resources full...");
 		return 0xff;
 	}
+}
+
+uint8_t CTunerService::allocateRoundRobin (EN_MODULE module)
+{
+	uint8_t _init_id = m_next_allocate_tuner_id;
+	int n = 0;
+
+	while (1) {
+		if (_init_id == m_next_allocate_tuner_id && n != 0) {
+			break;
+		}
+
+		uint8_t _id = m_next_allocate_tuner_id;
+
+		if (m_resource_allcates[_id]->tuner_id == 0xff) {
+			m_resource_allcates[_id]->tuner_id = _id;
+			m_resource_allcates[_id]->module = module;
+			m_resource_allcates[_id]->priority = getPriority (module);
+			_UTL_LOG_I ("allocated. [0x%02x]", _id);
+
+			//set next
+			++ m_next_allocate_tuner_id;
+			if (m_next_allocate_tuner_id == m_tuner_resource_max) {
+				m_next_allocate_tuner_id = 0;
+			}
+
+			return _id;
+
+		} else {
+			//set next
+			++ m_next_allocate_tuner_id;
+			if (m_next_allocate_tuner_id == m_tuner_resource_max) {
+				m_next_allocate_tuner_id = 0;
+			}
+		}
+
+		++ n;
+	}
+
+	_UTL_LOG_E ("resources full...");
+	return 0xff;
 }
 
 bool CTunerService::release (uint8_t tuner_id)

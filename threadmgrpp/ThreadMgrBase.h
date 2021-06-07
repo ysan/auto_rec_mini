@@ -46,7 +46,8 @@ public:
 	CThreadMgrIf *getIf (void) const;
 
 	void setIdx (uint8_t idx);
-	uint8_t getIdx (void);
+	uint8_t getIdx (void) const;
+	const char* getName (void) const;
 
 
 protected:
