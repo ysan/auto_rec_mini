@@ -2267,7 +2267,7 @@ void CRecManager::onReceiveNotify (CThreadMgrIf *pIf)
 
 					// ######################################### //
 ////				m_recProgress = EN_REC_PROGRESS__POST_PROCESS;
-					msp_rec_instances[_gr]->setNextProgress(CRecInstance::progress::NOW_RECORDING);
+					msp_rec_instances[_gr]->setNextProgress(CRecInstance::progress::POST_PROCESS);
 					// ######################################### //
 
 
