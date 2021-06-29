@@ -6,9 +6,12 @@ BASEDIR		:=	../
 INCLUDES	:= \
 	-I./ \
 
+CFLAGS		:= \
+	-rdynamic \
+	-funwind-tables \
+
 LIBS		:= \
 	-lpthread \
-	-rdynamic \
 
 USERDEFS	:= \
 	-D_MULTI_REQUESTING \
@@ -34,6 +37,9 @@ SRCS		:= \
 	threadmgr_if.c \
 	threadmgr_util.c \
 
+#INSTALL_HEADERS := \
+#	threadmgr_if.h \
+#	threadmgr_util.h \
 
 #
 #   Configurations

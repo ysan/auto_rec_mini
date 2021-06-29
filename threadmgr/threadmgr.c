@@ -2,7 +2,6 @@
  * 簡易スレッドマネージャ
  */
 //TODO 終了前に全threadのbacktrace
-//TODO segv でbacktrace  thread毎sighandler
 //TODO reqId類の配列は THREAD_IDX_MAX +1でもつのがわかりにくい
 //TODO baseThreadで workerキューの状態check
 //TODO receiveExternalで reqtimeout考慮 ->baseThreadでのチェック廃止
@@ -373,7 +372,11 @@ static void init (void);
 static void initQue (void);
 static void initCondMutex (void);
 static void setupSignal (void);
+static void finalizSignal (void);
+static void setupSignalPerThread (void);
+static void finalizSignalPerThread (void);
 static void setupSem (void);
+static void finalizSem (void);
 static void postSem (void);
 static void waitSem (void);
 static uint8_t getTotalWorkerThreadNum (void);
@@ -522,7 +525,7 @@ bool createExternalCp (void); // extern
 void destroyExternalCp (void); // extern
 ST_THM_SRC_INFO *receiveExternal (void); // extern
 static void clearExternalControlInfo (ST_EXTERNAL_CONTROL_INFO *p);
-void finalize (void); // extern
+void finaliz (void); // extern
 static bool destroyInner (uint8_t nThreadIdx);
 static bool destroyWorkerThread (uint8_t nThreadIdx);
 static bool destroyAllWorkerThread (void);
@@ -580,6 +583,42 @@ void setDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper exte
 	putsLog (getLogFileptr(), EN_LOG_TYPE_PE, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 
+
+/**
+ * シグナルハンドラ
+ *
+ * 参考: libc segfault.c
+ */
+static void _signalHandler (int signal)
+{
+	char name [32] = {0};
+	getThreadName (name, 32);
+	THM_LOG_W ("\nBacktrace: %s\n", name);
+	putsBackTrace();
+
+	if (signal == SIGSEGV || signal == (SIGRTMIN +2)) {
+		FILE *fp = fopen ("/proc/self/maps", "r");
+		if (fp) {
+			THM_LOG_W ("\nMemory map:\n\n");
+			char buf [1024] = {0};
+			while (!feof(fp)) {
+				memset (buf, 0x00, sizeof(buf));
+				fgets(buf, 1024, fp);
+				THM_LOG_W (buf);
+			}
+			fclose(fp);
+		}
+	}
+
+	if (signal == SIGSEGV) {
+		struct sigaction sa;
+		sa.sa_handler = SIG_DFL;
+		sigemptyset (&sa.sa_mask);
+		sa.sa_flags = 0;
+		sigaction (signal, &sa, NULL);
+		raise (signal);
+	}
+}
 
 /**
  * threadmgrの初期化とセットアップ
@@ -755,11 +794,72 @@ static void setupSignal (void)
 }
 
 /**
+ * finalizSignal
+ */
+static void finalizSignal (void)
+{
+	sigprocmask (SIG_UNBLOCK, &gSigset, NULL);
+}
+
+/**
+ * setupSignalPerThread
+ * スレッドごとに行うシグナル設定
+ *
+ * 参考: libc segfault.c
+ */
+static void setupSignalPerThread (void)
+{
+	struct sigaction sa;
+
+	sa.sa_handler = (void *) _signalHandler;
+	sigemptyset (&sa.sa_mask);
+
+	void *stack_mem = malloc (2 * SIGSTKSZ);
+	stack_t ss;
+
+	if (stack_mem != NULL) {
+		ss.ss_sp = stack_mem;
+		ss.ss_flags = 0;
+		ss.ss_size = 2 * SIGSTKSZ;
+
+		if (sigaltstack (&ss, NULL) == 0) {
+			sa.sa_flags |= SA_ONSTACK;
+		}
+	}
+
+	sigaction(SIGSEGV, &sa, NULL);
+	sigaction(SIGRTMIN +1, &sa, NULL);
+	sigaction(SIGRTMIN +2, &sa, NULL);
+}
+
+/**
+ * finalizSignalPerThread
+ */
+static void finalizSignalPerThread (void)
+{
+	struct sigaction sa;
+	sa.sa_handler = SIG_DFL;
+	sigemptyset (&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction (SIGSEGV, &sa, NULL);
+	sigaction (SIGRTMIN +1, &sa, NULL);
+	sigaction (SIGRTMIN +2, &sa, NULL);
+}
+
+/**
  * setupSem
  */
 static void setupSem (void)
 {
 	sem_init (&gSem, 0, 0); 
+}
+
+/**
+ * finalizSem
+ */
+static void finalizSem (void)
+{
+	sem_destroy (&gSem); 
 }
 
 /**
@@ -1928,7 +2028,7 @@ static void *baseThread (void *pArg)
 
 			case EINTR:
 				/* シグナルに割り込まれた */
-//TODO 現状考慮してない
+				THM_INNER_LOG_W ("interrupt occured.\n");
 				break;
 
 			default:
@@ -1954,6 +2054,20 @@ static void *baseThread (void *pArg)
 				dumpExtInfoList ();
 				dumpQueAllThread ();
 				dumpNotifyClientInfo ();
+
+				{
+					int i = 0;
+					for (i = 0; i < getTotalWorkerThreadNum(); ++ i) {
+						if (i == getTotalWorkerThreadNum() -1) {
+							// last
+							pthread_kill (gstInnerInfo[i].nPthreadId, SIGRTMIN +2);
+						} else {
+							pthread_kill (gstInnerInfo[i].nPthreadId, SIGRTMIN +1);
+						}
+						usleep(500000);
+					}
+				}
+
 				break;
 
 			case EN_MONI_TYPE_DESTROY:
@@ -2052,6 +2166,7 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 	ST_REQUEST_ID_INFO *pstReqIdInfo = NULL;
 	ST_SEQ_INFO *pstSeqInfo = NULL;
 	struct timespec *pstTimeout = NULL;
+	bool isNeedWait = true;
 
 	/* lock */
 	pthread_mutex_lock (&gMutexWorker [pstInnerInfo->nThreadIdx]);
@@ -2073,10 +2188,20 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 			 * 通常の cond wait
 			 * pthread_cond_signal待ち
 			 */
-			pthread_cond_wait (
-				&gCondWorker [pstInnerInfo->nThreadIdx],
-				&gMutexWorker [pstInnerInfo->nThreadIdx]
-			);
+			while (isNeedWait) {
+				nRtn = pthread_cond_wait (
+					&gCondWorker [pstInnerInfo->nThreadIdx],
+					&gMutexWorker [pstInnerInfo->nThreadIdx]
+				);
+				switch (nRtn) {
+				case EINTR:
+					THM_INNER_LOG_W ("interrupt occured.\n");
+					break;
+				default:
+					isNeedWait = false;
+					break;
+				}
+			}
 
 		} else {
 			/* タイムアウト仕掛かり中です */
@@ -2106,64 +2231,66 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 			 * タイムアウト付き cond wait
 			 * pthread_cond_signal待ち
 			 */
-			nRtn = pthread_cond_timedwait (
-				&gCondWorker [pstInnerInfo->nThreadIdx],
-				&gMutexWorker [pstInnerInfo->nThreadIdx],
-				pstTimeout
-			);
-			switch (nRtn) {
-			case SYS_RETURN_NORMAL:
-				/* タイムアウト前に動き出した */
-				if (enTimeout == EN_NEAREST_TIMEOUT_REQ) {
-					if (!pstReqIdInfo) {
-						THM_INNER_LOG_E ("BUG: pstReqIdInfo is null !!!\n");
-						goto _F_END;
+			while (isNeedWait) {
+				nRtn = pthread_cond_timedwait (
+					&gCondWorker [pstInnerInfo->nThreadIdx],
+					&gMutexWorker [pstInnerInfo->nThreadIdx],
+					pstTimeout
+				);
+				switch (nRtn) {
+				case SYS_RETURN_NORMAL:
+					/* タイムアウト前に動き出した */
+					isNeedWait = false;
+					if (enTimeout == EN_NEAREST_TIMEOUT_REQ) {
+						if (!pstReqIdInfo) {
+							THM_INNER_LOG_E ("BUG: pstReqIdInfo is null !!!\n");
+							goto _F_END;
+						}
+						pstReqIdInfo->timeout.enState = EN_TIMEOUT_STATE_MEAS;
+	
+					} else {
+						if (!pstSeqInfo) {
+							THM_INNER_LOG_E ("BUG: pstSeqInfo is null !!!\n");
+							goto _F_END;
+						}
+						pstSeqInfo->timeout.enState = EN_TIMEOUT_STATE_MEAS;
 					}
-					pstReqIdInfo->timeout.enState = EN_TIMEOUT_STATE_MEAS;
-
-				} else {
-					if (!pstSeqInfo) {
-						THM_INNER_LOG_E ("BUG: pstSeqInfo is null !!!\n");
-						goto _F_END;
+					break;
+	
+				case ETIMEDOUT:
+					/*
+					 * タイムアウトした
+					 * 自スレッドにタイムアウトのキューを入れる
+					 */
+					isNeedWait = false;
+					if (enTimeout == EN_NEAREST_TIMEOUT_REQ) {
+						if (!pstReqIdInfo) {
+							THM_INNER_LOG_E ("BUG: pstReqIdInfo is null !!!\n");
+							goto _F_END;
+						}
+						pstReqIdInfo->timeout.enState = EN_TIMEOUT_STATE_PASSED;
+						enQueReqTimeout (pstInnerInfo->nThreadIdx, pstReqIdInfo->nId);
+	
+					} else {
+						if (!pstSeqInfo) {
+							THM_INNER_LOG_E ("BUG: pstSeqInfo is null !!!\n");
+							goto _F_END;
+						}
+						pstSeqInfo->timeout.enState = EN_TIMEOUT_STATE_PASSED;
+						enQueSeqTimeout (pstInnerInfo->nThreadIdx, pstSeqInfo->nSeqIdx);
 					}
-					pstSeqInfo->timeout.enState = EN_TIMEOUT_STATE_MEAS;
+					break;
+	
+				case EINTR:
+					THM_INNER_LOG_W ("interrupt occured.\n");
+					break;
+	
+				default:
+					isNeedWait = false;
+					THM_INNER_LOG_E ("BUG: pthread_cond_timedwait() => unexpected return value [%d]\n", nRtn);
+					break;
 				}
-				break;
-
-			case ETIMEDOUT:
-				/*
-				 * タイムアウトした
-				 * 自スレッドにタイムアウトのキューを入れる
-				 */
-				if (enTimeout == EN_NEAREST_TIMEOUT_REQ) {
-					if (!pstReqIdInfo) {
-						THM_INNER_LOG_E ("BUG: pstReqIdInfo is null !!!\n");
-						goto _F_END;
-					}
-					pstReqIdInfo->timeout.enState = EN_TIMEOUT_STATE_PASSED;
-					enQueReqTimeout (pstInnerInfo->nThreadIdx, pstReqIdInfo->nId);
-
-				} else {
-					if (!pstSeqInfo) {
-						THM_INNER_LOG_E ("BUG: pstSeqInfo is null !!!\n");
-						goto _F_END;
-					}
-					pstSeqInfo->timeout.enState = EN_TIMEOUT_STATE_PASSED;
-					enQueSeqTimeout (pstInnerInfo->nThreadIdx, pstSeqInfo->nSeqIdx);
-				}
-				break;
-
-			case EINTR:
-				/* シグナルに割り込まれた */
-//TODO 現状考慮してない
-				THM_INNER_LOG_W ("interrupt occured.\n");
-				break;
-
-			default:
-				THM_INNER_LOG_E ("BUG: pthread_cond_timedwait() => unexpected return value [%d]\n", nRtn);
-				break;
 			}
-
 		}
 	}
 
@@ -2186,6 +2313,8 @@ static void *workerThread (void *pArg)
 
 
 	pstInnerInfo->tid = getTaskId ();
+
+	setupSignalPerThread();
 
 	/* init thmIf */
 	ST_THM_IF stThmIf;
@@ -2542,9 +2671,6 @@ static void *workerThread (void *pArg)
 	} /* main while loop */
 
 
-	/* 今のとこ ここ以下にはこない */
-
-
 	/* 
 	 * destroy
 	 * 登録されていれば行います
@@ -2570,6 +2696,8 @@ static void *workerThread (void *pArg)
 
 	setState (pstInnerInfo->nThreadIdx, EN_STATE_DESTROY);
 	THM_INNER_FORCE_LOG_I ("----- %s destroyed. -----\n", pstInnerInfo->pszName);
+
+	finalizSignalPerThread();
 
 	return NULL;
 }
@@ -2719,6 +2847,7 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 	ST_SYNC_REPLY_INFO *pstTmpSyncReplyInfo = NULL;
 	ST_EXTERNAL_CONTROL_INFO *pstExtInfo = NULL;
 	int nRtn = 0;
+	bool isNeedWait = true;
 
 
 	ST_CONTEXT stContext = getContext();
@@ -2833,10 +2962,20 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 	THM_INNER_LOG_D ("requestSync... cond wait\n");
 
 	/* 自分はcond wait して固まる(Reply待ち) */
-	nRtn = pthread_cond_wait (
-		&gCondSyncReply [stContext.nThreadIdx],
-		&gMutexSyncReply [stContext.nThreadIdx]
-	);
+	while (isNeedWait) {
+		nRtn = pthread_cond_wait (
+			&gCondSyncReply [stContext.nThreadIdx],
+			&gMutexSyncReply [stContext.nThreadIdx]
+		);
+		switch (nRtn) {
+		case EINTR:
+			THM_INNER_LOG_W ("interrupt occured.\n");
+			break;
+		default:
+			isNeedWait = false;
+			break;
+		}
+	}
 #else
 //	enableReqTimeout (stContext.nThreadIdx, reqId, REQUEST_TIMEOUT_FIX);
 	enableReqTimeout (stContext.nThreadIdx, reqId, gstInnerInfo[stContext.nThreadIdx].requestTimeoutMsec);
@@ -2860,20 +2999,40 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		THM_INNER_LOG_D ("requestSync... cond wait\n");
 
 		/* 自分はcond wait して固まる(Reply待ち) */
-		nRtn = pthread_cond_wait (
-			&gCondSyncReply [stContext.nThreadIdx],
-			&gMutexSyncReply [stContext.nThreadIdx]
-		);
+		while (isNeedWait) {
+			nRtn = pthread_cond_wait (
+				&gCondSyncReply [stContext.nThreadIdx],
+				&gMutexSyncReply [stContext.nThreadIdx]
+			);
+			switch (nRtn) {
+			case EINTR:
+				THM_INNER_LOG_W ("interrupt occured.\n");
+				break;
+			default:
+				isNeedWait = false;
+				break;
+			}
+		}
 		
 	} else {
 		THM_INNER_LOG_D ("requestSync... cond timedwait\n");
 
 		/* 自分はcond wait して固まる(Reply待ち) */
-		nRtn = pthread_cond_timedwait (
-			&gCondSyncReply [stContext.nThreadIdx],
-			&gMutexSyncReply [stContext.nThreadIdx],
-			&(pstTmpReqIdInfo->timeout.stTime)
-		);
+		while (isNeedWait) {
+			nRtn = pthread_cond_timedwait (
+				&gCondSyncReply [stContext.nThreadIdx],
+				&gMutexSyncReply [stContext.nThreadIdx],
+				&(pstTmpReqIdInfo->timeout.stTime)
+			);
+			switch (nRtn) {
+			case EINTR:
+				THM_INNER_LOG_W ("interrupt occured.\n");
+				break;
+			default:
+				isNeedWait = false;
+				break;
+			}
+		}
 	}
 #endif
 
@@ -2915,10 +3074,8 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 		}
 		break;
 
-	case EINTR:
-		/* シグナルに割り込まれた */
-//TODO 現状考慮してない
-		break;
+//	case EINTR:
+//		break;
 
 	default:
 		THM_INNER_LOG_E ("BUG: pthread_cond_timedwait() => unexpected return value [%d]\n", nRtn);
@@ -5228,15 +5385,17 @@ static void clearExternalControlInfo (ST_EXTERNAL_CONTROL_INFO *p)
 }
 
 /**
- * finalize
+ * finaliz
  * 終了処理
  *
  * 公開
  */
-void finalize (void)
+void finaliz (void)
 {
 	kill (getpid(), SIGTERM);
 	waitAll ();
+	finalizSem();
+//	finalizSignal();
 }
 
 /**

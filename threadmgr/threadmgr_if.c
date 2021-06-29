@@ -70,7 +70,7 @@ void waitThreadMgr (void)
  */
 void teardownThreadMgr (void)
 {
-	finalize ();
+	finaliz ();
 }
 
 

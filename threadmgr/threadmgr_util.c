@@ -35,7 +35,7 @@ void putsSysTime (void); // extern
 static void getSysTime (char *pszOut, size_t nSize);
 static void getSysTimeMs (char *pszOut, size_t nSize);
 void putsThreadName (void); // extern
-static void getThreadName (char *pszOut, size_t nSize);
+void getThreadName (char *pszOut, size_t nSize); // extern
 void getTimeOfDay (struct timeval *p); //extern
 bool initLog (void); // extern
 void initLogStdout (void); // extern
@@ -248,7 +248,7 @@ void putsThreadName (void)
 /**
  * pthread名称を取得
  */
-static void getThreadName (char *pszOut, size_t nSize)
+void getThreadName (char *pszOut, size_t nSize)
 {
 	char szName[16];
 	memset (szName, 0x00, sizeof(szName));

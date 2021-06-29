@@ -128,6 +128,7 @@ extern "C" {
  */
 extern void putsSysTime (void);
 extern void putsThreadName (void);
+extern void getThreadName (char *pszOut, size_t nSize);
 extern void getTimeOfDay (struct timeval *p);
 extern bool initLog (void);
 extern void initLogStdout (void);

@@ -3,7 +3,10 @@
 #
 BASEDIR		:=	../
 
-CFLAGS		:=	-std=c++11
+CFLAGS		:= \
+	-std=c++11 \
+	-rdynamic \
+	-funwind-tables \
 
 INCLUDES	:= \
 	-I./ \
@@ -11,7 +14,6 @@ INCLUDES	:= \
 
 LIBS		:= \
 	-lpthread \
-	-rdynamic \
 	-L../threadmgr -lthreadmgr \
 
 USERDEFS	:= \
@@ -37,6 +39,12 @@ SRCS_CPP	:= \
 	ThreadMgrBase.cpp \
 	ThreadMgr.cpp \
 
+#INSTALL_HEADERS := \
+#	ThreadMgrIf.h \
+#	ThreadMgrExternalIf.h \
+#	ThreadMgrBase.h \
+#	ThreadMgr.h \
+#	ThreadMgrpp.h \
 
 #
 #   Configurations
