@@ -3,7 +3,7 @@
 auto_rec_mini
 ===============
 
-[![Build Status](https://travis-ci.org/ysan/auto_rec_mini.svg?branch=master)](https://travis-ci.org/ysan/auto_rec_mini)
+[![Build Status](https://www.travis-ci.com/ysan/auto_rec_mini.svg?branch=master)](https://www.travis-ci.com/ysan/auto_rec_mini)
 
 最小機能のTV録画ミドルウェア。  
 主にキーワード検索録画予約機能がメインになります。  
