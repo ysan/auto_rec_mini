@@ -108,16 +108,16 @@ Copy the systemd unit file. (`auto_rec_mini.service`)
 To start the service for the first time, do the usual systemctl dance.
 
 	$ sudo systemctl daemon-reload
-	$ sudo systemctl enable auto_rec_mini
-	$ sudo systemctl start auto_rec_mini
+	$ sudo systemctl enable auto_rec_mini.service
+	$ sudo systemctl start auto_rec_mini.service
 
 `auto_rec_mini` process is up and ready to use the tuner.  
 `command server` is listening for connections on port 20001.  
 First, please execute the `channel scan` CLI command.  
   
 ### Clean ###  
-	$ sudo systemctl stop auto_rec_mini
-	$ sudo systemctl disable auto_rec_mini
+	$ sudo systemctl stop auto_rec_mini.service
+	$ sudo systemctl disable auto_rec_mini.service
 	$ sudo rm /etc/systemd/system/auto_rec_mini.service
 	$ sudo systemctl daemon-reload
 	$ sudo make INSTALLDIR=/opt/auto_rec_mini clean

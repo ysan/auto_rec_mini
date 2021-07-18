@@ -124,16 +124,16 @@ systemdユニット設定ファイルをコピーします。(`auto_rec_mini.ser
 systemctlコマンドでサービスを開始します。
 
 	$ sudo systemctl daemon-reload
-	$ sudo systemctl enable auto_rec_mini
-	$ sudo systemctl start auto_rec_mini
+	$ sudo systemctl enable auto_rec_mini.service
+	$ sudo systemctl start auto_rec_mini.service
 
 `auto_rec_mini` プロセスは起動し、チューナーを使用する準備ができた状態になります。  
 `command server` はポート20001で接続を待ち受けています。
 最初にCLIコマンドより `channel scan` を行う必要があります。  
 
 ### Clean ###
-	$ sudo systemctl stop auto_rec_mini
-	$ sudo systemctl disable auto_rec_mini
+	$ sudo systemctl stop auto_rec_mini.service
+	$ sudo systemctl disable auto_rec_mini.service
 	$ sudo rm /etc/systemd/system/auto_rec_mini.service
 	$ sudo systemctl daemon-reload
 	$ sudo make INSTALLDIR=/opt/auto_rec_mini clean
