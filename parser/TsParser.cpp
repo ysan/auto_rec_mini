@@ -8,16 +8,19 @@
 #include "Utils.h"
 
 
+const uint32_t CTsParser::INNER_BUFF_SIZE = 65535*5;
+
 CTsParser::CTsParser (void)
 	:mp_top (NULL)
 	,mp_current (NULL)
 	,mp_bottom (NULL)
 	,m_buff_size (0)
-	,m_unit_size (0)
 	,m_parse_remain_len (0)
 	,mp_listener (NULL)
 {
-	memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
+//	memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
+	std::unique_ptr<uint8_t[]> up (new uint8_t[INNER_BUFF_SIZE]);
+	m_inner_buff.swap(up);
 }
 
 CTsParser::CTsParser (IParserListener *p_listener)
@@ -25,7 +28,6 @@ CTsParser::CTsParser (IParserListener *p_listener)
 	,mp_current (NULL)
 	,mp_bottom (NULL)
 	,m_buff_size (0)
-	,m_unit_size (0)
 	,m_parse_remain_len (0)
 	,mp_listener (NULL)
 {
@@ -33,66 +35,68 @@ CTsParser::CTsParser (IParserListener *p_listener)
 		mp_listener = p_listener;
 	}
 
-	memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
+//	memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
+	std::unique_ptr<uint8_t[]> up (new uint8_t[INNER_BUFF_SIZE]);
+	m_inner_buff.swap(up);
 }
 
 CTsParser::~CTsParser (void)
 {
 }
 
-void CTsParser::run (uint8_t *pBuff, size_t size)
+void CTsParser::run (uint8_t *p_buff, size_t size)
 {
-	if ((!pBuff) || (size == 0)) {
+	if ((!p_buff) || (size == 0)) {
 		return ;
 	}
 
 
 #if 0
-	allocInnerBuffer (pBuff, size);
-	checkUnitSize ();
+	allocInnerBuffer (p_buff, size);
 	parse ();
 
 #else
-	mp_top = &m_inner_buff[0];
-	if (copyInnerBuffer (pBuff, size)) {
+//	mp_top = &m_inner_buff[0];
+	mp_top = m_inner_buff.get();
+	if (copyInnerBuffer (p_buff, size) == buff_state::FULL) {
 
 		mp_current = mp_top;
-		checkUnitSize ();
 		parse ();
 
 		if (m_parse_remain_len > 0) {
-			memcpy (m_inner_buff, mp_bottom - m_parse_remain_len, m_parse_remain_len);
-			mp_bottom = &m_inner_buff[0] + m_parse_remain_len;
+//			memcpy (m_inner_buff, mp_bottom - m_parse_remain_len, m_parse_remain_len);
+//			mp_bottom = &m_inner_buff[0] + m_parse_remain_len;
+			memcpy (mp_top, mp_bottom - m_parse_remain_len, m_parse_remain_len);
+			mp_bottom = mp_top + m_parse_remain_len;
 		} else {
-			memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
-			mp_bottom = &m_inner_buff[0];
+//			mp_bottom = &m_inner_buff[0];
+			mp_bottom = mp_top;
 		}
 
-		if (copyInnerBuffer (pBuff, size)) {
-			_UTL_LOG_E ("invalid copyInnerBuffer");
+		if (copyInnerBuffer (p_buff, size) != buff_state::CACHING) {
+			_UTL_LOG_E ("unexpected copyInnerBuffer");
 			return;
 		}
-
 	}
 #endif
 
 }
 
 //TODO 足らなくなったら拡張 全部貯めるかたち
-bool CTsParser::allocInnerBuffer (uint8_t *pBuff, size_t size)
+bool CTsParser::allocInnerBuffer (uint8_t *p_buff, size_t size)
 {
-	if ((!pBuff) || (size == 0)) {
+	if ((!p_buff) || (size == 0)) {
 		return false;
 	}
 
-	size_t totalDataSize = (mp_bottom - mp_top) + size;
+	size_t total_data_size = (mp_bottom - mp_top) + size;
 
-	if (m_buff_size >= totalDataSize) {
+	if (m_buff_size >= total_data_size) {
 		// 	実コピー
-		memcpy (mp_bottom, pBuff, size);
+		memcpy (mp_bottom, p_buff, size);
 		mp_current = mp_bottom - m_parse_remain_len;  // current update
 		mp_bottom += size;
-		_UTL_LOG_D ("copyInnerBuffer size=%lu remain=%lu\n", m_buff_size, m_buff_size-totalDataSize);
+		_UTL_LOG_D ("allocInnerBuffer size=%lu remain=%lu\n", m_buff_size, m_buff_size - total_data_size);
 		return true;
 	}
 
@@ -126,24 +130,24 @@ bool CTsParser::allocInnerBuffer (uint8_t *pBuff, size_t size)
 
 
 	// 	実コピー
-	memcpy (mp_bottom, pBuff, size);
+	memcpy (mp_bottom, p_buff, size);
 	mp_current = mp_bottom - m_parse_remain_len;  // current update
 	mp_bottom += size;
 
-	_UTL_LOG_D ("copyInnerBuffer(malloc) top=%p bottom=%p size=%lu remain=%lu\n", mp_top, mp_bottom, m_buff_size, m_buff_size-totalDataSize);
+	_UTL_LOG_D ("allocInnerBuffer(malloc) top=%p bottom=%p size=%lu remain=%lu\n", mp_top, mp_bottom, m_buff_size, m_buff_size - total_data_size);
 	return true;
 }
 
 // 静的領域にコピー
-bool CTsParser::copyInnerBuffer (uint8_t *pBuff, size_t size)
+CTsParser::buff_state CTsParser::copyInnerBuffer (uint8_t *p_buff, size_t size)
 {
-	if ((!pBuff) || (size == 0)) {
-		return false;
+	if ((!p_buff) || (size == 0)) {
+		return buff_state::CACHING;
 	}
 
 	if (size > INNER_BUFF_SIZE) {
 		_UTL_LOG_E ("copyInnerBuffer: size > INNER_BUFF_SIZE\n");
-		return false;
+		return buff_state::CACHING;
 	}
 
 	int remain = 0;
@@ -151,42 +155,39 @@ bool CTsParser::copyInnerBuffer (uint8_t *pBuff, size_t size)
 		remain = INNER_BUFF_SIZE - (mp_bottom - mp_top);
 
 		if (remain >= (int)size) {
-			memcpy (m_inner_buff + (mp_bottom - mp_top), pBuff, size);
-			mp_bottom = mp_bottom + size;
-			return false;
+			memcpy (mp_bottom, p_buff, size);
+			mp_bottom += size;
+			return buff_state::CACHING;
 
 		} else {
-			// do parse
-			return true;
+			// don't copy, do parse
+			return buff_state::FULL;
 		}
 
 	} else {
 		remain = INNER_BUFF_SIZE;
 
-		memcpy (m_inner_buff , pBuff, size);
+		memcpy (mp_top, p_buff, size);
 		mp_bottom = mp_top + size;
-		return false;
+		return buff_state::CACHING;
 	}
-
-	return true;
 }
 
-bool CTsParser::checkUnitSize (void)
+int CTsParser::getUnitSize (void) const
 {
-	int i;
-	int m;
-	int n;
-//	int w;
-	int count [320-188];
+	int i = 0;
+	int m = 0;
+	int n = 0;
+//	int w = 0;
+	int count [320-188] = {0};
 
-	uint8_t *p_cur;
 
-	p_cur = mp_current;
+	uint8_t *p_cur = mp_current;
 	memset (count, 0x00, sizeof(count));
 
-	while ((p_cur+188) < mp_bottom) {
+	while ((p_cur + 188) < mp_bottom) {
 		if (*p_cur != SYNC_BYTE) {
-			p_cur ++;
+			++ p_cur;
 			continue;
 		}
 
@@ -205,7 +206,7 @@ bool CTsParser::checkUnitSize (void)
 			}
 		}
 
-		p_cur ++;
+		++ p_cur;
 
 //for (int iii=0; iii < 320-188; iii++) {
 // printf ("%d", count[iii]);
@@ -230,10 +231,7 @@ bool CTsParser::checkUnitSize (void)
 //		return false;
 //	}
 
-	m_unit_size = n;
-	_UTL_LOG_D ("m_unit_size %d\n", n);
-
-	return true;
+	return n;
 }
 
 uint8_t * CTsParser::getSyncTopAddr (uint8_t *pTop, uint8_t *p_btm, size_t unit_size) const
@@ -268,17 +266,43 @@ uint8_t * CTsParser::getSyncTopAddr (uint8_t *pTop, uint8_t *p_btm, size_t unit_
 
 bool CTsParser::parse (void)
 {
+	// check unit size
+	size_t unit_size = 0;
+	size_t skip_bytes = 512;
+	int err_cnt = 0;
+	while (1) {
+		unit_size = getUnitSize();
+		if (unit_size >= 0 && unit_size < TS_PACKET_LEN) {
+			if (err_cnt < 20) {
+				_UTL_LOG_E ("invalid unit size=[%d]", unit_size);
+			}
+
+			if ((mp_current + skip_bytes) < mp_bottom) {
+				// とりあえず　skip_bytes 分すすめてみます
+				mp_current += skip_bytes;
+				++ err_cnt;
+				continue;
+
+			} else {
+				m_parse_remain_len = 0;
+				return false;
+			}
+
+		} else {
+			break;
+		}
+	}
+
+
 	TS_HEADER ts_header = {0};
 	uint8_t *p = NULL; //work
 	uint8_t *p_payload = NULL;
 	uint8_t *p_cur = mp_current;
 	uint8_t *p_btm = mp_bottom;
-	size_t unit_size = m_unit_size;
 	size_t payload_size = 0;
 
-
-	while ((p_cur+unit_size) < p_btm) {
-		if ((*p_cur != SYNC_BYTE) && (*(p_cur+unit_size) != SYNC_BYTE)) {
+	while ((p_cur + unit_size) < p_btm) {
+		if ((*p_cur != SYNC_BYTE) && (*(p_cur + unit_size) != SYNC_BYTE)) {
 			p = getSyncTopAddr (p_cur, p_btm, unit_size);
 			if (!p) {
 				continue;
@@ -305,8 +329,6 @@ bool CTsParser::parse (void)
 		// TTS(Timestamped TS)(total192bytes) や
 		// FEC(Forward Error Correction:順方向誤り訂正)(total204bytes)
 		// は除外します
-
-
 //		payload_size = TS_PACKET_LEN - (p_payload - p_cur);
 		payload_size = TS_PACKET_LEN - TS_HEADER_LEN;
 
@@ -314,7 +336,6 @@ bool CTsParser::parse (void)
 		if (mp_listener) {
 			mp_listener->onTsPacketAvailable (&ts_header, p_payload, payload_size);
 		}
-
 
 		p_cur += unit_size;
 	}

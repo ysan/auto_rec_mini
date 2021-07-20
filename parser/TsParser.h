@@ -7,11 +7,13 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <memory>
+
 #include "Defs.h"
 
 #include "TsAribCommon.h"
 
-#define INNER_BUFF_SIZE		(65535*5)
+//#define INNER_BUFF_SIZE		(65535*5)
 
 
 class CTsParser
@@ -24,18 +26,24 @@ public:
 	};
 
 public:
+	static const uint32_t INNER_BUFF_SIZE;
+
+	enum class buff_state : int {
+		CACHING = 0,
+		FULL,
+	};
+
 	CTsParser (void);
-	CTsParser (IParserListener *p_Listener);
+	explicit CTsParser (IParserListener *p_listener);
 	virtual ~CTsParser (void);
 
-	void run (uint8_t *pBuff, size_t nSize);
+	void run (uint8_t *p_buff, size_t size);
 
 private:
-	bool allocInnerBuffer (uint8_t *pBuff, size_t nSize);
-	bool copyInnerBuffer (uint8_t *pBuff, size_t nSize);
-	bool checkUnitSize (void);
-	uint8_t *getSyncTopAddr (uint8_t *pTop, uint8_t *pBtm, size_t nUnitSize) const;
-
+	bool allocInnerBuffer (uint8_t *p_buff, size_t size);
+	buff_state copyInnerBuffer (uint8_t *p_buff, size_t size);
+	int getUnitSize (void) const;
+	uint8_t *getSyncTopAddr (uint8_t *p_top, uint8_t *p_bottom, size_t unit_size) const;
 	bool parse (void);
 
 
@@ -43,13 +51,12 @@ private:
 	uint8_t *mp_current ;
 	uint8_t *mp_bottom ;
 	size_t m_buff_size ;
-	int m_unit_size;
 	int m_parse_remain_len;
 
 	IParserListener *mp_listener;
 
-	uint8_t m_inner_buff [INNER_BUFF_SIZE];
-
+//	uint8_t m_inner_buff [INNER_BUFF_SIZE];
+	std::unique_ptr<uint8_t[]> m_inner_buff;
 };
 
 #endif
