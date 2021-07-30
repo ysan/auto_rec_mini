@@ -1010,6 +1010,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 	static PSISI_EVENT_INFO s_presentEventInfo;
+	static int s_retry_get_event_info;
 	static uint8_t s_groupId = 0xff;
 	static uint16_t s_ch = 0;
 
@@ -1187,14 +1188,28 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			}
 
 		} else {
-			_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
+			if (s_retry_get_event_info >= 10) {
+				_UTL_LOG_E ("(%s) reqGetPresentEventInfo err", pIf->getSeqName());
 
-			m_recordings[s_groupId].state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
-			setResult (&m_recordings[s_groupId]);
-			m_recordings[s_groupId].clear();
+				m_recordings[s_groupId].state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
+				setResult (&m_recordings[s_groupId]);
+				m_recordings[s_groupId].clear();
 
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+				sectId = SECTID_END_ERROR;
+				enAct = EN_THM_ACT_CONTINUE;
+
+			} else {
+				// workaround
+				// たまにエラーになることがあるので 暫定対策として200mS待ってリトライしてみます
+				// psi/siの選局完了時に確実にEIT p/fを取得できてないのが直接の原因だと思われます
+				_UTL_LOG_W ("(%s) reqGetPresentEventInfo retry", pIf->getSeqName());
+
+				usleep (200000); // 200mS
+				++ s_retry_get_event_info;
+
+				sectId = SECTID_REQ_GET_PRESENT_EVENT_INFO;
+				enAct = EN_THM_ACT_CONTINUE;
+			}
 		}
 		break;
 
@@ -1326,6 +1341,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 //		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
 		s_presentEventInfo.clear();
+		s_retry_get_event_info = 0;
 		s_groupId = 0xff;
 		s_ch = 0;
 
@@ -1355,6 +1371,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 //		memset (&s_presentEventInfo, 0x00, sizeof(s_presentEventInfo));
 		s_presentEventInfo.clear();
+		s_retry_get_event_info = 0;
 		s_groupId = 0xff;
 		s_ch = 0;
 
