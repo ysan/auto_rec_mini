@@ -635,7 +635,11 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 	switch (sectId) {
 	case SECTID_ENTRY:
 
-		// workaround que overflow
+		// workaround
+		// 選局とと同時にparserNoticeに多くのキューが入り あふれてしまうことがある
+		// そのため 本シーケンスのsetTimeoutの返しキューがうけとれず停止
+		// -> tunerService的に選局失敗 -> リトライ
+		// リトライ時に またリクエストを受け取れるように enableOverwriteを使います
 		pIf->enableOverwrite();
 
 		// 先にreplyしておく
@@ -715,7 +719,7 @@ void CPsisiManager::onReq_stabilizationAfterTuning (CThreadMgrIf *pIf)
 		break;
 
 	case SECTID_END:
-		// workaround que overflow
+		// workaround
 		pIf->disableOverwrite();
 
 		sectId = THM_SECT_ID_INIT;
