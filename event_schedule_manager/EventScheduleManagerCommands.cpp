@@ -323,11 +323,11 @@ static void _getEvents_keywordSearch (int argc, char* argv[], CThreadMgrBase *pB
 		return;
 	}
 
-	CEventScheduleManagerIf::EVENT_t _ev [10] = {0};
+	CEventScheduleManagerIf::EVENT_t _ev [50] = {0};
 	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param;
 	_param.arg.p_keyword = argv[0];
 	_param.p_out_event = _ev;
-	_param.array_max_num = 10;
+	_param.array_max_num = 50;
 
 	CEventScheduleManagerIf _if (pBase->getExternalIf());
 	_if.syncGetEvents_keyword (&_param);
@@ -366,11 +366,11 @@ static void _getEvents_keywordSearch_ex (int argc, char* argv[], CThreadMgrBase 
 		return;
 	}
 
-	CEventScheduleManagerIf::EVENT_t _ev [10] = {0};
+	CEventScheduleManagerIf::EVENT_t _ev [50] = {0};
 	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param;
 	_param.arg.p_keyword = argv[0];
 	_param.p_out_event = _ev;
-	_param.array_max_num = 10;
+	_param.array_max_num = 50;
 
 	CEventScheduleManagerIf _if (pBase->getExternalIf());
 	_if.syncGetEvents_keyword_ex (&_param);
