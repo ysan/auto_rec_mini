@@ -234,31 +234,33 @@ int CTsParser::getUnitSize (void) const
 	return n;
 }
 
-uint8_t * CTsParser::getSyncTopAddr (uint8_t *pTop, uint8_t *p_btm, size_t unit_size) const
+uint8_t * CTsParser::getSyncTopAddr (uint8_t *p_top, uint8_t *p_btm, size_t unit_size) const
 {
-	if ((!pTop) || (!p_btm) || (unit_size == 0)) {
+	if ((!p_top) || (!p_btm) || (unit_size == 0)) {
 		return NULL;
 	}
 
-	int i;
-	uint8_t *pWork = NULL;
+	if ((uint32_t)(p_btm - p_top) >= (unit_size * 8)) {
+		// unit_size 8コ分のデータがあること
+		p_btm -= unit_size * 8;
+	} else {
+		return NULL;
+	}
 
-	pWork = pTop;
-	p_btm -= unit_size * 8; // unit_size 8コ分のデータがある前提
-
-	while (pWork <= p_btm) {
-		if (*pWork == SYNC_BYTE) {
+	int i = 0;
+	while (p_top <= p_btm) {
+		if (*p_top == SYNC_BYTE) {
 			for (i = 0; i < 8; ++ i) {
-				if (*(pWork+(unit_size*(i+1))) != SYNC_BYTE) {
+				if (*(p_top + (unit_size * (i + 1))) != SYNC_BYTE) {
 					break;
 				}
 			}
-			// 以降 8回全てSYNC_BYTEで一致したら pWorkは先頭だ
+			// 以降 8回全てSYNC_BYTEで一致したら p_topは先頭です
 			if (i == 8) {
-				return pWork;
+				return p_top;
 			}
 		}
-		pWork ++;
+		++ p_top ;
 	}
 
 	return NULL;
@@ -274,7 +276,7 @@ bool CTsParser::parse (void)
 		unit_size = getUnitSize();
 		if (unit_size >= 0 && unit_size < TS_PACKET_LEN) {
 			if (err_cnt < 20) {
-				_UTL_LOG_E ("invalid unit size=[%d]", unit_size);
+				_UTL_LOG_W ("invalid unit_size=[%d]", unit_size);
 			}
 
 			if ((mp_current + skip_bytes) < mp_bottom) {
@@ -292,6 +294,7 @@ bool CTsParser::parse (void)
 			break;
 		}
 	}
+	err_cnt = 0;
 
 
 	TS_HEADER ts_header = {0};
@@ -305,6 +308,11 @@ bool CTsParser::parse (void)
 		if ((*p_cur != SYNC_BYTE) && (*(p_cur + unit_size) != SYNC_BYTE)) {
 			p = getSyncTopAddr (p_cur, p_btm, unit_size);
 			if (!p) {
+				if (err_cnt < 20) {
+					_UTL_LOG_W ("invalid getSyncTopAddr (%p-%p) unit_size=[%d]", p_cur, p_btm, unit_size);
+				}
+				p_cur += unit_size;
+				++ err_cnt;
 				continue;
 			}
 
