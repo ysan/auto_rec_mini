@@ -241,7 +241,13 @@ void CTunerService::onReq_tune (CThreadMgrIf *pIf)
 	case SECTID_CHECK_WAIT_PSISI_STATE: {
 
 		CPsisiManagerIf _if(getExternalIf(), s_param.tuner_id);
-		_if.reqGetStateSync ();
+		if (!_if.reqGetStateSync ()) {
+			// 選局直後のpsisi mgrはキュー溢れが起きる可能性あるので チェックします
+			++ s_retry ;
+			sectId = SECTID_CHECK_PSISI_STATE;
+			enAct = EN_THM_ACT_CONTINUE;
+			break;
+		}
 
 		EN_PSISI_STATE _psisiState = *(EN_PSISI_STATE*)(pIf->getSrcInfo()->msg.pMsg);
 		if (_psisiState == EN_PSISI_STATE__READY) {
