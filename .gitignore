@@ -2,9 +2,8 @@
 *.o
 *.a
 *.d
-auto_rec_mini
-parser_test
-tuner_control/recfsusb2i/src/recfsusb2i
+src/auto_rec_mini
+src/parser_test/parser_test
 rec_reserves.json
 rec_results.json
 event_schedule_cache_histories.json
