@@ -190,6 +190,22 @@ void CTunerControl::tune (CThreadMgrIf *pIf)
 	case SECTID_END_ERROR:
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
+
+		//-----------------------------//
+		{
+			uint32_t opt = getRequestOption ();
+			opt |= REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+
+			// 選局を停止しときます tune stop
+			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
+			requestAsync (EN_MODULE_TUNER_CONTROL + getGroupId(), EN_SEQ_TUNER_CONTROL_TUNE_STOP);
+
+			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+			setRequestOption (opt);
+		}
+		//-----------------------------//
+
 		pIf->reply (EN_THM_RSLT_ERROR);
 		break;
 
