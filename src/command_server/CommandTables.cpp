@@ -56,13 +56,13 @@ static void _threadmgr_status_dump (int argc, char* argv[], CThreadMgrBase *pBas
 static void _log_level (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_COM_SVR_PRINT ("invalid arguments. (usage: lv {0|1|2|3|4} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: lv {0|1|2|3|4})\n");
 		return;
 	}
 
 	std::regex regex("[0-4]");
 	if (!std::regex_match (argv[0], regex)) {
-		_COM_SVR_PRINT ("invalid arguments. (usage: lv {0|1|2|3|4} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: lv {0|1|2|3|4})\n");
 		return;
 	}
 
@@ -93,7 +93,7 @@ static ST_COMMAND_INFO g_systemCommands [] = {
 	},
 	{
 		"lv",
-		"log level (usage: lv {0|1|2|3|4} )",
+		"log level (usage: lv {0|1|2|3|4})",
 		_log_level,
 		NULL,
 	},

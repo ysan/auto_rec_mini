@@ -34,7 +34,7 @@ static void _open (int argc, char* argv[], CThreadMgrBase *pBase)
 static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_COM_SVR_PRINT ("ignore arguments. (usage: cl {tuner_id} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: cl {tuner_id})\n");
 		return;
 	}
 
@@ -59,7 +59,7 @@ static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
 static void _tune (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 2) {
-		_COM_SVR_PRINT ("invalid arguments. (usage: tune {physical channel} {tuner id} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: tune {physical channel} {tuner id})\n");
 		return;
 	}
 
@@ -93,7 +93,7 @@ static void _tune (int argc, char* argv[], CThreadMgrBase *pBase)
 static void _tune_stop (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_COM_SVR_PRINT ("ignore arguments. (usage: stop {tuner_id} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: stop {tuner_id})\n");
 		return;
 	}
 
@@ -141,19 +141,19 @@ ST_COMMAND_INFO g_tunerServiceCommands [] = { // extern
 	},
 	{
 		"cl",
-		"close tuner resource (usage: cl {tuner_id} )",
+		"close tuner resource (usage: cl {tuner_id})",
 		_close,
 		NULL,
 	},
 	{
 		"tune",
-		"tune by physical channel (usage: tune {physical channel} {tuner id} )",
+		"tune by physical channel (usage: tune {physical channel} {tuner id})",
 		_tune,
 		NULL,
 	},
 	{
 		"stop",
-		"tune stop (usage: stop {tuner_id} )",
+		"tune stop (usage: stop {tuner_id})",
 		_tune_stop,
 		NULL,
 	},

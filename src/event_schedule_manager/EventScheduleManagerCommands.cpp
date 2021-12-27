@@ -34,7 +34,7 @@ static void _cacheSchedule (int argc, char* argv[], CThreadMgrBase *pBase)
 static void _cacheSchedule_forceCurrentService (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_COM_SVR_PRINT ("ignore arguments. (usage: csc {groupId} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: csc {group_id})\n");
 		return ;
 	}
 
@@ -446,7 +446,7 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	},
 	{
 		"csc",
-		"cache schedule --force current service-- (usage: csc {group_id} )",
+		"cache schedule --force current service-- (usage: csc {group_id})",
 		_cacheSchedule_forceCurrentService,
 		NULL,
 	},
@@ -464,7 +464,7 @@ ST_COMMAND_INFO g_eventScheduleManagerCommands [] = { // extern
 	},
 	{
 		"d",
-		"dump schedule (usage: d {tsid} {org_nid} {svcid} )",
+		"dump schedule (usage: d {tsid} {org_nid} {svcid})",
 		_dump_schedule,
 		NULL,
 	},

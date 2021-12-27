@@ -16,21 +16,21 @@
 static void tune (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 2) {
-		_COM_SVR_PRINT ("invalid arguments. (usage: t {frequesncy[kHz]} {tuner id} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: t {frequesncy[kHz]} {tuner id})\n");
 		return;
 	}
 
 	{
 		std::regex regex("[0-9]+");
 		if (!std::regex_match (argv[0], regex)) {
-			_COM_SVR_PRINT ("invalid arguments. (usage: t {frequesncy[kHz]} {tuner id} )\n");
+			_COM_SVR_PRINT ("invalid arguments. (usage: t {frequesncy[kHz]} {tuner id})\n");
 			return;
 		}
 	}
 	{
 		std::regex regex("[0-9]+");
 		if (!std::regex_match (argv[1], regex)) {
-			_COM_SVR_PRINT ("invalid arguments. (usage: t {frequesncy[kHz]} {tuner id} )\n");
+			_COM_SVR_PRINT ("invalid arguments. (usage: t {frequesncy[kHz]} {tuner id})\n");
 		return;
 		}
 	}
@@ -53,21 +53,21 @@ static void tune (int argc, char* argv[], CThreadMgrBase *pBase)
 static void ch_tune (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 2) {
-		_COM_SVR_PRINT ("invalid arguments. (usage: ch {physical channel} {tuner id} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: ch {physical channel} {tuner id})\n");
 		return;
 	}
 
 	{
 		std::regex regex("[0-9]+");
 		if (!std::regex_match (argv[0], regex)) {
-			_COM_SVR_PRINT ("invalid arguments. (usage: ch {physical channel} {tuner id} )\n");
+			_COM_SVR_PRINT ("invalid arguments. (usage: ch {physical channel} {tuner id})\n");
 			return;
 		}
 	}
 	{
 		std::regex regex("[0-9]+");
 		if (!std::regex_match (argv[1], regex)) {
-			_COM_SVR_PRINT ("invalid arguments. (usage: ch {physical channel} {tuner id} )\n");
+			_COM_SVR_PRINT ("invalid arguments. (usage: ch {physical channel} {tuner id})\n");
 			return;
 		}
 	}
@@ -98,13 +98,13 @@ static void ch_tune (int argc, char* argv[], CThreadMgrBase *pBase)
 static void tuneStop (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_COM_SVR_PRINT ("invalid arguments. (usage: stop {tuner id} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: stop {tuner id})\n");
 		return;
 	}
 
 	std::regex regex("[0-9]+");
 	if (!std::regex_match (argv[0], regex)) {
-		_COM_SVR_PRINT ("invalid arguments. (usage: stop {tuner id} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: stop {tuner id})\n");
 		return;
 	}
 
@@ -165,13 +165,13 @@ static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
 ST_COMMAND_INFO g_tunerControlCommands [] = { // extern
 	{
 		"t",
-		"tune by frequency (usage: t {frequesncy[kHz]} {tuner id} )",
+		"tune by frequency (usage: t {frequesncy[kHz]} {tuner id})",
 		tune,
 		NULL,
 	},
 	{
 		"ch",
-		"tune by physical channel (usage: ch {physical channel} {tuner id} )",
+		"tune by physical channel (usage: ch {physical channel} {tuner id})",
 		ch_tune,
 		NULL,
 	},

@@ -15,23 +15,23 @@
 static void addReserve_currentEvent (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_COM_SVR_PRINT ("ignore arguments. (usage: ce {groupId} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: ce {group_id})\n");
 		return ;
 	}
 
 	std::regex regex ("^[0-9]+$");
 	if (!std::regex_match (argv[0], regex)) {
-		_COM_SVR_PRINT ("invalid arguments. (groupId)\n");
+		_COM_SVR_PRINT ("invalid arguments. (group_id)\n");
 		return;
 	}
-	uint8_t groupId = atoi(argv[0]);
+	uint8_t group_id = atoi(argv[0]);
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
 	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqAddReserve_currentEvent (groupId);
+	_if.reqAddReserve_currentEvent (group_id);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -521,23 +521,23 @@ static void get_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
 static void stop (int argc, char* argv[], CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
-		_COM_SVR_PRINT ("ignore arguments. (usage: stop {groupId} )\n");
+		_COM_SVR_PRINT ("invalid arguments. (usage: stop {group_id})\n");
 		return ;
 	}
 
 	std::regex regex ("^[0-9]+$");
 	if (!std::regex_match (argv[0], regex)) {
-		_COM_SVR_PRINT ("invalid arguments. (groupId)\n");
+		_COM_SVR_PRINT ("invalid arguments. (group_id)\n");
 		return;
 	}
-	uint8_t groupId = atoi(argv[0]);
+	uint8_t group_id = atoi(argv[0]);
 
 	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
 	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqStopRecording (groupId);
+	_if.reqStopRecording (group_id);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -599,14 +599,14 @@ static void dump_recording (int argc, char* argv[], CThreadMgrBase *pBase)
 ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 	{
 		"ce",
-		"add reserve - CurrentEvent (usage: ce {groupId} )",
+		"add reserve - CurrentEvent (usage: ce {group_id})",
 		addReserve_currentEvent,
 		NULL,
 	},
 	{
 		"e",
 		"add reserve - event\n\
-                                (usage: e {tsid} {org_nid} {svcid} {evtid} {repeat} )\n\
+                                (usage: e {tsid} {org_nid} {svcid} {evtid} {repeat})\n\
                                            - repeat is 0 (none), 1 (auto)",
 		addReserve_event,
 		NULL,
@@ -614,7 +614,7 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 	{
 		"eh",
 		"add reserve - event (helper)\n\
-                                (usage: eh {index} {repeat} )\n\
+                                (usage: eh {index} {repeat})\n\
                                            - repeat is 0 (none), 1 (auto)",
 		addReserve_eventHelper,
 		NULL,
@@ -622,7 +622,7 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 	{
 		"m",
 		"add reserve - Manual\n\
-                                (usage: m {tsid} {org_nid} {svcid} {start_time} {end_time} {repeat} )\n\
+                                (usage: m {tsid} {org_nid} {svcid} {start_time} {end_time} {repeat})\n\
                                            - start_time, end_time format is \"yyyyMMddHHmmss\"\n\
                                            - repeat is 0 (none), 1 (daily), 2 (weekly)",
 		addReserve_manual,
@@ -630,14 +630,14 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 	},
 	{
 		"r",
-		"remove reserve (usage: r {tsid} {org_nid} {svcid} {evtid} {consider repeatability} )\n\
+		"remove reserve (usage: r {tsid} {org_nid} {svcid} {evtid} {consider repeatability})\n\
                                            - consider repeatability is 0 (false), 1 (true)",
 		removeReserve,
 		NULL,
 	},
 	{
 		"rx",
-		"remove reserve by index (usage: rx {index} {consider repeatability} )\n\
+		"remove reserve by index (usage: rx {index} {consider repeatability})\n\
                                            - consider repeatability is 0 (false), 1 (true)",
 		removeReserve_byIndex,
 		NULL,
@@ -650,7 +650,7 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 	},
 	{
 		"stop",
-		"force stop recording (usage: stop {groupId} )",
+		"force stop recording (usage: stop {group_id})",
 		stop,
 		NULL,
 	},
