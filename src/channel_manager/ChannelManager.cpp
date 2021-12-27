@@ -12,8 +12,6 @@
 
 CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 	:CThreadMgrBase (pszName, nQueNum)
-	,m_tuneCompNotify_clientId (0xff)
-	,m_psisiState (EN_PSISI_STATE__NOT_READY)
 {
 	SEQ_BASE_t seqs [EN_SEQ_CHANNEL_MANAGER__NUM] = {
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleUp, (char*)"onReq_moduleUp"},                                                           // EN_SEQ_CHANNEL_MANAGER__MODULE_UP
@@ -21,10 +19,6 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_channelScan, (char*)"onReq_channelScan"},                                                     // EN_SEQ_CHANNEL_MANAGER__CHANNEL_SCAN
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByServiceId, (char*)"onReq_getPysicalChannelByServiceId"},                   // EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_SERVICE_ID
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByRemoteControlKeyId, (char*)"onReq_getPysicalChannelByRemoteControlKeyId"}, // EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_REMOTE_CONTROL_KEY_ID
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByServiceId, (char*)"onReq_tuneByServiceId"},                                             // EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByServiceId_withRetry, (char*)"onReq_tuneByServiceId_withRetry"},                         // EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID_WITH_RETRY
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneByRemoteControlKeyId, (char*)"onReq_tuneByRemoteControlKeyId"},                           // EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_tuneStop, (char*)"onReq_tuneStop"},                                                           // EN_SEQ_CHANNEL_MANAGER__TUNE_STOP
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_getChannels, (char*)"onReq_getChannels"},                                                     // EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_getTransportStreamName, (char*)"onReq_getTransportStreamName"},                               // EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME
 		{(PFN_SEQ_BASE)&CChannelManager::onReq_getServiceName, (char*)"onReq_getServiceName"},                                               // EN_SEQ_CHANNEL_MANAGER__GET_SERVICE_NAME
@@ -49,16 +43,11 @@ void CChannelManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_REG_PSISI_STATE_NOTIFY,
-		SECTID_WAIT_REG_PSISI_STATE_NOTIFY,
-		SECTID_END_SUCCESS,
-		SECTID_END_ERROR,
+		SECTID_END,
 	};
 
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
-
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
 
 
 	switch (sectId) {
@@ -68,42 +57,12 @@ void CChannelManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		dumpChannels_simple ();
 
 
-		sectId = SECTID_REQ_REG_PSISI_STATE_NOTIFY;
+		sectId = SECTID_END;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_REQ_REG_PSISI_STATE_NOTIFY: {
-		CPsisiManagerIf _if (getExternalIf());
-		_if.reqRegisterPsisiStateNotify ();
-
-		sectId = SECTID_WAIT_REG_PSISI_STATE_NOTIFY;
-		enAct = EN_THM_ACT_WAIT;
-		}
-		break;
-
-	case SECTID_WAIT_REG_PSISI_STATE_NOTIFY:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			m_tuneCompNotify_clientId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
-			_UTL_LOG_I ("m_tuneCompNotify_clientId=[0x%02x]", m_tuneCompNotify_clientId);
-			sectId = SECTID_END_SUCCESS;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-			_UTL_LOG_E ("reqRegisterTunerNotify is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-		}
-		break;
-
-	case SECTID_END_SUCCESS:
+	case SECTID_END:
 		pIf->reply (EN_THM_RSLT_SUCCESS);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		break;
-
-	case SECTID_END_ERROR:
-		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		break;
@@ -144,7 +103,9 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 	EN_THM_ACT enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_SET_FREQ,
+		SECTID_REQ_OPEN,
+		SECTID_WAIT_OPEN,
+		SECTID_CHECK_FREQ,
 		SECTID_REQ_TUNE,
 		SECTID_WAIT_TUNE,
 		SECTID_WAIT_AFTER_TUNE,
@@ -152,6 +113,8 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		SECTID_WAIT_GET_NETWORK_INFO,
 		SECTID_REQ_GET_SERVICE_INFOS,
 		SECTID_WAIT_GET_SERVICE_INFOS,
+		SECTID_REQ_TUNE_STOP,
+		SECTID_WAIT_TUNE_STOP,
 		SECTID_NEXT,
 		SECTID_END,
 	};
@@ -163,6 +126,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 	static PSISI_NETWORK_INFO s_network_info = {0};	
 	static PSISI_SERVICE_INFO s_service_infos[10];
 	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	static uint8_t s_group_id = 0xff;
 
 
 	switch (sectId) {
@@ -174,11 +138,36 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 		m_channels.clear ();
 
-		sectId = SECTID_SET_FREQ;
+		sectId = SECTID_REQ_OPEN;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
-	case SECTID_SET_FREQ:
+	case SECTID_REQ_OPEN: {
+
+		CTunerServiceIf _if (getExternalIf());
+		_if.reqOpen ();
+
+		sectId = SECTID_WAIT_OPEN;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_OPEN:
+		enRslt = getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			s_group_id = *(uint8_t*)(getIf()->getSrcInfo()->msg.pMsg);
+			_UTL_LOG_I ("reqOpen group_id:[0x%02x]", s_group_id);
+			sectId = SECTID_CHECK_FREQ;
+			enAct = EN_THM_ACT_CONTINUE;
+
+		} else {
+			_UTL_LOG_E ("someone is using a tuner.");
+			sectId = SECTID_END;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
+		break;
+
+	case SECTID_CHECK_FREQ:
 
 		if (s_ch >= UHF_PHYSICAL_CHANNEL_MIN && s_ch <= UHF_PHYSICAL_CHANNEL_MAX) {
 			sectId = SECTID_REQ_TUNE;
@@ -195,8 +184,13 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (s_ch);
 		_UTL_LOG_I ("(%s) ------  pysical channel:[%d] -> freq:[%d]kHz", pIf->getSeqName(), s_ch, freq);
 
-		CTunerControlIf _if (getExternalIf());
-		_if.reqTune (freq);
+		CTunerServiceIf::tune_param_t param = {
+			s_ch,
+			s_group_id
+		};
+
+		CTunerServiceIf _if (getExternalIf());
+		_if.reqTune (&param);
 
 		sectId = SECTID_WAIT_TUNE;
 		enAct = EN_THM_ACT_WAIT;
@@ -206,14 +200,12 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 	case SECTID_WAIT_TUNE:
 		enRslt = pIf->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
-//TODO 暫定待ち  PSISI_STATEをみるようにしたい
-			pIf->setTimeout (7500);
 			sectId = SECTID_WAIT_AFTER_TUNE;
-			enAct = EN_THM_ACT_WAIT;
+			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
 			_UTL_LOG_W ("tune is failure -> skip");
-			sectId = SECTID_NEXT;
+			sectId = SECTID_REQ_TUNE_STOP;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 		break;
@@ -225,7 +217,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 	case SECTID_REQ_GET_NETWORK_INFO: {
 
-		CPsisiManagerIf _if (getExternalIf());
+		CPsisiManagerIf _if (getExternalIf(), s_group_id);
 		_if.reqGetCurrentNetworkInfo (&s_network_info);
 
 		sectId = SECTID_WAIT_GET_NETWORK_INFO;
@@ -241,13 +233,13 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 		} else {
 			_UTL_LOG_W ("network info is not found -> skip");
-			sectId = SECTID_NEXT;
+			sectId = SECTID_REQ_TUNE_STOP;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 		break;
 
 	case SECTID_REQ_GET_SERVICE_INFOS: {
-		CPsisiManagerIf _if (getExternalIf());
+		CPsisiManagerIf _if (getExternalIf(), s_group_id);
 		_if.reqGetCurrentServiceInfos (s_service_infos, 10);
 
 		sectId = SECTID_WAIT_GET_SERVICE_INFOS;
@@ -287,20 +279,35 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 					m_channels.insert (pair<uint16_t, CChannel>(s_ch, r));
 				}
 
-				sectId = SECTID_NEXT;
+				sectId = SECTID_REQ_TUNE_STOP;
 				enAct = EN_THM_ACT_CONTINUE;
 
 			} else {
 				_UTL_LOG_W ("reqGetCurrentServiceInfos  num is 0 -> skip");
-				sectId = SECTID_NEXT;
+				sectId = SECTID_REQ_TUNE_STOP;
 				enAct = EN_THM_ACT_CONTINUE;
 			}
 
 		} else {
 			_UTL_LOG_W ("service infos is not found -> skip");
-			sectId = SECTID_NEXT;
+			sectId = SECTID_REQ_TUNE_STOP;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
+		break;
+
+	case SECTID_REQ_TUNE_STOP: {
+		CTunerServiceIf _if (getExternalIf());
+		_if.reqTuneStop (s_group_id);
+
+		sectId = SECTID_WAIT_TUNE_STOP;
+		enAct = EN_THM_ACT_WAIT;
+		}
+		break;
+
+	case SECTID_WAIT_TUNE_STOP:
+		// とくに結果はみません
+		sectId = SECTID_NEXT;
+		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
 	case SECTID_NEXT:
@@ -311,7 +318,7 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		memset (&s_network_info, 0x00, sizeof (s_network_info));
 		memset (&s_service_infos, 0x00, sizeof (s_service_infos));
 
-		sectId = SECTID_SET_FREQ;
+		sectId = SECTID_CHECK_FREQ;
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 
@@ -338,14 +345,17 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 
 			// 選局を停止しときます tune stop
 			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-			CTunerControlIf _if (getExternalIf());
-			_if.reqTuneStop ();
+			CTunerServiceIf _if (getExternalIf());
+			_if.reqTuneStop (s_group_id);
+			_if.reqClose (s_group_id);
 
 			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 			setRequestOption (opt);
 		}
 		//-----------------------------//
 
+
+		s_group_id = 0xff;
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
@@ -433,466 +443,6 @@ void CChannelManager::onReq_getPysicalChannelByRemoteControlKeyId (CThreadMgrIf 
 
 	sectId = THM_SECT_ID_INIT;
 	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
-}
-
-void CChannelManager::onReq_tuneByServiceId (CThreadMgrIf *pIf)
-{
-	uint8_t sectId;
-	EN_THM_ACT enAct;
-	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_TUNE,
-		SECTID_WAIT_TUNE,
-		SECTID_CHECK_PSISI_STATE,
-		SECTID_CHECK_WAIT_PSISI_STATE,
-		SECTID_REQ_TUNE_STOP,
-		SECTID_WAIT_TUNE_STOP,
-		SECTID_END_SUCCESS,
-		SECTID_END_ERROR,
-	};
-
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
-
-	static CChannelManagerIf::SERVICE_ID_PARAM_t s_param;
-	static int s_retry = 0;
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-
-
-	switch (sectId) {
-	case SECTID_ENTRY:
-		pIf->lock();
-
-		s_param = *(CChannelManagerIf::SERVICE_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
-
-		sectId = SECTID_REQ_TUNE;
-		enAct = EN_THM_ACT_CONTINUE;
-		break;
-
-	case SECTID_REQ_TUNE: {
-		uint16_t ch = getPysicalChannelByServiceId (
-							s_param.transport_stream_id,
-							s_param.original_network_id,
-							s_param.service_id
-						);
-		if (ch == 0xffff) {
-			_UTL_LOG_E ("getPysicalChannelByServiceId is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-
-			const CChannel *p = findChannel (ch);
-			p->dump ();
-
-			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
-			_UTL_LOG_I ("freq=[%d]kHz\n", freq);
-
-			CTunerControlIf _if (getExternalIf());
-			_if.reqTune (freq);
-
-			sectId = SECTID_WAIT_TUNE;
-			enAct = EN_THM_ACT_WAIT;
-		}
-
-		}
-		break;
-
-	case SECTID_WAIT_TUNE:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			sectId = SECTID_CHECK_PSISI_STATE;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-			_UTL_LOG_W ("tune is failure");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-		}
-		break;
-
-	case SECTID_CHECK_PSISI_STATE:
-
-		pIf->setTimeout(200);
-		sectId = SECTID_CHECK_WAIT_PSISI_STATE;
-		enAct = EN_THM_ACT_WAIT;
-
-		break;
-
-	case SECTID_CHECK_WAIT_PSISI_STATE:
-		if (m_psisiState == EN_PSISI_STATE__READY) {
-			sectId = SECTID_END_SUCCESS;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-
-			if (s_retry > 75) {
-				// 200ms * 75 = 約15秒 でタイムアウトします
-				_UTL_LOG_E ("tuneByServiceId is timeout");
-				sectId = SECTID_REQ_TUNE_STOP;
-				enAct = EN_THM_ACT_CONTINUE;
-
-			} else {
-				++ s_retry ;
-				sectId = SECTID_CHECK_PSISI_STATE;
-				enAct = EN_THM_ACT_CONTINUE;
-			}
-		}
-
-		break;
-
-	case SECTID_REQ_TUNE_STOP: {
-		// 念の為停止しておきます
-		CTunerControlIf _if (getExternalIf());
-		_if.reqTuneStop ();
-
-		sectId = SECTID_WAIT_TUNE_STOP;
-		enAct = EN_THM_ACT_WAIT;
-		}
-		break;
-
-	case SECTID_WAIT_TUNE_STOP:
-		// とくに結果はみません
-		sectId = SECTID_END_ERROR;
-		enAct = EN_THM_ACT_CONTINUE;
-		break;
-
-	case SECTID_END_SUCCESS:
-		pIf->unlock();
-
-		memset (&s_param, 0x00, sizeof(s_param));
-		s_retry = 0;
-
-		pIf->reply (EN_THM_RSLT_SUCCESS);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		break;
-
-	case SECTID_END_ERROR:
-		pIf->unlock();
-
-		memset (&s_param, 0x00, sizeof(s_param));
-		s_retry = 0;
-
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		break;
-
-	default:
-		break;
-	}
-
-	pIf->setSectId (sectId, enAct);
-}
-
-void CChannelManager::onReq_tuneByServiceId_withRetry (CThreadMgrIf *pIf)
-{
-	uint8_t sectId;
-	EN_THM_ACT enAct;
-	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_TUNE,
-		SECTID_WAIT_TUNE,
-		SECTID_END_SUCCESS,
-		SECTID_END_ERROR,
-	};
-
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
-
-	static CChannelManagerIf::SERVICE_ID_PARAM_t s_param;
-	static int s_retry = 0;
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-
-	switch (sectId) {
-	case SECTID_ENTRY:
-
-		s_param = *(CChannelManagerIf::SERVICE_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
-
-		s_retry = 5;
-
-		sectId = SECTID_REQ_TUNE;
-		enAct = EN_THM_ACT_CONTINUE;
-		break;
-
-	case SECTID_REQ_TUNE:
-
-		requestAsync (
-			EN_MODULE_CHANNEL_MANAGER,
-			EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID,
-			(uint8_t*)&s_param,
-			sizeof (CChannelManagerIf::SERVICE_ID_PARAM_t)
-		);
-
-		sectId = SECTID_WAIT_TUNE;
-		enAct = EN_THM_ACT_WAIT;
-		break;
-
-	case SECTID_WAIT_TUNE:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			sectId = SECTID_END_SUCCESS;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-			if (s_retry > 0) {
-				_UTL_LOG_W ("retry tuneByServiceId");
-				sectId = SECTID_REQ_TUNE;
-				enAct = EN_THM_ACT_CONTINUE;
-				-- s_retry;
-			} else {
-				_UTL_LOG_E ("retry over...");
-				sectId = SECTID_END_ERROR;
-				enAct = EN_THM_ACT_CONTINUE;
-			}
-		}
-		break;
-
-	case SECTID_END_SUCCESS:
-
-		memset (&s_param, 0x00, sizeof(s_param));
-		s_retry = 0;
-
-		pIf->reply (EN_THM_RSLT_SUCCESS);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		break;
-
-	case SECTID_END_ERROR:
-
-		memset (&s_param, 0x00, sizeof(s_param));
-		s_retry = 0;
-
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		break;
-
-	default:
-		break;
-	}
-
-	pIf->setSectId (sectId, enAct);
-}
-
-void CChannelManager::onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf)
-{
-	uint8_t sectId;
-	EN_THM_ACT enAct;
-	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_TUNE,
-		SECTID_WAIT_TUNE,
-		SECTID_CHECK_PSISI_STATE,
-		SECTID_CHECK_WAIT_PSISI_STATE,
-		SECTID_REQ_TUNE_STOP,
-		SECTID_WAIT_TUNE_STOP,
-		SECTID_END_SUCCESS,
-		SECTID_END_ERROR,
-	};
-
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
-
-	static CChannelManagerIf::REMOTE_CONTROL_ID_PARAM_t s_param;
-	static int s_retry = 0;
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-
-
-	switch (sectId) {
-	case SECTID_ENTRY:
-		pIf->lock();
-
-		s_param = *(CChannelManagerIf::REMOTE_CONTROL_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
-
-		sectId = SECTID_REQ_TUNE;
-		enAct = EN_THM_ACT_CONTINUE;
-		break;
-
-	case SECTID_REQ_TUNE: {
-		uint16_t ch = getPysicalChannelByRemoteControlKeyId (
-							s_param.transport_stream_id,
-							s_param.original_network_id,
-							s_param.remote_control_key_id
-						);
-		if (ch == 0xffff) {
-			_UTL_LOG_E ("invalid remote_control_key_id:[%d]", s_param.remote_control_key_id);
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-
-			const CChannel *p = findChannel (ch);
-			p->dump ();
-
-			uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
-			_UTL_LOG_I ("freq=[%d]kHz\n", freq);
-
-			CTunerControlIf _if (getExternalIf());
-			_if.reqTune (freq);
-
-			sectId = SECTID_WAIT_TUNE;
-			enAct = EN_THM_ACT_WAIT;
-		}
-
-		}
-		break;
-
-	case SECTID_WAIT_TUNE:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			sectId = SECTID_CHECK_PSISI_STATE;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-			_UTL_LOG_W ("tune is failure");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-		}
-		break;
-
-	case SECTID_CHECK_PSISI_STATE:
-
-		pIf->setTimeout(200);
-		sectId = SECTID_CHECK_WAIT_PSISI_STATE;
-		enAct = EN_THM_ACT_WAIT;
-
-		break;
-
-	case SECTID_CHECK_WAIT_PSISI_STATE:
-		if (m_psisiState == EN_PSISI_STATE__READY) {
-			sectId = SECTID_END_SUCCESS;
-			enAct = EN_THM_ACT_CONTINUE;
-
-		} else {
-
-			if (s_retry > 75) {
-				// 200ms * 75 = 約15秒 でタイムアウトします
-				_UTL_LOG_E ("tuneByServiceId is timeout");
-				sectId = SECTID_REQ_TUNE_STOP;
-				enAct = EN_THM_ACT_CONTINUE;
-
-			} else {
-				++ s_retry ;
-				sectId = SECTID_CHECK_PSISI_STATE;
-				enAct = EN_THM_ACT_CONTINUE;
-			}
-		}
-
-		break;
-
-	case SECTID_REQ_TUNE_STOP: {
-		// 念の為停止しておきます
-		CTunerControlIf _if (getExternalIf());
-		_if.reqTuneStop ();
-
-		sectId = SECTID_WAIT_TUNE_STOP;
-		enAct = EN_THM_ACT_WAIT;
-		}
-		break;
-
-	case SECTID_WAIT_TUNE_STOP:
-		// とくに結果はみません
-		sectId = SECTID_END_ERROR;
-		enAct = EN_THM_ACT_CONTINUE;
-		break;
-
-	case SECTID_END_SUCCESS:
-		pIf->unlock();
-
-		memset (&s_param, 0x00, sizeof(s_param));
-		s_retry = 0;
-
-		pIf->reply (EN_THM_RSLT_SUCCESS);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		break;
-
-	case SECTID_END_ERROR:
-		pIf->unlock();
-
-		memset (&s_param, 0x00, sizeof(s_param));
-		s_retry = 0;
-
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		break;
-
-	default:
-		break;
-	}
-
-	pIf->setSectId (sectId, enAct);
-}
-
-void CChannelManager::onReq_tuneStop (CThreadMgrIf *pIf)
-{
-	uint8_t sectId;
-	EN_THM_ACT enAct;
-	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
-		SECTID_REQ_TUNE_STOP,
-		SECTID_WAIT_TUNE_STOP,
-		SECTID_END_SUCCESS,
-		SECTID_END_ERROR,
-	};
-
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
-
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-
-	switch (sectId) {
-	case SECTID_ENTRY:
-		pIf->lock();
-
-		sectId = SECTID_REQ_TUNE_STOP;
-		enAct = EN_THM_ACT_CONTINUE;
-		break;
-
-	case SECTID_REQ_TUNE_STOP: {
-		CTunerControlIf _if (getExternalIf());
-		_if.reqTuneStop ();
-
-		sectId = SECTID_WAIT_TUNE_STOP;
-		enAct = EN_THM_ACT_WAIT;
-		}
-		break;
-
-	case SECTID_WAIT_TUNE_STOP:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			sectId = SECTID_END_SUCCESS;
-			enAct = EN_THM_ACT_CONTINUE;
-		} else {
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
-		}
-		break;
-
-	case SECTID_END_SUCCESS:
-		pIf->unlock();
-
-		pIf->reply (EN_THM_RSLT_SUCCESS);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		break;
-
-	case SECTID_END_ERROR:
-		pIf->unlock();
-
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		break;
-
-	default:
-		break;
-	}
-
 	pIf->setSectId (sectId, enAct);
 }
 
@@ -1018,16 +568,6 @@ void CChannelManager::onReq_dumpChannels (CThreadMgrIf *pIf)
 	enAct = EN_THM_ACT_DONE;
 	pIf->setSectId (sectId, enAct);
 }
-
-void CChannelManager::onReceiveNotify (CThreadMgrIf *pIf) 
-{
-	if ((pIf->getSrcInfo()->nClientId == m_tuneCompNotify_clientId)) {
-
-		m_psisiState = *(EN_PSISI_STATE*)(pIf->getSrcInfo()->msg.pMsg);
-
-	}
-}
-
 
 uint16_t CChannelManager::getPysicalChannelByServiceId (
 	uint16_t _transport_stream_id,

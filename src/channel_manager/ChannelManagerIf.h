@@ -19,10 +19,6 @@ enum {
 	EN_SEQ_CHANNEL_MANAGER__CHANNEL_SCAN,
 	EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_SERVICE_ID,
 	EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_REMOTE_CONTROL_KEY_ID,
-	EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID,
-	EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID_WITH_RETRY,
-	EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID,
-	EN_SEQ_CHANNEL_MANAGER__TUNE_STOP,
 	EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS,
 	EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME,
 	EN_SEQ_CHANNEL_MANAGER__GET_SERVICE_NAME,
@@ -106,53 +102,6 @@ public:
 					(uint8_t*)p_param,
 					sizeof (REMOTE_CONTROL_ID_PARAM_t)
 				);
-	};
-
-	bool reqTuneByServiceId (const SERVICE_ID_PARAM_t *p_param) {
-		if (!p_param) {
-			return false;
-		}
-
-		return requestAsync (
-					EN_MODULE_CHANNEL_MANAGER,
-					EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID,
-					(uint8_t*)p_param,
-					sizeof (SERVICE_ID_PARAM_t)
-				);
-	};
-
-	bool reqTuneByServiceId_withRetry (const SERVICE_ID_PARAM_t *p_param) {
-		if (!p_param) {
-			return false;
-		}
-
-		return requestAsync (
-					EN_MODULE_CHANNEL_MANAGER,
-					EN_SEQ_CHANNEL_MANAGER__TUNE_BY_SERVICE_ID_WITH_RETRY,
-					(uint8_t*)p_param,
-					sizeof (SERVICE_ID_PARAM_t)
-				);
-	};
-
-	bool reqTuneByRemoteControlKeyId (const REMOTE_CONTROL_ID_PARAM_t *p_param) {
-		if (!p_param) {
-			return false;
-		}
-
-		return requestAsync (
-					EN_MODULE_CHANNEL_MANAGER,
-					EN_SEQ_CHANNEL_MANAGER__TUNE_BY_REMOTE_CONTROL_KEY_ID,
-					(uint8_t*)p_param,
-					sizeof (REMOTE_CONTROL_ID_PARAM_t)
-				);
-	};
-
-	bool reqTuneStop (void) {
-		return requestAsync (EN_MODULE_CHANNEL_MANAGER, EN_SEQ_CHANNEL_MANAGER__TUNE_STOP);
-	};
-
-	bool reqTuneStopSync (void) {
-		return requestSync (EN_MODULE_CHANNEL_MANAGER, EN_SEQ_CHANNEL_MANAGER__TUNE_STOP);
 	};
 
 	bool reqGetChannels (REQ_CHANNELS_PARAM_t *p_param) {

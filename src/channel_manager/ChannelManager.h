@@ -19,7 +19,7 @@
 #include "TsAribCommon.h"
 #include "ChannelManagerIf.h"
 
-#include "TunerControlIf.h"
+#include "TunerServiceIf.h"
 #include "PsisiManagerIf.h"
 
 #include "cereal/cereal.hpp"
@@ -203,16 +203,10 @@ public:
 	void onReq_channelScan (CThreadMgrIf *pIf);
 	void onReq_getPysicalChannelByServiceId (CThreadMgrIf *pIf);
 	void onReq_getPysicalChannelByRemoteControlKeyId (CThreadMgrIf *pIf);
-	void onReq_tuneByServiceId (CThreadMgrIf *pIf);
-	void onReq_tuneByServiceId_withRetry (CThreadMgrIf *pIf);
-	void onReq_tuneByRemoteControlKeyId (CThreadMgrIf *pIf);
-	void onReq_tuneStop (CThreadMgrIf *pIf);
 	void onReq_getChannels (CThreadMgrIf *pIf);
 	void onReq_getTransportStreamName (CThreadMgrIf *pIf);
 	void onReq_getServiceName (CThreadMgrIf *pIf);
 	void onReq_dumpChannels (CThreadMgrIf *pIf);
-
-	void onReceiveNotify (CThreadMgrIf *pIf) override;
 
 
 private:
@@ -249,9 +243,6 @@ private:
 	void saveChannels (void);
 	void loadChannels (void);
 
-
-	uint8_t m_tuneCompNotify_clientId;
-	EN_PSISI_STATE m_psisiState;
 
 	std::map <uint16_t, CChannel> m_channels; // <pysical channel, CChannel>
 

@@ -12,7 +12,7 @@ INCLUDES	:= \
 	-I$(ROOTDIR)/threadmgrpp \
 	-I$(ROOTDIR)/common \
 	-I$(ROOTDIR)/command_server \
-	-I$(ROOTDIR)/tuner_control \
+	-I$(ROOTDIR)/tuner_service \
 	-I$(ROOTDIR)/parser \
 	-I$(ROOTDIR)/psisi_manager \
 	-I./ \

@@ -7,6 +7,7 @@
 #include <regex>
 
 #include "ChannelManagerIf.h"
+#include "TunerServiceIf.h"
 #include "CommandTables.h"
 #include "CommandServerLog.h"
 #include "CommandServer.h"
@@ -23,37 +24,8 @@ static void _scan (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CChannelManagerIf mgr(pBase->getExternalIf());
-	mgr.reqChannelScan ();
-
-	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
-}
-
-static void _tune (int argc, char* argv[], CThreadMgrBase *pBase)
-{
-	if (argc != 1) {
-		_COM_SVR_PRINT ("invalid arguments.\n");
-		return;
-	}
-
-	std::regex regex_idx ("^[0-9]+$");
-	if (!std::regex_match (argv[0], regex_idx)) {
-		_COM_SVR_PRINT ("invalid arguments. (id)");
-		return;
-	}
-
-//TODO
-// 暫定remote_control_key_idだけ渡す
-	uint8_t id = atoi(argv[0]);
-	CChannelManagerIf::REMOTE_CONTROL_ID_PARAM_t param = {0, 0, id};
-
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
-	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
-
-	CChannelManagerIf mgr(pBase->getExternalIf());
-	mgr.reqTuneByRemoteControlKeyId (&param);
+	CChannelManagerIf _if(pBase->getExternalIf());
+	_if.reqChannelScan ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -65,6 +37,20 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
+	uint8_t group_id = 0xff;
+	{
+		CTunerServiceIf _if(pBase->getExternalIf());
+		_if.reqOpenSync ();
+		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			group_id = *(uint8_t*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+			_COM_SVR_PRINT ("open: group_id=[%d]\n", group_id);
+		} else {
+			_COM_SVR_PRINT ("open: failure.\n");
+			return;
+		}
+	}
+
 	CCommandServer* pcs = dynamic_cast <CCommandServer*> (pBase);
 	int fd = pcs->getClientFd();
 
@@ -73,13 +59,14 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	CChannelManagerIf::CHANNEL_t channels[20] = {0};
 	CChannelManagerIf::REQ_CHANNELS_PARAM_t param = {channels, 20};
-	CChannelManagerIf mgr(pBase->getExternalIf());
-
-	mgr.syncGetChannels (&param);
-	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-	if (enRslt == EN_THM_RSLT_ERROR) {
-		_COM_SVR_PRINT ("syncGetChannels is failure.\n");
-		return ;
+	{
+		CChannelManagerIf _if(pBase->getExternalIf());
+		_if.syncGetChannels (&param);
+		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_ERROR) {
+			_COM_SVR_PRINT ("syncGetChannels is failure.\n");
+			return ;
+		}
 	}
 
 	int ch_num = *(int*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
@@ -98,7 +85,8 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 			channels[i].original_network_id,
 			0 // no need service_id
 		};
-		mgr.syncGetTransportStreamName (&param);
+		CChannelManagerIf _if(pBase->getExternalIf());
+		_if.syncGetTransportStreamName (&param);
 		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
 		if (enRslt == EN_THM_RSLT_ERROR) {
 			continue ;
@@ -132,37 +120,57 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 		}
 	}
 
-
-	CChannelManagerIf::SERVICE_ID_PARAM_t svc_id_param = {
-		channels[sel_ch_num].transport_stream_id,
-		channels[sel_ch_num].original_network_id,
-		channels[sel_ch_num].service_ids[0] // service_id can be anything
-	};
-
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
-	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
-
-	mgr.reqTuneByServiceId (&svc_id_param);
-
-	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	{
+		uint16_t ch = channels[sel_ch_num].pysical_channel;
+		CTunerServiceIf::tune_param_t tune_param = {ch, group_id};
+	
+		uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+		opt |= REQUEST_OPTION__WITHOUT_REPLY;
+		pBase->getExternalIf()->setRequestOption (opt);
+	
+		CTunerServiceIf _if(pBase->getExternalIf());
+		_if.reqTune_withRetry (&tune_param);
+	
+		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+		pBase->getExternalIf()->setRequestOption (opt);
+	}
 }
 
 static void _tune_stop (int argc, char* argv[], CThreadMgrBase *pBase)
 {
-	if (argc != 0) {
-		_COM_SVR_PRINT ("ignore arguments.\n");
+	if (argc != 1) {
+		_COM_SVR_PRINT ("invalid arguments. (usage: stop {group_id})\n");
+		return;
 	}
 
-	CChannelManagerIf mgr(pBase->getExternalIf());
-	mgr.reqTuneStopSync ();
+	std::regex regex ("^[0-9]+$");
+	if (!std::regex_match (argv[0], regex)) {
+		_COM_SVR_PRINT ("invalid arguments. (group_id)\n");
+		return;
+	}
+	uint8_t group_id = atoi(argv[0]);
 
-	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-	if (enRslt == EN_THM_RSLT_SUCCESS) {
-		_COM_SVR_PRINT ("tune stop success\n");
-	} else {
-		_COM_SVR_PRINT ("tune stop error\n");
+	{
+		CTunerServiceIf _if(pBase->getExternalIf());
+		_if.reqTuneStopSync (group_id);
+	
+		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			_COM_SVR_PRINT ("tune stop success\n");
+		} else {
+			_COM_SVR_PRINT ("tune stop error\n");
+		}
+	}
+	{
+		CTunerServiceIf _if(pBase->getExternalIf());
+		_if.reqCloseSync (group_id);
+	
+		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_SUCCESS) {
+			_COM_SVR_PRINT ("close success\n");
+		} else {
+			_COM_SVR_PRINT ("close error\n");
+		}
 	}
 }
 
@@ -176,8 +184,8 @@ static void _dump_channels (int argc, char* argv[], CThreadMgrBase *pBase)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
 
-	CChannelManagerIf mgr(pBase->getExternalIf());
-	mgr.reqDumpChannels ();
+	CChannelManagerIf _if(pBase->getExternalIf());
+	_if.reqDumpChannels ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	pBase->getExternalIf()->setRequestOption (opt);
@@ -192,12 +200,6 @@ ST_COMMAND_INFO g_chManagerCommands [] = { // extern
 		NULL,
 	},
 	{
-		"tr",
-		"tune by remote_control_key_id (usage: tr {remote_control_key_id} )",
-		_tune,
-		NULL,
-	},
-	{
 		"ti",
 		"tune (interactive mode)",
 		_tune_interactive,
@@ -205,7 +207,7 @@ ST_COMMAND_INFO g_chManagerCommands [] = { // extern
 	},
 	{
 		"stop",
-		"tune stop",
+		"tune stop (usage: stop {group_id})",
 		_tune_stop,
 		NULL,
 	},
