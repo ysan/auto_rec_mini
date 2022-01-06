@@ -71,6 +71,9 @@ bool CProgramMapTable::parse (const CSectionInfo *pCompSection, CTable* pOutTabl
 		CDescriptor desc (p);
 		if (!desc.isValid) {
 			_UTL_LOG_W ("invalid PMT desc 1");
+			_UTL_LOG_W ("program_info_length %d %d", (int)pTable->program_info_length, n);
+			_UTL_LOG_W ("tag 0x%02x", *p);
+			_UTL_LOG_W ("length %d", *(p+1));
 			return false;
 		}
 		pTable->descriptors.push_back (desc);
