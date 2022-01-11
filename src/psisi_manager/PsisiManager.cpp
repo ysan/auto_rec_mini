@@ -63,6 +63,7 @@ CPsisiManager::CPsisiManager (char *pszName, uint8_t nQueNum, uint8_t groupId)
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_registerPsisiStateNotify, (char*)"onReq_registerPsisiStateNotify"},       // EN_SEQ_PSISI_MANAGER__REG_PSISI_STATE_NOTIFY
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_unregisterPsisiStateNotify, (char*)"onReq_unregisterPsisiStateNotify"},   // EN_SEQ_PSISI_MANAGER__UNREG_PSISI_STATE_NOTIFY
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getPatDetectState, (char*)"onReq_getPatDetectState"},                     // EN_SEQ_PSISI_MANAGER__GET_PAT_DETECT_STATE
+		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getStreamInfos, (char*)"onReq_getStreamInfos"},                           // EN_SEQ_PSISI_MANAGER__GET_STREAM_INFOS
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getCurrentServiceInfos, (char*)"onReq_getCurrentServiceInfos"},           // EN_SEQ_PSISI_MANAGER__GET_CURRENT_SERVICE_INFOS
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getPresentEventInfo, (char*)"onReq_getPresentEventInfo"},                 // EN_SEQ_PSISI_MANAGER__GET_PRESENT_EVENT_INFO
 		{(PFN_SEQ_BASE)&CPsisiManager::onReq_getFollowEventInfo, (char*)"onReq_getFollowEventInfo"},                   // EN_SEQ_PSISI_MANAGER__GET_FOLLOW_EVENT_INFO
@@ -414,9 +415,6 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 	mSDT.checkAsyncDelete ();
 	mCAT.checkAsyncDelete ();
 	mCDT.checkAsyncDelete ();
-	for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
-		m_tmpProgramMaps[i].m_parser.checkAsyncDelete ();
-	}
 
 
 	_PARSER_NOTICE *p_notice = (_PARSER_NOTICE*)(pIf->getSrcInfo()->msg.pMsg);
@@ -436,40 +434,13 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 			CProgramAssociationTable::CTable* latest = *(-- iter);
 
 			// 一度クリアします
-			for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
-				if (m_tmpProgramMaps[i].is_used) {
-					m_tmpProgramMaps[i].clear(); // asyncDeleteもここで
-				}
-			}
+			m_programMap.clear();
 
-			std::vector<CProgramAssociationTable::CTable::CProgram>::const_iterator iter_prog = latest->programs.begin();
-			for (; iter_prog != latest->programs.end(); ++ iter_prog) {
-				if (iter_prog->program_number == 0) {
+			for (const auto& program : latest->programs) {
+				if (program.program_number == 0) {
 					continue;
 				}
-
-				bool is_existed = false;
-				for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
-					if (m_tmpProgramMaps[i].is_used && (m_tmpProgramMaps[i].pid == iter_prog->program_map_PID)) {
-						is_existed = true;
-						break;
-					}
-				}
-				if (!is_existed) {
-					int i = 0;
-					for (i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
-						if (!m_tmpProgramMaps[i].is_used) {
-							// set PID
-							m_tmpProgramMaps[i].pid = iter_prog->program_map_PID;
-							m_tmpProgramMaps[i].is_used = true;
-							break;
-						}
-					}
-					if (i == TMP_PROGRAM_MAPS_MAX) {
-						_UTL_LOG_W ("m_tmpProgramMaps is full.");
-						break;
-					}
-				}
+				m_programMap.add(program.program_map_PID);
 			}
 		}
 
@@ -479,25 +450,11 @@ void CPsisiManager::onReq_parserNotice (CThreadMgrIf *pIf)
 		break;
 
 	case EN_PSISI_TYPE__PMT: {
-
-		CTmpProgramMap *p_tmp = m_tmpProgramMaps ;
-		for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
-			if (!p_tmp->is_used) {
-				continue;
-			}
-
-			if (p_notice->ts_header.pid == p_tmp->pid) {
-
-				r = p_tmp->m_parser.checkSection (&p_notice->ts_header, p_notice->payload, p_notice->payload_size);
-				if (r == EN_CHECK_SECTION__COMPLETED) {
-					_UTL_LOG_I ("notice new PMT");
-					clearProgramInfos();
-					cacheProgramInfos();
-				}
-
-				break;
-			}
-			++ p_tmp;
+		r = m_programMap.parse(&p_notice->ts_header, p_notice->payload, p_notice->payload_size);
+		if (r == EN_CHECK_SECTION__COMPLETED) {
+			_UTL_LOG_I ("notice new PMT");
+			clearProgramInfos();
+			cacheProgramInfos();
 		}
 
 		}
@@ -955,6 +912,37 @@ void CPsisiManager::onReq_getPatDetectState (CThreadMgrIf *pIf)
 	pIf->setSectId (sectId, enAct);
 }
 
+void CPsisiManager::onReq_getStreamInfos (CThreadMgrIf *pIf)
+{
+	uint8_t sectId;
+	EN_THM_ACT enAct;
+	enum {
+		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_END,
+	};
+
+	sectId = pIf->getSectId();
+	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+
+
+	REQ_STREAM_INFOS_PARAM param = *(REQ_STREAM_INFOS_PARAM*)(pIf->getSrcInfo()->msg.pMsg);
+	if (!param.p_out_streamInfos || param.array_max_num == 0) {
+		_UTL_LOG_E ("REQ_STREAM_INFOS_PARAM is invalid.\n");
+		pIf->reply (EN_THM_RSLT_ERROR);
+
+	} else {
+		int get_num = getStreamInfos (param.program_number, param.type, param.p_out_streamInfos, param.array_max_num);
+
+		// reply msgで格納数を渡します
+		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&get_num, sizeof(get_num));
+	}
+
+
+	sectId = THM_SECT_ID_INIT;
+	enAct = EN_THM_ACT_DONE;
+	pIf->setSectId (sectId, enAct);
+}
+
 void CPsisiManager::onReq_getCurrentServiceInfos (CThreadMgrIf *pIf)
 {
 	uint8_t sectId;
@@ -1280,11 +1268,7 @@ void CPsisiManager::onReq_dumpTables (CThreadMgrIf *pIf)
 		break;
 
 	case EN_PSISI_TYPE__PMT:
-		for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
-			if (m_tmpProgramMaps[i].is_used) {
-				m_tmpProgramMaps[i].m_parser.dumpTables();
-			}
-		}
+		m_programMap.dump();
 		break;
 
 	case EN_PSISI_TYPE__EIT_H_PF:
@@ -1452,8 +1436,8 @@ void CPsisiManager::cacheProgramInfos (void)
 	if (!latest) {
 		return;
 	}
-
 	CProgramAssociationTable::CTable *pTable = latest;
+
 	uint8_t tbl_id = pTable->header.table_id;
 	uint16_t ts_id = pTable->header.table_id_extension;
 
@@ -1472,6 +1456,24 @@ void CPsisiManager::cacheProgramInfos (void)
 
 		m_programInfos[n].p_orgTable = pTable;
 		m_programInfos[n].is_used = true;
+
+		// cache pmt streams
+		std::shared_ptr<CProgramMapTable> pmt = m_programMap.get(iter_prog->program_map_PID);
+		if (pmt != nullptr && pmt->getTables()->size() > 0) {
+			// PMTも一つしかないことを期待していますが 念の為最新(最後尾)のものを参照します
+			std::vector<CProgramMapTable::CTable*>::const_iterator iter = pmt->getTables()->end();
+			CProgramMapTable::CTable* latest = *(-- iter);
+			if (latest) {
+				CProgramMapTable::CTable *pTable = latest;
+
+				for (const auto & stream : pTable->streams) {
+					std::shared_ptr<_PROGRAM_INFO::_stream>s = make_shared<_PROGRAM_INFO::_stream>();
+					s->type = stream.stream_type;
+					s->pid = stream.elementary_PID;
+					m_programInfos[n].streams.push_back(s);
+				}
+			}
+		}
 
 		++ n;
 
@@ -1495,6 +1497,36 @@ void CPsisiManager::clearProgramInfos (void)
 	for (int i = 0; i < PROGRAM_INFOS_MAX; ++ i) {
 		m_programInfos [i].clear();
 	}
+}
+
+// streamInfo for request
+int CPsisiManager::getStreamInfos (uint16_t program_number, EN_STREAM_TYPE type, PSISI_STREAM_INFO *p_out_streamInfos, int num)
+{
+	if (!p_out_streamInfos || num == 0) {
+		return 0;
+	}
+
+	int r = 0;
+
+	for (int i = 0; i < PROGRAM_INFOS_MAX; ++ i) {
+		if (m_programInfos[i].program_number == program_number) {
+			for (const auto& stream : m_programInfos[i].streams) {
+				if (r >= num) {
+					break;
+				}
+		
+				if (stream->type == type) {
+					(p_out_streamInfos + r)->type = stream->type;
+					(p_out_streamInfos + r)->pid = stream->pid;
+					++ r;
+				}
+			}
+
+			break;
+		}
+	}
+	
+	return r;
 }
 
 /**
@@ -2388,24 +2420,14 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 	default:
 		// parse PMT
-		CTmpProgramMap *p_tmp = m_tmpProgramMaps ;
-		for (int i = 0; i < TMP_PROGRAM_MAPS_MAX; ++ i) {
-			if (!p_tmp->is_used) {
-				continue;
-			}
-
-			if (p_ts_header->pid == p_tmp->pid) {
-				_PARSER_NOTICE _notice (EN_PSISI_TYPE__PMT, p_ts_header, p_payload, payload_size);
-				requestAsync (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
-					EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
-					(uint8_t*)&_notice,
-					sizeof(_notice)
-				);
-
-				break;
-			}
-			++ p_tmp;
+		if (m_programMap.has(p_ts_header->pid)) {
+			_PARSER_NOTICE _notice (EN_PSISI_TYPE__PMT, p_ts_header, p_payload, payload_size);
+			requestAsync (
+				EN_MODULE_PSISI_MANAGER + getGroupId(),
+				EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
+				(uint8_t*)&_notice,
+				sizeof(_notice)
+			);
 		}
 
 		break;

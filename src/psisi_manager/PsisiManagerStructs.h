@@ -8,26 +8,21 @@
 #include <errno.h>
 
 #include "Utils.h"
+#include "TsAribCommon.h"
 
 
 //---------------------------------------------------
 typedef struct {
-	uint8_t table_id;
-	uint16_t transport_stream_id;
+	uint8_t type;
+	uint16_t pid; // pes pid
+} PSISI_STREAM_INFO;
 
-	uint16_t program_number;
-	uint16_t program_map_PID;
-
-	void dump (void) {
-		_UTL_LOG_I (
-			"tsid:[0x%04x] pgm_num:[0x%04x] pmt_pid:[0x%04x]",
-			transport_stream_id,
-			program_number,
-			program_map_PID
-		);
-	}
-
-} PSISI_PROGRAM_INFO;
+typedef struct {
+	uint16_t program_number; // service_id
+	EN_STREAM_TYPE type;
+	PSISI_STREAM_INFO *p_out_streamInfos;
+	int array_max_num;
+} REQ_STREAM_INFOS_PARAM;
 
 
 //---------------------------------------------------

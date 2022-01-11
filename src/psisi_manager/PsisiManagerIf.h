@@ -30,6 +30,7 @@ enum {
 	EN_SEQ_PSISI_MANAGER__REG_PSISI_STATE_NOTIFY,
 	EN_SEQ_PSISI_MANAGER__UNREG_PSISI_STATE_NOTIFY,
 	EN_SEQ_PSISI_MANAGER__GET_PAT_DETECT_STATE,
+	EN_SEQ_PSISI_MANAGER__GET_STREAM_INFOS,
 	EN_SEQ_PSISI_MANAGER__GET_CURRENT_SERVICE_INFOS,
 	EN_SEQ_PSISI_MANAGER__GET_PRESENT_EVENT_INFO,
 	EN_SEQ_PSISI_MANAGER__GET_FOLLOW_EVENT_INFO,
@@ -168,6 +169,34 @@ public:
 		return requestAsync (
 					EN_MODULE_PSISI_MANAGER + getGroupId(),
 					EN_SEQ_PSISI_MANAGER__GET_PAT_DETECT_STATE
+				);
+	};
+
+	bool reqGetStreamInfos (uint16_t program_number, EN_STREAM_TYPE type, PSISI_STREAM_INFO *p_out_streamInfos, int array_max_num) {
+		if (!p_out_streamInfos || array_max_num == 0) {
+			return false;
+		}
+
+		REQ_STREAM_INFOS_PARAM param = {program_number, type, p_out_streamInfos, array_max_num};
+		return requestAsync (
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					EN_SEQ_PSISI_MANAGER__GET_STREAM_INFOS,
+					(uint8_t*)&param,
+					sizeof(param)
+				);
+	};
+
+	bool syncGetStreamInfos (uint16_t program_number, EN_STREAM_TYPE type, PSISI_STREAM_INFO *p_out_streamInfos, int array_max_num) {
+		if (!p_out_streamInfos || array_max_num == 0) {
+			return false;
+		}
+
+		REQ_STREAM_INFOS_PARAM param = {program_number, type, p_out_streamInfos, array_max_num};
+		return requestSync (
+					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					EN_SEQ_PSISI_MANAGER__GET_STREAM_INFOS,
+					(uint8_t*)&param,
+					sizeof(param)
 				);
 	};
 

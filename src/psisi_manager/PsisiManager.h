@@ -7,6 +7,9 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <memory>
+#include <mutex>
+
 #include "ThreadMgrpp.h"
 
 #include "Utils.h"
@@ -65,31 +68,84 @@ static const char *gpszEventPfState [EN_EVENT_PF_STATE__MAX] = {
 };
 
 
-class CTmpProgramMap {
+class CProgramMap {
 public:
-	CTmpProgramMap (void)
-		:pid (0)
-		,is_used (false)
-	{
+	CProgramMap (void) {
 		clear();
 	}
-	virtual ~CTmpProgramMap (void) {
+	virtual ~CProgramMap (void) {
 		clear();
+	}
+
+	std::shared_ptr <CProgramMapTable> get (uint16_t pid) {
+		// m_parsersは確定しているので排他いれません
+
+		const auto it = m_parsers.find(pid);
+		if (it != m_parsers.end()) {
+			return it->second;
+		} else {
+			return nullptr;
+		}
+	}
+
+	void add (uint16_t pid) {
+		// tuner threadとの排他します
+		std::lock_guard <std::mutex> lock(m_mutex);
+
+		m_parsers [pid] = std::make_shared<CProgramMapTable>();
+	}
+
+	EN_CHECK_SECTION parse (TS_HEADER *ts_header, uint8_t* p_payload, size_t payload_size) {
+		// m_parsersは確定しているので排他いれません
+
+		const auto it = m_parsers.find(ts_header->pid);
+		if (it != m_parsers.end()) {
+			 return it->second->checkSection (ts_header, p_payload, payload_size);
+		} else {
+			return EN_CHECK_SECTION__INVALID;
+		}
+	}
+
+	bool has (uint16_t pid) {
+		// tuner thread側で使うので排他します
+		std::lock_guard <std::mutex> lock(m_mutex);
+
+		const auto &it = m_parsers.find(pid);
+		if (it != m_parsers.end()) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	void dump (void) {
+		for (const auto &parser : m_parsers) {
+			parser.second->dumpTables();
+		}
 	}
 
 	void clear (void) {
-		pid = 0;
-		m_parser.clear();
-		is_used = false;
+		// tuner threadとの排他します
+		std::lock_guard <std::mutex> lock(m_mutex);
+
+		for (const auto &parser : m_parsers) {
+			parser.second->forceClear();
+		}
+		m_parsers.clear();
 	}
 
-	uint16_t pid;
-	CProgramMapTable m_parser;
-	bool is_used;
+private:
+	std::unordered_map<uint16_t, std::shared_ptr<CProgramMapTable>> m_parsers; // <pid, pmt parser>
+	std::mutex m_mutex; // tuner thread との排他のため
 };
 
-
 typedef struct _program_info {
+public:
+	struct _stream {
+		uint8_t type;
+		uint16_t pid;
+	};
+
 public:
 	_program_info (void) {
 		clear ();
@@ -106,6 +162,8 @@ public:
 
 	CProgramAssociationTable::CTable* p_orgTable;
 
+	std::vector<std::shared_ptr<_stream>> streams;
+
 	bool is_used;
 
 	void clear (void) {
@@ -114,6 +172,7 @@ public:
 		program_number = 0;
 		program_map_PID = 0;
 		p_orgTable = NULL;
+		streams.clear();
 		is_used = false;
 	}
 
@@ -128,6 +187,13 @@ public:
 			program_number,
 			program_map_PID
 		);
+		for (const auto& stream : streams) {
+			_UTL_LOG_I (
+				"    stream type:[0x%02x] pid:[0x%04x]",
+				stream->type,
+				stream->pid
+			);
+		}
 	}
 
 } _PROGRAM_INFO;
@@ -425,6 +491,7 @@ public:
 	void onReq_registerPsisiStateNotify (CThreadMgrIf *pIf);
 	void onReq_unregisterPsisiStateNotify (CThreadMgrIf *pIf);
 	void onReq_getPatDetectState (CThreadMgrIf *pIf);
+	void onReq_getStreamInfos (CThreadMgrIf *pIf);
 	void onReq_getCurrentServiceInfos (CThreadMgrIf *pIf);
 	void onReq_getPresentEventInfo (CThreadMgrIf *pIf);
 	void onReq_getFollowEventInfo (CThreadMgrIf *pIf);
@@ -442,6 +509,9 @@ private:
 	void cacheProgramInfos (void);
 	void dumpProgramInfos (void);
 	void clearProgramInfos (void);
+
+	// for request
+	int getStreamInfos (uint16_t program_map_PID, EN_STREAM_TYPE type, PSISI_STREAM_INFO *p_out_streamInfos, int num);
 
 
 	//-- serviceInfo --
@@ -540,9 +610,7 @@ private:
 	CConditionalAccessTable mCAT;
 	CCommonDataTable mCDT;
 
-// TODO 現状配列の排他は入れません
-// tuner thread との排他
-	CTmpProgramMap m_tmpProgramMaps [TMP_PROGRAM_MAPS_MAX];
+	CProgramMap m_programMap;
 
 //	CProgramAssociationTable::CReference mPAT_ref;
 //	CEventInformationTable::CReference mEIT_H_ref;

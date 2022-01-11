@@ -205,3 +205,10 @@ void CProgramMapTable:: clear (void)
 	// detachAllSectionList in parser loop
 	asyncDelete ();
 }
+
+void CProgramMapTable:: forceClear (void)
+{
+	releaseTables ();
+
+	detachAllSectionList ();
+}

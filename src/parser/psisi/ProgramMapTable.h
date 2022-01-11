@@ -93,6 +93,7 @@ public:
 	void dumpTables (void);
 	void dumpTable (const CTable* pTable) const;
 	void clear (void);
+	void forceClear (void);
 
 	std::vector <CTable*> *getTables (void) {
 		return & mTables;
