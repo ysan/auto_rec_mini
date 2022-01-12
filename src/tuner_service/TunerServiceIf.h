@@ -23,6 +23,7 @@ public:
 		CLOSE,
 		TUNE,
 		TUNE_WITH_RETRY,
+		TUNE_ADVANCE,
 		TUNE_STOP,
 		DUMP_ALLOCATES,
 
@@ -33,6 +34,14 @@ public:
 		uint16_t physical_channel;
 		uint8_t tuner_id;
 	} tune_param_t;
+
+	typedef struct _tune_advance_param {
+		uint16_t transport_stream_id;
+		uint16_t original_network_id;
+		uint16_t service_id;
+		uint8_t tuner_id;
+		bool is_need_retry;
+	} tune_advance_param_t;
 
 public:
 	explicit CTunerServiceIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
@@ -89,6 +98,19 @@ public:
 					sequence::TUNE_WITH_RETRY,
 					(uint8_t*)p_param,
 					sizeof(tune_param_t)
+				);
+	};
+
+	bool reqTuneAdvance (const tune_advance_param_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		return requestAsync (
+					EN_MODULE_TUNER_SERVICE,
+					sequence::TUNE_ADVANCE,
+					(uint8_t*)p_param,
+					sizeof(tune_advance_param_t)
 				);
 	};
 

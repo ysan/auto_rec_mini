@@ -22,6 +22,7 @@
 #include "TunerServiceIf.h"
 #include "TunerControlIf.h"
 #include "PsisiManagerIf.h"
+#include "ChannelManagerIf.h"
 #include "TsAribCommon.h" 
 
 
@@ -46,6 +47,9 @@ public:
 			,module (EN_MODULE_NUM)
 			,priority (client_priority::OTHER)
 			,is_now_tuned (false)
+			,transport_stream_id (0)
+			,original_network_id (0)
+			,service_id (0)
 		{
 			clear ();
 		}
@@ -58,17 +62,36 @@ public:
 			module = EN_MODULE_NUM;
 			priority = client_priority::OTHER;
 			is_now_tuned = false;
+
+			transport_stream_id = 0;
+			original_network_id = 0;
+			service_id = 0;
 		}
 
 		void dump (void) const {
-			_UTL_LOG_I (
-				"tuner_id:[0x%02x] module:[%d:%.10s] priority:[%d] [%s]",
-				tuner_id,
-				module,
-				module != EN_MODULE_NUM ? getModule(module)->getName() : "----------",
-				static_cast<int>(priority),
-				is_now_tuned ? "now_tuned" : "---"
-			);
+			if (transport_stream_id != 0 || original_network_id != 0 || service_id != 0) {
+				_UTL_LOG_I (
+					"tuner_id:[0x%02x] module:[%d:%.10s] priority:[%d] [%s] -> tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x]",
+					tuner_id,
+					module,
+					module != EN_MODULE_NUM ? getModule(module)->getName() : "----------",
+					static_cast<int>(priority),
+					is_now_tuned ? "now_tuned" : "---",
+					transport_stream_id,
+					original_network_id,
+					service_id
+				);
+
+			} else {
+				_UTL_LOG_I (
+					"tuner_id:[0x%02x] module:[%d:%.10s] priority:[%d] [%s]",
+					tuner_id,
+					module,
+					module != EN_MODULE_NUM ? getModule(module)->getName() : "----------",
+					static_cast<int>(priority),
+					is_now_tuned ? "now_tuned" : "---"
+				);
+			}
 		}
 
 		uint8_t tuner_id;
@@ -76,12 +99,22 @@ public:
 		client_priority priority;
 		bool is_now_tuned;
 
+		//-- advance parameters --//
+		uint16_t transport_stream_id;
+		uint16_t original_network_id;
+		uint16_t service_id;
+
 	} resource_t;
 
 	// tune_withRetryの時に呼び元モジュールを取っておきたいため
 	struct _tune_param : public CTunerServiceIf::tune_param_t {
 		uint8_t caller_module;
 	};
+	// tuneAdvance_withRetryの時に呼び元モジュールを取っておきたいため
+	struct _tune_advance_param : public CTunerServiceIf::tune_advance_param_t {
+		uint8_t caller_module;
+	};
+
 
 public:
 	CTunerService (char *pszName, uint8_t nQueNum);
@@ -94,6 +127,7 @@ public:
 	void onReq_close (CThreadMgrIf *pIf);
 	void onReq_tune (CThreadMgrIf *pIf);
 	void onReq_tune_withRetry (CThreadMgrIf *pIf);
+	void onReq_tuneAdvance (CThreadMgrIf *pIf);
 	void onReq_tuneStop (CThreadMgrIf *pIf);
 	void onReq_dumpAllocates (CThreadMgrIf *pIf);
 

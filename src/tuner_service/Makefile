@@ -15,6 +15,7 @@ INCLUDES	:= \
 	-I$(ROOTDIR)/tuner_control \
 	-I$(ROOTDIR)/parser \
 	-I$(ROOTDIR)/psisi_manager \
+	-I$(ROOTDIR)/channel_manager \
 	-I./ \
 
 LIBS		:= \
