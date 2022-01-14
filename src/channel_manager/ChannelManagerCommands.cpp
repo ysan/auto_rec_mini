@@ -59,14 +59,12 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	CChannelManagerIf::CHANNEL_t channels[20] = {0};
 	CChannelManagerIf::REQ_CHANNELS_PARAM_t param = {channels, 20};
-	{
-		CChannelManagerIf _if(pBase->getExternalIf());
-		_if.syncGetChannels (&param);
-		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_ERROR) {
-			_COM_SVR_PRINT ("syncGetChannels is failure.\n");
-			return ;
-		}
+	CChannelManagerIf _if(pBase->getExternalIf());
+	_if.syncGetChannels (&param);
+	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+	if (enRslt == EN_THM_RSLT_ERROR) {
+		_COM_SVR_PRINT ("syncGetChannels is failure.\n");
+		return ;
 	}
 
 	int ch_num = *(int*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
@@ -94,6 +92,7 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 		char* ts_name = (char*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
 		_COM_SVR_PRINT ("  %2d: [%s]\n", i, ts_name);
 	}
+	_COM_SVR_PRINT ("  'q': exit\n");
 
 	// select ts channel
 	int sel_ch_num = 0;
@@ -108,6 +107,13 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 			CUtils::deleteLF (buf);
 			CUtils::deleteHeadSp (buf);
 			CUtils::deleteTailSp (buf);
+
+			if (buf[0] == 'q' && strlen(buf) == 1) {
+				CTunerServiceIf _if(pBase->getExternalIf());
+				_if.reqCloseSync (group_id);
+				return;
+			}
+
 			std::regex regex_num("^[0-9]+$");
 			if (!std::regex_match (buf, regex_num)) {
 				continue;
@@ -120,20 +126,74 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 		}
 	}
 
-	{
-		uint16_t ch = channels[sel_ch_num].pysical_channel;
-		CTunerServiceIf::tune_param_t tune_param = {ch, group_id};
-	
-		uint32_t opt = pBase->getExternalIf()->getRequestOption ();
-		opt |= REQUEST_OPTION__WITHOUT_REPLY;
-		pBase->getExternalIf()->setRequestOption (opt);
-	
-		CTunerServiceIf _if(pBase->getExternalIf());
-		_if.reqTune_withRetry (&tune_param);
-	
-		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-		pBase->getExternalIf()->setRequestOption (opt);
+	// list service
+	for (int i = 0; i < channels[sel_ch_num].service_num; ++ i) {
+		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+			channels[sel_ch_num].transport_stream_id,
+			channels[sel_ch_num].original_network_id,
+			channels[sel_ch_num].service_ids[i]
+		};
+		_if.syncGetServiceName (&param);
+		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
+		if (enRslt == EN_THM_RSLT_ERROR) {
+			continue ;
+		}
+		char* svc_name = (char*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+		_COM_SVR_PRINT ("  %2d: [%s]\n", i, svc_name);
 	}
+	_COM_SVR_PRINT ("  'q': exit\n");
+
+	// select service
+	int sel_svc_num = 0;
+	while (1) {
+		memset (buf, 0x00, sizeof(buf));
+		_COM_SVR_PRINT ("select service. # ");
+
+		int rSize = CUtils::recvData (fd, (uint8_t*)buf, sizeof(buf), NULL);
+		if (rSize <= 0) {
+			continue;
+		} else {
+			CUtils::deleteLF (buf);
+			CUtils::deleteHeadSp (buf);
+			CUtils::deleteTailSp (buf);
+
+			if (buf[0] == 'q' && strlen(buf) == 1) {
+				CTunerServiceIf _if(pBase->getExternalIf());
+				_if.reqCloseSync (group_id);
+				return;
+			}
+
+			std::regex regex_num("^[0-9]+$");
+			if (!std::regex_match (buf, regex_num)) {
+				continue;
+			}
+
+			sel_svc_num = atoi(buf);
+			if (sel_svc_num < channels[sel_ch_num].service_num) {
+				break;
+			}
+		}
+	}
+
+
+	CTunerServiceIf::tune_advance_param_t tune_param = {
+		channels[sel_ch_num].transport_stream_id,
+		channels[sel_ch_num].original_network_id,
+		channels[sel_ch_num].service_ids[sel_svc_num],
+		group_id,
+		true
+	};
+
+
+	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
+	
+	CTunerServiceIf _ts_if(pBase->getExternalIf());
+	_ts_if.reqTuneAdvance (&tune_param);
+	
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	pBase->getExternalIf()->setRequestOption (opt);
 }
 
 static void _tune_stop (int argc, char* argv[], CThreadMgrBase *pBase)
@@ -200,7 +260,7 @@ ST_COMMAND_INFO g_chManagerCommands [] = { // extern
 		NULL,
 	},
 	{
-		"ti",
+		"t",
 		"tune (interactive mode)",
 		_tune_interactive,
 		NULL,

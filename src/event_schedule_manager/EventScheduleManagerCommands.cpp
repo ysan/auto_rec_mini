@@ -201,6 +201,7 @@ static void _dump_schedule_interactive (int argc, char* argv[], CThreadMgrBase *
 		char* ts_name = (char*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
 		_COM_SVR_PRINT ("  %2d: [%s]\n", i, ts_name);
 	}
+	_COM_SVR_PRINT ("  'q': exit\n");
 
 	// select ts channel
 	int sel_ch_num = 0;
@@ -215,6 +216,11 @@ static void _dump_schedule_interactive (int argc, char* argv[], CThreadMgrBase *
 			CUtils::deleteLF (buf);
 			CUtils::deleteHeadSp (buf);
 			CUtils::deleteTailSp (buf);
+
+			if (buf[0] == 'q' && strlen(buf) == 1) {
+				return;
+			}
+
 			std::regex regex_num("^[0-9]+$");
 			if (!std::regex_match (buf, regex_num)) {
 				continue;
@@ -242,6 +248,7 @@ static void _dump_schedule_interactive (int argc, char* argv[], CThreadMgrBase *
 		char* svc_name = (char*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
 		_COM_SVR_PRINT ("  %2d: [%s]\n", i, svc_name);
 	}
+	_COM_SVR_PRINT ("  'q': exit\n");
 
 	// select service
 	int sel_svc_num = 0;
@@ -256,6 +263,11 @@ static void _dump_schedule_interactive (int argc, char* argv[], CThreadMgrBase *
 			CUtils::deleteLF (buf);
 			CUtils::deleteHeadSp (buf);
 			CUtils::deleteTailSp (buf);
+
+			if (buf[0] == 'q' && strlen(buf) == 1) {
+				return;
+			}
+
 			std::regex regex_num("^[0-9]+$");
 			if (!std::regex_match (buf, regex_num)) {
 				continue;
