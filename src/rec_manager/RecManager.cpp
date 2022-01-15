@@ -990,8 +990,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		SECTID_CHECK_DISK_FREE_SPACE,
 //		SECTID_REQ_STOP_CACHE_SCHED,
 //		SECTID_WAIT_STOP_CACHE_SCHED,
-		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
-		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
+//		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
+//		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
 		SECTID_REQ_TUNE,
 		SECTID_WAIT_TUNE,
 		SECTID_REQ_GET_PRESENT_EVENT_INFO,
@@ -1012,7 +1012,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 	static PSISI_EVENT_INFO s_presentEventInfo;
 	static int s_retry_get_event_info;
 	static uint8_t s_groupId = 0xff;
-	static uint16_t s_ch = 0;
+//	static uint16_t s_ch = 0;
 
 
 	switch (sectId) {
@@ -1054,7 +1054,8 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		} else {
 //TODO
 //			sectId = SECTID_REQ_STOP_CACHE_SCHED;
-			sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+//			sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+			sectId = SECTID_REQ_TUNE;
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 
@@ -1079,6 +1080,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		enAct = EN_THM_ACT_CONTINUE;
 		break;
 ***/
+/***
 	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
 
 		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
@@ -1110,9 +1112,10 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 		break;
-
+***/
 	case SECTID_REQ_TUNE: {
 
+/***
 		CTunerServiceIf::tune_param_t param = {
 			s_ch,
 			s_groupId
@@ -1120,6 +1123,17 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 
 		CTunerServiceIf _if (getExternalIf());
 		_if.reqTune_withRetry (&param);
+***/
+		CTunerServiceIf::tune_advance_param_t param = {
+			m_recordings[s_groupId].transport_stream_id,
+			m_recordings[s_groupId].original_network_id,
+			m_recordings[s_groupId].service_id,
+			s_groupId,
+			true // enable retry
+		};
+
+		CTunerServiceIf _if(getExternalIf());
+		_if.reqTuneAdvance (&param);
 
 		sectId = SECTID_WAIT_TUNE;
 		enAct = EN_THM_ACT_WAIT;
@@ -1343,7 +1357,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		s_presentEventInfo.clear();
 		s_retry_get_event_info = 0;
 		s_groupId = 0xff;
-		s_ch = 0;
+//		s_ch = 0;
 
 		pIf->reply (EN_THM_RSLT_SUCCESS);
 		sectId = THM_SECT_ID_INIT;
@@ -1373,7 +1387,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 		s_presentEventInfo.clear();
 		s_retry_get_event_info = 0;
 		s_groupId = 0xff;
-		s_ch = 0;
+//		s_ch = 0;
 
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;

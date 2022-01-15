@@ -494,8 +494,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_REQ_OPEN,
 		SECTID_WAIT_OPEN,
-		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
-		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
+//		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
+//		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
 		SECTID_REQ_TUNE,
 		SECTID_WAIT_TUNE,
 		SECTID_REQ_GET_SERVICE_INFOS,
@@ -522,7 +522,7 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 	static bool s_is_timeouted = false;
 	static bool s_is_already_using_tuner = false;
 	static uint8_t s_group_id = 0xff;
-	static uint16_t s_ch = 0;
+//	static uint16_t s_ch = 0;
 
 
 	switch (sectId) {
@@ -588,7 +588,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		if (enRslt == EN_THM_RSLT_SUCCESS) {
 			s_group_id = *(uint8_t*)(getIf()->getSrcInfo()->msg.pMsg);
 			_UTL_LOG_I ("reqOpen group_id:[0x%02x]", s_group_id);
-			sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+//			sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+			sectId = SECTID_REQ_TUNE;
 			enAct = EN_THM_ACT_CONTINUE;
 
 		} else {
@@ -600,7 +601,7 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 		}
 		break;
-
+/***
 	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
 		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
 			s_service_key.transport_stream_id,
@@ -631,9 +632,9 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 			enAct = EN_THM_ACT_CONTINUE;
 		}
 		break;
-
+***/
 	case SECTID_REQ_TUNE: {
-
+/***
 		CTunerServiceIf::tune_param_t param = {
 			s_ch,
 			s_group_id
@@ -641,6 +642,17 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 		CTunerServiceIf _if (getExternalIf());
 		_if.reqTune_withRetry (&param);
+***/
+		CTunerServiceIf::tune_advance_param_t param = {
+			s_service_key.transport_stream_id,
+			s_service_key.original_network_id,
+			s_service_key.service_id,
+			s_group_id,
+			true // enable retry
+		};
+
+		CTunerServiceIf _if (getExternalIf());
+		_if.reqTuneAdvance (&param);
 
 		sectId = SECTID_WAIT_TUNE;
 		enAct = EN_THM_ACT_WAIT;
@@ -1014,7 +1026,7 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		mp_EIT_H_sched = NULL;
 		m_executing_reserve.clear();
 		s_group_id = 0xff;
-		s_ch = 0;
+//		s_ch = 0;
 
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
