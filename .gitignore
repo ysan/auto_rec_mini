@@ -2,8 +2,10 @@
 *.o
 *.a
 *.d
-src/auto_rec_mini
 local_build/bin/auto_rec_mini
+local_build/bin/recdvb
+local_build/bin/recfsusb2i
+src/auto_rec_mini
 src/parser_test/parser_test
 rec_reserves.json
 rec_results.json
