@@ -682,10 +682,14 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		}
 
 		CPsisiManagerIf _if (getExternalIf(), _group_id);
-		_if.reqGetCurrentServiceInfos (s_serviceInfos, 10);
-
-		sectId = SECTID_WAIT_GET_SERVICE_INFOS;
-		enAct = EN_THM_ACT_WAIT;
+		if (_if.reqGetCurrentServiceInfos (s_serviceInfos, 10)) {
+			sectId = SECTID_WAIT_GET_SERVICE_INFOS;
+			enAct = EN_THM_ACT_WAIT;
+		} else {
+			_UTL_LOG_E ("CPsisiManagerIf::reqGetCurrentServiceInfos is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
 
 		}
 		break;
@@ -723,10 +727,14 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		}
 
 		CPsisiManagerIf _if (getExternalIf(), _group_id);
-		_if.reqEnableParseEITSched ();
-
-		sectId = SECTID_WAIT_ENABLE_PARSE_EIT_SCHED;
-		enAct = EN_THM_ACT_WAIT;
+		if (_if.reqEnableParseEITSched ()) {
+			sectId = SECTID_WAIT_ENABLE_PARSE_EIT_SCHED;
+			enAct = EN_THM_ACT_WAIT;
+		} else {
+			_UTL_LOG_E ("CPsisiManagerIf::reqEnableParseEITSched is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
 
 		}
 		break;
@@ -817,10 +825,17 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		}
 
 		CPsisiManagerIf _if (getExternalIf(), _group_id);
-		_if.reqDisableParseEITSched ();
-
-		sectId = SECTID_WAIT_DISABLE_PARSE_EIT_SCHED;
-		enAct = EN_THM_ACT_WAIT;
+		if (_if.reqDisableParseEITSched ()) {
+			sectId = SECTID_WAIT_DISABLE_PARSE_EIT_SCHED;
+			enAct = EN_THM_ACT_WAIT;
+		} else {
+			// キューがいっぱいでした
+			// disable は必ず行いたいので 少し待ってリトライします（無限）
+			_UTL_LOG_E ("CPsisiManagerIf::reqDisableParseEITSched is failure. --> retry");
+			pIf->setTimeout (500); // 500mS
+			sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
+			enAct = EN_THM_ACT_WAIT;
+		}
 
 		}
 		break;
@@ -1163,10 +1178,14 @@ void CEventScheduleManager::onReq_cacheSchedule_forceCurrentService (CThreadMgrI
 
 	case SECTID_REQ_GET_SERVICE_INFOS: {
 		CPsisiManagerIf _if (getExternalIf(), m_force_cache_group_id);
-		_if.reqGetCurrentServiceInfos (s_serviceInfos, 10);
-
-		sectId = SECTID_WAIT_GET_SERVICE_INFOS;
-		enAct = EN_THM_ACT_WAIT;
+		if (_if.reqGetCurrentServiceInfos (s_serviceInfos, 10)) {
+			sectId = SECTID_WAIT_GET_SERVICE_INFOS;
+			enAct = EN_THM_ACT_WAIT;
+		} else {
+			_UTL_LOG_E ("CPsisiManagerIf::reqGetCurrentServiceInfos is failure.");
+			sectId = SECTID_END_ERROR;
+			enAct = EN_THM_ACT_CONTINUE;
+		}
 
 		}
 		break;
