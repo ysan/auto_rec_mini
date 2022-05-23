@@ -278,6 +278,7 @@ class CTsAribCommon {
 public:
 	static void getStrEpoch (time_t tx, const char *format, char *pszout, int outsize);
 	static void getStrSecond (int second, char *pszout, int outsize);
+	static uint32_t crc32(const uint8_t *start, size_t length);
 
 
 	// ARIB specific
@@ -294,7 +295,6 @@ public:
 	static uint32_t pysicalCh2freqKHz (uint16_t ch);
 	static const uint8_t *getCommonPaletCLUT (void);
 	static size_t getCommonPaletCLUTSize (void);
-
 };
 
 
