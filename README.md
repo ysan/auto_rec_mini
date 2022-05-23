@@ -65,6 +65,8 @@ Please install as appropriate.
 Build and install
 ------------
 ### Build and install ###
+The code depends on several git submodules.  
+You need cloned the repository with --recursive.
 
 	$ git clone --recursive https://github.com/ysan/auto_rec_mini.git
 	$ cd auto_rec_mini

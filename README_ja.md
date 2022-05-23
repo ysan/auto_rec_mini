@@ -81,6 +81,8 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 Build and install
 ------------
 ### Build and install ###
+いくつかのサブモジュールに依存しています。  
+--recursiveを使用してリポジトリのクローンを作成する必要があります。
 
 	$ git clone --recursive https://github.com/ysan/auto_rec_mini.git
 	$ cd auto_rec_mini
