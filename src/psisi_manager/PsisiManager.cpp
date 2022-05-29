@@ -2227,6 +2227,7 @@ void CPsisiManager::clearNetworkInfo (void)
 	m_networkInfo.clear();
 }
 
+#include "Pngcrc.h"
 void CPsisiManager::storeLogo (void)
 {
 	if (m_state == EN_PSISI_STATE__NOT_READY) {
@@ -2238,26 +2239,82 @@ void CPsisiManager::storeLogo (void)
 		return;
 	}
 
+	CPngcrc pngcrc;
+
 	for (auto it = p_tables->cbegin(); it != p_tables->cend(); ++ it) {
 		if ((*it)->data_type != 0x01) {
 			continue;
 		}
 
-		uint8_t png_include_plte [(*it)->data.data_size + CTsAribCommon::getCommonPaletCLUTSize()];
-		// 元pngのヘッダをコピーします
-		memcpy (png_include_plte, (*it)->data.data_byte.get(), 33);
-		// CLUT共通固定色(PLTEチャンク)をコピー(挿入)します
-		memcpy (
-			png_include_plte + 33,
-			CTsAribCommon::getCommonPaletCLUT(),
-			CTsAribCommon::getCommonPaletCLUTSize()
-		);
-		// 元pngの残りをコピーします
-		memcpy (
-			png_include_plte + 33 + CTsAribCommon::getCommonPaletCLUTSize(),
-			(*it)->data.data_byte.get() + 33,
-			(*it)->data.data_size - 33
-		);
+		size_t buff_plte_size = 4 + 4 + (128 * 3) + 4;
+		uint8_t buff_plte [buff_plte_size] = {0};
+		{
+			uint8_t *p = &buff_plte[0];
+			*p = ((128 * 3) >> 24) & 0xff; ++ p;
+			*p = ((128 * 3) >> 16) & 0xff; ++ p;
+			*p = ((128 * 3) >> 8) & 0xff; ++ p;
+			*p = (128 * 3) & 0xff; ++ p;
+			*p = 'P'; ++ p;
+			*p = 'L'; ++ p;
+			*p = 'T'; ++ p;
+			*p = 'E'; ++ p;
+			for (int i = 0; i < 128; ++ i) {
+				*p = g_commonPaletCLUT[i][0];
+				++ p;
+				*p = g_commonPaletCLUT[i][1];
+				++ p;
+				*p = g_commonPaletCLUT[i][2];
+				++ p;
+			}
+			uint32_t _crc = pngcrc.crc(&buff_plte[4], 4 + (128 * 3));
+			*p = (_crc >> 24) & 0xff; ++ p;
+			*p = (_crc >> 16) & 0xff; ++ p;
+			*p = (_crc >> 8) & 0xff; ++ p;
+			*p = _crc & 0xff;
+		}
+
+		size_t buff_trns_size = 4 + 4 + 128 + 4;
+		uint8_t buff_trns [buff_trns_size] = {0};
+		{
+			uint8_t *p = &buff_trns[0];
+			*p = (128 >> 24) & 0xff; ++ p;
+			*p = (128 >> 16) & 0xff; ++ p;
+			*p = (128 >> 8) & 0xff; ++ p;
+			*p = 128 & 0xff; ++ p;
+			*p = 't'; ++ p;
+			*p = 'R'; ++ p;
+			*p = 'N'; ++ p;
+			*p = 'S'; ++ p;
+			for (int i = 0; i < 128; ++ i) {
+				*p = g_commonPaletCLUT[i][3];
+				++ p;
+			}
+			uint32_t _crc = pngcrc.crc(&buff_trns[4], 4 + 128);
+			*p = (_crc >> 24) & 0xff; ++ p;
+			*p = (_crc >> 16) & 0xff; ++ p;
+			*p = (_crc >> 8) & 0xff; ++ p;
+			*p = _crc & 0xff;
+		}
+
+		size_t png_include_plte_size = buff_plte_size + buff_trns_size + (*it)->data.data_size;
+		uint8_t png_include_plte [png_include_plte_size] = {0};
+		{
+			uint8_t *p = png_include_plte;
+			// 元pngのヘッダをコピーします
+			memcpy (p, (*it)->data.data_byte.get(), 33);
+			p += 33;
+
+			// PLTEチャンクをコピー(挿入)します
+			memcpy (p, buff_plte, buff_plte_size); 
+			p += buff_plte_size;
+
+			// tRNSチャンクをコピー(挿入)します
+			memcpy (p, buff_trns, buff_trns_size);
+			p += buff_trns_size;
+
+			// 元pngの残りをコピーします
+			memcpy (p, (*it)->data.data_byte.get() + 33, (*it)->data.data_size - 33);
+		}
 
 		std::string *p_path = mp_settings->getParams()->getLogoPath();
 		char _name[PATH_MAX] = {0};
@@ -2275,7 +2332,7 @@ void CPsisiManager::storeLogo (void)
 			(*it)->data.logo_version
 		);
 		std::ofstream ofs (_name, std::ios::out|ios::binary);
-		ofs.write((char*)png_include_plte, sizeof(png_include_plte));
+		ofs.write((char*)png_include_plte, png_include_plte_size);
 		ofs.flush();
 		ofs.close();
 	}
