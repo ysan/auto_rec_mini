@@ -273,6 +273,7 @@ The following repositories are referred to the parser.
 * [`epgdump`](https://github.com/Piro77/epgdump)
 * [`ariblib`](https://github.com/youzaka/ariblib)
 * [`eit_txtout_mod`](https://github.com/arairait/eit_txtout_mod)
+* [`node-aribts`](https://github.com/rndomhack/node-aribts)
   
 LICENSE
 ------------

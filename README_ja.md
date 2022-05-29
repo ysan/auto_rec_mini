@@ -284,11 +284,12 @@ Others
 (現状DBは使用していません。)
 
 
-パーサー周りは以下のレポジトリ様を参考にさせていただいています:
+パーサー処理等は以下のレポジトリ様を参考にさせていただいています:
 * [`libarib25`](https://github.com/stz2012/libarib25)
 * [`epgdump`](https://github.com/Piro77/epgdump)
 * [`ariblib`](https://github.com/youzaka/ariblib)
 * [`eit_txtout_mod`](https://github.com/arairait/eit_txtout_mod)
+* [`node-aribts`](https://github.com/rndomhack/node-aribts)
  
 LICENSE
 ------------
