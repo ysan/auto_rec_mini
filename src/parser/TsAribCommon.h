@@ -94,6 +94,7 @@
 #define UHF_PHYSICAL_CHANNEL_MIN		(13)	// UHFの最小物理CH
 #define UHF_PHYSICAL_CHANNEL_MAX		(62)	// UHFの最大物理CH
 
+#define COMMON_CLUT_SIZE				(128)
 
 typedef enum {
 	EN_AREA_CODE_COMMON				= 0x34d,
@@ -273,8 +274,6 @@ typedef struct _section_header {
 
 } ST_SECTION_HEADER;
 
-extern const uint8_t g_commonPaletCLUT[128][4];
-
 class CTsAribCommon {
 public:
 	static void getStrEpoch (time_t tx, const char *format, char *pszout, int outsize);
@@ -294,6 +293,7 @@ public:
 	static const char* getAudioQuality (uint8_t quality);
 	static uint16_t freqKHz2pysicalCh (uint32_t freqKHz);
 	static uint32_t pysicalCh2freqKHz (uint16_t ch);
+	static const uint8_t getCLUTPalette (int idx, int rgba);
 };
 
 

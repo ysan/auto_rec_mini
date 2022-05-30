@@ -2227,6 +2227,7 @@ void CPsisiManager::clearNetworkInfo (void)
 	m_networkInfo.clear();
 }
 
+
 #include "Pngcrc.h"
 void CPsisiManager::storeLogo (void)
 {
@@ -2246,50 +2247,50 @@ void CPsisiManager::storeLogo (void)
 			continue;
 		}
 
-		size_t buff_plte_size = 4 + 4 + (128 * 3) + 4;
+		size_t buff_plte_size = 4 + 4 + (COMMON_CLUT_SIZE * 3) + 4;
 		uint8_t buff_plte [buff_plte_size] = {0};
 		{
 			uint8_t *p = &buff_plte[0];
-			*p = ((128 * 3) >> 24) & 0xff; ++ p;
-			*p = ((128 * 3) >> 16) & 0xff; ++ p;
-			*p = ((128 * 3) >> 8) & 0xff; ++ p;
-			*p = (128 * 3) & 0xff; ++ p;
+			*p = ((COMMON_CLUT_SIZE * 3) >> 24) & 0xff; ++ p;
+			*p = ((COMMON_CLUT_SIZE * 3) >> 16) & 0xff; ++ p;
+			*p = ((COMMON_CLUT_SIZE * 3) >> 8) & 0xff; ++ p;
+			*p = (COMMON_CLUT_SIZE * 3) & 0xff; ++ p;
 			*p = 'P'; ++ p;
 			*p = 'L'; ++ p;
 			*p = 'T'; ++ p;
 			*p = 'E'; ++ p;
-			for (int i = 0; i < 128; ++ i) {
-				*p = g_commonPaletCLUT[i][0];
+			for (int i = 0; i < COMMON_CLUT_SIZE; ++ i) {
+				*p = CTsAribCommon::getCLUTPalette (i, 0);
 				++ p;
-				*p = g_commonPaletCLUT[i][1];
+				*p = CTsAribCommon::getCLUTPalette (i, 1);
 				++ p;
-				*p = g_commonPaletCLUT[i][2];
+				*p = CTsAribCommon::getCLUTPalette (i, 2);
 				++ p;
 			}
-			uint32_t _crc = pngcrc.crc(&buff_plte[4], 4 + (128 * 3));
+			uint32_t _crc = pngcrc.crc(&buff_plte[4], 4 + (COMMON_CLUT_SIZE * 3));
 			*p = (_crc >> 24) & 0xff; ++ p;
 			*p = (_crc >> 16) & 0xff; ++ p;
 			*p = (_crc >> 8) & 0xff; ++ p;
 			*p = _crc & 0xff;
 		}
 
-		size_t buff_trns_size = 4 + 4 + 128 + 4;
+		size_t buff_trns_size = 4 + 4 + COMMON_CLUT_SIZE + 4;
 		uint8_t buff_trns [buff_trns_size] = {0};
 		{
 			uint8_t *p = &buff_trns[0];
-			*p = (128 >> 24) & 0xff; ++ p;
-			*p = (128 >> 16) & 0xff; ++ p;
-			*p = (128 >> 8) & 0xff; ++ p;
-			*p = 128 & 0xff; ++ p;
+			*p = (COMMON_CLUT_SIZE >> 24) & 0xff; ++ p;
+			*p = (COMMON_CLUT_SIZE >> 16) & 0xff; ++ p;
+			*p = (COMMON_CLUT_SIZE >> 8) & 0xff; ++ p;
+			*p = COMMON_CLUT_SIZE & 0xff; ++ p;
 			*p = 't'; ++ p;
 			*p = 'R'; ++ p;
 			*p = 'N'; ++ p;
 			*p = 'S'; ++ p;
-			for (int i = 0; i < 128; ++ i) {
-				*p = g_commonPaletCLUT[i][3];
+			for (int i = 0; i < COMMON_CLUT_SIZE; ++ i) {
+				*p = CTsAribCommon::getCLUTPalette (i, 3);
 				++ p;
 			}
-			uint32_t _crc = pngcrc.crc(&buff_trns[4], 4 + 128);
+			uint32_t _crc = pngcrc.crc(&buff_trns[4], 4 + COMMON_CLUT_SIZE);
 			*p = (_crc >> 24) & 0xff; ++ p;
 			*p = (_crc >> 16) & 0xff; ++ p;
 			*p = (_crc >> 8) & 0xff; ++ p;
