@@ -174,6 +174,23 @@ int main (int argc, char *argv[])
 	p_mgr->teardown();
 
 
+	delete p_comSvrIf;
+#if 0
+	delete p_tunerCtlIf;
+	delete p_psisiMgrIf;
+#else
+	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
+		delete p_tunerCtlIf[_gr];
+		delete p_psisiMgrIf[_gr];
+	}
+#endif
+	delete p_tunerSvcIf;
+	delete p_recMgrIf;
+	delete p_chMgrIf;
+	delete p_schedMgrIf;
+	delete p_searchIf;
+
+
 	// syslog finalize
 	if (s->getParams()->isSyslogOutput()) {
 		finalizSyslog(); // threadmgr syslog output

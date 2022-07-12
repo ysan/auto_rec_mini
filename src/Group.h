@@ -5,7 +5,7 @@
 
 class CGroup {
 public:
-	static const uint8_t GROUP_MAX = 3;
+	static const uint8_t GROUP_MAX = 4;
 protected:
 	explicit CGroup (uint8_t id=0) {
 		if (id >= GROUP_MAX) {

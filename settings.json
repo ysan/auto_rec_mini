@@ -6,6 +6,7 @@
 
         "tuner_hal_allocates": [
             "./bin/recdvb %d - -",
+            "./bin/recdvb %d - -",
             "./bin/recfsusb2i --np %d - -"
         ],
 
