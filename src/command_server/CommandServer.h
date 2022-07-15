@@ -27,10 +27,15 @@ public:
 	virtual ~CCommandServer (void);
 
 
+	void onCreate (void) override;
+
 	void moduleUp (CThreadMgrIf *pIf);
 	void moduleDown (CThreadMgrIf *pIf);
 	void serverLoop (CThreadMgrIf *pIf);
 
+	static void needDestroy (void);
+	static void clearNeedDestroy (void);
+	static bool isNeedDestroy (void);
 
 	int getClientFd (void);
 	void connectionClose (void);

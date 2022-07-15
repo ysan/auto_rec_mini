@@ -128,6 +128,8 @@ public:
 	virtual ~CEventSearch (void);
 
 
+	void onDestroy (void) override;
+
 	void onReq_moduleUp (CThreadMgrIf *pIf);
 	void onReq_moduleDown (CThreadMgrIf *pIf);
 	void onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf);

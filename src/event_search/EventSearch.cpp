@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "CommandServer.h"
 #include "EventSearch.h"
 #include "modules.h"
 
@@ -38,6 +39,13 @@ CEventSearch::~CEventSearch (void)
 {
 }
 
+
+void CEventSearch::onDestroy (void)
+{
+	// CCommandServer::serverLoop を落とします
+	// 暫定でここに置きます
+	CCommandServer::needDestroy();
+}
 
 void CEventSearch::onReq_moduleUp (CThreadMgrIf *pIf)
 {

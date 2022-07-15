@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,6 +55,11 @@ CCommandServer::~CCommandServer (void)
 {
 }
 
+
+void CCommandServer::onCreate (void)
+{
+	clearNeedDestroy();
+}
 
 void CCommandServer::moduleUp (CThreadMgrIf *pIf)
 {
@@ -155,6 +161,9 @@ void CCommandServer::serverLoop (void)
 	struct sockaddr_in stAddrCl;
 	socklen_t addrLenCl = sizeof(struct sockaddr_in);
 
+	fd_set stFds;
+	struct timeval stTimeout;
+
 	memset (szBuff, 0x00, sizeof(szBuff));
 	memset (&stAddrSv, 0x00, sizeof(struct sockaddr_in));
 	memset (&stAddrCl, 0x00, sizeof(struct sockaddr_in));
@@ -192,62 +201,85 @@ void CCommandServer::serverLoop (void)
 
 
 	while (1) {
-		_UTL_LOG_I ("accept blocking...");
+//		_UTL_LOG_I ("accept blocking...");
 
-		if ((mClientfd = accept (fdSockSv, (struct sockaddr*)&stAddrCl, &addrLenCl)) < 0 ) {
-			_UTL_PERROR ("accept()");
-			close (fdSockSv);
-			return;
-		}
-			
-		_UTL_LOG_I (
-			"clientAddr:[%s] SocketFd:[%d] --- connected.\n",
-			inet_ntoa(stAddrCl.sin_addr),
-			mClientfd
-		);
+		FD_ZERO (&stFds);
+		FD_SET (fdSockSv, &stFds);
+		stTimeout.tv_sec = 1;
+		stTimeout.tv_usec = 0;
+		r = select (fdSockSv+1, &stFds, NULL, NULL, &stTimeout);
+		if (r < 0) {
+			_UTL_PERROR ("select()");
+			continue;
 
-		// 接続してきたsocketにログ出力をつなぎます
-		int fd_copy = dup (mClientfd);
-		FILE *fp = fdopen (fd_copy, "w");
-		CUtils::setLogFileptr (fp);
-		setLogFileptr (fp);
-//		CCommandServerLog::setFileptr (fp);
-
-
-		// begin
-		if (on_command_wait_begin) {
-			on_command_wait_begin ();
-		}
-
-		while (1) {
-			r = recvParseDelimiter (mClientfd, szBuff, sizeof(szBuff), (char*)"\r\n");
-			if (r <= 0) {
+		} else if (r == 0) {
+			// timeout
+			if (isNeedDestroy()) {
+				_UTL_LOG_I ("destroy --> serverLoop break\n");
+				clearNeedDestroy();
 				break;
 			}
 		}
 
-		// end
-		if (on_command_wait_end) {
-			on_command_wait_end ();
+		if (FD_ISSET (fdSockSv, &stFds)) {
+
+			if ((mClientfd = accept (fdSockSv, (struct sockaddr*)&stAddrCl, &addrLenCl)) < 0 ) {
+				_UTL_PERROR ("accept()");
+				close (fdSockSv);
+				continue;
+			}
+				
+			_UTL_LOG_I (
+				"clientAddr:[%s] SocketFd:[%d] --- connected.\n",
+				inet_ntoa(stAddrCl.sin_addr),
+				mClientfd
+			);
+
+			// 接続してきたsocketにログ出力をつなぎます
+			int fd_copy = dup (mClientfd);
+			FILE *fp = fdopen (fd_copy, "w");
+			CUtils::setLogFileptr (fp);
+			setLogFileptr (fp);
+//			CCommandServerLog::setFileptr (fp);
+
+
+			// begin
+			if (on_command_wait_begin) {
+				on_command_wait_begin ();
+			}
+
+			while (1) {
+				r = recvParseDelimiter (mClientfd, szBuff, sizeof(szBuff), (char*)"\r\n");
+				if (r <= 0) {
+					break;
+				}
+			}
+
+			// end
+			if (on_command_wait_end) {
+				on_command_wait_end ();
+			}
+
+
+			// socket切断にともなってログ出力をstdoutにもどします
+			CUtils::setLogFileptr (stdout);
+			setLogFileptr (stdout);
+	//		CCommandServerLog::setFileptr (stdout);
+
+			fclose (fp);
+			close (mClientfd);
+
+			_UTL_LOG_I (
+				"client:[%s] fd:[%d] --- disconnected.\n",
+				inet_ntoa(stAddrCl.sin_addr),
+				mClientfd
+			);
+
+			mClientfd = 0;
 		}
-
-
-		// socket切断にともなってログ出力をstdoutにもどします
-		CUtils::setLogFileptr (stdout);
-		setLogFileptr (stdout);
-//		CCommandServerLog::setFileptr (stdout);
-
-		fclose (fp);
-		close (mClientfd);
-
-		_UTL_LOG_I (
-			"client:[%s] fd:[%d] --- disconnected.\n",
-			inet_ntoa(stAddrCl.sin_addr),
-			mClientfd
-		);
-
-		mClientfd = 0;
 	}
+
+	close (fdSockSv);
 }
 
 int CCommandServer::recvParseDelimiter (int fd, char *pszBuff, int buffSize, const char* pszDelim)
@@ -292,6 +324,11 @@ int CCommandServer::recvParseDelimiter (int fd, char *pszBuff, int buffSize, con
 				_UTL_LOG_I ("connection close --> recvParseDelimiter break\n");
 				m_isConnectionClose = false;
 				return 0;
+			}
+
+			if (isNeedDestroy()) {
+				_UTL_LOG_I ("destroy --> recvParseDelimiter break\n");
+				break;
 			}
 		}
 
@@ -467,6 +504,21 @@ void CCommandServer::ignoreSigpipe (void)
 	sigprocmask (SIG_BLOCK, &sigset, NULL);
 }
 
+void CCommandServer::needDestroy (void)
+{
+	fopen("/tmp/_server_loop_destory", "w");
+}
+
+void CCommandServer::clearNeedDestroy (void)
+{
+	std::remove ("/tmp/_server_loop_destory");
+}
+
+bool CCommandServer::isNeedDestroy (void)
+{
+	FILE *fp = fopen("/tmp/_server_loop_destory", "r");
+	return (fp != NULL) ? true: false;
+}
 
 
 static CStack <ST_COMMAND_INFO> m_stack;
