@@ -936,10 +936,11 @@ void CRecManager::onReq_recordingNotice (CThreadMgrIf *pIf)
 		snprintf (
 			newfile,
 			sizeof(newfile),
-			"%s/%s_0x%08x_%s.m2ts",
+			"%s/%s_0x%08x_%d_%s.m2ts",
 			p_path->c_str(),
 			p_name,
 			m_recordings[_notice.groupId].state,
+			_notice.groupId,
 			t_end.toString()
 		);
 
