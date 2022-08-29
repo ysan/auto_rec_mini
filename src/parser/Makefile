@@ -11,6 +11,7 @@ INCLUDES	:= \
 	-I$(ROOTDIR)/common \
 	-I./ \
 	-I./aribstr/ \
+	-I./tssplitter_lite/ \
 	-I./psisi/ \
 	-I./psisi/descriptor \
 	-I./dsmcc/ \
@@ -20,6 +21,7 @@ INCLUDES	:= \
 LIBS		:= \
 	-L$(ROOTDIR)/common -lcommon \
 	-L./aribstr -laribstr \
+	-L./tssplitter_lite -ltssplitter_lite \
 	-L./psisi -lpsisiparser \
 	-L./dsmcc -ldsmccparser \
 	-lpthread \
@@ -27,6 +29,7 @@ LIBS		:= \
 
 SUBDIRS		:= \
 	aribstr \
+	tssplitter_lite \
 	psisi \
 	dsmcc \
 
