@@ -14,6 +14,7 @@
 #include "Utils.h"
 #include "FileBufferedWriter.h"
 #include "TsAribCommon.h"
+#include "tssplitter_lite.h"
 
 class CRecAribB25 : public CBufferedWriter
 {
@@ -37,6 +38,10 @@ public:
 			mp_b25cas->release (mp_b25cas);
 			mp_b25cas = NULL;
 		}
+	}
+
+	void set_service_id (uint16_t _id) {
+		m_service_id = _id;
 	}
 
 	void init () {
@@ -175,6 +180,7 @@ private:
 	ARIB_STD_B25 *mp_b25;
 	B_CAS_CARD *mp_b25cas;
 	CFileBufferedWriter m_writer;
+	uint16_t m_service_id;
 };
 
 #endif

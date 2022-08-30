@@ -18,6 +18,7 @@ INCLUDES	:= \
 	-I$(ROOTDIR)/tuner_service \
 	-I$(ROOTDIR)/parser \
 	-I$(ROOTDIR)/parser/aribstr \
+	-I$(ROOTDIR)/parser/tssplitter_lite \
 	-I$(ROOTDIR)/psisi_manager \
 	-I$(ROOTDIR)/channel_manager \
 	-I$(ROOTDIR)/event_schedule_manager \
@@ -32,6 +33,7 @@ LIBS		:= \
 	-L$(ROOTDIR)/tuner_service -ltunerservice \
 	-L$(ROOTDIR)/parser -lparser \
 	-L$(ROOTDIR)/parser/aribstr -laribstr \
+	-L$(ROOTDIR)/parser/tssplitter_lite -ltssplitter_lite \
 	-L$(ROOTDIR)/psisi_manager -lpsisimanager \
 	-lpthread \
 

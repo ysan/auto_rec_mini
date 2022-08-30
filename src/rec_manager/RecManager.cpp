@@ -1328,6 +1328,7 @@ void CRecManager::onReq_startRecording (CThreadMgrIf *pIf)
 ////			m_recProgress = EN_REC_PROGRESS__PRE_PROCESS;
 			std::string s = m_recording_tmpfiles[s_groupId];
 			msp_rec_instances[s_groupId]->setRecFilename(s);
+			msp_rec_instances[s_groupId]->setServiceId(m_recordings[s_groupId].service_id);
 			msp_rec_instances[s_groupId]->setNextProgress(CRecInstance::progress::PRE_PROCESS);
 			// ######################################### //
 

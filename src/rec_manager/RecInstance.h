@@ -71,6 +71,10 @@ public:
 		return m_recProgress;
 	}
 
+	void setServiceId (uint16_t _id) {
+		m_service_id = _id;
+	}
+
 
 	// CTunerControlIf::ITsReceiveHandler
 	bool onPreTsReceive (void) override {
@@ -102,6 +106,7 @@ public:
 
 			std::unique_ptr<CRecAribB25> b25 (new CRecAribB25(8192, m_recording_tmpfile));
 			msp_b25.swap (b25);
+			msp_b25->set_service_id (m_service_id);
 
 			RECORDING_NOTICE_t _notice = {m_recProgress, m_groupId};
 			mp_ext_if->requestAsync (
@@ -197,6 +202,7 @@ private:
 	std::string m_recording_tmpfile;
 	unique_ptr<CRecAribB25> msp_b25;
 	uint8_t m_groupId;
+	uint16_t m_service_id;
 };
 
 #endif

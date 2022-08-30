@@ -19,6 +19,10 @@
 #ifndef _TS_SPLITTER_LITE_H_
 #define _TS_SPLITTER_LITE_H_
 
+#ifdef __cplusplus
+extern "C"{
+#endif /* __cplusplus */
+
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <unistd.h>
@@ -72,5 +76,9 @@ splitter* split_startup(char *sid);
 int split_select(splitter *sp, ARIB_STD_B25_BUFFER *sbuf);
 void split_shutdown(splitter *sp);
 int split_ts(splitter *splitter, ARIB_STD_B25_BUFFER *sbuf, splitbuf_t *dbuf);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif

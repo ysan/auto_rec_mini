@@ -15,6 +15,7 @@ INCLUDES	:= \
 	-I$(ROOTDIR)/tuner_control \
 	-I$(ROOTDIR)/parser \
 	-I$(ROOTDIR)/parser/aribstr \
+	-I$(ROOTDIR)/parser/tssplitter_lite \
 	-I$(ROOTDIR)/parser/psisi \
 	-I$(ROOTDIR)/parser/psisi/descriptor \
 	-I$(ROOTDIR)/parser/dsmcc \
