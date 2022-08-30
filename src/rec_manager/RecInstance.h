@@ -84,11 +84,11 @@ public:
 	}
 
 	void onPostTsReceive (void) override {
-		mp_ext_if->createExternalCp();
-
 		uint32_t opt = mp_ext_if->getRequestOption ();
-		opt |= REQUEST_OPTION__WITHOUT_REPLY;
+		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 		mp_ext_if->setRequestOption (opt);
+
+		mp_ext_if->destroyExternalCp();
 	}
 
 	bool onCheckTsReceiveLoop (void) override {
