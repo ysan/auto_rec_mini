@@ -1,5 +1,5 @@
-#ifndef _BUFFERED_WRITER_H_
-#define _BUFFERED_WRITER_H_
+#ifndef _BUFFERED_PROCESS_H_
+#define _BUFFERED_PROCESS_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,21 +9,21 @@
 #include <memory>
 #include <functional>
 
-class CBufferedWriter
+class CBufferedProcess
 {
 protected:
-	CBufferedWriter (size_t size) 
+	CBufferedProcess (size_t size) 
 		: m_process (nullptr)
 		, m_release (nullptr)
 		, m_buffer_size (0)
-		, m_writed_pos (0)
+		, m_processed_pos (0)
 	{
 		m_buffer_size = size;
 		std::unique_ptr<uint8_t[]> ubf (new uint8_t[size]);
 		m_buffer.swap(ubf);
 	}
 	
-	virtual ~CBufferedWriter (void) {
+	virtual ~CBufferedProcess (void) {
 	}
 
 	void set_process_handler (std::function<int(bool is_proc_inner_buff, uint8_t* p_buffer)> _handler) {
@@ -40,13 +40,13 @@ public:
 		}
 
 		int r = 0;
-		if (m_writed_pos + length > m_buffer_size) {
+		if (m_processed_pos + length > m_buffer_size) {
 			// proccess first inner buffer data
 			r = m_process (true, NULL);
 			if (r < 0) {
 				return r;
 			}
-			m_writed_pos = 0;
+			m_processed_pos = 0;
 			
 			while (length >= m_buffer_size) {
 				// directly process the data passed as an argument
@@ -74,12 +74,12 @@ public:
 		}
 
 		int r;
-		if (m_writed_pos > 0) {
+		if (m_processed_pos > 0) {
 			r = m_process(true, NULL);
 			if(r < 0)  {
 				return r;
 			}
-			m_writed_pos = 0;
+			m_processed_pos = 0;
 		}
 
 		return 0;
@@ -103,14 +103,14 @@ protected:
 	}
 
 	size_t getWritedPosition() const {
-		return m_writed_pos;
+		return m_processed_pos;
 	}
 
 private:
 	void copy (uint8_t *p_buffer, size_t length) {
 		if (p_buffer && length > 0) {
-			memcpy(m_buffer.get() + m_writed_pos, p_buffer, length);
-			m_writed_pos += length;
+			memcpy(m_buffer.get() + m_processed_pos, p_buffer, length);
+			m_processed_pos += length;
 		}
 	}
 
@@ -119,7 +119,7 @@ private:
 
 	std::unique_ptr<uint8_t[]> m_buffer;
 	size_t m_buffer_size;
-	size_t m_writed_pos;
+	size_t m_processed_pos;
 };
 
 #endif

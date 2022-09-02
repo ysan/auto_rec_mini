@@ -6,13 +6,13 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "BufferedWriter.h"
+#include "BufferedProcess.h"
 
-class CFileBufferedWriter : public CBufferedWriter
+class CFileBufferedWriter : public CBufferedProcess
 {
 public:
 	CFileBufferedWriter (size_t size, std::string output_name) 
-		: CBufferedWriter (size)
+		: CBufferedProcess (size)
 		, mp_file (NULL)
 	{
 		init(output_name);
