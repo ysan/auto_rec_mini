@@ -5,38 +5,64 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <unistd.h>
 
 #include <arib25/arib_std_b25.h>
 #include <arib25/b_cas_card.h>
 
-#include "BufferedWriter.h"
+#include "BufferedProcess.h"
 #include "Utils.h"
 #include "FileBufferedWriter.h"
 #include "TsAribCommon.h"
 #include "tssplitter_lite.h"
 
-class CRecAribB25 : public CBufferedWriter
+class CRecAribB25 : public CBufferedProcess
 {
 public:
-	CRecAribB25 (size_t size, std::string output_name) 
-		: CBufferedWriter (size > TS_PACKET_LEN * 512 ? size : TS_PACKET_LEN * 512)
+	CRecAribB25 (size_t size, std::string output_name, uint16_t service_id) 
+		: CBufferedProcess (size > TS_PACKET_LEN * 512 ? size : TS_PACKET_LEN * 512)
 		, mp_b25 (NULL)
 		, mp_b25cas (NULL)
 		, m_writer (768 * 1024, output_name)
+		, m_service_id (service_id)
+		, m_use_splitter(true)
+		, mp_splitter(NULL)
+		, m_split_select_state(TSS_ERROR)
 	{
 		init();
 		init_b25();
+
+		std::string sid = std::to_string(m_service_id);
+		memset (m_service_id_string, 0x00, sizeof(m_service_id_string));
+		strncpy (m_service_id_string, sid.c_str(), sid.length());
+
+		if (m_use_splitter) {
+			// init tssplitter_lite
+			_UTL_LOG_I ("split_startup %d (0x%04x) -> [%s]", m_service_id, m_service_id, m_service_id_string);
+			mp_splitter = split_startup(m_service_id_string);
+			if (mp_splitter->sid_list == NULL) {
+				_UTL_LOG_W("Cannot start TS splitter");
+			}
+			m_splitbuf.buffer = NULL;
+			m_splitbuf.buffer_size = 0;
+		}
 	}
 	
 	virtual ~CRecAribB25 (void) {
-		if (mp_b25) {
-			mp_b25->release (mp_b25);
-			mp_b25 = NULL;
-		}
-		if (mp_b25cas) {
-			mp_b25cas->release (mp_b25cas);
-			mp_b25cas = NULL;
+		finaliz_b25();
+
+		if (m_use_splitter) {
+			// finaliz tssplitter_lite
+			if (m_splitbuf.buffer) {
+				free (m_splitbuf.buffer);
+				m_splitbuf.buffer = NULL;
+				m_splitbuf.buffer_size = 0;
+			}
+			if (mp_splitter) {
+				split_shutdown(mp_splitter);
+				mp_splitter = NULL;
+			}
 		}
 	}
 
@@ -70,8 +96,67 @@ public:
 				}
 			}
 			
+			if (m_use_splitter) {
+				int code = 0;
+				ARIB_STD_B25_BUFFER buf;
+				buf.data = p;
+				buf.size = len;
+				m_splitbuf.buffer_filled = 0;
+
+				/* allocate split buffer */
+				if (m_splitbuf.buffer_size < buf.size) {
+					if (m_splitbuf.buffer) {
+						free(m_splitbuf.buffer);
+						m_splitbuf.buffer = NULL;
+						m_splitbuf.buffer_size = 0;
+					}
+					m_splitbuf.buffer = (uint8_t*)malloc(buf.size);
+					if(m_splitbuf.buffer == NULL) {
+						_UTL_LOG_E("split buffer allocation failed");
+						// next
+						return 0;
+					}
+					m_splitbuf.buffer_size = buf.size;
+				}
+
+				if (m_split_select_state != TSS_SUCCESS) {
+					m_split_select_state = split_select(mp_splitter, &buf);
+					if (m_split_select_state == TSS_SUCCESS) {
+						_UTL_LOG_I ("m_split_select_state ==> TSS_SUCCESS");
+
+					} else if (m_split_select_state == TSS_NULL) {
+						_UTL_LOG_E("split_select inner malloc failed");
+						// next
+						return 0;
+
+					} else {
+						// TSS_ERROR
+#if 0
+						time_t cur_time;
+						time(&cur_time);
+						if(cur_time - tdata->start_time > 4) {
+							goto fin;
+						}
+						break;
+#endif
+						// next
+						return 0;
+					}
+				}
+
+				code = split_ts(mp_splitter, &buf, &m_splitbuf);
+				if (code == TSS_NULL) {
+					_UTL_LOG_W("PMT reading..");
+				} else if(code != TSS_SUCCESS) {
+					_UTL_LOG_W("split_ts failed");
+				}
+
+				p = m_splitbuf.buffer;
+				len = m_splitbuf.buffer_filled;
+			}
+
 			r = m_writer.put (p, len);
-			if (0 < r) {
+			if (r > 0) {
 				return r;
 			}
 
@@ -79,13 +164,19 @@ public:
 		};
 
 		std::function<void(void)> _release = [this] (void) {
-			if (mp_b25) {
-				mp_b25->release (mp_b25);
-				mp_b25 = NULL;
-			}
-			if (mp_b25cas) {
-				mp_b25cas->release (mp_b25cas);
-				mp_b25cas = NULL;
+			finaliz_b25();
+
+			if (m_use_splitter) {
+				// finaliz tssplitter_lite
+				if (m_splitbuf.buffer) {
+					free (m_splitbuf.buffer);
+					m_splitbuf.buffer = NULL;
+					m_splitbuf.buffer_size = 0;
+				}
+				if (mp_splitter) {
+					split_shutdown(mp_splitter);
+					mp_splitter = NULL;
+				}
 			}
 		};
 
@@ -158,9 +249,20 @@ public:
 		_UTL_LOG_I ("done.");
 	}
 
+	void finaliz_b25 (void) {
+		if (mp_b25) {
+			mp_b25->release (mp_b25);
+			mp_b25 = NULL;
+		}
+		if (mp_b25cas) {
+			mp_b25cas->release (mp_b25cas);
+			mp_b25cas = NULL;
+		}
+	}
+
 	int flush (void) override {
 		int r = 0;
-		r = CBufferedWriter::flush();
+		r = CBufferedProcess::flush();
 		if (r < 0) {
 			return r;
 		}
@@ -173,14 +275,21 @@ public:
 
 	void release (void) override {
 		m_writer.release();
-		CBufferedWriter::release();
+		CBufferedProcess::release();
 	}
 	
 private:
 	ARIB_STD_B25 *mp_b25;
 	B_CAS_CARD *mp_b25cas;
 	CFileBufferedWriter m_writer;
+
 	uint16_t m_service_id;
+	char m_service_id_string [64];
+
+	bool m_use_splitter;
+	splitter *mp_splitter;
+	splitbuf_t m_splitbuf;
+	int m_split_select_state;
 };
 
 #endif

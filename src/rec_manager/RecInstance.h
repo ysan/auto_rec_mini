@@ -51,6 +51,7 @@ public:
 		: mp_ext_if (p_ext_if)
 		, m_recProgress (progress::INIT)
 		, m_groupId (groupId)
+		, m_service_id (0)
 	{
 		m_recording_tmpfile.clear();
 	}
@@ -104,9 +105,8 @@ public:
 		case progress::PRE_PROCESS: {
 			_UTL_LOG_I ("progress::PRE_PROCESS");
 
-			std::unique_ptr<CRecAribB25> b25 (new CRecAribB25(8192, m_recording_tmpfile));
+			std::unique_ptr<CRecAribB25> b25 (new CRecAribB25(8192, m_recording_tmpfile, m_service_id));
 			msp_b25.swap (b25);
-			msp_b25->set_service_id (m_service_id);
 
 			RECORDING_NOTICE_t _notice = {m_recProgress, m_groupId};
 			mp_ext_if->requestAsync (

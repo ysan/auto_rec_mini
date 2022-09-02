@@ -26,6 +26,7 @@ extern "C"{
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <unistd.h>
+#include <arib25/arib_std_b25.h>
 
 #define LENGTH_PACKET		(188)
 #define MAX_PID				(8192)
@@ -67,7 +68,7 @@ typedef struct splitter {
 
 typedef struct _splitbuf_t
 {
-	u_char* buffer;
+	uint8_t* buffer;
 	int buffer_size;
 	int buffer_filled;
 } splitbuf_t;
