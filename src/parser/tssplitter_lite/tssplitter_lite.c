@@ -39,6 +39,13 @@ static int AnalyzePmt(splitter *sp, unsigned char *buf, unsigned char mark);
 static unsigned int GetCrc32(unsigned char *data, int len);
 static int GetPid(unsigned char *data);
 
+#include <stdarg.h>
+static int (*fprintf_cb)(FILE *fp, const char *format, ...) = fprintf;
+void split_set_printf_cb (int (*_cb)(FILE *fp, const char *format, ...))
+{
+	fprintf_cb = _cb;
+}
+
 /**
  * サービスID解析
  */
@@ -144,7 +151,7 @@ splitter* split_startup(
 	sp = (splitter *)malloc(sizeof(splitter));
 	if ( sp == NULL )
 	{
-		fprintf(stderr, "split_startup malloc error.\n");
+		fprintf_cb(stderr, "split_startup malloc error.\n");
 		return NULL;
 	}
 	memset(sp->pids, 0, sizeof(sp->pids));
@@ -279,7 +286,7 @@ static int RescanPID(splitter *splitter, unsigned char *buf)
 		memset(splitter->section_remain, 0U, sizeof(splitter->section_remain));
 		memset(splitter->packet_seq, 0U, sizeof(splitter->packet_seq));
 
-		fprintf(stderr, "Rescan PID \n");
+		fprintf_cb(stderr, "Rescan PID \n");
 	}
 
 	if (TSS_SUCCESS == AnalyzePmt(splitter, buf, 2)) {
@@ -293,7 +300,7 @@ static int RescanPID(splitter *splitter, unsigned char *buf)
 			    splitter->pids[i] -= 1;
 		    }
 		}
-		fprintf(stderr, "Rescan PID End\n");
+		fprintf_cb(stderr, "Rescan PID End\n");
 	}
 
 	return result;
@@ -605,18 +612,18 @@ static int AnalyzePat(splitter *sp, unsigned char *buf)
 		}
 
 		/* print SIDs */
-		fprintf(stderr, "Available sid = ");
+		fprintf_cb(stderr, "Available sid = ");
 		for(k=0; k < sp->num_pmts; k++)
-			fprintf(stderr, "%d ", avail_sids[k]);
-		fprintf(stderr, "\n");
-		fprintf(stderr, "Chosen sid    =%s\n", chosen_sid);
+			fprintf_cb(stderr, "%d ", avail_sids[k]);
+		fprintf_cb(stderr, "\n");
+		fprintf_cb(stderr, "Chosen sid    =%s\n", chosen_sid);
 
 #if 1
 		/* print PMTs */
-		fprintf(stderr, "Available PMT = ");
+		fprintf_cb(stderr, "Available PMT = ");
 		for(k=0; k < sp->num_pmts; k++)
-			fprintf(stderr, "0x%x ", sp->avail_pmts[k]);
-		fprintf(stderr, "\n");
+			fprintf_cb(stderr, "0x%x ", sp->avail_pmts[k]);
+		fprintf_cb(stderr, "\n");
 #endif
 
 		// PAT 再構築
@@ -624,7 +631,7 @@ static int AnalyzePat(splitter *sp, unsigned char *buf)
 #if 0
 		int tc;
 		for(tc=0; tc<188; tc++)
-			fprintf(stderr, "%02x ", *(sp->pat+tc));
+			fprintf_cb(stderr, "%02x ", *(sp->pat+tc));
 #endif
 	}
 
@@ -691,7 +698,7 @@ static int RecreatePat(splitter *sp, unsigned char *buf, int *pos)
 	sp->pat = (unsigned char*)malloc(LENGTH_PACKET);
 	if(sp->pat == NULL)
 	{
-		fprintf(stderr, "RecreatePat() malloc error.\n");
+		fprintf_cb(stderr, "RecreatePat() malloc error.\n");
 		return(TSS_NULL);
 	}
 	memset(sp->pat, 0xFF, LENGTH_PACKET);
@@ -798,7 +805,7 @@ static int AnalyzePmt(splitter *sp, unsigned char *buf, unsigned char mark)
 					break;
 			epid = GetPid(&buf[N + 1]);
 			sp->pids[epid] = mark;
-fprintf(stderr, "type:0x%02X PID:0x%04x\n", buf[N], epid );
+fprintf_cb(stderr, "type:0x%02X PID:0x%04x\n", buf[N], epid );
 		}while(0);
 #else
 		// ストリーム種別が 0x0D（type D）は出力対象外

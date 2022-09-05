@@ -78,6 +78,8 @@ int split_select(splitter *sp, ARIB_STD_B25_BUFFER *sbuf);
 void split_shutdown(splitter *sp);
 int split_ts(splitter *splitter, ARIB_STD_B25_BUFFER *sbuf, splitbuf_t *dbuf);
 
+void split_set_printf_cb (int (*_cb)(FILE *fp, const char *format, ...));
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

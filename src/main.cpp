@@ -17,6 +17,8 @@
 #include "EventScheduleManagerIf.h"
 #include "EventSearchIf.h"
 
+#include "tssplitter_lite.h"
+
 #include "Utils.h"
 #include "modules.h"
 #include "Settings.h"
@@ -35,6 +37,17 @@ static void _usage (char* _arg_0)
 	printf ("        Specify the process starting directory.\n\n");
 	printf ("      -h\n");
 	printf ("        print usage.\n\n");
+}
+
+int splitter_log (FILE *fp, const char* format, ...)
+{
+	char buff [128] = {0};
+	va_list va;
+	va_start (va, format);
+	vsnprintf (buff, sizeof(buff), format, va);
+	_UTL_LOG_I (buff);
+	va_end (va);
+	return 0;
 }
 
 int main (int argc, char *argv[])
@@ -108,6 +121,8 @@ int main (int argc, char *argv[])
 		initSyslog(); // threadmgr syslog output
 		CUtils::initSyslog();
 	}
+
+	split_set_printf_cb (splitter_log);
 
 
 	s->getParams()->dump ();
