@@ -16,20 +16,39 @@ The operation may not be stable depending on the environment.
 -->
 
 Features
------------- 
-* Tuning. (only terrestrial digital.)
-* Channel scan.
-* Recording and recording reservation. (keyword search)
-* EPG.
-* Download broadcaster Logo.
-* Command line interface. (connect via telnet. port 20001)
-  
+-------------
+* Tuning
+  * Terrestrial digital only.
+  * Simultaneous selection by multiple tuners.
+* channel scan
+* Record and schedule recording
+  * Simultaneous recording with multiple tuners.
+  * Up to 50 reservations.
+  * Event tracking.
+  * After obtaining the EPG, search for the registered keyword and schedule recording.
+  * Introduced tssplitter_lite.
+* EPGs
+  * Perform scheduled EPG acquisition.
+* Broadcaster logo download
+  * Save what fell during song selection in PNG format.
+  * Since palette information (CLUT common fixed color) is added, it can be viewed as it is. (It should be possible.)
+* Command Line Interface (CLI)
+  * Connect to the `command server` with `telnet` or `netcat`, etc., and execute commands that access each function.
+
+Future tasks
+------------
+* Live viewing function. (HLS, ffmpeg real-time encoding)
+* Become a RESTful service.
+* Client App. (with React...)
+* BS/CS compatible.
+* BML-related functions for data broadcasting. (Implementation of dsmcc)
+
 
 System requirements
 ----------
 
 ### Tuner ###
-The supported tuners are as follows. only terrestrial digitl. orz
+The supported tuners are as follows. only terrestrial digitl.
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 later)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
 
@@ -142,6 +161,7 @@ Please you set according to the environment.
 | `rec_reserves_json_path` | save/load destination of recording reservation. |
 | `rec_results_json_path` | save/load destination of recording result. |
 | `rec_ts_path` | save destination of recording stream. |
+| `rec_use_splitter` | Toggles whether to apply tssplitter_lite to the recording stream. |
 | `dummy_tuner_ts_path` | unused |
 | `event_schedule_cache_is_enable` | switch to enable EPG. |
 | `event_schedule_cache_start_interval_day` | EPG cache execution interval date. |
@@ -268,18 +288,15 @@ Others
 Setting value etc. Have static data by using [`cereal`](https://github.com/USCiLab/cereal) json serializer.  
 (no use DB.)
   
-The following repositories are referred to the parser.  
+I have been influenced and referred to by the following repositories.
 * [`libarib25`](https://github.com/stz2012/libarib25)
 * [`epgdump`](https://github.com/Piro77/epgdump)
 * [`ariblib`](https://github.com/youzaka/ariblib)
 * [`eit_txtout_mod`](https://github.com/arairait/eit_txtout_mod)
 * [`node-aribts`](https://github.com/rndomhack/node-aribts)
+* [`TVRemotePlus`](https://github.com/tsukumijima/TVRemotePlus)
+* [`KonomiTV`](https://github.com/tsukumijima/KonomiTV)
   
 LICENSE
 ------------
 MIT
-
-Feedback
-------------
-Please give feedback.
-

@@ -26,6 +26,7 @@ Features
   * 予約は50件まで。
   * イベント追従。
   * EPG取得後に登録したキーワードを検索し録画予約を行います。
+  * tssplitter_liteを導入。
 * EPG
   * 定時EPG取得を行います。
 * 放送局ロゴダウンロード
@@ -36,16 +37,18 @@ Features
 
 Future tasks
 ------------
-* libarib25で行っているPMT周りの実装の勉強、と実装を取り込みたい。
-* BS/CS対応したい。
-* データ放送のBMLの取得してみたい。 (dsmccの実装)
+* ライブ視聴機能。(HLS、ffmpegリアルタイムエンコード)
+* RESTfulサービス化。
+* クライアントアプリ。(Reactで...)
+* BS/CS対応。
+* データ放送のBML関連機能。(dsmccの実装)
 
 
 System requirements
 ------------
 
 ### Tuner ###
-対応しているチューナーは以下のものです。今のところ地デジのみとなります。orz
+対応しているチューナーは以下のものです。今のところ地デジのみとなります。
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 以降)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
 
@@ -158,6 +161,7 @@ settings.json
 | `rec_reserves_json_path` | 録画予約リストの書き込み/読み込み先パスです。 |
 | `rec_results_json_path` | 録画結果リストの書き込み/読み込み先パスです。 |
 | `rec_ts_path` | 録画ストリームの保存先パスです。(.m2ts) |
+| `rec_use_splitter` | 録画ストリームにtssplitter_liteを適用するか切り替えます。 |
 | `dummy_tuner_ts_path` | unused |
 | `event_schedule_cache_is_enable` | EPGを有効にするスイッチ。 |
 | `event_schedule_cache_start_interval_day` | EPG取得の間隔日。 |
@@ -282,20 +286,16 @@ Others
 ------------
 設定値や保持するデータの読み込み/書き込みは [`cereal`](https://github.com/USCiLab/cereal) のjsonシリアライザを使用しています。  
 (現状DBは使用していません。)
-
-
-パーサー処理等は以下のレポジトリ様を参考にさせていただいています:
+  
+以下のレポジトリ様に影響を受けたり参考にさせていただいています。
 * [`libarib25`](https://github.com/stz2012/libarib25)
 * [`epgdump`](https://github.com/Piro77/epgdump)
 * [`ariblib`](https://github.com/youzaka/ariblib)
 * [`eit_txtout_mod`](https://github.com/arairait/eit_txtout_mod)
 * [`node-aribts`](https://github.com/rndomhack/node-aribts)
+* [`TVRemotePlus`](https://github.com/tsukumijima/TVRemotePlus)
+* [`KonomiTV`](https://github.com/tsukumijima/KonomiTV)
  
 LICENSE
 ------------
 MIT
-
-Feedback
-------------
-何でもフィードバック頂けたら幸いです。
-
