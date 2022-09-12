@@ -161,6 +161,7 @@ settings.json
 | `rec_reserves_json_path` | 録画予約リストの書き込み/読み込み先パスです。 |
 | `rec_results_json_path` | 録画結果リストの書き込み/読み込み先パスです。 |
 | `rec_ts_path` | 録画ストリームの保存先パスです。(.m2ts) |
+| `rec_disk_space_low_limit_MB` | 録画を実行するファイルシステムの残容量の閾値です。(MBytes) |
 | `rec_use_splitter` | 録画ストリームにtssplitter_liteを適用するか切り替えます。 |
 | `dummy_tuner_ts_path` | unused |
 | `event_schedule_cache_is_enable` | EPGを有効にするスイッチ。 |

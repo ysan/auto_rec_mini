@@ -161,6 +161,7 @@ Please you set according to the environment.
 | `rec_reserves_json_path` | save/load destination of recording reservation. |
 | `rec_results_json_path` | save/load destination of recording result. |
 | `rec_ts_path` | save destination of recording stream. |
+| `rec_disk_space_low_limit_MB` | Threshold of the remaining capacity of the file system for recording. (MBytes) |
 | `rec_use_splitter` | Toggles whether to apply tssplitter_lite to the recording stream. |
 | `dummy_tuner_ts_path` | unused |
 | `event_schedule_cache_is_enable` | switch to enable EPG. |
