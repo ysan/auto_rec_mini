@@ -76,6 +76,10 @@ public:
 		m_service_id = _id;
 	}
 
+	void setUseSplitter (bool _b) {
+		m_use_splitter = _b;
+	}
+
 
 	// CTunerControlIf::ITsReceiveHandler
 	bool onPreTsReceive (void) override {
@@ -105,7 +109,7 @@ public:
 		case progress::PRE_PROCESS: {
 			_UTL_LOG_I ("progress::PRE_PROCESS");
 
-			std::unique_ptr<CRecAribB25> b25 (new CRecAribB25(8192, m_recording_tmpfile, m_service_id));
+			std::unique_ptr<CRecAribB25> b25 (new CRecAribB25(8192, m_recording_tmpfile, m_service_id, m_use_splitter));
 			msp_b25.swap (b25);
 
 			RECORDING_NOTICE_t _notice = {m_recProgress, m_groupId};
@@ -203,6 +207,7 @@ private:
 	unique_ptr<CRecAribB25> msp_b25;
 	uint8_t m_groupId;
 	uint16_t m_service_id;
+	bool m_use_splitter;
 };
 
 #endif

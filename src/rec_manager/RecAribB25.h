@@ -20,13 +20,13 @@
 class CRecAribB25 : public CBufferedProcess
 {
 public:
-	CRecAribB25 (size_t size, std::string output_name, uint16_t service_id) 
+	CRecAribB25 (size_t size, std::string output_name, uint16_t service_id, bool use_splitter) 
 		: CBufferedProcess (size > TS_PACKET_LEN * 512 ? size : TS_PACKET_LEN * 512)
 		, mp_b25 (NULL)
 		, mp_b25cas (NULL)
 		, m_writer (768 * 1024, output_name)
 		, m_service_id (service_id)
-		, m_use_splitter(true)
+		, m_use_splitter(use_splitter)
 		, mp_splitter(NULL)
 		, m_split_select_state(TSS_ERROR)
 	{

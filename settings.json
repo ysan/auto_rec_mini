@@ -16,6 +16,7 @@
         "rec_results_json_path": "./data/rec_results.json",
         "rec_ts_path": "./data/",
         "rec_disk_space_low_limit_MB": 1000,
+        "rec_use_splitter": true,
 
         "dummy_tuner_ts_path": "../../../test.m2ts",
 

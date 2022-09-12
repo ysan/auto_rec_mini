@@ -56,6 +56,9 @@ public:
 		int getRecDiskSpaceLowLimitMB (void) {
 			return m_rec_disk_space_low_limit_MB;
 		}
+		bool isRecUseSplitter (void) {
+			return m_rec_use_splitter;
+		}
 		std::string *getDummyTunerTsPath (void) {
 			return &m_dummy_tuner_ts_path;
 		}
@@ -114,6 +117,7 @@ public:
 			_UTL_LOG_I ("rec_results_json_path:[%s]", m_rec_results_json_path.c_str());
 			_UTL_LOG_I ("rec_ts_path:[%s]", m_rec_ts_path.c_str());
 			_UTL_LOG_I ("rec_disk_space_low_limit_MB:[%d]", m_rec_disk_space_low_limit_MB);
+			_UTL_LOG_I ("rec_use_splitter:[%d]", m_rec_use_splitter);
 			_UTL_LOG_I ("dummy_tuner_ts_path:[%s]", m_dummy_tuner_ts_path.c_str());
 			_UTL_LOG_I ("event_schedule_cache_is_enable:[%d]", m_event_schedule_cache_is_enable);
 			_UTL_LOG_I ("event_schedule_cache_start_interval_day:[%d]", m_event_schedule_cache_start_interval_day);
@@ -174,6 +178,7 @@ public:
 				,cereal::make_nvp("rec_results_json_path", m_rec_results_json_path)
 				,cereal::make_nvp("rec_ts_path", m_rec_ts_path)
 				,cereal::make_nvp("rec_disk_space_low_limit_MB", m_rec_disk_space_low_limit_MB)
+				,cereal::make_nvp("rec_use_splitter", m_rec_use_splitter)
 				,cereal::make_nvp("dummy_tuner_ts_path", m_dummy_tuner_ts_path)
 				,cereal::make_nvp("event_schedule_cache_is_enable", m_event_schedule_cache_is_enable)
 				,cereal::make_nvp("event_schedule_cache_start_interval_day", m_event_schedule_cache_start_interval_day)
@@ -200,6 +205,7 @@ public:
 		std::string m_rec_results_json_path;
 		std::string m_rec_ts_path;
 		int m_rec_disk_space_low_limit_MB;
+		bool m_rec_use_splitter;
 		std::string m_dummy_tuner_ts_path;
 		bool m_event_schedule_cache_is_enable;
 		int m_event_schedule_cache_start_interval_day;
