@@ -2388,12 +2388,13 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		return true;
 	}
 
+	bool r = true;
 
 	switch (p_ts_header->pid) {
 	case PID_PAT: {
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__PAT, p_ts_header, p_payload, payload_size);
-		requestAsync (
+		r = requestAsync (
 			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
@@ -2406,7 +2407,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 	case PID_EIT_H: {
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__EIT_H_PF, p_ts_header, p_payload, payload_size);
-		requestAsync (
+		r = requestAsync (
 			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
@@ -2419,7 +2420,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 	case PID_NIT: {
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__NIT, p_ts_header, p_payload, payload_size);
-		requestAsync (
+		r = requestAsync (
 			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
@@ -2432,7 +2433,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 	case PID_SDT: {
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__SDT, p_ts_header, p_payload, payload_size);
-		requestAsync (
+		r = requestAsync (
 			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
@@ -2445,7 +2446,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 	case PID_CAT: {
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__CAT, p_ts_header, p_payload, payload_size);
-		requestAsync (
+		r = requestAsync (
 			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
@@ -2458,7 +2459,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 	case PID_CDT: {
 
 		_PARSER_NOTICE _notice (EN_PSISI_TYPE__CDT, p_ts_header, p_payload, payload_size);
-		requestAsync (
+		r = requestAsync (
 			EN_MODULE_PSISI_MANAGER + getGroupId(),
 			EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 			(uint8_t*)&_notice,
@@ -2480,7 +2481,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		// parse PMT
 		if (m_programMap.has(p_ts_header->pid)) {
 			_PARSER_NOTICE _notice (EN_PSISI_TYPE__PMT, p_ts_header, p_payload, payload_size);
-			requestAsync (
+			r = requestAsync (
 				EN_MODULE_PSISI_MANAGER + getGroupId(),
 				EN_SEQ_PSISI_MANAGER__PARSER_NOTICE,
 				(uint8_t*)&_notice,
@@ -2491,6 +2492,11 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		break;
 	}
 
+	// workaround
+	// ts parse後に requestが集中するので 溢れた場合は100usまつことにします
+	if (!r) {
+		usleep(100);
+	}
 
 	return true;
 }
