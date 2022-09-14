@@ -16,6 +16,7 @@
 #include "TunerControlIf.h"
 #include "TsAribCommon.h"
 #include "Settings.h"
+#include "Forker.h"
 
 
 using namespace ThreadManager;
@@ -65,8 +66,7 @@ public:
 private:
 	state mState;
 	CSettings *mp_settings;
-	pid_t mChildPid;
-	std::string mChildCommand;
+	CForker m_forker;
 };
 
 #endif

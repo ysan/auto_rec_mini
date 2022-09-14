@@ -19,11 +19,25 @@
 #include "modules.h"
 
 
+int forker_log_print (FILE *fp, const char* format, ...)
+{
+	char buff [128] = {0};
+	va_list va;
+	va_start (va, format);
+	vsnprintf (buff, sizeof(buff), format, va);
+	if (fp == stderr) {
+		_UTL_LOG_E (buff);
+	} else {
+		_UTL_LOG_I (buff);
+	}
+	va_end (va);
+	return 0;
+}
+
 CTuneThread::CTuneThread (char *pszName, uint8_t nQueNum, uint8_t groupId)
 	:CThreadMgrBase (pszName, nQueNum)
 	,CGroup (groupId)
 	,mState (state::CLOSED)
-	,mChildPid (0)
 {
 	SEQ_BASE_t seqs [EN_SEQ_TUNE_THREAD_NUM] = {
 		{(PFN_SEQ_BASE)&CTuneThread::moduleUp, (char*)"moduleUp"},     // EN_SEQ_TUNE_THREAD_MODULE_UP
@@ -34,7 +48,7 @@ CTuneThread::CTuneThread (char *pszName, uint8_t nQueNum, uint8_t groupId)
 	setSeqs (seqs, EN_SEQ_TUNE_THREAD_NUM);
 
 	mp_settings = CSettings::getInstance();
-	mChildCommand.clear();
+	m_forker.set_log_cb (forker_log_print);
 }
 
 CTuneThread::~CTuneThread (void)
@@ -119,90 +133,29 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		return;
 	}
 	std::string com_form = (*p_tuner_hal_allocates) [getGroupId()];
-//	char com_str [128] = {0};
-//	snprintf (com_str, sizeof(com_str), com_form.c_str(), CTsAribCommon::freqKHz2pysicalCh(param.freq));
-	mChildCommand.reserve(128);
-	snprintf ((char*)mChildCommand.c_str(), 128, com_form.c_str(), CTsAribCommon::freqKHz2pysicalCh(param.freq));
-//	std::vector<std::string> com = CUtils::split (com_str, ' ');
-	std::vector<std::string> com = CUtils::split (mChildCommand.c_str(), ' ');
-	if (com.size() == 0) {
-		_UTL_LOG_E ("invalid child process command");
+	char com_str [128] = {0};
+	snprintf (com_str, sizeof(com_str), com_form.c_str(), CTsAribCommon::freqKHz2pysicalCh(param.freq));
+	std::string command = com_str;
+
+	if (!m_forker.create_pipes()) {
+		_UTL_LOG_E("create_pipes failure.");
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		pIf->setSectId (sectId, enAct);
+		m_forker.destroy_pipes();
 		return;
 	}
-	char *p_coms[com.size() +1] ;
-	_UTL_LOG_I ("execv args");
-	for (size_t i = 0; i < com.size(); ++ i) {
-		p_coms [i] = (char*)com[i].c_str();
-		_UTL_LOG_I ("  [%s]", p_coms [i]);
-	}
-	p_coms [com.size()] = NULL;
 
-
-	int r = 0;
-	int pipeC2P [2];
-	r = pipe(pipeC2P);
-	if (r < 0) {
-		_UTL_PERROR("pipe");
+	if (!m_forker.do_fork(command)) {
+		_UTL_LOG_E("do_dork failure.");
 		pIf->reply (EN_THM_RSLT_ERROR);
 		sectId = THM_SECT_ID_INIT;
 		enAct = EN_THM_ACT_DONE;
 		pIf->setSectId (sectId, enAct);
+		m_forker.destroy_pipes();
 		return;
 	}
-
-	int pipeC2P_err [2];
-	r = pipe(pipeC2P_err);
-	if (r < 0) {
-		_UTL_PERROR("pipe");
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		pIf->setSectId (sectId, enAct);
-		return;
-	}
-
-	pid_t mChildPid = fork();
-	if (mChildPid == -1) {
-		_UTL_PERROR("fork");
-		close (pipeC2P[0]);
-		close (pipeC2P[1]);
-		close (pipeC2P_err[0]);
-		close (pipeC2P_err[1]);
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		pIf->setSectId (sectId, enAct);
-		return;
-
-	} else if (mChildPid == 0) {
-		// ----------------- child -----------------
-		close (pipeC2P[0]);
-		dup2 (pipeC2P[1], STDOUT_FILENO);
-		close (pipeC2P[1]);
-		
-		close (pipeC2P_err[0]);
-		dup2 (pipeC2P_err[1], STDERR_FILENO);
-		close (pipeC2P_err[1]);
-
-		r = execv (com[0].c_str(), p_coms);
-		if (r < 0) {
-			_UTL_PERROR("exec");
-			pIf->reply (EN_THM_RSLT_ERROR);
-			sectId = THM_SECT_ID_INIT;
-			enAct = EN_THM_ACT_DONE;
-			pIf->setSectId (sectId, enAct);
-			return;
-		}
-	}
-
-	// ----------------- parent -----------------
-	_UTL_LOG_I ("child pid:[%lu]", mChildPid);
-	close (pipeC2P[1]);
-	close (pipeC2P_err[1]);
 
 	_UTL_LOG_I ("mState => OPENED");
 	mState = state::OPENED;
@@ -225,8 +178,11 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		}
 	} //---------------------------
 
-	int fd = pipeC2P[0];
-	int fd_err = pipeC2P_err[0];
+	int r = 0;
+//	int fd = pipeC2P[0];
+//	int fd_err = pipeC2P_err[0];
+	int fd = m_forker.get_child_stdout_fd();
+	int fd_err = m_forker.get_child_stderr_fd();
 	uint8_t buff [1024] = {0};
 	uint64_t _total_size = 0;
 
@@ -332,43 +288,8 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		}
 	} //---------------------------
 
-	close (fd);
-	close (fd_err);
-
-	int _status = 0;
-	pid_t _r_pid;
-	int _cnt = 0;
-	while (1) {
-		_r_pid = waitpid (mChildPid, &_status, WNOHANG);
-		if (_r_pid == -1) {
-			_UTL_PERROR ("waitpid");
-
-		} else if (_r_pid == 0) {
-			if (_cnt < 50) {
-				r = kill (mChildPid, SIGUSR1);
-				_UTL_LOG_I ("kill SIGUSR1 [%lu]", mChildPid);
-			} else {
-				r = kill (mChildPid, SIGKILL);
-				_UTL_LOG_I ("kill SIGKILL [%lu]", mChildPid);
-			}
-			if (r < 0) {
-				_UTL_PERROR ("kill");
-			}
-
-		} else {
-			if (WIFEXITED(_status)) {
-				_UTL_LOG_I ("child exited with status of [%d]", WEXITSTATUS(_status));
-			} else {
-				_UTL_LOG_I ("child exited abnromal.");
-			}
-//			_UTL_LOG_I ("---> [%s]", com_str);
-			_UTL_LOG_I ("---> [%s]", mChildCommand.c_str());
-			break;
-		}
-
-		usleep (50000); // 50mS
-		++ _cnt;
-	}
+	m_forker.wait_child(SIGUSR1);
+	m_forker.destroy_pipes();
 
 	_UTL_LOG_I ("mState => CLSOED");
 	mState = state::CLOSED;
@@ -391,42 +312,8 @@ void CTuneThread::forceKill (CThreadMgrIf *pIf)
 	sectId = pIf->getSectId();
 	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
 
-
-	int r = 0;
-	int _status = 0;
-	pid_t _r_pid;
-	int _cnt = 0;
-	while (1) {
-		_r_pid = waitpid (mChildPid, &_status, WNOHANG);
-		if (_r_pid == -1) {
-			_UTL_PERROR ("waitpid");
-
-		} else if (_r_pid == 0) {
-			if (_cnt < 50) {
-				r = kill (mChildPid, SIGUSR1);
-				_UTL_LOG_I ("kill SIGUSR1 [%lu]", mChildPid);
-			} else {
-				r = kill (mChildPid, SIGKILL);
-				_UTL_LOG_I ("kill SIGKILL [%lu]", mChildPid);
-			}
-			if (r < 0) {
-				_UTL_PERROR ("kill");
-			}
-
-		} else {
-			if (WIFEXITED(_status)) {
-				_UTL_LOG_I ("child exited with status of [%d]", WEXITSTATUS(_status));
-			} else {
-				_UTL_LOG_I ("child exited abnromal.");
-			}
-			_UTL_LOG_I ("---> [%s]", mChildCommand.c_str());
-			break;
-		}
-
-		usleep (50000); // 50mS
-		++ _cnt;
-	}
-
+	m_forker.wait_child(SIGUSR1);
+	m_forker.destroy_pipes();
 
 	pIf->reply (EN_THM_RSLT_SUCCESS);
 
