@@ -1,6 +1,0 @@
-git clone https://github.com/USCiLab/cereal.git
-cd cereal
-git checkout -b v1.3.0 refs/tags/v1.3.0
-cd include/cereal
-
-この中身をコピーする
