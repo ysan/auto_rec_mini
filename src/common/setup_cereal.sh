@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+
+rm -rf ./cereal
 rm -rf /tmp/cereal
 
 #git clone https://github.com/USCiLab/cereal.git /tmp/cereal
