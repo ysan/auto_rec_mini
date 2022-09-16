@@ -124,14 +124,16 @@ public:
 		}
 		m_command = command;
 
-		auto splited_com = split (command, " ");
-		char *_coms[splited_com.size() +1] ;
+		auto splited = split (command, " ");
+		char *_coms[splited->size() +1] ;
 		m_fprintf_cb (stdout, "execv args\n");
-		for (size_t i = 0; i < splited_com.size(); ++ i) {
-			_coms [i] = (char*)splited_com[i].c_str();
+		for (size_t i = 0; i < splited->size(); ++ i) {
+			const auto vec = *splited;
+			vec[i].c_str();
+			_coms [i] = (char*)vec[i].c_str();
 			m_fprintf_cb (stdout, "  [%s]\n", _coms [i]);
 		}
-		_coms [splited_com.size()] = NULL;
+		_coms [splited->size()] = NULL;
 
 		pid_t _pid = fork();
 		if (_pid < 0) {
@@ -175,7 +177,8 @@ public:
 			m_pipe_c2p_stdout.close_writer_fd();
 			m_pipe_c2p_stderr.close_writer_fd();
 
-			int r = execv (splited_com[0].c_str(), _coms);
+			const auto vec = *splited;
+			int r = execv (vec[0].c_str(), _coms);
 			if (r < 0) {
 				m_fprintf_cb(stderr, "execv: %s\n", strerror(errno));
 				return false;
@@ -270,11 +273,11 @@ public:
 	}
 
 private:
-	std::vector<std::string> split (std::string s, std::string sep) const {
-		auto r = std::vector<std::string>();
+	std::shared_ptr<std::vector<std::string>> split (std::string s, std::string sep) const {
+		auto r = std::make_shared<std::vector<std::string>>();
 
 		if (sep.length() == 0) {
-			r.push_back(s);
+			r->push_back(s);
 
 		} else {
 			auto offset = std::string::size_type(0);
@@ -291,20 +294,20 @@ private:
 						// ignore empty (last)
 						;;
 					} else {
-						r.push_back(s.substr(offset));
+						r->push_back(s.substr(offset));
 					}
 					break;
 				}
 
-				r.push_back(s.substr(offset, pos - offset));
+				r->push_back(s.substr(offset, pos - offset));
 				offset = pos + sep.length();
 			}
 		}
-//		for (const auto &v : r) {
+//		for (const auto &v : *r) {
 //			std::cout << "[" << v << "]" << std::endl;
 //		}
 
-		return std::move(r);
+		return r;
 	}
 
 	CPipe m_pipe_p2c;
