@@ -158,26 +158,6 @@ char * strtok_r_impl (char *str, const char *delim, char **saveptr, bool *is_tai
 
 
 /**
- * log level
- */
-static EN_LOG_LEVEL s_loglevel = EN_LOG_LEVEL_I; // default log level
-void CUtils::setLogLevel (EN_LOG_LEVEL enLvl)
-{
-	if (enLvl > EN_LOG_LEVEL_PE) {
-		enLvl = EN_LOG_LEVEL_PE;
-	} else if (enLvl < EN_LOG_LEVEL_D) {
-		enLvl = EN_LOG_LEVEL_D;
-	}
-	
-	s_loglevel = enLvl;
-}
-EN_LOG_LEVEL CUtils::getLogLevel (void)
-{
-	return s_loglevel;
-}
-
-
-/**
  * システム現在時刻を取得
  * MM/dd HH:mm:ss形式
  */
@@ -297,7 +277,28 @@ int CUtils::getDiskFreeMB (const char *path)
 	return (int) _free;
 }
 
+#if 0
 //--------------------------  log methods  --------------------------
+/**
+ * log level
+ */
+static EN_LOG_LEVEL s_loglevel = EN_LOG_LEVEL_I; // default log level
+void CUtils::setLogLevel (EN_LOG_LEVEL enLvl)
+{
+	if (enLvl > EN_LOG_LEVEL_PE) {
+		enLvl = EN_LOG_LEVEL_PE;
+	} else if (enLvl < EN_LOG_LEVEL_D) {
+		enLvl = EN_LOG_LEVEL_D;
+	}
+	
+	s_loglevel = enLvl;
+}
+EN_LOG_LEVEL CUtils::getLogLevel (void)
+{
+	return s_loglevel;
+}
+
+
 // default stdout
 FILE *CUtils::mpfpLog = stdout;
 bool CUtils::m_is_use_syslog = false;
@@ -1173,7 +1174,7 @@ void CUtils::putsLogSimple (
 	va_end (va);
 }
 //--------------------------  log methods end --------------------------
-
+#endif
 
 /**
  * readFile
@@ -1695,4 +1696,16 @@ std::vector<std::string> CUtils::split (std::string s, char delim, bool ignore_e
 	}
 
 	return r;
+}
+
+CLogger *CUtils::m_logger = NULL;
+
+void CUtils::set_logger (CLogger *logger)
+{
+	m_logger = logger;
+}
+
+CLogger* CUtils::get_logger (void)
+{
+	return m_logger;
 }

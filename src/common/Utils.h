@@ -37,6 +37,7 @@
 #include "Defs.h"
 #include "Etime.h"
 #include "Stack.h"
+#include "Logger.h"
 
 
 #define _UTL_TEXT_ATTR_RESET			"\x1B[0m"
@@ -72,6 +73,7 @@ typedef enum {
  */
 #ifndef _ANDROID_BUILD
 
+#if 0
 // --- Debug ---
 #ifndef _LOG_ADD_FILE_INFO
 #define _UTL_LOG_D(fmt, ...) do {\
@@ -126,6 +128,63 @@ typedef enum {
 	CUtils::putsLog (CUtils::mpfpLog, CUtils::getLogLevel(), EN_LOG_LEVEL_PE, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
+#else
+// --- Debug ---
+#ifndef _LOG_ADD_FILE_INFO
+#define _UTL_LOG_D(fmt, ...) do {\
+	CUtils::get_logger()->puts_l (CLogger::level::debug, fmt, ##__VA_ARGS__);\
+} while (0)
+#else
+#define _UTL_LOG_D(fmt, ...) do {\
+	CUtils::get_logger()->puts (CLogger::level::debug, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+} while (0)
+#endif
+
+// --- Information ---
+#ifndef _LOG_ADD_FILE_INFO
+#define _UTL_LOG_I(fmt, ...) do {\
+	CUtils::get_logger()->puts_l (CLogger::level::info, fmt, ##__VA_ARGS__);\
+} while (0)
+#else
+#define _UTL_LOG_I(fmt, ...) do {\
+    CUtils::get_logger()->puts (CLogger::level::info, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+} while (0)
+#endif
+
+// --- Warning ---
+#ifndef _LOG_ADD_FILE_INFO
+#define _UTL_LOG_W(fmt, ...) do {\
+	CUtils::get_logger()->puts_l (CLogger::level::warning, fmt, ##__VA_ARGS__);\
+} while (0)
+#else
+#define _UTL_LOG_W(fmt, ...) do {\
+    CUtils::get_logger()->puts (CLogger::level::warning, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+} while (0)
+#endif
+
+// --- Error ---
+#ifndef _LOG_ADD_FILE_INFO
+#define _UTL_LOG_E(fmt, ...) do {\
+	CUtils::get_logger()->puts_l (CLogger::level::error, fmt, ##__VA_ARGS__);\
+} while (0)
+#else
+#define _UTL_LOG_E(fmt, ...) do {\
+    CUtils::get_logger()->puts (CLogger::level::error, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+} while (0)
+#endif
+
+// --- perror ---
+#ifndef _LOG_ADD_FILE_INFO
+#define _UTL_PERROR(fmt, ...) do {\
+	CUtils::get_logger()->puts_l (CLogger::level::perror, fmt, ##__VA_ARGS__);\
+} while (0)
+#else
+#define _UTL_PERROR(fmt, ...) do {\
+	CUtils::get_logger()->puts (EN_LOG_LEVEL_PE, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+} while (0)
+#endif
+#endif
+
 
 #else // _ANDROID_BUILD
 
@@ -160,6 +219,7 @@ typedef enum {
 #endif
 
 
+
 extern int backtrace(void **array, int size) __attribute__ ((weak));
 extern char **backtrace_symbols(void *const *array, int size) __attribute__ ((weak));
 #ifdef _ANDROID_BUILD
@@ -172,6 +232,10 @@ extern char * strtok_r_impl (char *str, const char *delim, char **saveptr, bool 
 
 class CUtils
 {
+private:
+	CUtils (void);
+	virtual ~CUtils (void);
+
 public:
 	static void getTimeOfDay (struct timeval *p);
 	static void setThreadName (char *p);
@@ -179,7 +243,7 @@ public:
 
 	static int getDiskFreeMB (const char *path);
 
-
+# if 0
 	static FILE *mpfpLog;
 
 	static bool initLog (void);
@@ -232,7 +296,7 @@ public:
 
 	static void setLogLevel (EN_LOG_LEVEL enLvl);
 	static EN_LOG_LEVEL getLogLevel (void);
-
+#endif
 
 	static int readFile (int fd, uint8_t *pBuff, size_t nSize);
 	static int recvData (int fd, uint8_t *pBuff, int buffSize, bool *p_isDisconnect);
@@ -246,6 +310,9 @@ public:
 	static void dumper (const uint8_t *pSrc, int nSrcLen, bool isAddAscii=true);
 
 	static std::vector<std::string> split (std::string s, char delim, bool ignore_empty=true);
+
+	static void set_logger (CLogger *logger);
+	static CLogger* get_logger (void);
 
 
 	class CScopedMutex
@@ -273,6 +340,7 @@ private:
 	static void getSysTime (char *pszOut, size_t nSize);
 	static void getSysTimeMs (char *pszOut, size_t nSize);
 
+#if 0
 	static void putsLog (
 		FILE *pFp,
 		EN_LOG_LEVEL enLogLevel,
@@ -342,6 +410,9 @@ private:
 
 
 	static bool m_is_use_syslog;
+#endif
+
+	static CLogger *m_logger;
 
 };
 
