@@ -1,3 +1,4 @@
+#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -957,7 +958,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 		}
 
 		// debug dump
-		if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+		if (CUtils::get_logger()->get_log_level() <= CLogger::level::debug) {
 			dumpSectionList ();
 		}
 
@@ -965,7 +966,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 		mpWorkSectInfo = pAttached;
 
 		// debug dump
-		if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+		if (CUtils::get_logger()->get_log_level() <= CLogger::level::debug) {
 			mpWorkSectInfo->dumpHeader ();
 		}
 
@@ -1044,7 +1045,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFirst (uint8_t *pPayload, size_t pa
 		truncate (trunclen);
 
 		// debug dump
-		if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+		if (CUtils::get_logger()->get_log_level() <= CLogger::level::debug) {
 			dumpSectionList ();
 		}
 
@@ -1122,7 +1123,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFollow (uint8_t *pPayload, size_t p
 	}
 
 	// debug dump
-	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+	if (CUtils::get_logger()->get_log_level() <= CLogger::level::debug) {
 		dumpSectionList ();
 		mpWorkSectInfo->dumpHeader ();
 	}
@@ -1169,7 +1170,7 @@ EN_CHECK_SECTION CSectionParser::checkSectionFollow (uint8_t *pPayload, size_t p
 	truncate (trunclen);
 
 	// debug dump
-	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+	if (CUtils::get_logger()->get_log_level() <= CLogger::level::debug) {
 		dumpSectionList ();
 	}
 

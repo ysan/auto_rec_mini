@@ -73,7 +73,7 @@ void CEventInformationTable::onSectionCompleted (const CSectionInfo *pCompSectio
 	appendTable (pTable);
 
 	// debug dump
-	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+	if (CUtils::get_logger()->get_log_level() <= CLogger::level::debug) {
 		dumpTables_simple ();
 //TODO mutex
 //		std::lock_guard<std::recursive_mutex> lock (mMutexTables);

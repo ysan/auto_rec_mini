@@ -18,7 +18,7 @@
 } while (0)
 #endif
 #define _COM_SVR_PRINT(fmt, ...) do {\
-	CUtils::putsLogSimple (CUtils::mpfpLog, fmt, ##__VA_ARGS__); \
+	CUtils::get_logger()->puts_without_header(fmt, ##__VA_ARGS__); \
 } while (0)
 
 

@@ -21,11 +21,11 @@
 
 
 const char *g_szLogLevels [] = {
-	"LOG_LEVEL_D",
-	"LOG_LEVEL_I",
-	"LOG_LEVEL_W",
-	"LOG_LEVEL_E",
-	"LOG_LEVEL_PE",
+	"debug",
+	"info",
+	"warning",
+	"error",
+	"perror",
 };
 
 static void _echo (int argc, char* argv[], CThreadMgrBase *pBase)
@@ -66,9 +66,9 @@ static void _log_level (int argc, char* argv[], CThreadMgrBase *pBase)
 		return;
 	}
 
-	EN_LOG_LEVEL lvl = (EN_LOG_LEVEL) atoi (argv[0]);
-	CUtils::setLogLevel (lvl);
-	_COM_SVR_PRINT ("set %s\n", g_szLogLevels [lvl]);
+	CLogger::level lvl = (CLogger::level) atoi (argv[0]);
+	CUtils::get_logger()->set_log_level (lvl);
+	_COM_SVR_PRINT ("set %s\n", g_szLogLevels [static_cast<int>(lvl)]);
 }
 
 

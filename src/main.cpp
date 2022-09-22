@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/syslog.h>
+#include <type_traits>
 #include <unistd.h>
 #include <errno.h>
 
@@ -25,6 +27,8 @@
 
 
 using namespace ThreadManager;
+
+static CLogger s_logger;
 
 static void _usage (char* _arg_0)
 {
@@ -116,10 +120,16 @@ int main (int argc, char *argv[])
 
 	initLogStdout(); // threadmgr log init
 
+	s_logger.set_log_level(CLogger::level::info);
+	s_logger.append_handler(stdout);
+	CUtils::set_logger(&s_logger);
+
 	// syslog initialize
 	if (s->getParams()->isSyslogOutput()) {
 		initSyslog(); // threadmgr syslog output
-		CUtils::initSyslog();
+//		CUtils::initSyslog();
+		auto syslog = std::make_shared<CSyslog> ("/dev/log", LOG_USER, "auto_rec_min");
+		s_logger.set_syslog(syslog);
 	}
 
 	split_set_printf_cb (splitter_log);
@@ -209,7 +219,7 @@ int main (int argc, char *argv[])
 	// syslog finalize
 	if (s->getParams()->isSyslogOutput()) {
 		finalizSyslog(); // threadmgr syslog output
-		CUtils::finalizSyslog();
+//		CUtils::finalizSyslog();
 	}
 
 

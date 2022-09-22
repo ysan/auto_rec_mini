@@ -44,7 +44,7 @@ void CProgramAssociationTable::onSectionCompleted (const CSectionInfo *pCompSect
 	appendTable (pTable);
 
 	// debug dump
-	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+	if (CUtils::get_logger()->get_log_level() <= CLogger::level::debug) {
 		dumpTable (pTable);
 	}
 

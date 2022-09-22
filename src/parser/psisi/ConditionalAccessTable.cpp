@@ -1,3 +1,4 @@
+#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,7 +42,7 @@ void CConditionalAccessTable::onSectionCompleted (const CSectionInfo *pCompSecti
 	appendTable (pTable);
 
 	// debug dump
-	if (CUtils::getLogLevel() <= EN_LOG_LEVEL_D) {
+	if (CUtils::get_logger()->get_log_level() <= CLogger::level::debug) {
 		dumpTable (pTable);
 	}
 }
