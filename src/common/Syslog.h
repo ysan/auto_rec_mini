@@ -13,10 +13,12 @@
 
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <memory>
 #include <ctime>
 #include <sstream>
+#include <algorithm>
 
 // The BSD syslog Protocol
 // https://datatracker.ietf.org/doc/html/rfc3164#section-4.1.1
@@ -25,7 +27,7 @@ class CSyslog {
 private:
 	class CUnixDomainUdp {
 	public:
-		CUnixDomainUdp (std::string endpoint)
+		explicit CUnixDomainUdp (std::string endpoint)
 			: m_endpoint (endpoint)
 			, m_socket (-1)
 		{
@@ -46,6 +48,10 @@ private:
 		}
 
 		bool _send (uint8_t *p_buff, size_t length) {
+			if (m_socket < 0) {
+				return false;
+			}
+
 			int n = 0;
 			int l = length;
 			int sent = 0;
@@ -55,7 +61,7 @@ private:
 			addr.sun_family = AF_UNIX;
 			strncpy(addr.sun_path, m_endpoint.c_str(), m_endpoint.length());
 
-			while (sent < length) {
+			while (sent < (int)length) {
 				n = sendto (m_socket, p_buff, l, 0, (struct sockaddr *)&addr, sizeof(addr));
 				if (n < 0) {
 					perror("sendto");
@@ -76,14 +82,20 @@ private:
 			}
 		}
 
+		int get_socket (void) {
+			return m_socket;
+		}
+
+	private:
 		std::string m_endpoint;
 		int m_socket;
 	};
 
-//	class CNetUdp {}
+//	class CNetUdp {
+//	}
 
 public:
-	CSyslog (std::string endpoint, int facility, std::string tag, bool with_pid=true)
+	explicit CSyslog (std::string endpoint, int facility, std::string tag, bool with_pid=true)
 		: m_endpoint(endpoint)
 		, m_unix_udp(endpoint)
 		, m_facility (facility)
@@ -92,81 +104,69 @@ public:
 	{
 		m_unix_udp._open();
 	}
+
+	int get_fd (void) {
+		return m_unix_udp.get_socket();
+	}
 	
 	virtual ~CSyslog (void) {
 		m_unix_udp._close();
 	}
 
 	void emergency (const char* format, ...) {
-		char buff[1024] = {0};
 		va_list va;
 		va_start(va, format);
-		vsnprintf(buff, sizeof(buff), format, va);
+		put (LOG_EMERG, format, va);
 		va_end(va);
-		put (LOG_EMERG, buff);
 	}
 
 	void alert (const char* format, ...) {
-		char buff[1024] = {0};
 		va_list va;
 		va_start(va, format);
-		vsnprintf(buff, sizeof(buff), format, va);
+		put (LOG_ALERT, format,va);
 		va_end(va);
-		put (LOG_ALERT, buff);
 	}
 
 	void critical (const char* format, ...) {
-		char buff[1024] = {0};
 		va_list va;
 		va_start(va, format);
-		vsnprintf(buff, sizeof(buff), format, va);
+		put (LOG_CRIT, format,va);
 		va_end(va);
-		put (LOG_CRIT, buff);
 	}
 
 	void error (const char* format, ...) {
-		char buff[1024] = {0};
 		va_list va;
 		va_start(va, format);
-		vsnprintf(buff, sizeof(buff), format, va);
+		put (LOG_ERR, format, va);
 		va_end(va);
-		put (LOG_ERR, buff);
 	}
 
 	void warning (const char* format, ...) {
-		char buff[1024] = {0};
 		va_list va;
 		va_start(va, format);
-		vsnprintf(buff, sizeof(buff), format, va);
+		put (LOG_WARNING, format, va);
 		va_end(va);
-		put (LOG_WARNING, buff);
 	}
 
 	void notice (const char* format, ...) {
-		char buff[1024] = {0};
 		va_list va;
 		va_start(va, format);
-		vsnprintf(buff, sizeof(buff), format, va);
+		put (LOG_NOTICE, format, va);
 		va_end(va);
-		put (LOG_NOTICE, buff);
 	}
 
 	void info (const char* format, ...) {
-		char buff[1024] = {0};
 		va_list va;
 		va_start(va, format);
-		vsnprintf(buff, sizeof(buff), format, va);
+		put (LOG_INFO, format, va);
 		va_end(va);
-		put (LOG_INFO, buff);
 	}
 
 	void debug (const char* format, ...) {
-		char buff[1024] = {0};
 		va_list va;
 		va_start(va, format);
-		vsnprintf(buff, sizeof(buff), format, va);
+		put (LOG_DEBUG, format, va);
 		va_end(va);
-		put (LOG_DEBUG, buff);
 	}
 
 private:
@@ -196,16 +196,78 @@ private:
 		return ss.str();
 	}
 
-	void put (int severity, const char *p_msg) {
+	void put (int severity, const char* format, va_list &va) {
 		char buff[1024] = {0};
+
 		std::string priority = std::to_string(get_priority(m_facility, severity));
+		int n = snprintf(buff, sizeof(buff), "<%s>%s: ",
+					priority.c_str(), get_header().c_str());
 
-		snprintf(buff, sizeof(buff), "<%s>%s: %s",
-				priority.c_str(), get_header().c_str(), p_msg);
-std::cout << buff << std::endl;
-
-		m_unix_udp._send((uint8_t*)buff, strlen(buff));
+		vsnprintf(buff + n, sizeof(buff) - n, format, va);
+//std::cout << buff << std::endl;
+		if (std::strstr(buff, "\n") == nullptr) {
+			m_unix_udp._send((uint8_t*)buff, strlen(buff));
+		} else {
+			auto splited = split (buff + n, "\n");
+			for (const auto &s : *splited) {
+				strncpy(buff + n, s.c_str(), s.length());
+				m_unix_udp._send((uint8_t*)buff, n + s.length());
+			}
+		}
 	}
+
+	std::shared_ptr<std::vector<std::string>> split (std::string s, std::string sep) const {
+		auto r = std::make_shared<std::vector<std::string>>();
+
+		if (sep.length() == 0) {
+			r->push_back(s);
+
+		} else {
+			auto offset = std::string::size_type(0);
+			while (1) {
+				auto pos = s.find(sep, offset);
+				if (pos == offset) {
+					// empty
+					offset = pos + sep.length();
+					r->push_back(""); // Don't push_back if you want to ignore emptiness.
+					continue;
+
+				} else if (pos == std::string::npos) {
+					std::string sub = s.substr(offset);
+					if (sub.length() == 0) {
+						// ignore empty (last)
+						r->push_back(""); // Don't push_back if you want to ignore emptiness.
+					} else {
+						r->push_back(s.substr(offset));
+					}
+					break;
+				}
+
+				r->push_back(s.substr(offset, pos - offset));
+				offset = pos + sep.length();
+			}
+		}
+//		for (const auto &v : *r) {
+//			std::cout << "[" << v << "]" << std::endl;
+//		}
+
+		// remove tail LF
+		auto &v = *r;
+		while (1) {
+			if (v.size() <= 1) {
+				break;
+			}
+			auto it = std::find_if (v.rbegin(), v.rend(), [](const std::string& s){ return (s.length() == 0); });
+			if (it == v.rbegin()) {
+				v.erase(it.base());
+			} else {
+				break;
+			}
+		}
+
+		return r;
+	}
+
 
 	std::string m_endpoint;
 	CUnixDomainUdp m_unix_udp;
@@ -222,11 +284,15 @@ std::cout << buff << std::endl;
 #include "Syslog.h"
 int main (void)
 {
-	CSyslog s("/dev/log", LOG_USER, "tag_a");
+	CSyslog s("/dev/log", LOG_USER, "tag_test");
+
 	s.debug("testdeb");
 	s.info("testinfo %d", 100);
 	s.warning("testwarn %s %s", "a", "rr");
 	s.error("testerr %f", 1.00);
+
+	s.info("\ntests %f\n ssss \nrrrrrr\n\n12\n", 1.00);
+
 	return 0;
 }
 #endif
