@@ -39,7 +39,7 @@
 #include "Stack.h"
 #include "Logger.h"
 
-
+#if 0
 #define _UTL_TEXT_ATTR_RESET			"\x1B[0m"
 #define _UTL_TEXT_BOLD_TYPE				"\x1B[1m"
 #define _UTL_TEXT_UNDER_LINE			"\x1B[4m"
@@ -66,7 +66,7 @@ typedef enum {
 	EN_LOG_LEVEL_E,			// error
 	EN_LOG_LEVEL_PE,		// perror
 } EN_LOG_LEVEL;
-
+#endif
 
 /**
  * log macro

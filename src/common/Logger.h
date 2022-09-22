@@ -721,13 +721,13 @@ private:
 
 	void get_systime_ms (char *buff, size_t size) const {
 		std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
-		auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count() % 1000;
+		long long msec = std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count() % 1000;
 		time_t time = std::chrono::system_clock::to_time_t(tp);
 		struct tm* t = localtime(&time);
 		snprintf (
 			buff,
 			size,
-			"%02d/%02d %02d:%02d:%02d.%03ld",
+			"%02d/%02d %02d:%02d:%02d.%03lld",
 			t->tm_mon+1,
 			t->tm_mday,
 			t->tm_hour,
