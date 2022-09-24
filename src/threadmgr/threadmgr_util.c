@@ -25,7 +25,21 @@
  * Variables
  */
 FILE *g_fpLog = NULL;
-bool g_is_use_syslog = false;
+void (*__putsLog) (
+	FILE *pFp,
+	EN_LOG_TYPE enLogType,
+	const char *pszFile,
+	const char *pszFunc,
+	int nLine,
+	const char *pszFormat,
+	...
+) = putsLog;
+void (*__putsLogLW) (
+	FILE *pFp,
+	EN_LOG_TYPE enLogType,
+	const char *pszFormat,
+	...
+) = putsLogLW;
 
 /*
  * Prototypes
@@ -40,9 +54,18 @@ void getTimeOfDay (struct timeval *p); //extern
 bool initLog (void); // extern
 void initLogStdout (void); // extern
 void finalizLog (void); // extern
-void initSyslog (void); // extern
-void finalizSyslog (void); // extern
 void setLogFileptr (FILE *p); // extern
+FILE* getLogFileptr (void);
+void setAlternativeLog (void (*_fn)( // extern
+		FILE *pFp,
+		EN_LOG_TYPE enLogType,
+		const char *pszFile,
+		const char *pszFunc,
+		int nLine,
+		const char *pszFormat,
+		...
+	)
+);
 void putsLog ( // extern
 	FILE *pFp,
 	EN_LOG_TYPE enLogType,
@@ -59,8 +82,7 @@ static void putsLogInner (
 	const char *pszFunc,
 	int nLine,
 	const char *pszFormat,
-	va_list va,
-	bool isUseSyslog
+	va_list va
 );
 static void putsLogFprintf (
 	FILE *pFp,
@@ -74,16 +96,12 @@ static void putsLogFprintf (
 	const char *pszFunc,
 	int nLine
 );
-static void putsSyslog (
-	EN_LOG_TYPE enLogType,
-	const char *pszThreadName,
-	char type,
-	const char *pszTime,
-	const char *pszBuf,
-	const char *pszPerror,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine
+void setAlternativeLogLW (void (*_fn)( // extern
+		FILE *pFp,
+		EN_LOG_TYPE enLogType,
+		const char *pszFormat,
+		...
+	)
 );
 void putsLogLW ( // extern
 	FILE *pFp,
@@ -95,8 +113,7 @@ static void putsLogInnerLW (
 	FILE *pFp,
 	EN_LOG_TYPE enLogType,
 	const char *pszFormat,
-	va_list va,
-	bool isUseSyslog
+	va_list va
 );
 static void putsLogFprintfLW (
 	FILE *pFp,
@@ -107,15 +124,6 @@ static void putsLogFprintfLW (
 	const char *pszBuf,
 	const char *pszPerror
 );
-static void putsSyslogLW (
-	EN_LOG_TYPE enLogType,
-	const char *pszThreadName,
-	char type,
-	const char *pszTime,
-	const char *pszBuf,
-	const char *pszPerror
-);
-void deleteLF (char *p); // extern
 
 
 char * strtok_r_impl (char *str, const char *delim, char **saveptr)
@@ -278,102 +286,6 @@ void getTimeOfDay (struct timeval *p)
 }
 
 /**
- * ファイル出力用
- * ログ初期化
- */
-bool initLog (void)
-{
-	char szTime [64];
-	char ne [128];
-	struct tm *pstTmLocal = NULL;
-
-	memset (szTime, 0x00, sizeof (szTime));
-	memset (ne, 0x00, sizeof (ne));
-
-	time_t timer;
-	struct stat s;
-	int r = stat (LOG_PATH "/" LOG_NAME "." LOG_EXT, &s);
-	if (r == 0) {
-		// backup rename file
-		timer = time (NULL);
-		pstTmLocal = localtime (&timer);
-		snprintf (
-			szTime,
-			(int)sizeof(szTime),
-			"%04d-%02d-%02d-%02d%02d%02d",
-			pstTmLocal->tm_year+1900,
-			pstTmLocal->tm_mon+1,
-			pstTmLocal->tm_mday,
-			pstTmLocal->tm_hour,
-			pstTmLocal->tm_min,
-			pstTmLocal->tm_sec
-		);
-		
-		snprintf (
-			ne,
-			(int)sizeof(ne),
-			"%s_%s.log",
-			LOG_PATH "/" LOG_NAME,
-			szTime
-		);
-		int r = rename (LOG_PATH "/" LOG_NAME "." LOG_EXT, ne);
-		if (r != 0) {
-			perror ("rename");
-		}
-	}
-	
-	if ((g_fpLog = fopen (LOG_PATH "/" LOG_NAME "." LOG_EXT, "a")) == NULL) {
-		perror ("fopen");
-		return false;
-	}
-
-	return true;
-}
-
-/**
- * 標準出力用
- * ログ初期化
- */
-void initLogStdout (void)
-{
-	g_fpLog = stdout;
-}
-
-/**
- * ファイル出力用
- * ログ終了
- */
-void finalizLog (void)
-{
-	if (g_fpLog) {
-		fclose (g_fpLog);
-	}
-}
-
-
-/**
- * syslog初期化
- */
-void initSyslog (void)
-{
-	if (!g_is_use_syslog) {
-		openlog (NULL, 0, LOG_USER);
-		g_is_use_syslog = true;
-	}
-}
-
-/**
- * syslog終了
- */
-void finalizSyslog (void)
-{
-	if (g_is_use_syslog) {
-		closelog ();
-		g_is_use_syslog = false;
-	}
-}
-
-/**
  * ログ出力用 FP切り替え
  */
 void setLogFileptr (FILE *p)
@@ -391,6 +303,20 @@ FILE* getLogFileptr (void)
 	return g_fpLog;
 }
 
+void setAlternativeLog (void (*_fn)(
+		FILE *pFp,
+		EN_LOG_TYPE enLogType,
+		const char *pszFile,
+		const char *pszFunc,
+		int nLine,
+		const char *pszFormat,
+		...
+	)
+)
+{
+	__putsLog = _fn;
+}
+
 /**
  * putsLog インターフェース
  * ログ出力
@@ -405,17 +331,14 @@ void putsLog (
 	...
 )
 {
+	if (!pFp) {
+		return;
+	}
+
 	va_list va;
 	va_start (va, pszFormat); 
-	putsLogInner (pFp, enLogType, pszFile, pszFunc, nLine, pszFormat, va, false);
+	putsLogInner (pFp, enLogType, pszFile, pszFunc, nLine, pszFormat, va);
 	va_end (va);
-
-	if (g_is_use_syslog) {
-		va_list va;
-		va_start (va, pszFormat); 
-		putsLogInner (pFp, enLogType, pszFile, pszFunc, nLine, pszFormat, va, true);
-		va_end (va);
-	}
 }
 
 /**
@@ -429,8 +352,7 @@ void putsLogInner (
 	const char *pszFunc,
 	int nLine,
 	const char *pszFormat,
-	va_list va,
-	bool isUseSyslog
+	va_list va
 )
 {
 	if (!pFp || !pszFile || !pszFunc || !pszFormat) {
@@ -461,32 +383,26 @@ void putsLogInner (
 	case EN_LOG_TYPE_W:
 		type = 'W';
 #ifndef _LOG_COLOR_OFF
-		if (!isUseSyslog) {
-			fprintf (pFp, THM_TEXT_BOLD_TYPE);
-			fprintf (pFp, THM_TEXT_YELLOW);
-		}
+		fprintf (pFp, THM_TEXT_BOLD_TYPE);
+		fprintf (pFp, THM_TEXT_YELLOW);
 #endif
 		break;
 
 	case EN_LOG_TYPE_E:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		if (!isUseSyslog) {
-			fprintf (pFp, THM_TEXT_UNDER_LINE);
-			fprintf (pFp, THM_TEXT_BOLD_TYPE);
-			fprintf (pFp, THM_TEXT_RED);
-		}
+		fprintf (pFp, THM_TEXT_UNDER_LINE);
+		fprintf (pFp, THM_TEXT_BOLD_TYPE);
+		fprintf (pFp, THM_TEXT_RED);
 #endif
 		break;
 
 	case EN_LOG_TYPE_PE:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		if (!isUseSyslog) {
-			fprintf (pFp, THM_TEXT_REVERSE);
-			fprintf (pFp, THM_TEXT_BOLD_TYPE);
-			fprintf (pFp, THM_TEXT_MAGENTA);
-		}
+		fprintf (pFp, THM_TEXT_REVERSE);
+		fprintf (pFp, THM_TEXT_BOLD_TYPE);
+		fprintf (pFp, THM_TEXT_MAGENTA);
 #endif
 		pszPerror = strerror_r(errno, szPerror, sizeof (szPerror));
 		break;
@@ -520,7 +436,6 @@ void putsLogInner (
 		break;
 
 	case EN_LOG_TYPE_I:
-	case EN_LOG_TYPE_N:
 	case EN_LOG_TYPE_W:
 	case EN_LOG_TYPE_E:
 	default:
@@ -548,62 +463,34 @@ void putsLogInner (
 		token = strtok_r_impl (s, "\n", &saveptr);
 		if (token == NULL) {
 			if (n == 0 && (int)strlen(szBufVa) > 0) {
-				if (!isUseSyslog) {
-					putsLogFprintf (
-						pFp,
-						enLogType,
-						szThreadName,
-						type,
-						szTime,
-						szBufVa,
-						pszPerror,
-						pszFile,
-						pszFunc,
-						nLine
-					);
-				} else {
-					putsSyslog (
-						enLogType,
-						szThreadName,
-						type,
-						szTime,
-						szBufVa,
-						pszPerror,
-						pszFile,
-						pszFunc,
-						nLine
-					);
-				}
+				putsLogFprintf (
+					pFp,
+					enLogType,
+					szThreadName,
+					type,
+					szTime,
+					szBufVa,
+					pszPerror,
+					pszFile,
+					pszFunc,
+					nLine
+				);
 			}
 			break;
 		}
 
-		if (!isUseSyslog) {
-			putsLogFprintf (
-				pFp,
-				enLogType,
-				szThreadName,
-				type,
-				szTime,
-				token,
-				pszPerror,
-				pszFile,
-				pszFunc,
-				nLine
-			);
-		} else {
-			putsSyslog (
-				enLogType,
-				szThreadName,
-				type,
-				szTime,
-				token,
-				pszPerror,
-				pszFile,
-				pszFunc,
-				nLine
-			);
-		}
+		putsLogFprintf (
+			pFp,
+			enLogType,
+			szThreadName,
+			type,
+			szTime,
+			token,
+			pszPerror,
+			pszFile,
+			pszFunc,
+			nLine
+		);
 
 		s = NULL;
 		++ n;
@@ -611,9 +498,7 @@ void putsLogInner (
 #endif
 
 #ifndef _LOG_COLOR_OFF
-	if (!isUseSyslog) {
-		fprintf (pFp, THM_TEXT_ATTR_RESET);
-	}
+	fprintf (pFp, THM_TEXT_ATTR_RESET);
 #endif
 	fflush (pFp);
 }
@@ -677,60 +562,15 @@ void putsLogFprintf (
 	fflush (pFp);
 }
 
-/**
- * putsSyslog
- * 根っこのsyslogするところ
- */
-void putsSyslog (
-	EN_LOG_TYPE enLogType,
-	const char *pszThreadName,
-	char type,
-	const char *pszTime,
-	const char *pszBuf,
-	const char *pszPerror,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine
+void setAlternativeLogLW (void (*_fn)(
+		FILE *pFp,
+		EN_LOG_TYPE enLogType,
+		const char *pszFormat,
+		...
+	)
 )
 {
-	if (!pszTime || !pszBuf || !pszFile || !pszFunc) {
-		return ;
-	}
-
-	switch (enLogType) {
-	case EN_LOG_TYPE_PE:
-		syslog (
-			LOG_INFO,
-			"[%s] %c %s  %s: %s   src=[%s %s()] line=[%d]\n",
-			pszThreadName,
-			type,
-			pszTime,
-			pszBuf,
-			pszPerror,
-			pszFile,
-			pszFunc,
-			nLine
-		);
-		break;
-
-	case EN_LOG_TYPE_D:
-	case EN_LOG_TYPE_I:
-	case EN_LOG_TYPE_W:
-	case EN_LOG_TYPE_E:
-	default:
-		syslog (
-			LOG_INFO,
-			"[%s] %c %s  %s   src=[%s %s()] line=[%d]\n",
-			pszThreadName,
-			type,
-			pszTime,
-			pszBuf,
-			pszFile,
-			pszFunc,
-			nLine
-		);
-		break;
-	}
+	__putsLogLW = _fn;
 }
 
 /**
@@ -745,17 +585,14 @@ void putsLogLW (
 	...
 )
 {
+	if (!pFp) {
+		return;
+	}
+
 	va_list va;
 	va_start (va, pszFormat);
-	putsLogInnerLW (pFp, enLogType, pszFormat, va, false);
+	putsLogInnerLW (pFp, enLogType, pszFormat, va);
 	va_end (va);
-
-	if (g_is_use_syslog) {
-		va_list va;
-		va_start (va, pszFormat);
-		putsLogInnerLW (pFp, enLogType, pszFormat, va, true);
-		va_end (va);
-	}
 }
 
 /**
@@ -766,8 +603,7 @@ void putsLogInnerLW (
 	FILE *pFp,
 	EN_LOG_TYPE enLogType,
 	const char *pszFormat,
-	va_list va,
-	bool isUseSyslog
+	va_list va
 )
 {
 	if (!pFp || !pszFormat) {
@@ -798,32 +634,26 @@ void putsLogInnerLW (
 	case EN_LOG_TYPE_W:
 		type = 'W';
 #ifndef _LOG_COLOR_OFF
-		if (!isUseSyslog) {
-			fprintf (pFp, THM_TEXT_BOLD_TYPE);
-			fprintf (pFp, THM_TEXT_YELLOW);
-		}
+		fprintf (pFp, THM_TEXT_BOLD_TYPE);
+		fprintf (pFp, THM_TEXT_YELLOW);
 #endif
 		break;
 
 	case EN_LOG_TYPE_E:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		if (!isUseSyslog) {
-			fprintf (pFp, THM_TEXT_UNDER_LINE);
-			fprintf (pFp, THM_TEXT_BOLD_TYPE);
-			fprintf (pFp, THM_TEXT_RED);
-		}
+		fprintf (pFp, THM_TEXT_UNDER_LINE);
+		fprintf (pFp, THM_TEXT_BOLD_TYPE);
+		fprintf (pFp, THM_TEXT_RED);
 #endif
 		break;
 
 	case EN_LOG_TYPE_PE:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		if (!isUseSyslog) {
-			fprintf (pFp, THM_TEXT_REVERSE);
-			fprintf (pFp, THM_TEXT_BOLD_TYPE);
-			fprintf (pFp, THM_TEXT_MAGENTA);
-		}
+		fprintf (pFp, THM_TEXT_REVERSE);
+		fprintf (pFp, THM_TEXT_BOLD_TYPE);
+		fprintf (pFp, THM_TEXT_MAGENTA);
 #endif
 		pszPerror = strerror_r(errno, szPerror, sizeof (szPerror));
 		break;
@@ -854,7 +684,6 @@ void putsLogInnerLW (
 		break;
 
 	case EN_LOG_TYPE_I:
-	case EN_LOG_TYPE_N:
 	case EN_LOG_TYPE_W:
 	case EN_LOG_TYPE_E:
 	default:
@@ -879,50 +708,28 @@ void putsLogInnerLW (
 		token = strtok_r_impl (s, "\n", &saveptr);
 		if (token == NULL) {
 			if (n == 0 && (int)strlen(szBufVa) > 0) {
-				if (!isUseSyslog) {
-					putsLogFprintfLW (
-						pFp,
-						enLogType,
-						szThreadName,
-						type,
-						szTime,
-						szBufVa,
-						pszPerror
-					);
-				} else {
-					putsSyslogLW (
-						enLogType,
-						szThreadName,
-						type,
-						szTime,
-						szBufVa,
-						pszPerror
-					);
-				}
+				putsLogFprintfLW (
+					pFp,
+					enLogType,
+					szThreadName,
+					type,
+					szTime,
+					szBufVa,
+					pszPerror
+				);
 			}
 			break;
 		}
 
-		if (!isUseSyslog) {
-			putsLogFprintfLW (
-				pFp,
-				enLogType,
-				szThreadName,
-				type,
-				szTime,
-				token,
-				pszPerror
-			);
-		} else {
-			putsSyslogLW (
-				enLogType,
-				szThreadName,
-				type,
-				szTime,
-				token,
-				pszPerror
-			);
-		}
+		putsLogFprintfLW (
+			pFp,
+			enLogType,
+			szThreadName,
+			type,
+			szTime,
+			token,
+			pszPerror
+		);
 
 		s = NULL;
 		++ n;
@@ -930,9 +737,7 @@ void putsLogInnerLW (
 #endif
 
 #ifndef _LOG_COLOR_OFF
-	if (!isUseSyslog) {
-		fprintf (pFp, THM_TEXT_ATTR_RESET);
-	}
+	fprintf (pFp, THM_TEXT_ATTR_RESET);
 #endif
 	fflush (pFp);
 }
@@ -986,54 +791,6 @@ void putsLogFprintfLW (
 	}
 
 	fflush (pFp);
-}
-
-/**
- * putsSyslogLW
- * 根っこのsyslogするところ
- * (src,lineなし)
- */
-void putsSyslogLW (
-	EN_LOG_TYPE enLogType,
-	const char *pszThreadName,
-	char type,
-	const char *pszTime,
-	const char *pszBuf,
-	const char *pszPerror
-)
-{
-	if (!pszTime || !pszBuf) {
-		return ;
-	}
-
-	switch (enLogType) {
-	case EN_LOG_TYPE_PE:
-		syslog (
-			LOG_INFO,
-			"[%s] %c %s  %s: %s\n",
-			pszThreadName,
-			type,
-			pszTime,
-			pszBuf,
-			pszPerror
-		);
-		break;
-
-	case EN_LOG_TYPE_D:
-	case EN_LOG_TYPE_I:
-	case EN_LOG_TYPE_W:
-	case EN_LOG_TYPE_E:
-	default:
-		syslog (
-			LOG_INFO,
-			"[%s] %c %s  %s\n",
-			pszThreadName,
-			type,
-			pszTime,
-			pszBuf
-		);
-		break;
-	}
 }
 
 /**

@@ -542,29 +542,29 @@ void setDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper exte
  * inner log macro
  */
 #define THM_INNER_FORCE_LOG_D(fmt, ...) do {\
-	putsLog (getLogFileptr(), EN_LOG_TYPE_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	__putsLog (getLogFileptr(), EN_LOG_TYPE_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #define THM_INNER_FORCE_LOG_I(fmt, ...) do {\
-	putsLog (getLogFileptr(), EN_LOG_TYPE_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	__putsLog (getLogFileptr(), EN_LOG_TYPE_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #define THM_INNER_FORCE_LOG_W(fmt, ...) do {\
-	putsLog (getLogFileptr(), EN_LOG_TYPE_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	__putsLog (getLogFileptr(), EN_LOG_TYPE_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 
 #ifdef _ENABLE_INNER_LOG
 #define THM_INNER_LOG_D(fmt, ...) do {\
 	if (isEnableLog()) {\
-		putsLog (getLogFileptr(), EN_LOG_TYPE_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+		__putsLog (getLogFileptr(), EN_LOG_TYPE_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 	}\
 } while (0)
 #define THM_INNER_LOG_I(fmt, ...) do {\
 	if (isEnableLog()) {\
-		putsLog (getLogFileptr(), EN_LOG_TYPE_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+		__putsLog (getLogFileptr(), EN_LOG_TYPE_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 	}\
 } while (0)
 #define THM_INNER_LOG_W(fmt, ...) do {\
 	if (isEnableLog()) {\
-		putsLog (getLogFileptr(), EN_LOG_TYPE_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+		__putsLog (getLogFileptr(), EN_LOG_TYPE_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 	}\
 } while (0)
 #else // not _ENABLE_INNER_LOG
@@ -577,10 +577,10 @@ void setDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper exte
 #endif
 
 #define THM_INNER_LOG_E(fmt, ...) do {\
-	putsLog (getLogFileptr(), EN_LOG_TYPE_E, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	__putsLog (getLogFileptr(), EN_LOG_TYPE_E, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #define THM_INNER_PERROR(fmt, ...) do {\
-	putsLog (getLogFileptr(), EN_LOG_TYPE_PE, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	__putsLog (getLogFileptr(), EN_LOG_TYPE_PE, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 
 
