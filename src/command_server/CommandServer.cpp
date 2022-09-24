@@ -239,11 +239,8 @@ void CCommandServer::serverLoop (void)
 			// 接続してきたsocketにログ出力をつなぎます
 			int fd_copy = dup (mClientfd);
 			FILE *fp = fdopen (fd_copy, "w");
-//			CUtils::setLogFileptr (fp);
 			CUtils::get_logger()->remove_handler(stdout);
 			CUtils::get_logger()->append_handler(fp);
-			setLogFileptr (fp);
-//			CCommandServerLog::setFileptr (fp);
 
 
 			// begin
@@ -265,11 +262,8 @@ void CCommandServer::serverLoop (void)
 
 
 			// socket切断にともなってログ出力をstdoutにもどします
-//			CUtils::setLogFileptr (stdout);
 			CUtils::get_logger()->remove_handler(fp);
 			CUtils::get_logger()->append_handler(stdout);
-			setLogFileptr (stdout);
-	//		CCommandServerLog::setFileptr (stdout);
 
 			fclose (fp);
 			close (mClientfd);

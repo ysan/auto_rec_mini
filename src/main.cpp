@@ -19,6 +19,7 @@
 #include "EventScheduleManagerIf.h"
 #include "EventSearchIf.h"
 
+#include "threadmgr_util.h"
 #include "tssplitter_lite.h"
 
 #include "Utils.h"
@@ -43,13 +44,86 @@ static void _usage (char* _arg_0)
 	printf ("        print usage.\n\n");
 }
 
+void threadmgr_log (
+	FILE *pFp,
+	EN_LOG_TYPE enLogType,
+	const char *pszFile,
+	const char *pszFunc,
+	int nLine,
+	const char *pszFormat,
+	...
+)
+{
+	char buff [256] = {0};
+	va_list va;
+	va_start (va, pszFormat);
+	vsnprintf (buff, sizeof(buff), pszFormat, va);
+	switch ((int)enLogType) {
+	case EN_LOG_TYPE_D:
+		_UTL_LOG_D ("(%s,%s(),%d) %s", pszFile, pszFunc, nLine, buff);
+		break;
+	case EN_LOG_TYPE_I:
+		_UTL_LOG_I ("(%s,%s(),%d) %s", pszFile, pszFunc, nLine, buff);
+		break;
+	case EN_LOG_TYPE_W:
+		_UTL_LOG_W ("(%s,%s(),%d) %s", pszFile, pszFunc, nLine, buff);
+		break;
+	case EN_LOG_TYPE_E:
+		_UTL_LOG_E ("(%s,%s(),%d) %s", pszFile, pszFunc, nLine, buff);
+		break;
+	case EN_LOG_TYPE_PE:
+		_UTL_PERROR ("(%s,%s(),%d) %s", pszFile, pszFunc, nLine, buff);
+		break;
+	default:
+		break;
+	}
+	va_end (va);
+}
+
+void threadmgr_log_lw (
+	FILE *pFp,
+	EN_LOG_TYPE enLogType,
+	const char *pszFormat,
+	...
+)
+{
+	char buff [256] = {0};
+	va_list va;
+	va_start (va, pszFormat);
+	vsnprintf (buff, sizeof(buff), pszFormat, va);
+	switch ((int)enLogType) {
+	case EN_LOG_TYPE_D:
+		_UTL_LOG_D (buff);
+		break;
+	case EN_LOG_TYPE_I:
+		_UTL_LOG_I (buff);
+		break;
+	case EN_LOG_TYPE_W:
+		_UTL_LOG_W (buff);
+		break;
+	case EN_LOG_TYPE_E:
+		_UTL_LOG_E (buff);
+		break;
+	case EN_LOG_TYPE_PE:
+		_UTL_PERROR (buff);
+		break;
+	default:
+		break;
+	}
+	va_end (va);
+}
+
 int splitter_log (FILE *fp, const char* format, ...)
 {
 	char buff [128] = {0};
 	va_list va;
 	va_start (va, format);
 	vsnprintf (buff, sizeof(buff), format, va);
-	_UTL_LOG_I (buff);
+	if (fp == stderr) {
+		_UTL_LOG_E (buff);
+	} else {
+		_UTL_LOG_I (buff);
+	}
 	va_end (va);
 	return 0;
 }
@@ -118,16 +192,15 @@ int main (int argc, char *argv[])
 	}
 
 
-	initLogStdout(); // threadmgr log init
-
 	s_logger.set_log_level(CLogger::level::info);
 	s_logger.append_handler(stdout);
 	CUtils::set_logger(&s_logger);
 
+	setAlternativeLog (threadmgr_log);
+	setAlternativeLogLW (threadmgr_log_lw);
+
 	// syslog initialize
 	if (s->getParams()->isSyslogOutput()) {
-		initSyslog(); // threadmgr syslog output
-//		CUtils::initSyslog();
 		auto syslog = std::make_shared<CSyslog> ("/dev/log", LOG_USER, "auto_rec_min");
 		s_logger.set_syslog(syslog);
 	}
@@ -218,8 +291,7 @@ int main (int argc, char *argv[])
 
 	// syslog finalize
 	if (s->getParams()->isSyslogOutput()) {
-		finalizSyslog(); // threadmgr syslog output
-//		CUtils::finalizSyslog();
+		;;
 	}
 
 
