@@ -11,39 +11,10 @@
 #include "Settings.h"
 
 
-#if 0
 #define _COM_SVR_PRINT(fmt, ...) do {\
-	fprintf (CCommandServerLog::getFileptr(), fmt, ##__VA_ARGS__);\
-	fflush (CCommandServerLog::getFileptr());\
+	if (CUtils::get_logger()) { \
+		CUtils::get_logger()->puts_without_header(fmt, ##__VA_ARGS__); \
+	} \
 } while (0)
-#endif
-#define _COM_SVR_PRINT(fmt, ...) do {\
-	CUtils::get_logger()->puts_without_header(fmt, ##__VA_ARGS__); \
-} while (0)
-
-
-
-class CCommandServerLog
-{
-public:
-	static void setFileptr (FILE *p) {
-		if (p) {
-			mp_fptr_inner = p;
-		}
-	}
-
-	static FILE * getFileptr (void) {
-		return mp_fptr_inner;
-	}
-
-
-private:
-	CCommandServerLog (void) {}
-	virtual ~CCommandServerLog (void) {}
-
-
-	static FILE *mp_fptr_inner;
-
-};
 
 #endif

@@ -45,7 +45,6 @@ TARGET_TYPE	:=	SHARED
 #
 SRCS_CPP	:= \
 	CommandServer.cpp \
-	CommandServerLog.cpp \
 	CommandTables.cpp \
 
 
