@@ -1,0 +1,31 @@
+/var/log/auto_rec_mini/auto_rec_mini.log
+{
+	rotate 4
+	weekly
+	missingok
+	notifempty
+	delaycompress
+	compress
+#	dateext
+#	dateformat -%Y%m%d-%H%M%S
+#	dateyesterday
+	postrotate
+		/usr/lib/rsyslog/rsyslog-rotate
+	endscript
+}
+
+/var/log/auto_rec_mini/auto_rec_mini-httpaccess.log
+{
+	maxage 90
+	size 10M
+	missingok
+	notifempty
+	delaycompress
+	compress
+#	dateext
+#	dateformat -%Y%m%d-%H%M%S
+#	dateyesterday
+	postrotate
+		/usr/lib/rsyslog/rsyslog-rotate
+	endscript
+}

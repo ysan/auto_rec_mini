@@ -201,7 +201,7 @@ int main (int argc, char *argv[])
 
 	// syslog initialize
 	if (s->getParams()->isSyslogOutput()) {
-		auto syslog = std::make_shared<CSyslog> ("/dev/log", LOG_USER, "auto_rec_min");
+		auto syslog = std::make_shared<CSyslog> ("/dev/log", LOG_USER, "auto_rec_mini");
 		s_logger.set_syslog(syslog);
 	}
 

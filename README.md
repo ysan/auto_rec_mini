@@ -51,14 +51,16 @@ System requirements
 The supported tuners are as follows. only terrestrial digitl.
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 later)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
+Anything that works with other PLEX tuners or `recdvb` should work.
 
 ### Platforms ###
-Will work on generic linux destributions. (confirmed worked on `Ubuntu`, `Fedora`, `Raspbian`)  
+Will work on generic linux destributions. (confirmed worked on `Ubuntu`, `Fedora`, `Raspberry Pi OS (Raspbian)`)  
   
 I usually use `Raspberry pi model B` to check the operation,  
 If the back EPG acquisition runs during recording, or if multiple simultaneous recordings are performed,  
 Packet loss occurs, block noise and image skipping are likely to occur.  
-~~There was a case that ts could not be taken because of insufficient power at the start of tuning.~~
+~~There was a case that ts could not be taken because of insufficient power at the start of tuning.~~  
+As a remedy, using a 5V4A power adapter has improved somewhat.
   
 Also using B-CAS card with IC card reader.
 
@@ -117,7 +119,7 @@ Installation files:
 	    └── libtunethread.so
 
 ### Running as a Linux service (use systemd) ###
-Copy the config file(`settings.json`) to /opt/auto_rec_mini/ .
+Copy the configuration file(`settings.json`) to /opt/auto_rec_mini/ .
 
 	$ sudo mkdir -p /opt/auto_rec_mini/data
 	$ sudo cp settings.json /opt/auto_rec_mini
@@ -135,12 +137,27 @@ To start the service for the first time, do the usual systemctl dance.
 `auto_rec_mini` process is up and ready to use the tuner.  
 `command server` is listening for connections on port 20001.  
 First, please execute the `channel scan` CLI command.  
-  
-### Clean ###  
+
+### Syslog configuration and rotation ###
+Copy the syslog configuration file. (`30-auto_rec_mini.conf`) and restart syslog service.  
+If you set `is_syslog_output` to `true` in `settings.json`,  
+you can output to `/var/log/auto_rec_mini/auto_rec_mini.log`.
+
+	$ sudo cp 30-auto_rec_mini.conf /etc/rsyslog.d
+	$ sudo systemctl restart rsyslog.service
+
+Copy the rotation configuration file. (`logrotate-auto_rec_mini`)  
+
+	$ sudo cp logrotate-auto_rec_mini /etc/logrotate.d
+
+### Clean ###
 	$ sudo systemctl stop auto_rec_mini.service
 	$ sudo systemctl disable auto_rec_mini.service
 	$ sudo rm /etc/systemd/system/auto_rec_mini.service
 	$ sudo systemctl daemon-reload
+	$ sudo rm /etc/rsyslog.d/30-auto_rec_mini.conf
+	$ sudo rm /etc/logrotate.d/logrotate-auto_rec_mini
+	$ sudo systemctl restart rsyslog.service
 	$ sudo make INSTALLDIR=/opt/auto_rec_mini clean
 	$ make clean
 
@@ -176,19 +193,6 @@ Please you set according to the environment.
 | `event_name_search_histories_json_path` | save/load destination of `event name` search history. |
 | `extended_event_search_histories_json_path` | save/load destination of `extended event` search history. |
 | `logo_path` | save/load destination of broadcaster logo png. |
-
-### is_syslog_output ###
-Logs can be output to `/var/log/user.log` by setting the `syslog facility` is `user`.  
-You need modify `/etc/rsyslog.d/50-default.conf`. (case `ubuntu16.04`)
-
-	9c9
-	< *.*;auth,authpriv.none		-/var/log/syslog
-	---
-	> *.*;auth,authpriv.none,user.none		-/var/log/syslog
-	15c15
-	< #user.*				-/var/log/user.log
-	---
-	> user.*				-/var/log/user.log
 
 ### tuner_hal_allocates ###
 Assign commands according to the tuner hardware you can use.

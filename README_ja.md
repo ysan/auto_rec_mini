@@ -51,14 +51,16 @@ System requirements
 対応しているチューナーは以下のものです。今のところ地デジのみとなります。
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 以降)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
+他のPLEX社製チューナーや`recdvb`で動くものであれば動作すると思われます。
 
 ### Platforms ###
-一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspbian`で確認済。)  
+一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspberry Pi OS (Raspbian)`で確認済。)  
   
 普段動作確認で使用しているのは`Raspberry pi model B`ですが、  
 録画中に裏EPG取得が走る場合や、複数同時録画している場合は、  
 パケットロスが起こり、ブロックノイズ、画飛びが起きやすいです。。  
-~~また選局開始時に電力が足りないせいかtsが取れないことがあります。~~
+~~また選局開始時に電力が足りないせいかtsが取れないことがあります。~~  
+改善策として5V4Aの電源アダプターを使用することでそれなりに改善が見られました。
   
 B-CASカードは別途USB接続のICカードリーダを用意して使用しています。
 
@@ -136,11 +138,25 @@ systemctlコマンドでサービスを開始します。
 `command server` はポート20001で接続を待ち受けています。
 最初にCLIコマンドより `channel scan` を行う必要があります。  
 
+### Syslog configuration and rotation ###
+syslogの設定ファイル (`30-auto_rec_mini.conf`)をコピーしてsyslogサービスを再起動します。
+`settings.json` の `is_syslog_output` を `true` にすることで `/var/log/auto_rec_mini/auto_rec_mini.log` に出力が可能です。
+
+	$ sudo cp 30-auto_rec_mini.conf /etc/rsyslog.d
+	$ sudo systemctl restart rsyslog.service
+
+ログローテーションの設定ファイル (`logrotate-auto_rec_mini`) をコピーします。
+
+	$ sudo cp logrotate-auto_rec_mini /etc/logrotate.d
+
 ### Clean ###
 	$ sudo systemctl stop auto_rec_mini.service
 	$ sudo systemctl disable auto_rec_mini.service
 	$ sudo rm /etc/systemd/system/auto_rec_mini.service
 	$ sudo systemctl daemon-reload
+	$ sudo rm /etc/rsyslog.d/30-auto_rec_mini.conf
+	$ sudo rm /etc/logrotate.d/logrotate-auto_rec_mini
+	$ sudo systemctl restart rsyslog.service
 	$ sudo make INSTALLDIR=/opt/auto_rec_mini clean
 	$ make clean
 
@@ -176,19 +192,6 @@ settings.json
 | `event_name_search_histories_json_path` | `event name` 検索履歴の書き込み/読み込み先パスです。 |
 | `extended_event_search_histories_json_path` | `extended event` 検索履歴の書き込み/読み込み先パスです。 |
 | `logo_path` | 放送局ロゴの書き込み/読み込み先パスです。 |
-
-### is_syslog_output ###
-`syslog facirity` を `user` に設定することで、ログを `/var/log/user.log` に出力できます。  
-以下 `/etc/rsyslog.d/50-default.conf` を編集する必要があります。(`ubuntu16.04`の場合)
-
-	9c9
-	< *.*;auth,authpriv.none        -/var/log/syslog
-	---
-	> *.*;auth,authpriv.none,user.none      -/var/log/syslog
-	15c15
-	< #user.*               -/var/log/user.log
-	---
-	> user.*                -/var/log/user.log
 
 ### tuner_hal_allocates ###
 手持ちのtunerハードに合わせてコマンドを割り当てます。
