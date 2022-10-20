@@ -51,6 +51,7 @@ System requirements
 The supported tuners are as follows. only terrestrial digitl.
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 later)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
+
 Anything that works with other PLEX tuners or `recdvb` should work.
 
 ### Platforms ###
@@ -149,8 +150,9 @@ you can output to `/var/log/auto_rec_mini/auto_rec_mini.log`.
 Copy the rotation configuration file. (`logrotate-auto_rec_mini`)  
 
 	$ sudo cp logrotate-auto_rec_mini /etc/logrotate.d
+	$ sudo chown root:root /etc/logrotate.d/logrotate-auto_rec_mini
 
-### Clean ###
+### Uninstall ###
 	$ sudo systemctl stop auto_rec_mini.service
 	$ sudo systemctl disable auto_rec_mini.service
 	$ sudo rm /etc/systemd/system/auto_rec_mini.service

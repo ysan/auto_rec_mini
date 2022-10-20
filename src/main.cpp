@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/syslog.h>
-#include <type_traits>
 #include <unistd.h>
 #include <errno.h>
-
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <getopt.h>
+#include <utility>
 
 #include "ThreadMgrpp.h"
 
@@ -23,6 +23,7 @@
 #include "tssplitter_lite.h"
 
 #include "Utils.h"
+#include "Forker.h"
 #include "modules.h"
 #include "Settings.h"
 
@@ -168,30 +169,59 @@ int main (int argc, char *argv[])
 	}
 
 	if (settings_json_path.length() == 0) {
-		printf ("must specify configuration file. (settings.json)\nrerun set '-c' option.\n");
+		printf ("Must specify configuration file. (settings.json)\nrerun set '-c' option.\n");
 		_usage (argv[0]);
 		exit (EXIT_FAILURE);
 	}
 
+	// ----- change directory -----
 	if (change_directory_path.length() > 0) {
+		struct stat _s;
+		if (stat(change_directory_path.c_str(), &_s) != 0) {
+			CForker forker;
+			if (!forker.create_pipes()) {
+				printf ("forker.create_pipes failure\n");
+				exit (EXIT_FAILURE);
+			}
+			std::string s = "/usr/bin/mkdir -p " + change_directory_path;
+			if (!forker.do_fork(std::move(s))) {
+				printf ("forker.do_fork failure\n");
+				exit (EXIT_FAILURE);
+			}
+
+			CForker::CChildStatus cs = forker.wait_child();
+			forker.destroy_pipes();
+			if (cs.is_normal_end() && cs.get_return_code() == 0) {
+				// success
+				printf ("mkdir -p %s\n", change_directory_path.c_str());
+			} else {
+				printf ("mkdir failure [mkdir -p %s]\n", change_directory_path.c_str());
+				exit (EXIT_FAILURE);
+			}
+		}
 		printf ("chdir %s\n", change_directory_path.c_str());
 		chdir (change_directory_path.c_str());
 	}
 
 
-//	if (argc != 2) {
-//		printf ("unexpected arguments.\n");
-//		exit (EXIT_FAILURE);
-//	}
+	{
+		struct stat _s;
+		if (stat(settings_json_path.c_str(), &_s) != 0) {
+			printf ("Not exists settings.json. [%s]\n", settings_json_path.c_str());
+			exit (EXIT_FAILURE);
+		}
+	}
 
-//	std::string settings_json = argv[1];
+
+	// ----- load settings.json -----
 	CSettings *s = CSettings::getInstance ();
 	if (!s->load (settings_json_path)) {
-		printf ("invalid settings.json.\n");
+		printf ("Invalid settings.json.\n");
 		exit (EXIT_FAILURE);
 	}
 
 
+	// ----- log settings -----
 	s_logger.set_log_level(CLogger::level::info);
 	s_logger.append_handler(stdout);
 	CUtils::set_logger(&s_logger);
@@ -199,7 +229,6 @@ int main (int argc, char *argv[])
 	setAlternativeLog (threadmgr_log);
 	setAlternativeLogLW (threadmgr_log_lw);
 
-	// syslog initialize
 	if (s->getParams()->isSyslogOutput()) {
 		auto syslog = std::make_shared<CSyslog> ("/dev/log", LOG_USER, "auto_rec_mini");
 		s_logger.set_syslog(syslog);
@@ -211,6 +240,7 @@ int main (int argc, char *argv[])
 	s->getParams()->dump ();
 
 
+	// ----- setup thread manager -----
 	CThreadMgr *p_mgr = CThreadMgr::getInstance();
 	if (!p_mgr->setup (getModules(), EN_MODULE_NUM)) {
 		exit (EXIT_FAILURE);
@@ -287,12 +317,6 @@ int main (int argc, char *argv[])
 	delete p_chMgrIf;
 	delete p_schedMgrIf;
 	delete p_searchIf;
-
-
-	// syslog finalize
-	if (s->getParams()->isSyslogOutput()) {
-		;;
-	}
 
 
 	exit (EXIT_SUCCESS);

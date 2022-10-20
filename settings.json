@@ -1,38 +1,38 @@
 {
-    "settings": {
-        "is_syslog_output": true,
+  "settings": {
+    "is_syslog_output": true,
 
-        "command_server_port": 20001,
+    "command_server_port": 20001,
 
-        "tuner_hal_allocates": [
-            "./bin/recdvb %d - -",
-            "./bin/recdvb %d - -",
-            "./bin/recfsusb2i --np %d - -"
-        ],
+    "tuner_hal_allocates": [
+      "./bin/recdvb %d - -",
+      "./bin/recdvb %d - -",
+      "./bin/recfsusb2i --np %d - -"
+    ],
 
-        "channels_json_path": "./data/channels.json",
+    "channels_json_path": "./data/channels.json",
 
-        "rec_reserves_json_path": "./data/rec_reserves.json",
-        "rec_results_json_path": "./data/rec_results.json",
-        "rec_ts_path": "./data/",
-        "rec_disk_space_low_limit_MB": 1000,
-        "rec_use_splitter": true,
+    "rec_reserves_json_path": "./data/rec_reserves.json",
+    "rec_results_json_path": "./data/rec_results.json",
+    "rec_ts_path": "./data/",
+    "rec_disk_space_low_limit_MB": 1000,
+    "rec_use_splitter": true,
 
-        "dummy_tuner_ts_path": "../../../test.m2ts",
+    "dummy_tuner_ts_path": "../../../test.m2ts",
 
-        "event_schedule_cache_is_enable": true,
-        "event_schedule_cache_start_interval_day": 1,
-        "event_schedule_cache_start_time": "15:00",
-        "event_schedule_cache_timeout_min": 3,
-        "event_schedule_cache_retry_interval_min": 90,
-        "event_schedule_cache_data_json_path": "./data/event_schedule_cache_data.json",
-        "event_schedule_cache_histories_json_path": "./data/event_schedule_cache_histories.json",
+    "event_schedule_cache_is_enable": true,
+    "event_schedule_cache_start_interval_day": 1,
+    "event_schedule_cache_start_time": "15:00",
+    "event_schedule_cache_timeout_min": 3,
+    "event_schedule_cache_retry_interval_min": 90,
+    "event_schedule_cache_data_json_path": "./data/event_schedule_cache_data.json",
+    "event_schedule_cache_histories_json_path": "./data/event_schedule_cache_histories.json",
 
-        "event_name_keywords_json_path": "./data/event_name_keywords.json",
-        "extended_event_keywords_json_path": "./data/extended_event_keywords.json",
-        "event_name_search_histories_json_path": "./data/event_name_search_histories.json",
-        "extended_event_search_histories_json_path": "./data/extended_event_search_histories.json",
-    
-        "logo_path": "./data/"
-    }
+    "event_name_keywords_json_path": "./data/event_name_keywords.json",
+    "extended_event_keywords_json_path": "./data/extended_event_keywords.json",
+    "event_name_search_histories_json_path": "./data/event_name_search_histories.json",
+    "extended_event_search_histories_json_path": "./data/extended_event_search_histories.json",
+
+    "logo_path": "./data/logo/"
+  }
 }

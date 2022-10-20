@@ -9,6 +9,8 @@ ExecStartPre=/sbin/ldconfig /opt/auto_rec_mini/lib
 ExecStart=/opt/auto_rec_mini/bin/auto_rec_mini -c /opt/auto_rec_mini/settings.json -d /opt/auto_rec_mini
 KillSignal=SIGTERM
 #Nice=-15
+StandardOutput=null
+StandardError=null
 
 [Install]
 WantedBy=multi-user.target

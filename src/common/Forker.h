@@ -20,7 +20,7 @@ class CForker {
 private:
 	class CPipe {
 	public:
-		CPipe (void) : m_fprintf_cb(fprintf) {
+		explicit CPipe (void) : m_fprintf_cb(nullptr) {
 			for (int i = 0; i < 2; ++ i) {
 				fd[i] = 0;
 				m_is_opened[i] = false;
@@ -33,7 +33,7 @@ private:
 
 		bool create (void) {
 			if (pipe(fd) < 0) {
-				m_fprintf_cb(stderr, "pipe: %s\n", strerror(errno));
+				if (m_fprintf_cb) m_fprintf_cb(stderr, "pipe: %s\n", strerror(errno));
 				return false;
 			}
 
@@ -47,11 +47,11 @@ private:
 			close_writer_fd();
 		}
 
-		int get_reader_fd (void) {
+		int get_reader_fd (void) const {
 			return fd[0];
 		}
 
-		int get_writer_fd (void) {
+		int get_writer_fd (void) const {
 			return fd[1];
 		}
 
@@ -70,7 +70,7 @@ private:
 		}
 
 		void set_log_cb (int (*_cb)(FILE *fp, const char *format, ...)) {
-			m_fprintf_cb = _cb;
+			if (m_fprintf_cb) m_fprintf_cb = _cb;
 		}
 
 	private:
@@ -82,9 +82,32 @@ private:
 	};
 
 public:
+	class CChildStatus {
+	public:
+		CChildStatus (bool is_normal_end, int return_code)
+			: m_is_normal_end(is_normal_end)
+			, m_return_code(return_code)
+		{
+		}
+		virtual ~CChildStatus (void) = default;
+
+		bool is_normal_end (void) const {
+			return m_is_normal_end;
+		}
+
+		int get_return_code (void) const {
+			return m_return_code;
+		}
+
+	private:
+		bool m_is_normal_end;
+		int m_return_code;
+	};
+
+public:
 	CForker (void)
 		: m_child_pid (0)
-		, m_fprintf_cb(fprintf)
+		, m_fprintf_cb(nullptr)
 	{
 		m_command.clear();
 	}
@@ -95,15 +118,15 @@ public:
 	}
 
 	bool create_pipes (void) {
-		if (!m_pipe_p2c.create()) {
+		if (!m_pipe_p2c_stdin.create()) {
 			return false;
 		}
 		if (!m_pipe_c2p_stdout.create()) {
-			m_pipe_p2c.destroy();
+			m_pipe_p2c_stdin.destroy();
 			return false;
 		}
 		if (!m_pipe_c2p_stderr.create()) {
-			m_pipe_p2c.destroy();
+			m_pipe_p2c_stdin.destroy();
 			m_pipe_c2p_stdout.destroy();
 			return false;
 		}
@@ -112,32 +135,31 @@ public:
 	}
 
 	void destroy_pipes (void) {
-		m_pipe_p2c.destroy();
+		m_pipe_p2c_stdin.destroy();
 		m_pipe_c2p_stdout.destroy();
 		m_pipe_c2p_stderr.destroy();
 	}
 	
 	bool do_fork (std::string command) {
 		if (command.length() == 0) {
-			m_fprintf_cb(stderr, "command is none\n");
+			if (m_fprintf_cb) m_fprintf_cb(stderr, "command is none\n");
 			return false;
 		}
 		m_command = command;
 
 		auto splited = split (command, " ");
 		char *_coms[splited->size() +1] ;
-		m_fprintf_cb (stdout, "execv args\n");
+		if (m_fprintf_cb) m_fprintf_cb (stdout, "execv args\n");
 		for (size_t i = 0; i < splited->size(); ++ i) {
 			const auto vec = *splited;
-			vec[i].c_str();
 			_coms [i] = (char*)vec[i].c_str();
-			m_fprintf_cb (stdout, "  [%s]\n", _coms [i]);
+			if (m_fprintf_cb) m_fprintf_cb (stdout, "  [%s]\n", _coms [i]);
 		}
 		_coms [splited->size()] = NULL;
 
 		pid_t _pid = fork();
 		if (_pid < 0) {
-			m_fprintf_cb(stderr, "fork: %s\n", strerror(errno));
+			if (m_fprintf_cb) m_fprintf_cb(stderr, "fork: %s\n", strerror(errno));
 			destroy_pipes();
 			return false;
 
@@ -145,80 +167,84 @@ public:
 			// child process
 
 			// close impossible fds
-			m_pipe_p2c.close_writer_fd();
+			m_pipe_p2c_stdin.close_writer_fd();
 			m_pipe_c2p_stdout.close_reader_fd();
 			m_pipe_c2p_stderr.close_reader_fd();
 
 			// assign stdin
-			if (dup2(m_pipe_p2c.get_reader_fd(), STDIN_FILENO) < 0) {
-				m_fprintf_cb(stderr, "dup2 (stdin): %s\n", strerror(errno));
-				m_pipe_p2c.close_reader_fd();
+			if (dup2(m_pipe_p2c_stdin.get_reader_fd(), STDIN_FILENO) < 0) {
+				if (m_fprintf_cb) m_fprintf_cb(stderr, "dup2 (stdin): %s\n", strerror(errno));
+				m_pipe_p2c_stdin.close_reader_fd();
 				m_pipe_c2p_stdout.close_writer_fd();
 				m_pipe_c2p_stderr.close_writer_fd();
-				return false;
+				exit (EXIT_FAILURE);
 			}
 			// assign stdout
 			if (dup2(m_pipe_c2p_stdout.get_writer_fd(), STDOUT_FILENO) < 0) {
-				m_fprintf_cb(stderr, "dup2 (stdout): %s\n", strerror(errno));
-				m_pipe_p2c.close_reader_fd();
+				if (m_fprintf_cb) m_fprintf_cb(stderr, "dup2 (stdout): %s\n", strerror(errno));
+				m_pipe_p2c_stdin.close_reader_fd();
 				m_pipe_c2p_stdout.close_writer_fd();
 				m_pipe_c2p_stderr.close_writer_fd();
-				return false;
+				exit (EXIT_FAILURE);
 			}
 			// assign stderr
 			if (dup2(m_pipe_c2p_stderr.get_writer_fd(), STDERR_FILENO) < 0) {
-				m_fprintf_cb(stderr, "dup2 (stderr): %s\n", strerror(errno));
-				m_pipe_p2c.close_reader_fd();
+				if (m_fprintf_cb) m_fprintf_cb(stderr, "dup2 (stderr): %s\n", strerror(errno));
+				m_pipe_p2c_stdin.close_reader_fd();
 				m_pipe_c2p_stdout.close_writer_fd();
 				m_pipe_c2p_stderr.close_writer_fd();
-				return false;
+				exit (EXIT_FAILURE);
 			}
-			m_pipe_p2c.close_reader_fd();
+			m_pipe_p2c_stdin.close_reader_fd();
 			m_pipe_c2p_stdout.close_writer_fd();
 			m_pipe_c2p_stderr.close_writer_fd();
 
 			const auto vec = *splited;
 			int r = execv (vec[0].c_str(), _coms);
 			if (r < 0) {
-				m_fprintf_cb(stderr, "execv: %s\n", strerror(errno));
-				return false;
+				if (m_fprintf_cb) m_fprintf_cb(stderr, "execv: %s\n", strerror(errno));
+				exit (EXIT_FAILURE);
 			}
 		}
 
 		// parent process
 		m_child_pid = _pid;
-		m_fprintf_cb (stdout, "child process pid: %d\n", m_child_pid);
+		if (m_fprintf_cb) m_fprintf_cb (stdout, "child process pid: %d\n", m_child_pid);
 
 		// close impossible fds
-		m_pipe_p2c.close_reader_fd();
+		m_pipe_p2c_stdin.close_reader_fd();
 		m_pipe_c2p_stdout.close_writer_fd();
 		m_pipe_c2p_stderr.close_writer_fd();
 
 		// available fds
-		// m_pipe_p2c.get_writer_fd()        -> get_child_stdin_fd()
+		// m_pipe_p2c_stdin.get_writer_fd()        -> get_child_stdin_fd()
 		// m_pipe_c2p_stdout.get_reader_fd() -> get_child_stdout_fd()
 		// m_pipe_c2p_stderr.get_reader_fd() -> get_child_stderr_fd()
 
 		return true;
 	}
 
-	int get_child_stdin_fd (void) {
-		return m_pipe_p2c.get_writer_fd();
+	int get_child_stdin_fd (void) const {
+		return m_pipe_p2c_stdin.get_writer_fd();
 	}
 
-	int get_child_stdout_fd (void) {
+	int get_child_stdout_fd (void) const {
 		return m_pipe_c2p_stdout.get_reader_fd();
 	}
 
-	int get_child_stderr_fd (void) {
+	int get_child_stderr_fd (void) const {
 		return m_pipe_c2p_stderr.get_reader_fd();
 	}
 
-	void wait_child (int killsignal=-1) {
+	CChildStatus wait_child (int killsignal=-1) {
 		if (m_child_pid == 0) {
-			m_fprintf_cb(stderr, "not exists child process");
-			return ;
+			if (m_fprintf_cb) m_fprintf_cb(stderr, "not exists child process\n");
+			CChildStatus cs{false, 0};
+			return cs;
 		}
+
+		bool _is_child_normal_end = true;
+		int _child_return_code = 0;
 
 		int r = 0;
 		int _stat = 0;
@@ -228,34 +254,37 @@ public:
 		while (1) {
 			_r_pid = waitpid (m_child_pid, &_stat, WNOHANG);
 			if (_r_pid == -1) {
-				m_fprintf_cb(stderr, "waitpid: %s\n", strerror(errno));
+				if (m_fprintf_cb) m_fprintf_cb(stderr, "waitpid: %s\n", strerror(errno));
+				_is_child_normal_end = false;
 				break;
 
 			} else if (_r_pid == 0) {
 				if (killsignal == -1) {
 					// do not kill
-					continue;
-				}
-
-				if (_cnt < 50) {
-					r = kill (m_child_pid, killsignal);
-					m_fprintf_cb (stdout, "kill %d [%lu]\n", killsignal, m_child_pid);
 				} else {
-					r = kill (m_child_pid, SIGKILL);
-					m_fprintf_cb (stdout, "kill SIGKILL [%lu]\n", m_child_pid);
-				}
-				if (r < 0) {
-					m_fprintf_cb(stderr, "kill: %s\n", strerror(errno));
+					if (_cnt < 50) {
+						r = kill (m_child_pid, killsignal);
+						if (m_fprintf_cb) m_fprintf_cb (stdout, "kill %d [%lu]\n", killsignal, m_child_pid);
+					} else {
+						r = kill (m_child_pid, SIGKILL);
+						if (m_fprintf_cb) m_fprintf_cb (stdout, "kill SIGKILL [%lu]\n", m_child_pid);
+					}
+					if (r < 0) {
+						if (m_fprintf_cb) m_fprintf_cb(stderr, "kill: %s\n", strerror(errno));
+					}
 				}
 
 			} else {
 				if (WIFEXITED(_stat)) {
-					m_fprintf_cb (stdout, "child exited with status of [%d]\n", WEXITSTATUS(_stat));
+					_child_return_code = WEXITSTATUS(_stat);
+					if (m_fprintf_cb) m_fprintf_cb (stdout, "child exited with status of [%d]\n", _child_return_code);
 				} else {
-					m_fprintf_cb (stdout, "child exited abnromal.\n");
+					_is_child_normal_end = false;
+					if (m_fprintf_cb) m_fprintf_cb (stdout, "child exited abnromal.\n");
 				}
-				m_fprintf_cb (stdout, "---> [%s]\n", m_command.c_str());
+				if (m_fprintf_cb) m_fprintf_cb (stdout, "---> [%s]\n", m_command.c_str());
 
+				// ** clear m_child_pid **
 				m_child_pid = 0;
 				break;
 			}
@@ -263,11 +292,14 @@ public:
 			usleep (50000); // 50mS
 			++ _cnt;
 		}
+
+		CChildStatus cs {_is_child_normal_end, _child_return_code};
+		return cs;
 	}
 
 	void set_log_cb (int (*_cb)(FILE *fp, const char *format, ...)) {
 		m_fprintf_cb = _cb;
-		m_pipe_p2c.set_log_cb(_cb);
+		m_pipe_p2c_stdin.set_log_cb(_cb);
 		m_pipe_c2p_stdout.set_log_cb(_cb);
 		m_pipe_c2p_stderr.set_log_cb(_cb);
 	}
@@ -310,7 +342,7 @@ private:
 		return r;
 	}
 
-	CPipe m_pipe_p2c;
+	CPipe m_pipe_p2c_stdin;
 	CPipe m_pipe_c2p_stdout;
 	CPipe m_pipe_c2p_stderr;
 	pid_t m_child_pid;

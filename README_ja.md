@@ -51,6 +51,7 @@ System requirements
 対応しているチューナーは以下のものです。今のところ地デジのみとなります。
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 以降)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
+
 他のPLEX社製チューナーや`recdvb`で動くものであれば動作すると思われます。
 
 ### Platforms ###
@@ -148,8 +149,9 @@ syslogの設定ファイル (`30-auto_rec_mini.conf`)をコピーしてsyslogサ
 ログローテーションの設定ファイル (`logrotate-auto_rec_mini`) をコピーします。
 
 	$ sudo cp logrotate-auto_rec_mini /etc/logrotate.d
+	$ sudo chown root:root /etc/logrotate.d/logrotate-auto_rec_mini
 
-### Clean ###
+### Uninstall ###
 	$ sudo systemctl stop auto_rec_mini.service
 	$ sudo systemctl disable auto_rec_mini.service
 	$ sudo rm /etc/systemd/system/auto_rec_mini.service

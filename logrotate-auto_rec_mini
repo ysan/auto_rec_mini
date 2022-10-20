@@ -1,7 +1,8 @@
 /var/log/auto_rec_mini/auto_rec_mini.log
 {
-	rotate 4
+	rotate 10
 	weekly
+	maxsize 50M
 	missingok
 	notifempty
 	delaycompress

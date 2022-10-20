@@ -14,6 +14,7 @@
 #include "PsisiManagerStructsAddition.h"
 
 #include "modules.h"
+#include "Forker.h"
 
 #include "aribstr.h"
 
@@ -2318,12 +2319,40 @@ void CPsisiManager::storeLogo (void)
 		}
 
 		std::string *p_path = mp_settings->getParams()->getLogoPath();
+		if (p_path->length() > 0) {
+			struct stat _s;
+			if (stat(p_path->c_str(), &_s) != 0) {
+				CForker forker;
+				if (!forker.create_pipes()) {
+					printf ("forker.create_pipes failure\n");
+					return;
+				}
+				std::string s = "/usr/bin/mkdir -p " + *p_path;
+				if (!forker.do_fork(std::move(s))) {
+					printf ("forker.do_fork failure\n");
+					return;
+				}
+
+				CForker::CChildStatus cs = forker.wait_child();
+				forker.destroy_pipes();
+				if (cs.is_normal_end() && cs.get_return_code() == 0) {
+					// success
+					printf ("mkdir -p %s\n", p_path->c_str());
+				} else {
+					printf ("mkdir failure [mkdir -p %s]\n", p_path->c_str());
+					return;
+				}
+
+				_UTL_LOG_I ("storeLogo -> mkdir %s\n", p_path->c_str());
+			}
+		}
+
 		char _name[PATH_MAX] = {0};
 		snprintf (
 			_name,
 			sizeof(_name),
 			"%s/logo_%s_0x%04x_0x%04x_0x%04x_0x%02x%04x%04x.png",
-			p_path->c_str(),
+			p_path->length() > 0 ? p_path->c_str() : ".",
 			m_networkInfo.ts_name_char,
 			m_networkInfo.transport_stream_id,
 			m_networkInfo.original_network_id,
