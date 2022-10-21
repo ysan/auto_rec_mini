@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+        <title>hlsjs</title>
+    </head>
+    <body>
+        <video id="video_smaple" controls style="width:800px; height:450px; object-fit: fill;">
+        <script>
+            if (Hls.isSupported()) {
+              const video = document.getElementById('video_smaple');
+              const hls = new Hls();
+              hls.loadSource('./stream.m3u8');
+              hls.attachMedia(video);
+            }
+        </script>
+    </body>
+</html>
