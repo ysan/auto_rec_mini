@@ -183,13 +183,15 @@ int main (int argc, char *argv[])
 				printf ("forker.create_pipes failure\n");
 				exit (EXIT_FAILURE);
 			}
-			std::string s = "/usr/bin/mkdir -p " + change_directory_path;
+			std::string s = "/bin/mkdir -p " + change_directory_path;
+			printf ("[%s]", s.c_str());
 			if (!forker.do_fork(std::move(s))) {
 				printf ("forker.do_fork failure\n");
 				exit (EXIT_FAILURE);
 			}
 
 			CForker::CChildStatus cs = forker.wait_child();
+			printf ("is_normal_end %d  get_return_code %d", cs.is_normal_end(), cs.get_return_code());
 			forker.destroy_pipes();
 			if (cs.is_normal_end() && cs.get_return_code() == 0) {
 				// success

@@ -2241,6 +2241,35 @@ void CPsisiManager::storeLogo (void)
 		return;
 	}
 
+	std::string *p_path = mp_settings->getParams()->getLogoPath();
+	if (p_path->length() > 0) {
+		struct stat _s;
+		if (stat(p_path->c_str(), &_s) != 0) {
+			CForker forker;
+			if (!forker.create_pipes()) {
+				_UTL_LOG_I ("forker.create_pipes failure\n");
+				return;
+			}
+			std::string s = "/bin/mkdir -p " + *p_path;
+			_UTL_LOG_I ("[%s]", s.c_str());
+			if (!forker.do_fork(std::move(s))) {
+				_UTL_LOG_I ("forker.do_fork failure\n");
+				return;
+			}
+
+			CForker::CChildStatus cs = forker.wait_child();
+			_UTL_LOG_I ("is_normal_end %d  get_return_code %d", cs.is_normal_end(), cs.get_return_code());
+			forker.destroy_pipes();
+			if (cs.is_normal_end() && cs.get_return_code() == 0) {
+				// success
+				_UTL_LOG_I ("mkdir -p %s\n", p_path->c_str());
+			} else {
+				_UTL_LOG_I ("mkdir failure [mkdir -p %s]\n", p_path->c_str());
+				return;
+			}
+		}
+	}
+
 	CPngcrc pngcrc;
 
 	for (auto it = p_tables->cbegin(); it != p_tables->cend(); ++ it) {
@@ -2316,35 +2345,6 @@ void CPsisiManager::storeLogo (void)
 
 			// 元pngの残りをコピーします
 			memcpy (p, (*it)->data.data_byte.get() + 33, (*it)->data.data_size - 33);
-		}
-
-		std::string *p_path = mp_settings->getParams()->getLogoPath();
-		if (p_path->length() > 0) {
-			struct stat _s;
-			if (stat(p_path->c_str(), &_s) != 0) {
-				CForker forker;
-				if (!forker.create_pipes()) {
-					printf ("forker.create_pipes failure\n");
-					return;
-				}
-				std::string s = "/usr/bin/mkdir -p " + *p_path;
-				if (!forker.do_fork(std::move(s))) {
-					printf ("forker.do_fork failure\n");
-					return;
-				}
-
-				CForker::CChildStatus cs = forker.wait_child();
-				forker.destroy_pipes();
-				if (cs.is_normal_end() && cs.get_return_code() == 0) {
-					// success
-					printf ("mkdir -p %s\n", p_path->c_str());
-				} else {
-					printf ("mkdir failure [mkdir -p %s]\n", p_path->c_str());
-					return;
-				}
-
-				_UTL_LOG_I ("storeLogo -> mkdir %s\n", p_path->c_str());
-			}
 		}
 
 		char _name[PATH_MAX] = {0};
