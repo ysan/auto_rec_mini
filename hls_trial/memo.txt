@@ -1,23 +1,42 @@
-ffmpeg hls encode sample
-$ ffmpeg -i input.m2ts -f hls -hls_segment_type mpegts -hls_time 10 -hls_list_size 0 -hls_allow_cache 0 -hls_flags delete_segments -hls_segment_filename stream_%05d.ts -map 0:v:0 -vcodec libx264 -vb 1500K -maxrate 2000K -r 30000/1001 -aspect 16:9 -preset veryfast -profile:v main -vf yadif=0:-1:1,scale=640:360 -map 0:a:0 -acodec aac -ac 2 -ab 128K -ar 48000 -af volume=2.0 -flags +loop+global_header -movflags +faststart -threads auto stream.m3u8
+Raspbian GNU/Linux 10 (buster) (pi3 modelB)  ffmpeg HLS リアルタイムエンコードメモ
 
+ffmpeg version 4.1.4-1+rpt7~deb10u1
+
+epgstationのコマンドを例に h264(ソフトウェアエンコード) aac +インターレース解除
+$ ffmpeg -i input.m2ts -f hls -hls_segment_type mpegts -hls_time 10 -hls_list_size 0 -hls_allow_cache 0 -hls_flags delete_segments -hls_segment_filename stream_%05d.ts -vcodec libx264 -vb 1500K -maxrate 2000K -r 30000/1001 -aspect 16:9 -preset veryfast -profile:v main -vf yadif=0:-1:1 -acodec aac -ac 2 -ab 128K -ar 48000 -af volume=2.0 -flags +loop+global_header -movflags +faststart -threads auto stream.m3u8
+
+これだと速度 0.2~0.3x リアルタイムエンコードは到底無理...
+
+---------------------------------------------------------------------
 -hls_list_size 0ですべてのセグメントをマニフェストに書き込む
 -hls_list_size n と -hls_flags delete_segmentsで マニフェストに記載するセグメント数を指定、不要なセグメントを削除できるはずだが ffmpegバージョン古いせいかできない
 廃止予定の -hls_wrap n を使用して同様のことが可能
 
-
-Raspbian GNU/Linux 10 (buster)  ffmpegはデフォルトで omxが使えた
-$ ffmpeg -i input.m2ts -f hls -hls_segment_type mpegts -hls_time 10 -hls_list_size 0 -hls_allow_cache 0 -hls_playlist_type event -hls_flags delete_segments -hls_segment_filename stream_%05d.ts -c:v h264_omx -b:v 4000k -c:a aac -ac 2 -ab 128K -ar 48000 stream.m3u8
+---------------------------------------------------------------------
+デフォルトで ハードウェアエンコードh264_omxが使えたので試した
+$ ffmpeg -i input.m2ts -f hls -hls_segment_type mpegts -hls_time 10 -hls_list_size 0 -hls_allow_cache 0 -hls_playlist_type event -hls_flags delete_segments -hls_segment_filename stream_%05d.ts -hls_wrap 5 -c:v h264_omx -b:v 4000k -c:a aac -ac 2 -ab 128K -ar 48000 stream.m3u8
 
 色々ためして この設定が速度的に最も軽いと思われた リサイズなし インターレース解除なし ビットレートや音声はあまり関係なかった...
-それでも速度は 1.0x 台でリアルタイムエンコードはギリギリ
-10分もすればcpu温度 80℃付近になり フリーズする (pi 3 modelB)
+それでも速度は 1.0x 台でリアルタイムエンコードはギリギリ しばらくすると 1.0をきってしまう
+10分もすればcpu温度 80℃付近になり フリーズする (pi3 modelB)
 ファンつけて温度は下がったが 何故か10分程度でフリーズする
-pi3 でのffmpeg ハードウェハエンコードは断念
+pi3 でのffmpeg ハードウェアエンコードは断念
 地デジ 1440x1080 自体が大きすぎ... pi4だったらできるのかも
 
+---------------------------------------------------------------------
+v 4.2.1 / 4.4.1 prebuilt版も試してみた
+https://github.com/ffbinaries/ffbinaries-prebuilt/tags
 
+ハードウェアエンコードは h264_omxではなく h264_v4l2m2mが使用可能となっていた
+しかし画面が緑になってしまい使えなさそう ただしエンコード速度は 1.5x以上でていた..
+自分でビルドすれば使えるのかな...
+
+またffmpeg 4.2以降は arib字幕ストリームを認識してしまいエラーになる
+https://github.com/EMWUI/EDCB_Material_WebUI/issues/17
+videoだけなら-mapで回避
+
+---------------------------------------------------------------------
 お試しサーバー
 $ python3 -m http.server 8000
 
-http://<host>:8000/stream.m3u8
+http://<host>:8000
