@@ -38,6 +38,7 @@
 #include "Etime.h"
 #include "Stack.h"
 #include "Logger.h"
+#include "Shared.h"
 
 
 /**
@@ -169,6 +170,9 @@ public:
 	static void set_logger (CLogger *logger);
 	static CLogger* get_logger (void);
 
+	static void set_shared (CShared<> *shared);
+	static CShared<>* get_shared (void);
+
 
 	class CScopedMutex
 	{
@@ -193,6 +197,7 @@ public:
 private:
 
 	static CLogger *m_logger;
+	static CShared<> *m_shared;
 };
 
 #endif

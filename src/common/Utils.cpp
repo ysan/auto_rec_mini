@@ -707,3 +707,15 @@ CLogger* CUtils::get_logger (void)
 {
 	return m_logger;
 }
+
+CShared<> *CUtils::m_shared = NULL;
+
+void CUtils::set_shared (CShared<> *shared)
+{
+	m_shared = shared;
+}
+
+CShared<>* CUtils::get_shared (void)
+{
+	return m_shared;
+}

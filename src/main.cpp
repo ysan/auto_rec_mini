@@ -31,6 +31,7 @@
 using namespace ThreadManager;
 
 static CLogger s_logger;
+static CShared<> s_shared;
 
 static void _usage (char* _arg_0)
 {
@@ -239,6 +240,7 @@ int main (int argc, char *argv[])
 	split_set_printf_cb (splitter_log);
 
 
+	CUtils::set_shared(&s_shared);
 	s->getParams()->dump ();
 
 
