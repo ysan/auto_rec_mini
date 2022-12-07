@@ -16,8 +16,8 @@ $ ffmpeg -i input.m2ts -f hls -hls_segment_type mpegts -hls_time 10 -hls_list_si
 デフォルトで ハードウェアエンコードh264_omxが使えたので試した
 $ ffmpeg -i input.m2ts -f hls -hls_segment_type mpegts -hls_time 10 -hls_list_size 0 -hls_allow_cache 0 -hls_playlist_type event -hls_flags delete_segments -hls_segment_filename stream_%05d.ts -hls_wrap 5 -c:v h264_omx -b:v 4000k -c:a aac -ac 2 -ab 128K -ar 48000 stream.m3u8
 
-色々ためして この設定が速度的に最も軽いと思われた リサイズなし インターレース解除なし ビットレートや音声はあまり関係なかった...
-それでも速度は 1.0x 台でリアルタイムエンコードはギリギリ しばらくすると 1.0をきってしまう
+色々ためして この設定が速度的に最も軽いと思われた リサイズ インターレース解除 あたりが速度低下の主要因でビットレートはあまり関係なかった... オーディオはcopyにすると多少速くなるが ストリームに異常があった時再生が止まってしまったのでaacでエンコードを入れておく
+これで速度は 1.0x 台でリアルタイムエンコードはギリギリ しばらくすると 1.0をきってしまう
 10分もすればcpu温度 80℃付近になり フリーズする (pi3 modelB)
 ファンつけて温度は下がったが 何故か10分程度でフリーズする
 pi3 でのffmpeg ハードウェアエンコードは断念
