@@ -673,29 +673,6 @@ void CUtils::dumper (const uint8_t *pSrc, int nSrcLen, bool isAddAscii)
 }
 #endif
 
-std::vector<std::string> CUtils::split (std::string s, char delim, bool ignore_empty)
-{
-	int first = 0;
-	int last = s.find_first_of (delim);
-				 
-	std::vector <std::string> r;
-	while (first < s.size()) {
-		if (ignore_empty && ((first - last) == 0)) {
-			;;
-		} else {
-			std::string sub (s, first, last - first);
-			r.push_back (sub);
-		}
-		first = last + 1;
-		last = s.find_first_of (delim, first);
-		if (last == std::string::npos) {
-			last = s.size();
-		}
-	}
-
-	return r;
-}
-
 CLogger *CUtils::m_logger = NULL;
 
 void CUtils::set_logger (CLogger *logger)

@@ -208,7 +208,7 @@ private:
 		if (std::strstr(buff, "\n") == nullptr) {
 			m_unix_udp._send((uint8_t*)buff, strlen(buff));
 		} else {
-			auto splited = split (buff + n, "\n");
+			auto splited = split (buff + n);
 			for (const auto &s : *splited) {
 				strncpy(buff + n, s.c_str(), s.length());
 				m_unix_udp._send((uint8_t*)buff, n + s.length());
@@ -235,7 +235,7 @@ private:
 				} else if (pos == std::string::npos) {
 					std::string sub = s.substr(offset);
 					if (sub.length() == 0) {
-						// ignore empty (last)
+						// empty (last)
 						r->push_back(""); // Don't push_back if you want to ignore emptiness.
 					} else {
 						r->push_back(s.substr(offset));
@@ -250,6 +250,26 @@ private:
 //		for (const auto &v : *r) {
 //			std::cout << "[" << v << "]" << std::endl;
 //		}
+
+		// remove tail LF
+		auto &v = *r;
+		while (1) {
+			if (v.size() <= 1) {
+				break;
+			}
+			auto it = std::find_if (v.rbegin(), v.rend(), [](const std::string& s){ return (s.length() == 0); });
+			if (it == v.rbegin()) {
+				v.erase(it.base());
+			} else {
+				break;
+			}
+		}
+
+		return r;
+	}
+
+	std::shared_ptr<std::vector<std::string>> split (std::string s) const {
+		auto r = split(s, "\n");
 
 		// remove tail LF
 		auto &v = *r;

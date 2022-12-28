@@ -165,8 +165,6 @@ public:
 
 	static void dumper (const uint8_t *pSrc, int nSrcLen, bool isAddAscii=true);
 
-	static std::vector<std::string> split (std::string s, char delim, bool ignore_empty=true);
-
 	static void set_logger (CLogger *logger);
 	static CLogger* get_logger (void);
 

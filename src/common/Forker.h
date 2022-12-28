@@ -316,15 +316,16 @@ private:
 			while (1) {
 				auto pos = s.find(sep, offset);
 				if (pos == offset) {
-					// ignore empty
+					// empty
 					offset = pos + sep.length();
+//					r->push_back(""); // Don't push_back if you want to ignore emptiness.
 					continue;
 
 				} else if (pos == std::string::npos) {
 					std::string sub = s.substr(offset);
 					if (sub.length() == 0) {
-						// ignore empty (last)
-						;;
+						// empty (last)
+//						r->push_back(""); // Don't push_back if you want to ignore emptiness.
 					} else {
 						r->push_back(s.substr(offset));
 					}
