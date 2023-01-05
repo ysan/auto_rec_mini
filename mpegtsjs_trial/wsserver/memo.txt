@@ -1,0 +1,3 @@
+build & run
+$ npm run build
+$ npm run start -- ffmpeg -i input.m2ts -c:v h264_omx -b:v 4000k -c:a aac -ac 2 -ab 128K -ar 48000 -f mpegts pipe:1
