@@ -47,7 +47,7 @@ Future tasks
 System requirements
 ------------
 
-### Tuner ###
+### Tuners ###
 対応しているチューナーは以下のものです。今のところ地デジのみとなります。
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 以降)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
@@ -55,9 +55,9 @@ System requirements
 他のPLEX社製チューナーや`recdvb`で動くものであれば動作すると思われます。
 
 ### Platforms ###
-一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspberry Pi OS (Raspbian)`で確認済。)  
+一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspberry Pi OS`で確認済。)  
   
-普段動作確認で使用しているのは`Raspberry pi model B`ですが、  
+普段動作確認で使用しているのは`Raspberry Pi model B`ですが、  
 録画中に裏EPG取得が走る場合や、複数同時録画している場合は、  
 パケットロスが起こり、ブロックノイズ、画飛びが起きやすいです。。  
 ~~また選局開始時に電力が足りないせいかtsが取れないことがあります。~~  
@@ -83,6 +83,15 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 	$ cmake ..
 	$ make
 	$ sudo make install
+
+PLEX社製チューナー向けファームウェアをインストールします。  
+(sdbt_rio.inp -- arch all)
+
+	$ wget http://plex-net.co.jp/plex/px-s1ud/PX-S1UD_driver_Ver.1.0.1.zip
+	$ unzip PX-S1UD_driver_Ver.1.0.1.zip
+	$ sudo cp PX-S1UD_driver_Ver.1.0.1/x64/amd64/isdbt_rio.inp /lib/firmware/
+	$ sync
+	$ sudo reboot
 
 Build and install
 ------------

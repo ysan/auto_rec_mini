@@ -47,7 +47,7 @@ Future tasks
 System requirements
 ----------
 
-### Tuner ###
+### Tuners ###
 The supported tuners are as follows. only terrestrial digitl.
 * [`KTV-FSUSB2/V3`](http://www.keian.co.jp/products/ktv-fsusb2v3/#spec-table) (S/N: K1212 later)  
 * [`PX-S1UD V2.0`](http://www.plex-net.co.jp/product/px-s1udv2/)
@@ -55,9 +55,9 @@ The supported tuners are as follows. only terrestrial digitl.
 Anything that works with other PLEX tuners or `recdvb` should work.
 
 ### Platforms ###
-Will work on generic linux destributions. (confirmed worked on `Ubuntu`, `Fedora`, `Raspberry Pi OS (Raspbian)`)  
+Will work on generic linux destributions. (confirmed worked on `Ubuntu`, `Fedora`, `Raspberry Pi OS`)  
   
-I usually use `Raspberry pi model B` to check the operation,  
+I usually use `Raspberry Pi model B` to check the operation,  
 If the back EPG acquisition runs during recording, or if multiple simultaneous recordings are performed,  
 Packet loss occurs, block noise and image skipping are likely to occur.  
 ~~There was a case that ts could not be taken because of insufficient power at the start of tuning.~~  
@@ -83,6 +83,15 @@ Please install as appropriate.
 	$ cmake ..
 	$ make
 	$ sudo make install
+
+Install firmware for PLEX tuners.   
+(sdbt_rio.inp -- arch all)
+
+	$ wget http://plex-net.co.jp/plex/px-s1ud/PX-S1UD_driver_Ver.1.0.1.zip
+	$ unzip PX-S1UD_driver_Ver.1.0.1.zip
+	$ sudo cp PX-S1UD_driver_Ver.1.0.1/x64/amd64/isdbt_rio.inp /lib/firmware/
+	$ sync
+	$ sudo reboot
 
 Build and install
 ------------
