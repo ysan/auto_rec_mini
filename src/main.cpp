@@ -28,8 +28,6 @@
 #include "Settings.h"
 
 
-using namespace ThreadManager;
-
 static CLogger s_logger;
 static CShared<> s_shared;
 
@@ -245,64 +243,64 @@ int main (int argc, char *argv[])
 
 
 	// ----- setup thread manager -----
-	CThreadMgr *p_mgr = CThreadMgr::getInstance();
+	threadmgr::CThreadMgr *p_mgr = threadmgr::CThreadMgr::get_instance();
 	if (!p_mgr->setup (getModules(), EN_MODULE_NUM)) {
 		exit (EXIT_FAILURE);
 	}
 
-	p_mgr->getExternalIf()->createExternalCp();
+	p_mgr->get_external_if()->create_external_cp();
 
 
-	CCommandServerIf *p_comSvrIf = new CCommandServerIf (p_mgr->getExternalIf());
+	CCommandServerIf *p_comSvrIf = new CCommandServerIf (p_mgr->get_external_if());
 #if 0
-	CTunerControlIf *p_tunerCtlIf = new CTunerControlIf (p_mgr->getExternalIf());
-	CPsisiManagerIf *p_psisiMgrIf = new CPsisiManagerIf (p_mgr->getExternalIf());
+	CTunerControlIf *p_tunerCtlIf = new CTunerControlIf (p_mgr->get_external_if());
+	CPsisiManagerIf *p_psisiMgrIf = new CPsisiManagerIf (p_mgr->get_external_if());
 #else
 	CTunerControlIf *p_tunerCtlIf [CGroup::GROUP_MAX];
 	CPsisiManagerIf *p_psisiMgrIf [CGroup::GROUP_MAX];
 	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-		p_tunerCtlIf [_gr] = new CTunerControlIf(p_mgr->getExternalIf(), _gr);
-		p_psisiMgrIf [_gr] = new CPsisiManagerIf(p_mgr->getExternalIf(), _gr);
+		p_tunerCtlIf [_gr] = new CTunerControlIf(p_mgr->get_external_if(), _gr);
+		p_psisiMgrIf [_gr] = new CPsisiManagerIf(p_mgr->get_external_if(), _gr);
 	}
 #endif
-	CTunerServiceIf *p_tunerSvcIf = new CTunerServiceIf (p_mgr->getExternalIf());
-	CRecManagerIf *p_recMgrIf = new CRecManagerIf (p_mgr->getExternalIf());
-	CChannelManagerIf *p_chMgrIf = new CChannelManagerIf (p_mgr->getExternalIf());
-	CEventScheduleManagerIf *p_schedMgrIf = new CEventScheduleManagerIf (p_mgr->getExternalIf());
-	CEventSearchIf *p_searchIf = new CEventSearchIf (p_mgr->getExternalIf());
+	CTunerServiceIf *p_tunerSvcIf = new CTunerServiceIf (p_mgr->get_external_if());
+	CRecManagerIf *p_recMgrIf = new CRecManagerIf (p_mgr->get_external_if());
+	CChannelManagerIf *p_chMgrIf = new CChannelManagerIf (p_mgr->get_external_if());
+	CEventScheduleManagerIf *p_schedMgrIf = new CEventScheduleManagerIf (p_mgr->get_external_if());
+	CEventSearchIf *p_searchIf = new CEventSearchIf (p_mgr->get_external_if());
 
 
-	uint32_t opt = p_mgr->getExternalIf()->getRequestOption ();
+	uint32_t opt = p_mgr->get_external_if()->get_request_option ();
 //	opt |= REQUEST_OPTION__WITH_TIMEOUT_MSEC;
 //	opt &= 0x0000ffff; // clear timeout val
 //	opt |= 1000 << 16; // set timeout 1sec
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	p_mgr->getExternalIf()->setRequestOption (opt);
+	p_mgr->get_external_if()->set_request_option (opt);
 
 
 	// modules up
-	p_comSvrIf-> reqModuleUp ();
+	p_comSvrIf-> request_module_up();
 #if 0
-	p_tunerCtlIf-> reqModuleUp ();
-	p_psisiMgrIf->reqModuleUp();
+	p_tunerCtlIf-> request_module_up ();
+	p_psisiMgrIf->request_module_up();
 #else
 	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-		p_tunerCtlIf[_gr]->reqModuleUp();
-		p_psisiMgrIf[_gr]->reqModuleUp();
+		p_tunerCtlIf[_gr]->request_module_up();
+		p_psisiMgrIf[_gr]->request_module_up();
 	}
 #endif
-	p_tunerSvcIf->reqModuleUp();
-	p_recMgrIf->reqModuleUp();
-	p_chMgrIf->reqModuleUp();
-	p_schedMgrIf->reqModuleUp();
-	p_searchIf->reqModuleUp();
+	p_tunerSvcIf->request_module_up();
+	p_recMgrIf->request_module_up();
+	p_chMgrIf->request_module_up();
+	p_schedMgrIf->request_module_up();
+	p_searchIf->request_module_up();
 
 
 
 	p_mgr->wait ();
 
 
-	p_mgr->getExternalIf()->destroyExternalCp();
+	p_mgr->get_external_if()->destroy_external_cp();
 	p_mgr->teardown();
 
 

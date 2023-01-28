@@ -12,86 +12,86 @@
 #include "Utils.h"
 
 
-static void _addRecReserve_keywordSearch (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _add_rec_reserve_keyword_search (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CEventSearchIf mgr(pBase->getExternalIf());
-	mgr.reqAddRecReserve_keywordSearch ();
+	CEventSearchIf _if(base->get_external_if());
+	_if.request_add_rec_reserve_keyword_search ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void _addRecReserve_keywordSearch_ex (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _add_rec_reserve_keyword_search_ex (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CEventSearchIf mgr(pBase->getExternalIf());
-	mgr.reqAddRecReserve_keywordSearch_ex ();
+	CEventSearchIf _if(base->get_external_if());
+	_if.request_add_rec_reserve_keyword_search_ex ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void _dump_histories (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _dump_histories (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CEventSearchIf mgr(pBase->getExternalIf());
-	mgr.reqDumpHistories ();
+	CEventSearchIf _if(base->get_external_if());
+	_if.request_dump_histories ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void _dump_histories_ex (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _dump_histories_ex (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CEventSearchIf mgr(pBase->getExternalIf());
-	mgr.reqDumpHistories_ex ();
+	CEventSearchIf _if(base->get_external_if());
+	_if.request_dump_histories_ex ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
 
-ST_COMMAND_INFO g_eventSearchCommands [] = { // extern
+command_info_t g_event_search_commands [] = { // extern
 	{
 		"r",
 		"add rec reserve (event name keyword search)",
-		_addRecReserve_keywordSearch,
+		_add_rec_reserve_keyword_search,
 		NULL,
 	},
 	{
 		"rx",
 		"add rec reserve (extended event keyword search)",
-		_addRecReserve_keywordSearch_ex,
+		_add_rec_reserve_keyword_search_ex,
 		NULL,
 	},
 	{

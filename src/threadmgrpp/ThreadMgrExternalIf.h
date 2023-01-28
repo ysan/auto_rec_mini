@@ -8,43 +8,80 @@
 #include <errno.h>
 #include <pthread.h>
 
+#include "ThreadMgrIf.h"
 #include "threadmgr_if.h"
 
-using namespace std;
+namespace threadmgr {
 
-
-namespace ThreadManager {
-
-class CThreadMgrExternalIf 
+// ST_THM_EXTERNAL_IF wrap
+class CThreadMgrExternalIf
 {
 public:
-	explicit CThreadMgrExternalIf (ST_THM_EXTERNAL_IF *pExtIf);
-	explicit CThreadMgrExternalIf (CThreadMgrExternalIf *pExtIf);
-	virtual ~CThreadMgrExternalIf (void);
+	CThreadMgrExternalIf (ST_THM_EXTERNAL_IF *p_ext_if)
+		: m_ext_if (*p_ext_if) {
+	}
+
+	CThreadMgrExternalIf (CThreadMgrExternalIf *p_ext_if)
+		: m_ext_if (p_ext_if->m_ext_if) {
+	}
+
+	~CThreadMgrExternalIf (void) {
+	}
 
 
-	bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx);
-	bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize);
+	bool request_sync (uint8_t thread_idx, uint8_t sequence_idx) {
+		return m_ext_if.pfnRequestSync (thread_idx, sequence_idx, NULL, 0);
+	}
 
-	bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx);
-	bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint32_t *pOutReqId);
-	bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize);
-	bool requestAsync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize, uint32_t *pOutReqId);
+	bool request_sync (uint8_t thread_idx, uint8_t sequence_idx, uint8_t *msg, size_t msglen) {
+		return m_ext_if.pfnRequestSync (thread_idx, sequence_idx, msg, msglen);
+	}
 
-	void setRequestOption (uint32_t option);
-	uint32_t getRequestOption (void) const ;
+	bool request_async (uint8_t thread_idx, uint8_t sequence_idx) {
+		return m_ext_if.pfnRequestAsync (thread_idx, sequence_idx, NULL, 0, NULL);
+	}
 
-	bool createExternalCp (void);
-	void destroyExternalCp (void);
+	bool request_async (uint8_t thread_idx, uint8_t sequence_idx, uint32_t *p_out_req_id) {
+		return m_ext_if.pfnRequestAsync (thread_idx, sequence_idx, NULL, 0, p_out_req_id);
+	}
 
-	ST_THM_SRC_INFO* receiveExternal (void);
+	bool request_async (uint8_t thread_idx, uint8_t sequence_idx, uint8_t *msg, size_t msglen) {
+		return m_ext_if.pfnRequestAsync (thread_idx, sequence_idx, msg, msglen, NULL);
+	}
+
+	bool request_async (uint8_t thread_idx, uint8_t sequence_idx, uint8_t *msg, size_t msglen, uint32_t *p_out_req_id) {
+		return m_ext_if.pfnRequestAsync (thread_idx, sequence_idx, msg, msglen, p_out_req_id);
+	}
+
+	void set_request_option (request_option::type option) {
+		m_ext_if.pfnSetRequestOption (option);
+	}
+
+	request_option::type get_request_option (void) const {
+		return m_ext_if.pfnGetRequestOption ();
+	}
+
+	bool create_external_cp (void) {
+		return m_ext_if.pfnCreateExternalCp ();
+	}
+
+	void destroy_external_cp (void) {
+		return m_ext_if.pfnDestroyExternalCp ();
+	}
+
+	CSource& receive_external (void) {
+		ST_THM_SRC_INFO *info = m_ext_if.pfnReceiveExternal ();
+		m_source.set(info);
+		return m_source;
+	}
 
 
 private:
-	ST_THM_EXTERNAL_IF *mpExtIf;
+	ST_THM_EXTERNAL_IF &m_ext_if;
+	CSource m_source;
 
 };
 
-} // namespace ThreadManager
+} // namespace threadmgr
 
 #endif

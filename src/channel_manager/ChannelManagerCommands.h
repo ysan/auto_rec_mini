@@ -12,9 +12,6 @@
 #include "Utils.h"
 
 
-using namespace ThreadManager;
-
-
-extern ST_COMMAND_INFO g_chManagerCommands [] ;
+extern command_info_t g_channel_manager_commands [] ;
 
 #endif

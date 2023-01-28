@@ -48,7 +48,7 @@ public:
 		this->service_name = _p_service_name_char;
     }
 
-	explicit _service_key (CEventScheduleManagerIf::SERVICE_KEY_t &_key) {
+	explicit _service_key (CEventScheduleManagerIf::service_key_t &_key) {
 		clear ();
 		this->transport_stream_id = _key.transport_stream_id;
 		this->original_network_id = _key.original_network_id;
@@ -142,7 +142,7 @@ public:
 		);
 	}
 
-} SERVICE_KEY_t;
+} service_key_t;
 
 
 class CEvent {
@@ -235,7 +235,7 @@ public:
 	std::vector <CGenre> genres;
 
 	// table_id 0x58〜0x5fから取得します
-	std::vector <CExtendedInfo> extendedInfos;
+	std::vector <CExtendedInfo> extended_infos;
 
 
 
@@ -259,7 +259,7 @@ public:
 		quality_indicator = 0;
 		sampling_rate = 0;
 		genres.clear();
-		extendedInfos.clear();
+		extended_infos.clear();
 	}
 
 	void dump (void) const {
@@ -284,8 +284,8 @@ public:
 	}
 
 	void dump_detail (void) const {
-		std::vector<CExtendedInfo>::const_iterator iter_ex = extendedInfos.begin();
-		for (; iter_ex != extendedInfos.end(); ++ iter_ex) {
+		std::vector<CExtendedInfo>::const_iterator iter_ex = extended_infos.begin();
+		for (; iter_ex != extended_infos.end(); ++ iter_ex) {
 			_UTL_LOG_I ("item_description:[%s]", iter_ex->item_description.c_str());
 			_UTL_LOG_I ("item:[%s]", iter_ex->item.c_str());
 		}

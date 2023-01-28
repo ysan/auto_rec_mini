@@ -4,9 +4,11 @@
 
 #include <algorithm>
 
+#include "EventInformationTable_sched.h"
 #include "EventScheduleManager.h"
 #include "EventScheduleManagerIf.h"
 
+#include "PsisiManagerIf.h"
 #include "modules.h"
 
 #include "aribstr.h"
@@ -39,47 +41,48 @@ bool _comp__reserve_start_time (const CEventScheduleManager::CReserve& l, const 
 }
 
 
-CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
-	:CThreadMgrBase (pszName, nQueNum)
+CEventScheduleManager::CEventScheduleManager (std::string name, uint8_t que_max)
+	:threadmgr::CThreadMgrBase (name, que_max)
 	,mp_settings (NULL)
-	,m_state (EN_CACHE_SCHEDULE_STATE__INIT)
-	,m_tunerNotify_clientId (0xff)
-	,m_eventChangeNotify_clientId (0xff)
+	,m_state (CEventScheduleManagerIf::cache_schedule_state::init)
+	,m_tuner_notify_client_id (0xff)
+	,m_event_change_notify_client_id (0xff)
 	,mp_EIT_H_sched (NULL)
 	,m_is_need_stop (false)
 	,m_force_cache_group_id (0xff)
 	,m_tuner_resource_max (0)
 {
-	SEQ_BASE_t seqs [EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM] = {
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleUp, (char*)"onReq_moduleUp"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_moduleDown, (char*)"onReq_moduleDown"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_registerCacheScheduleStateNotify, (char*)"onReq_registerCacheScheduleStateNotify"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_unregisterCacheScheduleStateNotify, (char*)"onReq_unregisterCacheScheduleStateNotify"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getCacheScheduleState, (char*)"onReq_getCacheScheduleState"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_checkLoop, (char*)"onReq_checkLoop"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_parserNotice, (char*)"onReq_parserNotice"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_execCacheSchedule, (char*)"onReq_execCacheSchedule"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule, (char*)"onReq_cacheSchedule"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_cacheSchedule_forceCurrentService, (char*)"onReq_cacheSchedule_forceCurrentService"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_stopCacheSchedule, (char*)"onReq_stopCacheSchedule"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent, (char*)"onReq_getEvent"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvent_latestDumpedSchedule, (char*)"onReq_getEvent_latestDumpedSchedule"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpEvent_latestDumpedSchedule, (char*)"onReq_dumpEvent_latestDumpedSchedule"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch, (char*)"onReq_getEvents_keywordSearch"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_getEvents_keywordSearch, (char*)"onReq_getEvents_keywordSearch(ex)"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_addReserves, (char*)"onReq_addReserves"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpScheduleMap, (char*)"onReq_dumpScheduleMap"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpSchedule, (char*)"onReq_dumpSchedule"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpReserves, (char*)"onReq_dumpReserves"},
-		{(PFN_SEQ_BASE)&CEventScheduleManager::onReq_dumpHistories, (char*)"onReq_dumpHistories"},
+	const int _max = static_cast<int>(CEventScheduleManagerIf::sequence::max);
+	threadmgr::sequence_t seqs [_max] = {
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_module_up(p_if);}, "on_module_up"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_module_down(p_if);}, "on_module_down"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_register_cache_schedule_state_notify(p_if);}, "on_register_cache_schedule_state_notify"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_unregister_cache_schedule_state_notify(p_if);}, "on_unregister_cache_schedule_state_notify"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_get_cache_schedule_state(p_if);}, "on_get_cache_schedule_state"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_check_loop(p_if);}, "on_check_loop"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_parser_notice(p_if);}, "on_parser_notice"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_exec_cache_schedule(p_if);}, "on_exec_cache_schedule"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_cache_schedule(p_if);}, "on_cache_schedule"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_cache_schedule_force_current_service(p_if);}, "on_cache_schedule_force_current_service"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_stop_cache_schedule(p_if);}, "on_stop_cache_schedule"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_get_event(p_if);}, "on_get_event"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_get_event_latest_dumped_schedule(p_if);}, "on_get_event_latest_dumped_schedule"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_dump_event_latest_dumped_schedule(p_if);}, "on_dump_event_latest_dumped_schedule"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_get_events_keyword_search(p_if);}, "on_get_events_keyword_search"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_get_events_keyword_search(p_if);}, "on_get_events_keyword_search(ex)"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_add_reserves(p_if);}, "on_add_reserves"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_dump_schedule_map(p_if);}, "on_dump_schedule_map"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_dump_schedule(p_if);}, "on_dump_schedule"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_dump_reserves(p_if);}, "on_dump_reserves"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CEventScheduleManager::on_dump_histories(p_if);}, "on_dump_histories"},
 	};
-	setSeqs (seqs, EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM);
+	set_sequences (seqs, _max);
 
 
 	mp_settings = CSettings::getInstance();
 
-	m_lastUpdate_EITSched.clear();
-	m_startTime_EITSched.clear();
+	m_last_update_EIT_sched.clear();
+	m_start_time_EIT_sched.clear();
 
 	m_latest_dumped_key.clear();
 
@@ -99,8 +102,8 @@ CEventScheduleManager::CEventScheduleManager (char *pszName, uint8_t nQueNum)
 
 CEventScheduleManager::~CEventScheduleManager (void)
 {
-	m_lastUpdate_EITSched.clear();
-	m_startTime_EITSched.clear();
+	m_last_update_EIT_sched.clear();
+	m_start_time_EIT_sched.clear();
 
 	m_latest_dumped_key.clear();
 
@@ -115,15 +118,17 @@ CEventScheduleManager::~CEventScheduleManager (void)
 	m_histories.clear();
 
 	m_container.clear();
+
+	reset_sequences();
 }
 
 
-void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 //		SECTID_REQ_REG_TUNER_NOTIFY,
 //		SECTID_WAIT_REG_TUNER_NOTIFY,
 //		SECTID_REQ_REG_EVENT_CHANGE_NOTIFY,
@@ -134,13 +139,13 @@ void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
 		SECTID_END_ERROR,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	threadmgr::result rslt = threadmgr::result::success;
 
 
-	switch (sectId) {
+	switch (section_id) {
 	case SECTID_ENTRY:
 
 		// settingsを使って初期化する場合はmodule upで
@@ -148,92 +153,92 @@ void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
 
 		m_schedule_cache_next_day.setCurrentDay();
 
-		loadHistories ();
+		load_histories ();
 
-		m_container.setScheduleMapJsonPath(*mp_settings->getParams()->getEventScheduleCacheDataJsonPath());
-		m_container.loadScheduleMap();
+		m_container.set_schedule_map_json_path(*mp_settings->getParams()->getEventScheduleCacheDataJsonPath());
+		m_container.load_schedule_map();
 
-//		sectId = SECTID_REQ_REG_TUNER_NOTIFY;
-		sectId = SECTID_REQ_CHECK_LOOP;
-		enAct = EN_THM_ACT_CONTINUE;
+//		section_id = SECTID_REQ_REG_TUNER_NOTIFY;
+		section_id = SECTID_REQ_CHECK_LOOP;
+		act = threadmgr::action::continue_;
 		break;
 /***
 	case SECTID_REQ_REG_TUNER_NOTIFY: {
-		CTunerControlIf _if (getExternalIf());
-		_if.reqRegisterTunerNotify ();
+		CTuner_control_if _if (get_external_if());
+		_if.req_register_tuner_notify ();
 
-		sectId = SECTID_WAIT_REG_TUNER_NOTIFY;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_REG_TUNER_NOTIFY;
+		act = threadmgr::action::wait;
 		}
 		break;
 
 	case SECTID_WAIT_REG_TUNER_NOTIFY:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			m_tunerNotify_clientId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
-			sectId = SECTID_REQ_REG_EVENT_CHANGE_NOTIFY;
-			enAct = EN_THM_ACT_CONTINUE;
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			m_tuner_notify_client_id = *(uint8_t*)(p_if->get_source().get_message().data());
+			section_id = SECTID_REQ_REG_EVENT_CHANGE_NOTIFY;
+			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("reqRegisterTunerNotify is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("req_register_tuner_notify is failure.");
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		}
 		break;
 
 	case SECTID_REQ_REG_EVENT_CHANGE_NOTIFY: {
-		CPsisiManagerIf _if (getExternalIf());
-		_if.reqRegisterEventChangeNotify ();
+		CPsisiManagerIf _if (get_external_if());
+		_if.req_register_event_change_notify ();
 
-		sectId = SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY;
+		act = threadmgr::action::wait;
 		}
 		break;
 
 	case SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			m_eventChangeNotify_clientId = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
-			sectId = SECTID_REQ_CHECK_LOOP;
-			enAct = EN_THM_ACT_CONTINUE;
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			m_event_change_notify_client_id = *(uint8_t*)(p_if->get_source().get_message().data());
+			section_id = SECTID_REQ_CHECK_LOOP;
+			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("reqRegisterEventChangeNotify is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("req_register_event_change_notify is failure.");
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		}
 		break;
 ***/
 	case SECTID_REQ_CHECK_LOOP:
-		requestAsync (EN_MODULE_EVENT_SCHEDULE_MANAGER, EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP);
+		request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, static_cast<int>(CEventScheduleManagerIf::sequence::check_loop));
 
-		sectId = SECTID_WAIT_CHECK_LOOP;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_CHECK_LOOP;
+		act = threadmgr::action::wait;
 		break;
 
 	case SECTID_WAIT_CHECK_LOOP:
-//		enRslt = pIf->getSrcInfo()->enRslt;
-//		if (enRslt == EN_THM_RSLT_SUCCESS) {
+//		rslt = p_if->get_source().get_result();
+//		if (rslt == threadmgr::result::success) {
 //
 //		} else {
 //
 //		}
-// EN_THM_RSLT_SUCCESSのみ
+// threadmgr::result::successのみ
 
-		sectId = SECTID_END_SUCCESS;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_END_SUCCESS;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_END_SUCCESS:
-		pIf->reply (EN_THM_RSLT_SUCCESS);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		p_if->reply (threadmgr::result::success);
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	case SECTID_END_ERROR:
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		p_if->reply (threadmgr::result::error);
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	default:
@@ -241,150 +246,150 @@ void CEventScheduleManager::onReq_moduleUp (CThreadMgrIf *pIf)
 	}
 
 
-	pIf->setSectId (sectId, enAct);
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_moduleDown (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_module_down (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 //
-// do nothing
+// do something
 //
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_registerCacheScheduleStateNotify (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_register_cache_schedule_state_notify (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	uint8_t clientId = 0;
-	EN_THM_RSLT enRslt;
-	bool rslt = pIf->regNotify (NOTIFY_CAT__CACHE_SCHEDULE, &clientId);
-	if (rslt) {
-		enRslt = EN_THM_RSLT_SUCCESS;
+	uint8_t client_id = 0;
+	threadmgr::result rslt;
+	bool r = p_if->reg_notify (NOTIFY_CAT__CACHE_SCHEDULE, &client_id);
+	if (r) {
+		rslt = threadmgr::result::success;
 	} else {
-		enRslt = EN_THM_RSLT_ERROR;
+		rslt = threadmgr::result::error;
 	}
 
-	_UTL_LOG_I ("registerd clientId=[0x%02x]\n", clientId);
+	_UTL_LOG_I ("registerd client_id=[0x%02x]\n", client_id);
 
-	// clientIdをreply msgで返す 
-	pIf->reply (enRslt, (uint8_t*)&clientId, sizeof(clientId));
+	// client_idをreply msgで返す 
+	p_if->reply (rslt, (uint8_t*)&client_id, sizeof(client_id));
 
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_unregisterCacheScheduleStateNotify (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_unregister_cache_schedule_state_notify (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	EN_THM_RSLT enRslt;
-	// msgからclientIdを取得
-	uint8_t clientId = *(pIf->getSrcInfo()->msg.pMsg);
-	bool rslt = pIf->unregNotify (NOTIFY_CAT__CACHE_SCHEDULE, clientId);
-	if (rslt) {
-		_UTL_LOG_I ("unregisterd clientId=[0x%02x]\n", clientId);
-		enRslt = EN_THM_RSLT_SUCCESS;
+	threadmgr::result rslt;
+	// msgからclient_idを取得
+	uint8_t client_id = *(p_if->get_source().get_message().data());
+	bool r = p_if->unreg_notify (NOTIFY_CAT__CACHE_SCHEDULE, client_id);
+	if (r) {
+		_UTL_LOG_I ("unregisterd client_id=[0x%02x]\n", client_id);
+		rslt = threadmgr::result::success;
 	} else {
-		_UTL_LOG_E ("failure unregister clientId=[0x%02x]\n", clientId);
-		enRslt = EN_THM_RSLT_ERROR;
+		_UTL_LOG_E ("failure unregister client_id=[0x%02x]\n", client_id);
+		rslt = threadmgr::result::error;
 	}
 
-	pIf->reply (enRslt);
+	p_if->reply (rslt);
 
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_getCacheScheduleState (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_get_cache_schedule_state (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
 	// reply msgにm_stateを乗せます
-	pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&m_state, sizeof(m_state));
+	p_if->reply (threadmgr::result::success, (uint8_t*)&m_state, sizeof(m_state));
 
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_check_loop (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_CHECK,
 		SECTID_CHECK_WAIT,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	switch (sectId) {
+	switch (section_id) {
 	case SECTID_ENTRY:
 		// 先にreplyしておく
-		pIf->reply (EN_THM_RSLT_SUCCESS);
+		p_if->reply (threadmgr::result::success);
 
-		sectId = SECTID_CHECK;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_CHECK;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_CHECK:
 
-		pIf->setTimeout (10*1000); // 10sec
+		p_if->set_timeout (10*1000); // 10sec
 
-		sectId = SECTID_CHECK_WAIT;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_CHECK_WAIT;
+		act = threadmgr::action::wait;
 		break;
 
 	case SECTID_CHECK_WAIT: {
@@ -403,19 +408,19 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 			_base_time.addMin (start_min);
 
 
-			uint32_t opt = getRequestOption ();
+			uint32_t opt = get_request_option ();
 			opt |= REQUEST_OPTION__WITHOUT_REPLY;
-			setRequestOption (opt);
+			set_request_option (opt);
 
-			requestAsync (
+			request_async (
 				EN_MODULE_EVENT_SCHEDULE_MANAGER,
-				EN_SEQ_EVENT_SCHEDULE_MANAGER__ADD_RESERVES,
+				static_cast<int>(CEventScheduleManagerIf::sequence::add_reserves),
 				(uint8_t*)&_base_time,
 				sizeof(_base_time)
 			);
 
 			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-			setRequestOption (opt);
+			set_request_option (opt);
 
 
 			// 次回の予定日セットしておきます
@@ -430,48 +435,48 @@ void CEventScheduleManager::onReq_checkLoop (CThreadMgrIf *pIf)
 
 		if (mp_settings->getParams()->isEnableEventScheduleCache()) {
 			// 予約をチェックします
-			check2executeReserves ();
+			check2execute_reserves ();
 		}
 
 
-		sectId = SECTID_CHECK;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_CHECK;
+		act = threadmgr::action::continue_;
 
 		}
 		break;
 
 	case SECTID_END:
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	default:
 		break;
 	}
 
-	pIf->setSectId (sectId, enAct);
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_parserNotice (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_parser_notice (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	EN_PSISI_TYPE _type = *(EN_PSISI_TYPE*)(pIf->getSrcInfo()->msg.pMsg);
+	CPsisiManagerIf::psisi_type _type = *(CPsisiManagerIf::psisi_type*)(p_if->get_source().get_message().data());
 	switch (_type) {
-	case EN_PSISI_TYPE__EIT_H_SCHED:
+	case CPsisiManagerIf::psisi_type::EIT_H_SCHED:
 
 		// EITのshceduleの更新時間保存
 		// 受け取り中はかなりの頻度でたたかれるはず
-		m_lastUpdate_EITSched.setCurrentTime ();
+		m_last_update_EIT_sched.setCurrentTime ();
 
 		break;
 
@@ -479,19 +484,19 @@ void CEventScheduleManager::onReq_parserNotice (CThreadMgrIf *pIf)
 		break;
 	};
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_REQ_OPEN,
 		SECTID_WAIT_OPEN,
 //		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
@@ -512,12 +517,12 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		SECTID_EXIT,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-	static CEventScheduleManagerIf::SERVICE_KEY_t s_service_key;
-	static PSISI_SERVICE_INFO s_serviceInfos[10];
+	threadmgr::result rslt = threadmgr::result::success;
+	static CEventScheduleManagerIf::service_key_t s_service_key;
+	static psisi_structs::service_info_t s_service_infos[10];
 	static int s_num = 0;
 	static bool s_is_timeouted = false;
 	static bool s_is_already_using_tuner = false;
@@ -525,78 +530,78 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 //	static uint16_t s_ch = 0;
 
 
-	switch (sectId) {
+	switch (section_id) {
 	case SECTID_ENTRY:
 
-		s_service_key = *(CEventScheduleManagerIf::SERVICE_KEY_t*)(pIf->getSrcInfo()->msg.pMsg);
+		s_service_key = *(CEventScheduleManagerIf::service_key_t*)(p_if->get_source().get_message().data());
 
 		if (m_executing_reserve.type & CReserve::type_t::S_FLG) {
 			// update m_state
-			m_state = EN_CACHE_SCHEDULE_STATE__BUSY;
+			m_state = CEventScheduleManagerIf::cache_schedule_state::busy;
 
 			// history ----------------
 			m_current_history.clear();
-			m_current_history.set_startTime();
+			m_current_history.set_start_time();
 
 			m_retry_reserves.clear();
 		}
 
 		if (m_executing_reserve.type & CReserve::type_t::N_FLG) {
 			// fire notify
-			pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
+			p_if->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
 		}
 
 
 		// history ----------------
 		{
-			CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+			CChannelManagerIf::service_id_param_t param = {
 				s_service_key.transport_stream_id,
 				s_service_key.original_network_id,
 				0 // no need service_id
 			};
-			CChannelManagerIf _if (getExternalIf());
-			_if.syncGetTransportStreamName (&param);
-			char* ts_name = (char*)(pIf->getSrcInfo()->msg.pMsg);
+			CChannelManagerIf _if (get_external_if());
+			_if.request_get_transport_stream_name_sync (&param);
+			char* ts_name = (char*)(p_if->get_source().get_message().data());
 			m_current_history_stream.clear();
 			m_current_history_stream.stream_name = ts_name;
 		}
 
 
 		if ((m_executing_reserve.type & CReserve::type_t::TYPE_MASK) == CReserve::type_t::FORCE) {
-			sectId = SECTID_REQ_GET_SERVICE_INFOS;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_REQ_GET_SERVICE_INFOS;
+			act = threadmgr::action::continue_;
 		} else {
 			// NORMAL
-			sectId = SECTID_REQ_OPEN;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_REQ_OPEN;
+			act = threadmgr::action::continue_;
 		}
 
 		break;
 
 	case SECTID_REQ_OPEN: {
 
-		CTunerServiceIf _if (getExternalIf());
-		_if.reqOpen ();
+		CTunerServiceIf _if (get_external_if());
+		_if.request_open ();
 
-		sectId = SECTID_WAIT_OPEN;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_OPEN;
+		act = threadmgr::action::wait;
 		}
 		break;
 
 	case SECTID_WAIT_OPEN: {
-		enRslt = getIf()->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			s_group_id = *(uint8_t*)(getIf()->getSrcInfo()->msg.pMsg);
-			_UTL_LOG_I ("reqOpen group_id:[0x%02x]", s_group_id);
-//			sectId = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
-			sectId = SECTID_REQ_TUNE;
-			enAct = EN_THM_ACT_CONTINUE;
+		rslt = get_if()->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			s_group_id = *(uint8_t*)(get_if()->get_source().get_message().data());
+			_UTL_LOG_I ("req_open group_id:[0x%02x]", s_group_id);
+//			section_id = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+			section_id = SECTID_REQ_TUNE;
+			act = threadmgr::action::continue_;
 
 		} else {
 			_UTL_LOG_E ("someone is using a tuner.");
 			s_is_already_using_tuner = true;
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		}
 
 		}
@@ -609,27 +614,27 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 			s_service_key.service_id
 		};
 
-		CChannelManagerIf _if (getExternalIf());
-		_if.reqGetPysicalChannelByServiceId (&param);
+		CChannelManagerIf _if (get_external_if());
+		_if.req_get_pysical_channel_by_service_id (&param);
 
-		sectId = SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID;
+		act = threadmgr::action::wait;
 		}
 		break;
 
 	case SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
 
-			s_ch = *(uint16_t*)(pIf->getSrcInfo()->msg.pMsg);
+			s_ch = *(uint16_t*)(p_if->get_source().get_message().data());
 
-			sectId = SECTID_REQ_TUNE;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_REQ_TUNE;
+			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("reqGetPysicalChannelByServiceId is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("req_get_pysical_channel_by_service_id is failure.");
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		}
 		break;
 ***/
@@ -640,8 +645,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 			s_group_id
 		};
 
-		CTunerServiceIf _if (getExternalIf());
-		_if.reqTune_withRetry (&param);
+		CTunerServiceIf _if (get_external_if());
+		_if.req_tune_with_retry (&param);
 ***/
 		CTunerServiceIf::tune_advance_param_t param = {
 			s_service_key.transport_stream_id,
@@ -651,24 +656,24 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 			true // enable retry
 		};
 
-		CTunerServiceIf _if (getExternalIf());
-		_if.reqTuneAdvance (&param);
+		CTunerServiceIf _if (get_external_if());
+		_if.request_tune_advance (&param);
 
-		sectId = SECTID_WAIT_TUNE;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_TUNE;
+		act = threadmgr::action::wait;
 		}
 		break;
 
 	case SECTID_WAIT_TUNE:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			sectId = SECTID_REQ_GET_SERVICE_INFOS;
-			enAct = EN_THM_ACT_CONTINUE;
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			section_id = SECTID_REQ_GET_SERVICE_INFOS;
+			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("CTunerServiceIf::reqTune is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("CTunerServiceIf::req_tune is failure.");
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		}
 		break;
 
@@ -681,38 +686,38 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 			_group_id = s_group_id;
 		}
 
-		CPsisiManagerIf _if (getExternalIf(), _group_id);
-		if (_if.reqGetCurrentServiceInfos (s_serviceInfos, 10)) {
-			sectId = SECTID_WAIT_GET_SERVICE_INFOS;
-			enAct = EN_THM_ACT_WAIT;
+		CPsisiManagerIf _if (get_external_if(), _group_id);
+		if (_if.request_get_current_service_infos (s_service_infos, 10)) {
+			section_id = SECTID_WAIT_GET_SERVICE_INFOS;
+			act = threadmgr::action::wait;
 		} else {
-			_UTL_LOG_E ("CPsisiManagerIf::reqGetCurrentServiceInfos is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("CPsisiManagerIf::req_get_current_service_infos is failure.");
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		}
 
 		}
 		break;
 
 	case SECTID_WAIT_GET_SERVICE_INFOS:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			s_num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			s_num = *(int*)(p_if->get_source().get_message().data());
 			if (s_num > 0) {
-//s_serviceInfos[0].dump();
-				sectId = SECTID_REQ_ENABLE_PARSE_EIT_SCHED;
-				enAct = EN_THM_ACT_CONTINUE;
+//s_service_infos[0].dump();
+				section_id = SECTID_REQ_ENABLE_PARSE_EIT_SCHED;
+				act = threadmgr::action::continue_;
 
 			} else {
-				_UTL_LOG_E ("reqGetCurrentServiceInfos  num is 0");
-				sectId = SECTID_END_ERROR;
-				enAct = EN_THM_ACT_CONTINUE;
+				_UTL_LOG_E ("req_get_current_service_infos  num is 0");
+				section_id = SECTID_END_ERROR;
+				act = threadmgr::action::continue_;
 			}
 
 		} else {
-			_UTL_LOG_E ("reqGetCurrentServiceInfos err");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("req_get_current_service_infos err");
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		}
 
 		break;
@@ -726,58 +731,58 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 			_group_id = s_group_id;
 		}
 
-		CPsisiManagerIf _if (getExternalIf(), _group_id);
-		if (_if.reqEnableParseEITSched ()) {
-			sectId = SECTID_WAIT_ENABLE_PARSE_EIT_SCHED;
-			enAct = EN_THM_ACT_WAIT;
+		CPsisiManagerIf _if (get_external_if(), _group_id);
+		if (_if.request_enable_parse_eit_sched ()) {
+			section_id = SECTID_WAIT_ENABLE_PARSE_EIT_SCHED;
+			act = threadmgr::action::wait;
 		} else {
-			_UTL_LOG_E ("CPsisiManagerIf::reqEnableParseEITSched is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("CPsisiManagerIf::req_enable_parse_eITSched is failure.");
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		}
 
 		}
 		break;
 
 	case SECTID_WAIT_ENABLE_PARSE_EIT_SCHED: {
-//		enRslt = pIf->getSrcInfo()->enRslt;
-//		if (enRslt == EN_THM_RSLT_SUCCESS) {
+//		rslt = p_if->get_source().get_result();
+//		if (rslt == threadmgr::result::success) {
 //
 //		} else {
 //
 //		}
-// EN_THM_RSLT_SUCCESSのみ
+// threadmgr::result::successのみ
 
-		Enable_PARSE_EIT_SCHED_REPLY_PARAM_t param =
-					*(Enable_PARSE_EIT_SCHED_REPLY_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+		enable_parse_eit_sched_reply_param_t param =
+					*(enable_parse_eit_sched_reply_param_t*)(p_if->get_source().get_message().data());
 
 		// parserのインスタンス取得して
 		// ここでparser側で積んでるデータは一度クリアします
 		mp_EIT_H_sched = param.p_parser;
-		mEIT_H_sched_ref = param.p_parser->reference();
+		m_EIT_H_sched_ref = param.p_parser->reference();
 		mp_EIT_H_sched->clear();
 
 
-		m_startTime_EITSched.setCurrentTime();
+		m_start_time_EIT_sched.setCurrentTime();
 
-		sectId = SECTID_CHECK;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_CHECK;
+		act = threadmgr::action::continue_;
 
 		}
 		break;
 
 	case SECTID_CHECK:
 
-		pIf->setTimeout (5000); // 5sec
+		p_if->set_timeout (5000); // 5sec
 
 		if (m_is_need_stop) {
 			_UTL_LOG_W ("parser EIT schedule : cancel");
-			sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
+			act = threadmgr::action::continue_;
 
 		} else {
-			sectId = SECTID_CHECK_WAIT;
-			enAct = EN_THM_ACT_WAIT;
+			section_id = SECTID_CHECK_WAIT;
+			act = threadmgr::action::wait;
 		}
 
 		break;
@@ -786,29 +791,29 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 
 		CEtime tcur;
 		tcur.setCurrentTime();
-		CEtime ttmp = m_lastUpdate_EITSched;
+		CEtime ttmp = m_last_update_EIT_sched;
 		ttmp.addSec (10);
 
 		if (tcur > ttmp) {
 			// 約10秒間更新がなかったら完了とします
 			_UTL_LOG_I ("parse EIT schedule : complete");
-			sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
+			act = threadmgr::action::continue_;
 
 		} else {
-			ttmp = m_startTime_EITSched;
+			ttmp = m_start_time_EIT_sched;
 			ttmp.addMin (mp_settings->getParams()->getEventScheduleCacheTimeoutMin());
 			if (tcur > ttmp) {
-				// getEventScheduleCacheTimeoutMin 分経過していたらタイムアウトします
+				// get_event_schedule_cache_timeout_min 分経過していたらタイムアウトします
 				_UTL_LOG_W ("parser EIT schedule : timeout");
 				s_is_timeouted = true;
-				sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
-				enAct = EN_THM_ACT_CONTINUE;
+				section_id = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
+				act = threadmgr::action::continue_;
 
 			} else {
-				_UTL_LOG_I ("parse EIT schedule : m_lastUpdate_EITSched %s", m_lastUpdate_EITSched.toString());
-				sectId = SECTID_CHECK;
-				enAct = EN_THM_ACT_CONTINUE;
+				_UTL_LOG_I ("parse EIT schedule : m_last_update_EIT_sched %s", m_last_update_EIT_sched.toString());
+				section_id = SECTID_CHECK;
+				act = threadmgr::action::continue_;
 			}
 		}
 
@@ -824,68 +829,68 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 			_group_id = s_group_id;
 		}
 
-		CPsisiManagerIf _if (getExternalIf(), _group_id);
-		if (_if.reqDisableParseEITSched ()) {
-			sectId = SECTID_WAIT_DISABLE_PARSE_EIT_SCHED;
-			enAct = EN_THM_ACT_WAIT;
+		CPsisiManagerIf _if (get_external_if(), _group_id);
+		if (_if.request_disable_parse_eit_sched ()) {
+			section_id = SECTID_WAIT_DISABLE_PARSE_EIT_SCHED;
+			act = threadmgr::action::wait;
 		} else {
 			// キューがいっぱいでした
 			// disable は必ず行いたいので 少し待ってリトライします（無限）
-			_UTL_LOG_E ("CPsisiManagerIf::reqDisableParseEITSched is failure. --> retry");
-			pIf->setTimeout (500); // 500mS
-			sectId = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
-			enAct = EN_THM_ACT_WAIT;
+			_UTL_LOG_E ("CPsisiManagerIf::req_disable_parse_eITSched is failure. --> retry");
+			p_if->set_timeout (500); // 500m_s
+			section_id = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
+			act = threadmgr::action::wait;
 		}
 
 		}
 		break;
 
 	case SECTID_WAIT_DISABLE_PARSE_EIT_SCHED:
-//		enRslt = pIf->getSrcInfo()->enRslt;
-//		if (enRslt == EN_THM_RSLT_SUCCESS) {
+//		rslt = p_if->get_source().get_result();
+//		if (rslt == threadmgr::result::success) {
 //
 //		} else {
 //
 //		}
-// EN_THM_RSLT_SUCCESSのみ
+// threadmgr::result::successのみ
 
-		sectId = SECTID_CACHE;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_CACHE;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_CACHE:
 
 		for (int i = 0; i < s_num; ++ i) {
-			s_serviceInfos[i].dump ();
+			s_service_infos[i].dump ();
 
 			std::vector <CEvent*> *p_sched = new std::vector <CEvent*>;
-			cacheSchedule (
-				s_serviceInfos[i].transport_stream_id,
-				s_serviceInfos[i].original_network_id,
-				s_serviceInfos[i].service_id,
+			cache_schedule (
+				s_service_infos[i].transport_stream_id,
+				s_service_infos[i].original_network_id,
+				s_service_infos[i].service_id,
 				p_sched
 			);
 
 			if (p_sched->size() > 0) {
-				cacheSchedule_extended (p_sched);
+				cache_schedule_extended (p_sched);
 
 
-				SERVICE_KEY_t key (
-					s_serviceInfos[i].transport_stream_id,
-					s_serviceInfos[i].original_network_id,
-					s_serviceInfos[i].service_id,
-					s_serviceInfos[i].service_type,			// additional
-					s_serviceInfos[i].p_service_name_char	// additional
+				service_key_t key (
+					s_service_infos[i].transport_stream_id,
+					s_service_infos[i].original_network_id,
+					s_service_infos[i].service_id,
+					s_service_infos[i].service_type,			// additional
+					s_service_infos[i].p_service_name_char	// additional
 				);
 
-				if (m_container.hasScheduleMap (key)) {
-					_UTL_LOG_I ("hasScheduleMap -> deleteScheduleMap");
-					m_container.deleteScheduleMap (key);
+				if (m_container.has_schedule_map (key)) {
+					_UTL_LOG_I ("has_schedule_map -> delete_schedule_map");
+					m_container.delete_schedule_map (key);
 				}
 
-				m_container.addScheduleMap (key, p_sched);
+				m_container.add_schedule_map (key, p_sched);
 				key.dump();
-				_UTL_LOG_I ("addScheduleMap -> %d items", p_sched->size());
+				_UTL_LOG_I ("add_schedule_map -> %d items", p_sched->size());
 
 
 				// history ----------------
@@ -903,17 +908,17 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		}
 
 		if (s_is_timeouted || m_is_need_stop) {
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		} else {
-			sectId = SECTID_END_SUCCESS;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_END_SUCCESS;
+			act = threadmgr::action::continue_;
 		}
 		break;
 
 	case SECTID_END_SUCCESS:
 
-		pIf->reply (EN_THM_RSLT_SUCCESS);
+		p_if->reply (threadmgr::result::success);
 
 
 		// history ----------------
@@ -921,13 +926,13 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		m_current_history.add (m_current_history_stream);
 
 
-		sectId = SECTID_EXIT;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_EXIT;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_END_ERROR:
 
-		pIf->reply (EN_THM_RSLT_ERROR);
+		p_if->reply (threadmgr::result::error);
 
 
 		// history ----------------
@@ -959,8 +964,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		}
 
 
-		sectId = SECTID_EXIT;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_EXIT;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_EXIT:
@@ -971,18 +976,18 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		) {
 			//-----------------------------//
 			{
-				uint32_t opt = getRequestOption ();
+				uint32_t opt = get_request_option ();
 				opt |= REQUEST_OPTION__WITHOUT_REPLY;
-				setRequestOption (opt);
+				set_request_option (opt);
 
 				// 選局を停止しときます tune stop
 				// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-				CTunerServiceIf _if (getExternalIf());
-				_if.reqTuneStop (s_group_id);
-				_if.reqClose (s_group_id);
+				CTunerServiceIf _if (get_external_if());
+				_if.request_tune_stop (s_group_id);
+				_if.request_close (s_group_id);
 
 				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-				setRequestOption (opt);
+				set_request_option (opt);
 			}
 			//-----------------------------//
 		}
@@ -990,14 +995,14 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		if (m_executing_reserve.type & CReserve::type_t::E_FLG) {
 
 			// history ----------------
-			m_current_history.set_endTime();
+			m_current_history.set_end_time();
 
-			pushHistories (&m_current_history);
-			saveHistories ();
+			push_histories (&m_current_history);
+			save_histories ();
 			m_current_history.clear();
 
 			// update m_state
-			m_state = EN_CACHE_SCHEDULE_STATE__READY;
+			m_state = CEventScheduleManagerIf::cache_schedule_state::ready;
 
 			// retry reserve
 			int _rs = (int)m_retry_reserves.size();
@@ -1006,8 +1011,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 				m_retry_reserves[0].type =
 					(CReserve::type_t)(CReserve::type_t::NORMAL | CReserve::type_t::S_FLG |
 										CReserve::type_t::E_FLG | CReserve::type_t::N_FLG);
-				addReserve(m_retry_reserves[0]);
-				dumpReserves();
+				add_reserve(m_retry_reserves[0]);
+				dump_reserves();
 				m_retry_reserves.clear();
 
 			} else if (_rs >= 2) {
@@ -1019,22 +1024,22 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 						m_retry_reserves[i].type =
 							(CReserve::type_t)(CReserve::type_t::NORMAL | CReserve::type_t::E_FLG | CReserve::type_t::N_FLG);
 					}
-					addReserve(m_retry_reserves[i]);
+					add_reserve(m_retry_reserves[i]);
 				}
-				dumpReserves();
+				dump_reserves();
 				m_retry_reserves.clear();
 			}
 
-			m_container.saveScheduleMap();
+			m_container.save_schedule_map();
 		}
 
 		if (m_executing_reserve.type & CReserve::type_t::N_FLG) {
 			// fire notify
-			pIf->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
+			p_if->notify (NOTIFY_CAT__CACHE_SCHEDULE, (uint8_t*)&m_state, sizeof(m_state));
 		}
 
 		memset (&s_service_key, 0x00, sizeof(s_service_key));
-		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
+		memset (s_service_infos, 0x00, sizeof(s_service_infos));
 		s_num = 0;
 		s_is_timeouted = false;
 		s_is_already_using_tuner = false;
@@ -1043,8 +1048,8 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		s_group_id = 0xff;
 //		s_ch = 0;
 
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 
 		break;
 
@@ -1052,31 +1057,31 @@ void CEventScheduleManager::onReq_execCacheSchedule (CThreadMgrIf *pIf)
 		break;
 	}
 
-	pIf->setSectId (sectId, enAct);
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_cacheSchedule (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_cache_schedule (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_REQ_ADD_RESERVES,
 		SECTID_WAIT_ADD_RESERVES,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	threadmgr::result rslt = threadmgr::result::success;
 
-	switch (sectId) {
+	switch (section_id) {
 	case SECTID_ENTRY:
 
-		sectId = SECTID_REQ_ADD_RESERVES;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_REQ_ADD_RESERVES;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_REQ_ADD_RESERVES: {
@@ -1084,62 +1089,62 @@ void CEventScheduleManager::onReq_cacheSchedule (CThreadMgrIf *pIf)
 		CEtime _base_time ;
 		_base_time.setCurrentTime();
 
-		requestAsync (
+		request_async (
 			EN_MODULE_EVENT_SCHEDULE_MANAGER,
-			EN_SEQ_EVENT_SCHEDULE_MANAGER__ADD_RESERVES,
+			static_cast<int>(CEventScheduleManagerIf::sequence::add_reserves),
 			(uint8_t*)&_base_time,
 			sizeof(_base_time)
 		);
 
-		sectId = SECTID_WAIT_ADD_RESERVES;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_ADD_RESERVES;
+		act = threadmgr::action::wait;
 
 		}
 		break;
 
 	case SECTID_WAIT_ADD_RESERVES:
 
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			sectId = SECTID_END_SUCCESS;
-			enAct = EN_THM_ACT_CONTINUE;
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			section_id = SECTID_END_SUCCESS;
+			act = threadmgr::action::continue_;
 
 		} else {
 			_UTL_LOG_E ("add reserve failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
         }
 		break;
 
 	case SECTID_END_SUCCESS:
 
-		pIf->reply (EN_THM_RSLT_SUCCESS);
+		p_if->reply (threadmgr::result::success);
 
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	case SECTID_END_ERROR:
 
-		pIf->reply (EN_THM_RSLT_ERROR);
+		p_if->reply (threadmgr::result::error);
 
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	default:
 		break;
 	}
 
-	pIf->setSectId (sectId, enAct);
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_cacheSchedule_forceCurrentService (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_cache_schedule_force_current_service (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_REQ_GET_TUNER_STATE,
 		SECTID_WAIT_GET_TUNER_STATE,
 		SECTID_REQ_GET_SERVICE_INFOS,
@@ -1151,64 +1156,64 @@ void CEventScheduleManager::onReq_cacheSchedule_forceCurrentService (CThreadMgrI
 		SECTID_END_ERROR,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-	static PSISI_SERVICE_INFO s_serviceInfos[10];
+	threadmgr::result rslt = threadmgr::result::success;
+	static psisi_structs::service_info_t s_service_infos[10];
 	static int s_num = 0;
 	static CReserve s_tmp_reserve ;
 
 
-	switch (sectId) {
+	switch (section_id) {
 	case SECTID_ENTRY:
 
-		m_force_cache_group_id = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
+		m_force_cache_group_id = *(uint8_t*)(p_if->get_source().get_message().data());
 		if (m_force_cache_group_id >= m_tuner_resource_max) {
-			_UTL_LOG_E ("invalid groupId:[0x%02x]", m_force_cache_group_id);
-			 sectId = SECTID_END_ERROR;
-			 enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("invalid group_id:[0x%02x]", m_force_cache_group_id);
+			 section_id = SECTID_END_ERROR;
+			 act = threadmgr::action::continue_;
 
 		} else {
-			sectId = SECTID_REQ_GET_SERVICE_INFOS;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_REQ_GET_SERVICE_INFOS;
+			act = threadmgr::action::continue_;
 		}
 
 		break;
 
 	case SECTID_REQ_GET_SERVICE_INFOS: {
-		CPsisiManagerIf _if (getExternalIf(), m_force_cache_group_id);
-		if (_if.reqGetCurrentServiceInfos (s_serviceInfos, 10)) {
-			sectId = SECTID_WAIT_GET_SERVICE_INFOS;
-			enAct = EN_THM_ACT_WAIT;
+		CPsisiManagerIf _if (get_external_if(), m_force_cache_group_id);
+		if (_if.request_get_current_service_infos (s_service_infos, 10)) {
+			section_id = SECTID_WAIT_GET_SERVICE_INFOS;
+			act = threadmgr::action::wait;
 		} else {
-			_UTL_LOG_E ("CPsisiManagerIf::reqGetCurrentServiceInfos is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("CPsisiManagerIf::req_get_current_service_infos is failure.");
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		}
 
 		}
 		break;
 
 	case SECTID_WAIT_GET_SERVICE_INFOS:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			s_num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			s_num = *(int*)(p_if->get_source().get_message().data());
 			if (s_num > 0) {
-//s_serviceInfos[0].dump();
-				sectId = SECTID_ADD_RESERVE;
-				enAct = EN_THM_ACT_CONTINUE;
+//s_service_infos[0].dump();
+				section_id = SECTID_ADD_RESERVE;
+				act = threadmgr::action::continue_;
 
 			} else {
-				_UTL_LOG_E ("reqGetCurrentServiceInfos is 0");
-				sectId = SECTID_END_ERROR;
-				enAct = EN_THM_ACT_CONTINUE;
+				_UTL_LOG_E ("req_get_current_service_infos is 0");
+				section_id = SECTID_END_ERROR;
+				act = threadmgr::action::continue_;
 			}
 
 		} else {
-			_UTL_LOG_E ("reqGetCurrentServiceInfos err");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("req_get_current_service_infos err");
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		}
 
 		break;
@@ -1223,46 +1228,46 @@ void CEventScheduleManager::onReq_cacheSchedule_forceCurrentService (CThreadMgrI
 
 		// ここは添字0 でも何でも良いです
 		// (現状ではすべてのチャンネル編成分のスケジュールを取得します)
-		s_tmp_reserve.transport_stream_id = s_serviceInfos[0].transport_stream_id;
-		s_tmp_reserve.original_network_id = s_serviceInfos[0].original_network_id;
-		s_tmp_reserve.service_id = s_serviceInfos[0].service_id;
+		s_tmp_reserve.transport_stream_id = s_service_infos[0].transport_stream_id;
+		s_tmp_reserve.original_network_id = s_service_infos[0].original_network_id;
+		s_tmp_reserve.service_id = s_service_infos[0].service_id;
 		s_tmp_reserve.start_time = start_time;
 		s_tmp_reserve.type = type;
-		addReserve (s_tmp_reserve);
+		add_reserve (s_tmp_reserve);
 
 
-		sectId = SECTID_CHECK;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_CHECK;
+		act = threadmgr::action::continue_;
 
 		}
 		break;
 
 	case SECTID_CHECK: {
 
-		pIf->setTimeout (100); // 100ms
+		p_if->set_timeout (100); // 100ms
 
-		sectId = SECTID_CHECK_WAIT;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_CHECK_WAIT;
+		act = threadmgr::action::wait;
 
 		}
 		break;
 
 	case SECTID_CHECK_WAIT: {
 
-		if (isExistReserve(s_tmp_reserve)) {
+		if (is_exist_reserve(s_tmp_reserve)) {
 			// まだ予約に入ってます
-			sectId = SECTID_CHECK;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_CHECK;
+			act = threadmgr::action::continue_;
 
-		} else if (m_executing_reserve == s_tmp_reserve && m_executing_reserve.isValid()) {
+		} else if (m_executing_reserve == s_tmp_reserve && m_executing_reserve.is_valid()) {
 			// 只今実行中です
-			sectId = SECTID_CHECK;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_CHECK;
+			act = threadmgr::action::continue_;
 
 		} else {
 			// 実行終了しました
-			sectId = SECTID_END_SUCCESS;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_END_SUCCESS;
+			act = threadmgr::action::continue_;
 		}
 
 		}
@@ -1270,82 +1275,82 @@ void CEventScheduleManager::onReq_cacheSchedule_forceCurrentService (CThreadMgrI
 
 	case SECTID_END_SUCCESS:
 
-		pIf->reply (EN_THM_RSLT_SUCCESS);
+		p_if->reply (threadmgr::result::success);
 
-		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
+		memset (s_service_infos, 0x00, sizeof(s_service_infos));
 		s_num = 0;
 		s_tmp_reserve.clear();
 		m_force_cache_group_id = 0xff;
 
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	case SECTID_END_ERROR:
 
-		pIf->reply (EN_THM_RSLT_ERROR);
+		p_if->reply (threadmgr::result::error);
 
-		memset (s_serviceInfos, 0x00, sizeof(s_serviceInfos));
+		memset (s_service_infos, 0x00, sizeof(s_service_infos));
 		s_num = 0;
 		s_tmp_reserve.clear();
 		m_force_cache_group_id = 0xff;
 
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	default:
 		break;
 	}
 
-	pIf->setSectId (sectId, enAct);
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_stopCacheSchedule (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_stop_cache_schedule (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_CHECK,
 		SECTID_CHECK_WAIT,
 		SECTID_END
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	switch (sectId) {
+	switch (section_id) {
 	case SECTID_ENTRY:
 
 		m_is_need_stop = true;
 
-		sectId = SECTID_CHECK;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_CHECK;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_CHECK: {
 
-		pIf->setTimeout (100); // 100ms
+		p_if->set_timeout (100); // 100ms
 
-		sectId = SECTID_CHECK_WAIT;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_CHECK_WAIT;
+		act = threadmgr::action::wait;
 
 		}
 		break;
 
 	case SECTID_CHECK_WAIT: {
 
-		if (m_executing_reserve.isValid()) {
+		if (m_executing_reserve.is_valid()) {
 			// 只今実行中です
-			sectId = SECTID_CHECK;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_CHECK;
+			act = threadmgr::action::continue_;
 
 		} else {
 			// 実行終了しました
-			sectId = SECTID_END;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_END;
+			act = threadmgr::action::continue_;
 		}
 
 		}
@@ -1353,45 +1358,45 @@ void CEventScheduleManager::onReq_stopCacheSchedule (CThreadMgrIf *pIf)
 
 	case SECTID_END:
 
-		pIf->reply (EN_THM_RSLT_SUCCESS);
+		p_if->reply (threadmgr::result::success);
 
 		m_is_need_stop = false;
 
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	default:
 		break;
 	}
 
-	pIf->setSectId (sectId, enAct);
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_getEvent (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_get_event (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param =
-			*(CEventScheduleManagerIf::REQ_EVENT_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CEventScheduleManagerIf::request_event_param_t _param =
+			*(CEventScheduleManagerIf::request_event_param_t*)(p_if->get_source().get_message().data());
 
 	if (!_param.p_out_event) {
 		_UTL_LOG_E ("_param.p_out_event is null.");
-		pIf->reply (EN_THM_RSLT_ERROR);
+		p_if->reply (threadmgr::result::error);
 
 	} else {
 
-		SERVICE_KEY_t _service_key = {_param.arg.key.transport_stream_id, _param.arg.key.original_network_id, _param.arg.key.service_id};
-		const CEvent *p = m_container.getEvent (_service_key, _param.arg.key.event_id);
+		service_key_t _service_key = {_param.arg.key.transport_stream_id, _param.arg.key.original_network_id, _param.arg.key.service_id};
+		const CEvent *p = m_container.get_event (_service_key, _param.arg.key.event_id);
 		CEvent* p_event = const_cast <CEvent*> (p);
 		if (p_event) {
 
@@ -1408,44 +1413,44 @@ void CEventScheduleManager::onReq_getEvent (CThreadMgrIf *pIf)
 			_param.p_out_event->p_event_name = &p_event->event_name;
 			_param.p_out_event->p_text = &p_event->text;
 
-			pIf->reply (EN_THM_RSLT_SUCCESS);
+			p_if->reply (threadmgr::result::success);
 
 		} else {
 
-			_UTL_LOG_E ("getEvent is null.");
-			pIf->reply (EN_THM_RSLT_ERROR);
+			_UTL_LOG_E ("get_event is null.");
+			p_if->reply (threadmgr::result::error);
 
 		}
 	}
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_get_event_latest_dumped_schedule (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param =
-			*(CEventScheduleManagerIf::REQ_EVENT_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CEventScheduleManagerIf::request_event_param_t _param =
+			*(CEventScheduleManagerIf::request_event_param_t*)(p_if->get_source().get_message().data());
 
 	if (!_param.p_out_event) {
 		_UTL_LOG_E ("_param.p_out_event is null.");
-		pIf->reply (EN_THM_RSLT_ERROR);
+		p_if->reply (threadmgr::result::error);
 
 	} else {
 
-		const CEvent *p = m_container.getEvent (m_latest_dumped_key, _param.arg.index);
+		const CEvent *p = m_container.get_event (m_latest_dumped_key, _param.arg.index);
 		CEvent* p_event = const_cast <CEvent*> (p);
 		if (p_event) {
 
@@ -1462,121 +1467,121 @@ void CEventScheduleManager::onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *p
 			_param.p_out_event->p_event_name = &p_event->event_name;
 			_param.p_out_event->p_text = &p_event->text;
 
-			pIf->reply (EN_THM_RSLT_SUCCESS);
+			p_if->reply (threadmgr::result::success);
 
 		} else {
 
-			_UTL_LOG_E ("getEvent is null.");
-			pIf->reply (EN_THM_RSLT_ERROR);
+			_UTL_LOG_E ("get_event is null.");
+			p_if->reply (threadmgr::result::error);
 
 		}
 	}
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_dumpEvent_latestDumpedSchedule (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_dump_event_latest_dumped_schedule (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param =
-			*(CEventScheduleManagerIf::REQ_EVENT_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CEventScheduleManagerIf::request_event_param_t _param =
+			*(CEventScheduleManagerIf::request_event_param_t*)(p_if->get_source().get_message().data());
 
 //_param.p_out_eventはnullで来ます
 
 //	if (!_param.p_out_event) {
 //		_UTL_LOG_E ("_param.p_out_event is null.");
-//		pIf->reply (EN_THM_RSLT_ERROR);
+//		p_if->reply (threadmgr::result::error);
 
 //	} else {
 
-		const CEvent *p = m_container.getEvent (m_latest_dumped_key, _param.arg.index);
+		const CEvent *p = m_container.get_event (m_latest_dumped_key, _param.arg.index);
 		CEvent* p_event = const_cast <CEvent*> (p);
 		if (p_event) {
 
 			p_event->dump();
 			p_event->dump_detail ();
 
-			pIf->reply (EN_THM_RSLT_SUCCESS);
+			p_if->reply (threadmgr::result::success);
 
 		} else {
 
-			_UTL_LOG_E ("getEvent is null.");
-			pIf->reply (EN_THM_RSLT_ERROR);
+			_UTL_LOG_E ("get_event is null.");
+			p_if->reply (threadmgr::result::error);
 
 		}
 //	}
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_getEvents_keywordSearch (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_get_events_keyword_search (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param =
-			*(CEventScheduleManagerIf::REQ_EVENT_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CEventScheduleManagerIf::request_event_param_t _param =
+			*(CEventScheduleManagerIf::request_event_param_t*)(p_if->get_source().get_message().data());
 
 	if (!_param.p_out_event) {
 		_UTL_LOG_E ("_param.p_out_event is null.");
-		pIf->reply (EN_THM_RSLT_ERROR);
+		p_if->reply (threadmgr::result::error);
 
 	} else if (_param.array_max_num <= 0) {
 		_UTL_LOG_E ("_param.array_max_num is invalid.");
-		pIf->reply (EN_THM_RSLT_ERROR);
+		p_if->reply (threadmgr::result::error);
 
 	} else {
 
-		bool is_check_extendedEvent = false;
-		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH) {
-			is_check_extendedEvent = false;
-		} else if (pIf->getSeqIdx() == EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX) {
-			is_check_extendedEvent = true;
+		bool is_check_extended_event = false;
+		if (p_if->get_sequence_idx() == static_cast<int>(CEventScheduleManagerIf::sequence::get_events__keyword_search)) {
+			is_check_extended_event = false;
+		} else if (p_if->get_sequence_idx() == static_cast<int>(CEventScheduleManagerIf::sequence::get_events__keyword_search_ex)) {
+			is_check_extended_event = true;
 		}
 
-		int n = m_container.getEvents (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num, is_check_extendedEvent);
+		int n = m_container.get_events (_param.arg.p_keyword, _param.p_out_event, _param.array_max_num, is_check_extended_event);
 		if (n < 0) {
-			_UTL_LOG_E ("getEvents is invalid.");
-			pIf->reply (EN_THM_RSLT_ERROR);
+			_UTL_LOG_E ("get_events is invalid.");
+			p_if->reply (threadmgr::result::error);
 		} else {
 			// 検索数をreply msgで返します
-			pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&n, sizeof(n));
+			p_if->reply (threadmgr::result::success, (uint8_t*)&n, sizeof(n));
 		}
 	}
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_addReserves (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_add_reserves (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_REQ_GET_CHANNELS,
 		SECTID_WAIT_GET_CHANNELS,
 		SECTID_ADD_RESERVES,
@@ -1584,22 +1589,22 @@ void CEventScheduleManager::onReq_addReserves (CThreadMgrIf *pIf)
 		SECTID_END_ERROR,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
-	static CChannelManagerIf::CHANNEL_t s_channels[20];
+	threadmgr::result rslt = threadmgr::result::success;
+	static CChannelManagerIf::channel_t s_channels[20];
 	static int s_ch_num = 0;
 	static CEtime _base_time;
 
 
-	switch (sectId) {
+	switch (section_id) {
 	case SECTID_ENTRY:
 
-		_base_time = *(CEtime*)(pIf->getSrcInfo()->msg.pMsg);
+		_base_time = *(CEtime*)(p_if->get_source().get_message().data());
 
-		sectId = SECTID_REQ_GET_CHANNELS;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_REQ_GET_CHANNELS;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_REQ_GET_CHANNELS: {
@@ -1607,37 +1612,37 @@ void CEventScheduleManager::onReq_addReserves (CThreadMgrIf *pIf)
 		memset (s_channels, 0x00, sizeof(s_channels));
 		s_ch_num = 0;
 
-		CChannelManagerIf::REQ_CHANNELS_PARAM_t param = {s_channels, 20};
+		CChannelManagerIf::request_channels_param_t param = {s_channels, 20};
 
-		CChannelManagerIf _if (getExternalIf());
-		_if.reqGetChannels (&param);
+		CChannelManagerIf _if (get_external_if());
+		_if.request_get_channels (&param);
 
-		sectId = SECTID_WAIT_GET_CHANNELS;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_GET_CHANNELS;
+		act = threadmgr::action::wait;
 
 		}
 		break;
 
 	case SECTID_WAIT_GET_CHANNELS:
 
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			s_ch_num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
-			_UTL_LOG_I ("reqGetChannels s_ch_num:[%d]", s_ch_num);
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			s_ch_num = *(int*)(p_if->get_source().get_message().data());
+			_UTL_LOG_I ("req_get_channels s_ch_num:[%d]", s_ch_num);
 
 			if (s_ch_num > 0) {
-				sectId = SECTID_ADD_RESERVES;
-				enAct = EN_THM_ACT_CONTINUE;
+				section_id = SECTID_ADD_RESERVES;
+				act = threadmgr::action::continue_;
 			} else {
-				_UTL_LOG_E ("reqGetChannels is 0");
-				sectId = SECTID_END_ERROR;
-				enAct = EN_THM_ACT_CONTINUE;
+				_UTL_LOG_E ("req_get_channels is 0");
+				section_id = SECTID_END_ERROR;
+				act = threadmgr::action::continue_;
 			}
 
 		} else {
-			_UTL_LOG_E ("reqGetChannels is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("req_get_channels is failure.");
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
         }
 
 		break;
@@ -1660,7 +1665,7 @@ void CEventScheduleManager::onReq_addReserves (CThreadMgrIf *pIf)
 				type = (CReserve::type_t)(type | CReserve::type_t::E_FLG | CReserve::type_t::N_FLG);
 			}
 
-			addReserve (
+			add_reserve (
 				s_channels[i].transport_stream_id,
 				s_channels[i].original_network_id,
 				s_channels[i].service_ids[0],	// ここは添字0 でも何でも良いです
@@ -1670,147 +1675,147 @@ void CEventScheduleManager::onReq_addReserves (CThreadMgrIf *pIf)
 			);
 		}
 
-		sectId = SECTID_END_SUCCESS;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_END_SUCCESS;
+		act = threadmgr::action::continue_;
 
 		}
 		break;
 
 	case SECTID_END_SUCCESS:
 
-		dumpReserves();
+		dump_reserves();
 
-		pIf->reply (EN_THM_RSLT_SUCCESS);
+		p_if->reply (threadmgr::result::success);
 
 		memset (s_channels, 0x00, sizeof(s_channels));
 		s_ch_num = 0;
 
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	case SECTID_END_ERROR:
 
-		pIf->reply (EN_THM_RSLT_ERROR);
+		p_if->reply (threadmgr::result::error);
 
 		memset (s_channels, 0x00, sizeof(s_channels));
 		s_ch_num = 0;
 
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	default:
 		break;
 	}
 
-	pIf->setSectId (sectId, enAct);
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_dumpScheduleMap (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_dump_schedule_map (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	m_container.dumpScheduleMap ();
+	m_container.dump_schedule_map ();
 
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_dumpSchedule (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_dump_schedule (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	CEventScheduleManagerIf::SERVICE_KEY_t _key =
-					*(CEventScheduleManagerIf::SERVICE_KEY_t*)(pIf->getSrcInfo()->msg.pMsg);
-	SERVICE_KEY_t key (_key);
+	CEventScheduleManagerIf::service_key_t _key =
+					*(CEventScheduleManagerIf::service_key_t*)(p_if->get_source().get_message().data());
+	service_key_t key (_key);
 	m_latest_dumped_key = key;
 
-	m_container.dumpScheduleMap (key);
+	m_container.dump_schedule_map (key);
 
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_dumpReserves (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_dump_reserves (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	dumpReserves ();
+	dump_reserves ();
 
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReq_dumpHistories (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_dump_histories (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	dumpHistories ();
+	dump_histories ();
 
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventScheduleManager::onReceiveNotify (CThreadMgrIf *pIf)
+void CEventScheduleManager::on_receive_notify (threadmgr::CThreadMgrIf *p_if)
 {
 /***
-	if (pIf->getSrcInfo()->nClientId == m_tunerNotify_clientId) {
+	if (p_if->get_source().get_client_id() == m_tuner_notify_client_id) {
 
-		EN_TUNER_STATE enState = *(EN_TUNER_STATE*)(pIf->getSrcInfo()->msg.pMsg);
-		switch (enState) {
+		EN_TUNER_STATE en_state = *(EN_TUNER_STATE*)(p_if->get_source().get_message().data());
+		switch (en_state) {
 		case EN_TUNER_STATE__TUNING_BEGIN:
 			_UTL_LOG_I ("EN_TUNER_STATE__TUNING_BEGIN");
 			break;
@@ -1831,9 +1836,9 @@ void CEventScheduleManager::onReceiveNotify (CThreadMgrIf *pIf)
 			break;
 		}
 
-	} else if (pIf->getSrcInfo()->nClientId == m_eventChangeNotify_clientId) {
+	} else if (p_if->get_source().get_client_id() == m_event_change_notify_client_id) {
 
-		PSISI_NOTIFY_EVENT_INFO _info = *(PSISI_NOTIFY_EVENT_INFO*)(pIf->getSrcInfo()->msg.pMsg);
+		PSISI_NOTIFY_EVENT_INFO _info = *(PSISI_NOTIFY_EVENT_INFO*)(p_if->get_source().get_message().data());
 		_UTL_LOG_I ("!!! event changed !!!");
 		_info.dump ();
 
@@ -1847,7 +1852,7 @@ void CEventScheduleManager::onReceiveNotify (CThreadMgrIf *pIf)
  * 0x50 本日 〜4日目
  * 0x51 5日目〜8日目
  */
-void CEventScheduleManager::cacheSchedule (
+void CEventScheduleManager::cache_schedule (
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
 	uint16_t _service_id,
@@ -1867,33 +1872,33 @@ void CEventScheduleManager::cacheSchedule (
 	}
 
 
-	std::lock_guard<std::recursive_mutex> lock (*mEIT_H_sched_ref.mpMutex);
+	std::lock_guard<std::recursive_mutex> lock (*m_EIT_H_sched_ref.mpMutex);
 
-	std::vector<CEventInformationTable_sched::CTable*>::const_iterator iter = mEIT_H_sched_ref.mpTables->begin();
-	for (; iter != mEIT_H_sched_ref.mpTables->end(); ++ iter) {
+	std::vector<CEventInformationTable_sched::CTable*>::const_iterator iter = m_EIT_H_sched_ref.mpTables->begin();
+	for (; iter != m_EIT_H_sched_ref.mpTables->end(); ++ iter) {
 
-		CEventInformationTable_sched::CTable *pTable = *iter;
+		CEventInformationTable_sched::CTable *p_table = *iter;
 
 		// キーが一致したテーブルをみます
 		if (
-			(_transport_stream_id != pTable->transport_stream_id) ||
-			(_original_network_id != pTable->original_network_id) ||
-			(_service_id != pTable->header.table_id_extension)
+			(_transport_stream_id != p_table->transport_stream_id) ||
+			(_original_network_id != p_table->original_network_id) ||
+			(_service_id != p_table->header.table_id_extension)
 		) {
 			continue;
 		}
 
 		// table_id=0x50,0x51 が対象です
 		if (
-			(pTable->header.table_id != TBLID_EIT_SCHED_A) &&
-			(pTable->header.table_id != TBLID_EIT_SCHED_A +1)
+			(p_table->header.table_id != TBLID_EIT_SCHED_A) &&
+			(p_table->header.table_id != TBLID_EIT_SCHED_A +1)
 		) {
 			continue;
 		}
 
 		// loop events
-		std::vector<CEventInformationTable_sched::CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
-		for (; iter_event != pTable->events.end(); ++ iter_event) {
+		std::vector<CEventInformationTable_sched::CTable::CEvent>::const_iterator iter_event = p_table->events.begin();
+		for (; iter_event != p_table->events.end(); ++ iter_event) {
 			if (iter_event->event_id == 0) {
 				// event情報が付いてない
 				continue;
@@ -1901,12 +1906,12 @@ void CEventScheduleManager::cacheSchedule (
 
 			CEvent *p_event = new CEvent ();
 
-			p_event->table_id = pTable->header.table_id;
-			p_event->transport_stream_id = pTable->transport_stream_id;
-			p_event->original_network_id = pTable->original_network_id;
-			p_event->service_id = pTable->header.table_id_extension;
+			p_event->table_id = p_table->header.table_id;
+			p_event->transport_stream_id = p_table->transport_stream_id;
+			p_event->original_network_id = p_table->original_network_id;
+			p_event->service_id = p_table->header.table_id_extension;
 
-			p_event->section_number = pTable->header.section_number;
+			p_event->section_number = p_table->header.section_number;
 
 			p_event->event_id = iter_event->event_id;
 
@@ -1925,7 +1930,7 @@ void CEventScheduleManager::cacheSchedule (
 				if (iter_desc->tag == DESC_TAG__SHORT_EVENT_DESCRIPTOR) {
 					CShortEventDescriptor sd (*iter_desc);
 					if (!sd.isValid) {
-						_UTL_LOG_W ("invalid ShortEventDescriptor");
+						_UTL_LOG_W ("invalid Short_event_descriptor");
 						continue;
 					}
 
@@ -1943,7 +1948,7 @@ void CEventScheduleManager::cacheSchedule (
 				} else if (iter_desc->tag == DESC_TAG__COMPONENT_DESCRIPTOR) {
 					CComponentDescriptor cd (*iter_desc);
 					if (!cd.isValid) {
-						_UTL_LOG_W ("invalid ComponentDescriptor");
+						_UTL_LOG_W ("invalid Component_descriptor");
 						continue;
 					}
 
@@ -1953,7 +1958,7 @@ void CEventScheduleManager::cacheSchedule (
 				} else if (iter_desc->tag == DESC_TAG__AUDIO_COMPONENT_DESCRIPTOR) {
 					CAudioComponentDescriptor acd (*iter_desc);
 					if (!acd.isValid) {
-						_UTL_LOG_W ("invalid AudioComponentDescriptor\n");
+						_UTL_LOG_W ("invalid Audio_component_descriptor\n");
 						continue;
 					}
 
@@ -1967,7 +1972,7 @@ void CEventScheduleManager::cacheSchedule (
 				} else if (iter_desc->tag == DESC_TAG__CONTENT_DESCRIPTOR) {
 					CContentDescriptor cd (*iter_desc);
 					if (!cd.isValid) {
-						_UTL_LOG_W ("invalid ContentDescriptor");
+						_UTL_LOG_W ("invalid Content_descriptor");
 						continue;
 					}
 
@@ -1997,13 +2002,13 @@ void CEventScheduleManager::cacheSchedule (
 
 }
 
-void CEventScheduleManager::cacheSchedule_extended (std::vector <CEvent*> *p_out_sched)
+void CEventScheduleManager::cache_schedule_extended (std::vector <CEvent*> *p_out_sched)
 {
 	std::vector<CEvent*>::iterator iter = p_out_sched->begin();
 	for (; iter != p_out_sched->end(); ++ iter) {
 		CEvent* p = *iter;
 		if (p) {
-			cacheSchedule_extended (p);
+			cache_schedule_extended (p);
 		}
 	}
 }
@@ -2013,41 +2018,41 @@ void CEventScheduleManager::cacheSchedule_extended (std::vector <CEvent*> *p_out
  * p_out_eventは キーとなる ts_id, org_netwkid, scv_id, evt_id はinvalidなデータなこと前提です
  * table_id=0x58〜0x5f が対象です
  */
-void CEventScheduleManager::cacheSchedule_extended (CEvent* p_out_event)
+void CEventScheduleManager::cache_schedule_extended (CEvent* p_out_event)
 {
 	if (!p_out_event) {
 		return ;
 	}
 
 
-	std::lock_guard<std::recursive_mutex> lock (*mEIT_H_sched_ref.mpMutex);
+	std::lock_guard<std::recursive_mutex> lock (*m_EIT_H_sched_ref.mpMutex);
 
-	std::vector<CEventInformationTable_sched::CTable*>::const_iterator iter = mEIT_H_sched_ref.mpTables->begin();
-	for (; iter != mEIT_H_sched_ref.mpTables->end(); ++ iter) {
+	std::vector<CEventInformationTable_sched::CTable*>::const_iterator iter = m_EIT_H_sched_ref.mpTables->begin();
+	for (; iter != m_EIT_H_sched_ref.mpTables->end(); ++ iter) {
 
-		CEventInformationTable_sched::CTable *pTable = *iter;
+		CEventInformationTable_sched::CTable *p_table = *iter;
 
 		// キーが一致したテーブルをみます
 		if (
-			(p_out_event->transport_stream_id != pTable->transport_stream_id) ||
-			(p_out_event->original_network_id != pTable->original_network_id) ||
-			(p_out_event->service_id != pTable->header.table_id_extension)
+			(p_out_event->transport_stream_id != p_table->transport_stream_id) ||
+			(p_out_event->original_network_id != p_table->original_network_id) ||
+			(p_out_event->service_id != p_table->header.table_id_extension)
 		) {
 			continue;
 		}
 
 		// table_id=0x58〜0x5f が対象です
 		if (
-			(pTable->header.table_id < TBLID_EIT_SCHED_A_EXT) ||
-			(pTable->header.table_id > TBLID_EIT_SCHED_A_EXT +7)
+			(p_table->header.table_id < TBLID_EIT_SCHED_A_EXT) ||
+			(p_table->header.table_id > TBLID_EIT_SCHED_A_EXT +7)
 		) {
 			continue;
 		}
 
 
 		// loop events
-		std::vector<CEventInformationTable_sched::CTable::CEvent>::const_iterator iter_event = pTable->events.begin();
-		for (; iter_event != pTable->events.end(); ++ iter_event) {
+		std::vector<CEventInformationTable_sched::CTable::CEvent>::const_iterator iter_event = p_table->events.begin();
+		for (; iter_event != p_table->events.end(); ++ iter_event) {
 			if (iter_event->event_id == 0) {
 				// event情報が付いてない
 				continue;
@@ -2066,7 +2071,7 @@ void CEventScheduleManager::cacheSchedule_extended (CEvent* p_out_event)
 				if (iter_desc->tag == DESC_TAG__EXTENDED_EVENT_DESCRIPTOR) {
 					CExtendedEventDescriptor eed (*iter_desc);
 					if (!eed.isValid) {
-						_UTL_LOG_W ("invalid ExtendedEventDescriptor\n");
+						_UTL_LOG_W ("invalid Extended_event_descriptor\n");
 						continue;
 					}
 
@@ -2091,7 +2096,7 @@ void CEventScheduleManager::cacheSchedule_extended (CEvent* p_out_event)
 						);
 						info.item = aribstr;
 
-						p_out_event->extendedInfos.push_back (info);
+						p_out_event->extended_infos.push_back (info);
 					}
 				}
 
@@ -2101,7 +2106,7 @@ void CEventScheduleManager::cacheSchedule_extended (CEvent* p_out_event)
 	} // loop tables
 }
 
-bool CEventScheduleManager::addReserve (
+bool CEventScheduleManager::add_reserve (
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
 	uint16_t _service_id,
@@ -2116,12 +2121,12 @@ bool CEventScheduleManager::addReserve (
 
 	CReserve r (_transport_stream_id, _original_network_id, _service_id, p_start_time, _type);
 
-	return addReserve (r);
+	return add_reserve (r);
 }
 
-bool CEventScheduleManager::addReserve (const CReserve &reserve)
+bool CEventScheduleManager::add_reserve (const CReserve &reserve)
 {
-	if (isDuplicateReserve (reserve)) {
+	if (is_duplicate_reserve (reserve)) {
 		_UTL_LOG_E ("reserve is duplicate.");
 		return false;
 	}
@@ -2133,7 +2138,7 @@ bool CEventScheduleManager::addReserve (const CReserve &reserve)
 	return true;
 }
 
-bool CEventScheduleManager::removeReserve (const CReserve &reserve)
+bool CEventScheduleManager::remove_reserve (const CReserve &reserve)
 {
 	std::vector<CReserve>::const_iterator iter = m_reserves.begin();
 	for (; iter != m_reserves.end(); ++ iter) {
@@ -2148,7 +2153,7 @@ bool CEventScheduleManager::removeReserve (const CReserve &reserve)
 	return false;
 }
 
-bool CEventScheduleManager::isDuplicateReserve (const CReserve& reserve) const
+bool CEventScheduleManager::is_duplicate_reserve (const CReserve& reserve) const
 {
 	std::vector<CReserve>::const_iterator iter = m_reserves.begin();
 	for (; iter != m_reserves.end(); ++ iter) {
@@ -2161,9 +2166,9 @@ bool CEventScheduleManager::isDuplicateReserve (const CReserve& reserve) const
 	return false;
 }
 
-void CEventScheduleManager::check2executeReserves (void)
+void CEventScheduleManager::check2execute_reserves (void)
 {
-	if (m_executing_reserve.isValid()) {
+	if (m_executing_reserve.is_valid()) {
 		return;
 	}
 
@@ -2188,25 +2193,32 @@ void CEventScheduleManager::check2executeReserves (void)
 
 		if (cur_time >= iter->start_time) {
 
-			CEventScheduleManagerIf::SERVICE_KEY_t _key = {
+			CEventScheduleManagerIf::service_key_t _key = {
 				iter->transport_stream_id,
 				iter->original_network_id,
 				iter->service_id
 			};
 
-			bool r = requestAsync (
+			uint32_t opt = get_request_option ();
+			opt |= REQUEST_OPTION__WITHOUT_REPLY;
+			set_request_option (opt);
+
+			bool r = request_async (
 				EN_MODULE_EVENT_SCHEDULE_MANAGER,
-				EN_SEQ_EVENT_SCHEDULE_MANAGER__EXEC_CACHE_SCHEDULE,
+				static_cast<int>(CEventScheduleManagerIf::sequence::exec_cache_schedule),
 				(uint8_t*)&_key,
 				sizeof(_key)
 			);
 
+			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+			set_request_option (opt);
+
 			if (r) {
-				_UTL_LOG_I ("requestAsync EXEC_CACHE_SCHEDULE");
+				_UTL_LOG_I ("request_async exec_cache_schedule");
 				iter->dump();
 				m_executing_reserve = *iter;
 			} else {
-				_UTL_LOG_E ("requestAsync EXEC_CACHE_SCHEDULE failure!");
+				_UTL_LOG_E ("request_async exec_cache_schedule failure!");
 			}
 
 			m_reserves.erase (iter);
@@ -2216,7 +2228,7 @@ void CEventScheduleManager::check2executeReserves (void)
 	}
 }
 
-bool CEventScheduleManager::isExistReserve (const CReserve& reserve) const
+bool CEventScheduleManager::is_exist_reserve (const CReserve& reserve) const
 {
 	std::vector<CReserve>::const_iterator iter = m_reserves.begin();
 	for (; iter != m_reserves.end(); ++ iter) {
@@ -2228,7 +2240,7 @@ bool CEventScheduleManager::isExistReserve (const CReserve& reserve) const
 	return false;
 }
 
-void CEventScheduleManager::dumpReserves (void) const
+void CEventScheduleManager::dump_reserves (void) const
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
@@ -2238,7 +2250,7 @@ void CEventScheduleManager::dumpReserves (void) const
 	}
 }
 
-void CEventScheduleManager::pushHistories (const CHistory *p_history)
+void CEventScheduleManager::push_histories (const CHistory *p_history)
 {
 	if (!p_history) {
 		return;
@@ -2253,10 +2265,10 @@ void CEventScheduleManager::pushHistories (const CHistory *p_history)
 	// push
 	m_histories.push_back (*(CHistory*)p_history);
 
-	_UTL_LOG_I ("pushHistories  size=[%d]", m_histories.size());
+	_UTL_LOG_I ("push_histories  size=[%d]", m_histories.size());
 }
 
-void CEventScheduleManager::dumpHistories (void) const
+void CEventScheduleManager::dump_histories (void) const
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
@@ -2287,7 +2299,7 @@ void serialize (Archive &archive, CEtime &t)
 }
 
 template <class Archive>
-void serialize (Archive &archive, SERVICE_KEY_t &k)
+void serialize (Archive &archive, service_key_t &k)
 {
 	archive (
 		cereal::make_nvp("transport_stream_id", k.transport_stream_id),
@@ -2327,7 +2339,7 @@ void serialize (Archive &archive, CEventScheduleManager::CHistory &h)
 	);
 }
 
-void CEventScheduleManager::saveHistories (void)
+void CEventScheduleManager::save_histories (void)
 {
 	std::stringstream ss;
 	{
@@ -2343,7 +2355,7 @@ void CEventScheduleManager::saveHistories (void)
 	ss.clear();
 }
 
-void CEventScheduleManager::loadHistories (void)
+void CEventScheduleManager::load_histories (void)
 {
 	std::string *p_path = CSettings::getInstance()->getParams()->getEventScheduleCacheHistoriesJsonPath();
 	std::ifstream ifs (p_path->c_str(), std::ios::in);
@@ -2362,7 +2374,7 @@ void CEventScheduleManager::loadHistories (void)
 	ss.clear();
 
 
-	// CEtimeの値は直接 tv_sec,tv_nsecに書いてるので toString用の文字はここで作ります
+	// CEtimeの値は直接 tv_sec,tv_nsecに書いてるので to_string用の文字はここで作ります
 	std::vector<CHistory>::iterator iter = m_histories.begin();
 	for (; iter != m_histories.end(); ++ iter) {
 		iter->start_time.updateStrings();

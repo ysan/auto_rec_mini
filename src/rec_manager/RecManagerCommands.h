@@ -12,9 +12,6 @@
 #include "Utils.h"
 
 
-using namespace ThreadManager;
-
-
-extern ST_COMMAND_INFO g_recManagerCommands [] ;
+extern command_info_t g_rec_manager_commands [] ;
 
 #endif

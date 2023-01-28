@@ -12,9 +12,6 @@
 #include "Utils.h"
 
 
-using namespace ThreadManager;
-
-
-extern ST_COMMAND_INFO g_eventSearchCommands [] ;
+extern command_info_t g_event_search_commands [] ;
 
 #endif

@@ -1,29 +1,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <unistd.h>
 #include <errno.h>
 
 #include "CommandServer.h"
+#include "EventScheduleManagerIf.h"
 #include "EventSearch.h"
+#include "EventSearchIf.h"
+#include "RecManagerIf.h"
 #include "modules.h"
 
 #include "Settings.h"
 
 
-CEventSearch::CEventSearch (char *pszName, uint8_t nQueNum)
-	:CThreadMgrBase (pszName, nQueNum)
+CEventSearch::CEventSearch (std::string name, uint8_t que_max)
+	:CThreadMgrBase (name, que_max)
 	,m_cache_sched_state_notify_client_id (0xff)
 {
-	SEQ_BASE_t seqs [EN_SEQ_EVENT_SEARCH__NUM] = {
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_moduleUp, (char*)"onReq_moduleUp"},                                           // EN_SEQ_EVENT_SEARCH__MODULE_UP
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_moduleDown, (char*)"onReq_moduleDown"},                                       // EN_SEQ_EVENT_SEARCH__MODULE_DOWN
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch"},     // EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_addRecReserve_keywordSearch, (char*)"onReq_addRecReserve_keywordSearch(ex)"}, // EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_dumpHistories, (char*)"onReq_dumpHistories"},                                 // EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES
-		{(PFN_SEQ_BASE)&CEventSearch::onReq_dumpHistories, (char*)"onReq_dumpHistories(ex)"},                             // EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES_EX
+	const int _max = static_cast<int>(CEventSearchIf::sequence::max);
+	threadmgr::sequence_t seqs [_max] = {
+		{[&](threadmgr::CThreadMgrIf *p_if){on_module_up(p_if);}, "on_module_up"},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_module_down(p_if);}, "on_module_up"},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_add_rec_reserve_keyword_search(p_if);}, "on_add_rec_reserve_keyword_search"},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_add_rec_reserve_keyword_search(p_if);}, "on_add_rec_reserve_keyword_search(ex)"},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_dump_histories(p_if);}, "on_dump_histories"},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_dump_histories(p_if);}, "on_dump_histories(ex)"},
 	};
-	setSeqs (seqs, EN_SEQ_EVENT_SEARCH__NUM);
+	set_sequences (seqs, _max);
 
 
 	m_event_name_keywords.clear();
@@ -37,78 +42,79 @@ CEventSearch::CEventSearch (char *pszName, uint8_t nQueNum)
 
 CEventSearch::~CEventSearch (void)
 {
+	reset_sequences();
 }
 
 
-void CEventSearch::onDestroy (void)
+void CEventSearch::on_destroy (void)
 {
-	// CCommandServer::serverLoop を落とします
+	// CCommandServer::on_server_loop を落とします
 	// 暫定でここに置きます
-	CCommandServer::needDestroy();
+	CCommandServer::need_destroy();
 }
 
-void CEventSearch::onReq_moduleUp (CThreadMgrIf *pIf)
+void CEventSearch::on_module_up (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_REQ_REG_CACHE_SCHED_STATE_NOTIFY,
 		SECTID_WAIT_REG_CACHE_SCHED_STATE_NOTIFY,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	threadmgr::result rslt = threadmgr::result::success;
 
 
-	switch (sectId) {
+	switch (section_id) {
 	case SECTID_ENTRY:
 
-		loadEventNameSearchHistories ();
-		loadExtendedEventSearchHistories ();
+		load_event_name_search_histories ();
+		load_extended_event_search_histories ();
 
 
-		sectId = SECTID_REQ_REG_CACHE_SCHED_STATE_NOTIFY;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_REQ_REG_CACHE_SCHED_STATE_NOTIFY;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_REQ_REG_CACHE_SCHED_STATE_NOTIFY: {
-		CEventScheduleManagerIf _if (getExternalIf());
-		_if.reqRegisterCacheScheduleStateNotify ();
+		CEventScheduleManagerIf _if (get_external_if());
+		_if.request_register_cache_schedule_state_notify ();
 
-		sectId = SECTID_WAIT_REG_CACHE_SCHED_STATE_NOTIFY;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_REG_CACHE_SCHED_STATE_NOTIFY;
+		act = threadmgr::action::wait;
 		}
 		break;
 
 	case SECTID_WAIT_REG_CACHE_SCHED_STATE_NOTIFY:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			m_cache_sched_state_notify_client_id = *(uint8_t*)(pIf->getSrcInfo()->msg.pMsg);
-			sectId = SECTID_END_SUCCESS;
-			enAct = EN_THM_ACT_CONTINUE;
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			m_cache_sched_state_notify_client_id = *(uint8_t*)(p_if->get_source().get_message().data());
+			section_id = SECTID_END_SUCCESS;
+			act = threadmgr::action::continue_;
 
 		} else {
 			_UTL_LOG_E ("reqRegisterTunerNotify is failure.");
-			sectId = SECTID_END_ERROR;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
 		}
 		break;
 
 	case SECTID_END_SUCCESS:
-		pIf->reply (EN_THM_RSLT_SUCCESS);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		p_if->reply (threadmgr::result::success);
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	case SECTID_END_ERROR:
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		p_if->reply (threadmgr::result::error);
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	default:
@@ -116,38 +122,38 @@ void CEventSearch::onReq_moduleUp (CThreadMgrIf *pIf)
 	}
 
 
-	pIf->setSectId (sectId, enAct);
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventSearch::onReq_moduleDown (CThreadMgrIf *pIf)
+void CEventSearch::on_module_down (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 //
-// do nothing
+// do something
 //
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
+void CEventSearch::on_add_rec_reserve_keyword_search (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_REQ_GET_EVENTS,
 		SECTID_WAIT_GET_EVENTS,
 		SECTID_CHECK_EVENT_TIME,
@@ -159,60 +165,59 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	threadmgr::result rslt = threadmgr::result::success;
 	static std::vector<std::string>::const_iterator s_iter_keyword ;
 	static std::vector<std::string>::const_iterator s_iter_keyword_end ;
-	static CEventScheduleManagerIf::EVENT_t s_events [30];
+	static CEventScheduleManagerIf::event_t s_events [30];
 	static int s_events_idx = 0;
 	static int s_get_events_num = 0;
 
 
-	switch (sectId) {
+	switch (section_id) {
 	case SECTID_ENTRY:
 
-		// seqIdxが別々で 関数を共有する場合 キューもそれぞれseqIdxに対応した別々になるため
-		// EN_THM_ACT_WAITしたときに sectId関係なく関数に入ってきてしまうので
+		// seq idxが別々で 関数を共有する場合 キューもそれぞれseq idxに対応した別々になるため
+		// threadmgr::action::waitしたときに section_id関係なく関数に入ってきてしまうので
 		// lockで対応します
-		pIf->lock();
+		p_if->lock();
 
 
 		// history ----------------
 		m_current_history.clear();
 
-
-		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH) {
-			loadEventNameKeywords ();
-			dumpEventNameKeywords ();
+		if (p_if->get_sequence_idx() == static_cast<int>(CEventSearchIf::sequence::add_rec_reserve_keyword_search)) {
+			load_event_name_keywords ();
+			dump_event_name_keywords ();
 
 			s_iter_keyword     = m_event_name_keywords.begin();
 			s_iter_keyword_end = m_event_name_keywords.end();
 
-		} else if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX) {
-			loadExtendedEventKeywords ();
-			dumpExtendedEventKeywords ();
+		} else if (p_if->get_sequence_idx() == static_cast<int>(CEventSearchIf::sequence::add_rec_reserve_keyword_search_ex)) {
+			load_extended_event_keywords ();
+			dump_extended_event_keywords ();
 
 			s_iter_keyword     = m_extended_event_keywords.begin();
 			s_iter_keyword_end = m_extended_event_keywords.end();
 
 		} else {
-			_UTL_LOG_E ("unexpected seqIdx [%d]", pIf->getSeqIdx());
-			sectId = SECTID_END;
-			enAct = EN_THM_ACT_CONTINUE;
+			_UTL_LOG_E ("unexpected seq idx [%d]", p_if->get_sequence_idx());
+			section_id = SECTID_END;
+			act = threadmgr::action::continue_;
 			break;
 		}
 
 
 		if (s_iter_keyword == s_iter_keyword_end) {
-			sectId = SECTID_END;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_END;
+			act = threadmgr::action::continue_;
 			break;
 		}
 
-		sectId = SECTID_REQ_GET_EVENTS;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_REQ_GET_EVENTS;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_REQ_GET_EVENTS: {
@@ -227,48 +232,48 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		m_current_history_keyword.keyword_string = *s_iter_keyword;
 
 
-		CEventScheduleManagerIf::REQ_EVENT_PARAM_t _param;
+		CEventScheduleManagerIf::request_event_param_t _param;
 		_param.arg.p_keyword = s_iter_keyword->c_str();
 		_param.p_out_event = s_events;
 		_param.array_max_num = 30;
 
-		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH) {
-			CEventScheduleManagerIf _if(getExternalIf());
-			_if.reqGetEvents_keyword (&_param);
+		if (p_if->get_sequence_idx() == static_cast<int>(CEventSearchIf::sequence::add_rec_reserve_keyword_search)) {
+			CEventScheduleManagerIf _if(get_external_if());
+			_if.request_get_events_keyword (&_param);
 		} else {
-			// EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX
-			CEventScheduleManagerIf _if(getExternalIf());
-			_if.reqGetEvents_keyword_ex (&_param);
+			// CEventSearchIf::sequence::add_rec_reserve_keyword_search_ex
+			CEventScheduleManagerIf _if(get_external_if());
+			_if.request_get_events_keyword_ex (&_param);
 		}
 
-		sectId = SECTID_WAIT_GET_EVENTS;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_GET_EVENTS;
+		act = threadmgr::action::wait;
 
 		}
 		break;
 
 	case SECTID_WAIT_GET_EVENTS:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			s_get_events_num = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			s_get_events_num = *(int*)(p_if->get_source().get_message().data());
 			if (s_get_events_num > 0) {
 				if (s_get_events_num > 30) {
 					_UTL_LOG_W ("trancate s_get_events_num 30");
 					s_get_events_num = 30;
 				}
 
-				sectId = SECTID_CHECK_EVENT_TIME;
-				enAct = EN_THM_ACT_CONTINUE;
+				section_id = SECTID_CHECK_EVENT_TIME;
+				act = threadmgr::action::continue_;
 
 			} else {
-				sectId = SECTID_CHECK_LOOP;
-				enAct = EN_THM_ACT_CONTINUE;
+				section_id = SECTID_CHECK_LOOP;
+				act = threadmgr::action::continue_;
 			}
 
 		} else {
 			s_get_events_num = 0;
-			sectId = SECTID_CHECK_LOOP;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_CHECK_LOOP;
+			act = threadmgr::action::continue_;
 		}
 
 		break;
@@ -279,11 +284,11 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		cur.setCurrentTime();
 		if (cur > s_events [s_events_idx].end_time) {
 			// 終了時間が過ぎていたら録画予約入れません
-			sectId = SECTID_CHECK_LOOP;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_CHECK_LOOP;
+			act = threadmgr::action::continue_;
 		} else {
-			sectId = SECTID_REQ_REMOVE_RESERVE;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_REQ_REMOVE_RESERVE;
+			act = threadmgr::action::continue_;
 		}
 
 		}
@@ -293,19 +298,19 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		// 一度予約消してから入れ直します
 		// （既に入っていれば消すことになります）
 
-		CRecManagerIf::REMOVE_RESERVE_PARAM_t _param;
+		CRecManagerIf::remove_reserve_param_t _param;
 		_param.arg.key.transport_stream_id = s_events [s_events_idx].transport_stream_id;
 		_param.arg.key.original_network_id = s_events [s_events_idx].original_network_id;
 		_param.arg.key.service_id = s_events [s_events_idx].service_id;
 		_param.arg.key.event_id = s_events [s_events_idx].event_id;
-		_param.isConsiderRepeatability = false;
-		_param.isApplyResult = false; // result に記録しない
+		_param.is_consider_repeatability = false;
+		_param.is_apply_result = false; // result に記録しない
 
-		CRecManagerIf _if(getExternalIf());
-		_if.reqRemoveReserve (&_param);
+		CRecManagerIf _if(get_external_if());
+		_if.request_remove_reserve (&_param);
 
-		sectId = SECTID_WAIT_REMOVE_RESERVE;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_REMOVE_RESERVE;
+		act = threadmgr::action::wait;
 
 		}
 		break;
@@ -313,8 +318,8 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 	case SECTID_WAIT_REMOVE_RESERVE:
 //TODO 暫定 結果見ない
 
-		sectId = SECTID_REQ_ADD_RESERVE;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_REQ_ADD_RESERVE;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_REQ_ADD_RESERVE: {
@@ -331,18 +336,18 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 		m_current_history_keyword.events.push_back(_event);
 
 
-		CRecManagerIf::ADD_RESERVE_PARAM_t _param;
+		CRecManagerIf::add_reserve_param_t _param;
 		_param.transport_stream_id = s_events [s_events_idx].transport_stream_id;
 		_param.original_network_id = s_events [s_events_idx].original_network_id;
 		_param.service_id = s_events [s_events_idx].service_id;
 		_param.event_id = s_events [s_events_idx].event_id;
-		_param.repeatablity = EN_RESERVE_REPEATABILITY__NONE;
+		_param.repeatablity = CRecManagerIf::reserve_repeatability::none;
 
-		CRecManagerIf _if(getExternalIf());
-		_if.reqAddReserve_event (&_param);
+		CRecManagerIf _if(get_external_if());
+		_if.request_add_reserve_event (&_param);
 
-		sectId = SECTID_WAIT_ADD_RESERVE;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_ADD_RESERVE;
+		act = threadmgr::action::wait;
 
 		}
 		break;
@@ -350,8 +355,8 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 	case SECTID_WAIT_ADD_RESERVE:
 //TODO 暫定 結果見ない
 
-		sectId = SECTID_CHECK_LOOP;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_CHECK_LOOP;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_CHECK_LOOP:
@@ -360,8 +365,8 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 
 		if (s_events_idx < s_get_events_num) {
 			// getEventsで取得したリストの残りがあります
-			sectId = SECTID_CHECK_EVENT_TIME;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_CHECK_EVENT_TIME;
+			act = threadmgr::action::continue_;
 
 		} else {
 			// getEventsで取得したリストを全て見終わりました
@@ -370,13 +375,13 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 
 			if (s_iter_keyword == s_iter_keyword_end) {
 				// キーワドリストすべて見終わりました
-				sectId = SECTID_END;
-				enAct = EN_THM_ACT_CONTINUE;
+				section_id = SECTID_END;
+				act = threadmgr::action::continue_;
 
 			} else {
 				// キーワドリスト残りがあります
-				sectId = SECTID_REQ_GET_EVENTS;
-				enAct = EN_THM_ACT_CONTINUE;
+				section_id = SECTID_REQ_GET_EVENTS;
+				act = threadmgr::action::continue_;
 
 				
 				// history ----------------
@@ -391,81 +396,81 @@ void CEventSearch::onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf)
 
 	case SECTID_END:
 
-		if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH) {
-			pushHistories (m_current_history, m_event_name_search_histories);
-			saveEventNameSearchHistories();
+		if (p_if->get_sequence_idx() == static_cast<int>(CEventSearchIf::sequence::add_rec_reserve_keyword_search)) {
+			push_histories (m_current_history, m_event_name_search_histories);
+			save_event_name_search_histories();
 		} else {
-			// EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX
-			pushHistories (m_current_history, m_extended_event_search_histories);
-			saveExtendedEventSearchHistories();
+			// CEventSearchIf::sequence::add_rec_reserve_keyword_search_ex
+			push_histories (m_current_history, m_extended_event_search_histories);
+			save_extended_event_search_histories();
 		}
 
-		pIf->unlock();
+		p_if->unlock();
 
-		pIf->reply (EN_THM_RSLT_SUCCESS);
+		p_if->reply (threadmgr::result::success);
 
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	default:
 		break;
 	}
 
-	pIf->setSectId (sectId, enAct);
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventSearch::onReq_dumpHistories (CThreadMgrIf *pIf)
+void CEventSearch::on_dump_histories (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	if (pIf->getSeqIdx() == EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES) {
-		dumpHistories (m_event_name_search_histories);
+	if (p_if->get_sequence_idx() == static_cast<int>(CEventSearchIf::sequence::dump_histories)) {
+		dump_histories (m_event_name_search_histories);
 	} else {
-		// EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES_EX
-		dumpHistories (m_extended_event_search_histories);
+		// CEventSearchIf::sequence::dump_histories_ex
+		dump_histories (m_extended_event_search_histories);
 	}
 
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CEventSearch::onReceiveNotify (CThreadMgrIf *pIf)
+void CEventSearch::on_receive_notify (threadmgr::CThreadMgrIf *p_if)
 {
-	if (pIf->getSrcInfo()->nClientId != m_cache_sched_state_notify_client_id) {
+	if (p_if->get_source().get_client_id() != m_cache_sched_state_notify_client_id) {
 		return ;
 	}
 
-	EN_CACHE_SCHEDULE_STATE_t enState = *(EN_CACHE_SCHEDULE_STATE_t*)(pIf->getSrcInfo()->msg.pMsg);
-	switch (enState) {
-	case EN_CACHE_SCHEDULE_STATE__BUSY:
+	CEventScheduleManagerIf::cache_schedule_state state = *(CEventScheduleManagerIf::cache_schedule_state*)(p_if->get_source().get_message().data());
+	switch (state) {
+		case CEventScheduleManagerIf::cache_schedule_state::busy:
 		break;
 
-	case EN_CACHE_SCHEDULE_STATE__READY: {
+		case CEventScheduleManagerIf::cache_schedule_state::ready: {
 		// EPG取得が終わったら キーワード予約をかけます
 
-		uint32_t opt = getRequestOption ();
+		uint32_t opt = get_request_option ();
 		opt |= REQUEST_OPTION__WITHOUT_REPLY;
-		setRequestOption (opt);
+		set_request_option (opt);
 
-		requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH);
-		requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX);
+		request_async (EN_MODULE_EVENT_SEARCH, static_cast<int>(CEventSearchIf::sequence::add_rec_reserve_keyword_search));
+		request_async (EN_MODULE_EVENT_SEARCH, static_cast<int>(CEventSearchIf::sequence::add_rec_reserve_keyword_search_ex));
 
 		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-		setRequestOption (opt);
+		set_request_option (opt);
 
 		}
 		break;
@@ -478,7 +483,7 @@ void CEventSearch::onReceiveNotify (CThreadMgrIf *pIf)
 }
 
 
-void CEventSearch::dumpEventNameKeywords (void) const
+void CEventSearch::dump_event_name_keywords (void) const
 {
 	_UTL_LOG_I ("----- event name keywords -----");
 	std::vector<std::string>::const_iterator iter = m_event_name_keywords.begin();
@@ -487,7 +492,7 @@ void CEventSearch::dumpEventNameKeywords (void) const
 	}
 }
 
-void CEventSearch::dumpExtendedEventKeywords (void) const
+void CEventSearch::dump_extended_event_keywords (void) const
 {
 	_UTL_LOG_I ("----- extended event keywords -----");
 	std::vector<std::string>::const_iterator iter = m_extended_event_keywords.begin();
@@ -496,7 +501,7 @@ void CEventSearch::dumpExtendedEventKeywords (void) const
 	}
 }
 
-void CEventSearch::pushHistories (const CHistory &history, std::vector<CHistory> &histories)
+void CEventSearch::push_histories (const CHistory &history, std::vector<CHistory> &histories)
 {
 	// fifo 30
 	// pop -> delete
@@ -507,10 +512,10 @@ void CEventSearch::pushHistories (const CHistory &history, std::vector<CHistory>
 	// push
 	histories.push_back (history);
 
-	_UTL_LOG_I ("pushHistories  size=[%d]", histories.size());
+	_UTL_LOG_I ("push_histories  size=[%d]", histories.size());
 }
 
-void CEventSearch::dumpHistories (const std::vector<CHistory> &histories) const
+void CEventSearch::dump_histories (const std::vector<CHistory> &histories) const
 {
 	_UTL_LOG_I (__PRETTY_FUNCTION__);
 
@@ -520,7 +525,7 @@ void CEventSearch::dumpHistories (const std::vector<CHistory> &histories) const
 	}
 }
 
-void CEventSearch::saveEventNameKeywords (void)
+void CEventSearch::save_event_name_keywords (void)
 {
 	std::stringstream ss;
 	{
@@ -536,7 +541,7 @@ void CEventSearch::saveEventNameKeywords (void)
 	ss.clear();
 }
 
-void CEventSearch::loadEventNameKeywords (void)
+void CEventSearch::load_event_name_keywords (void)
 {
 	std::string *p_path = CSettings::getInstance()->getParams()->getEventNameKeywordsJsonPath();
 	std::ifstream ifs (p_path->c_str(), std::ios::in);
@@ -555,7 +560,7 @@ void CEventSearch::loadEventNameKeywords (void)
 	ss.clear();
 }
 
-void CEventSearch::saveExtendedEventKeywords (void)
+void CEventSearch::save_extended_event_keywords (void)
 {
 	std::stringstream ss;
 	{
@@ -571,7 +576,7 @@ void CEventSearch::saveExtendedEventKeywords (void)
 	ss.clear();
 }
 
-void CEventSearch::loadExtendedEventKeywords (void)
+void CEventSearch::load_extended_event_keywords (void)
 {
 	std::string *p_path = CSettings::getInstance()->getParams()->getExtendedEventKeywordsJsonPath();
 	std::ifstream ifs (p_path->c_str(), std::ios::in);
@@ -590,7 +595,7 @@ void CEventSearch::loadExtendedEventKeywords (void)
 	ss.clear();
 }
 
-void CEventSearch::saveEventNameSearchHistories (void)
+void CEventSearch::save_event_name_search_histories (void)
 {
 	std::stringstream ss;
 	{
@@ -606,7 +611,7 @@ void CEventSearch::saveEventNameSearchHistories (void)
 	ss.clear();
 }
 
-void CEventSearch::loadEventNameSearchHistories (void)
+void CEventSearch::load_event_name_search_histories (void)
 {
 	std::string *p_path = CSettings::getInstance()->getParams()->getEventNameSearchHistoriesJsonPath();
 	std::ifstream ifs (p_path->c_str(), std::ios::in);
@@ -637,7 +642,7 @@ void CEventSearch::loadEventNameSearchHistories (void)
 	}
 }
 
-void CEventSearch::saveExtendedEventSearchHistories (void)
+void CEventSearch::save_extended_event_search_histories (void)
 {
 	std::stringstream ss;
 	{
@@ -653,7 +658,7 @@ void CEventSearch::saveExtendedEventSearchHistories (void)
 	ss.clear();
 }
 
-void CEventSearch::loadExtendedEventSearchHistories (void)
+void CEventSearch::load_extended_event_search_histories (void)
 {
 	std::string *p_path = CSettings::getInstance()->getParams()->getExtendedEventSearchHistoriesJsonPath();
 	std::ifstream ifs (p_path->c_str(), std::ios::in);

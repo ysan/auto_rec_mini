@@ -12,20 +12,14 @@
 #include "Utils.h"
 
 
-using namespace ThreadManager;
-
-
-
 typedef struct command_info {
-	const char *pszCommand;
-	const char *pszDesc;
-	void (*pcbCommand) (int argc, char* argv[], CThreadMgrBase *pBase);
-	struct command_info *pNext;
-} ST_COMMAND_INFO;
+	const char *command;
+	const char *desc;
+	void (*cb_command) (int argc, char* argv[], threadmgr::CThreadMgrBase *base);
+	struct command_info *next;
+} command_info_t;
 
 
-
-
-extern ST_COMMAND_INFO g_rootCommandTable [] ;
+extern command_info_t g_root_command_table [] ;
 
 #endif

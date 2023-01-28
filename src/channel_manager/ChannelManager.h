@@ -28,8 +28,6 @@
 #include "cereal/archives/json.hpp"
 
 
-using namespace ThreadManager;
-
 class CChannel {
 public:
 	CChannel (void) {
@@ -136,7 +134,7 @@ public:
 
 	void dump (void) const {
 		uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (pysical_channel);
-		_UTL_LOG_I ("-------------  pysical channel:[%d] ([%d]kHz) -------------", pysical_channel, freq);
+		_UTL_LOG_I ("-------------  pysical channel:[%d] ([%d]k_hz) -------------", pysical_channel, freq);
 		_UTL_LOG_I (
 			"pych:[%d] tsid:[0x%04x] org_nid:[0x%04x]",
 			pysical_channel,
@@ -191,57 +189,57 @@ public:
 };
 
 
-class CChannelManager : public CThreadMgrBase
+class CChannelManager : public threadmgr::CThreadMgrBase
 {
 public:
-	CChannelManager (char *pszName, uint8_t nQueNum);
+	CChannelManager (std::string name, uint8_t que_max);
 	virtual ~CChannelManager (void);
 
 
-	void onReq_moduleUp (CThreadMgrIf *pIf);
-	void onReq_moduleDown (CThreadMgrIf *pIf);
-	void onReq_channelScan (CThreadMgrIf *pIf);
-	void onReq_getPysicalChannelByServiceId (CThreadMgrIf *pIf);
-	void onReq_getPysicalChannelByRemoteControlKeyId (CThreadMgrIf *pIf);
-	void onReq_getChannels (CThreadMgrIf *pIf);
-	void onReq_getTransportStreamName (CThreadMgrIf *pIf);
-	void onReq_getServiceName (CThreadMgrIf *pIf);
-	void onReq_dumpChannels (CThreadMgrIf *pIf);
+	void on_module_up (threadmgr::CThreadMgrIf *p_if);
+	void on_module_down (threadmgr::CThreadMgrIf *p_if);
+	void on_channel_scan (threadmgr::CThreadMgrIf *p_if);
+	void on_get_pysical_channel_by_service_id (threadmgr::CThreadMgrIf *p_if);
+	void on_get_pysical_channel_by_remote_control_key_id (threadmgr::CThreadMgrIf *p_if);
+	void on_get_channels (threadmgr::CThreadMgrIf *p_if);
+	void on_get_transport_stream_name (threadmgr::CThreadMgrIf *p_if);
+	void on_get_service_name (threadmgr::CThreadMgrIf *p_if);
+	void on_dump_channels (threadmgr::CThreadMgrIf *p_if);
 
 
 private:
-	uint16_t getPysicalChannelByServiceId (
+	uint16_t get_pysical_channel_by_service_id (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id
 	) const ;
 
-	uint16_t getPysicalChannelByRemoteControlKeyId (
+	uint16_t get_pysical_channel_by_remote_control_key_id (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint8_t _remote_control_key_id
 	) const;
 
-	bool isDuplicateChannel (const CChannel* p_channel) const;
+	bool is_duplicate_channel (const CChannel* p_channel) const;
 
-	const CChannel* findChannel (uint16_t pych) const;
+	const CChannel* find_channel (uint16_t pych) const;
 
-	int getChannels (CChannelManagerIf::CHANNEL_t *p_out_channels, int array_max_num) const;
-	const char* getTransportStreamName (
+	int get_channels (CChannelManagerIf::channel_t *p_out_channels, int array_max_num) const;
+	const char* get_transport_stream_name (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id
 	) const;
-	const char* getServiceName (
+	const char* get_service_name (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id
 	) const;
 
-	void dumpChannels (void) const;
-	void dumpChannels_simple (void) const;
+	void dump_channels (void) const;
+	void dump_channels_simple (void) const;
 
-	void saveChannels (void);
-	void loadChannels (void);
+	void save_channels (void);
+	void load_channels (void);
 
 
 	std::map <uint16_t, CChannel> m_channels; // <pysical channel, CChannel>

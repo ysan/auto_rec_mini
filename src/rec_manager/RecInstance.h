@@ -27,8 +27,6 @@
 #include "cereal/archives/json.hpp"
 
 
-using namespace ThreadManager;
-
 class CRecInstance : public CTunerControlIf::ITsReceiveHandler
 {
 public:
@@ -43,14 +41,14 @@ public:
 
 	typedef struct {
 		progress rec_progress;
-		uint8_t groupId;
+		uint8_t group_id;
 	} RECORDING_NOTICE_t;
 
 public:
-	explicit CRecInstance (CThreadMgrExternalIf *p_ext_if, uint8_t groupId)
+	explicit CRecInstance (threadmgr::CThreadMgrExternalIf *p_ext_if, uint8_t group_id)
 		: mp_ext_if (p_ext_if)
-		, m_recProgress (progress::INIT)
-		, m_groupId (groupId)
+		, m_rec_progress (progress::INIT)
+		, m_group_id (group_id)
 		, m_service_id (0)
 	{
 		m_recording_tmpfile.clear();
@@ -60,68 +58,68 @@ public:
 	}
 
 
-	void setRecFilename (std::string &name) {
+	void set_rec_filename (std::string &name) {
 		m_recording_tmpfile = name;
 	}
 
-	void setNextProgress (progress _progress) {
-		m_recProgress = _progress;
+	void set_next_progress (progress _progress) {
+		m_rec_progress = _progress;
 	}
 
-	progress getCurrentProgress (void) const {
-		return m_recProgress;
+	progress get_current_progress (void) const {
+		return m_rec_progress;
 	}
 
-	void setServiceId (uint16_t _id) {
+	void set_service_id (uint16_t _id) {
 		m_service_id = _id;
 	}
 
-	void setUseSplitter (bool _b) {
+	void set_use_splitter (bool _b) {
 		m_use_splitter = _b;
 	}
 
 
 	// CTunerControlIf::ITsReceiveHandler
-	bool onPreTsReceive (void) override {
-		mp_ext_if->createExternalCp();
+	bool on_pre_ts_receive (void) override {
+		mp_ext_if->create_external_cp();
 
-		uint32_t opt = mp_ext_if->getRequestOption ();
+		uint32_t opt = mp_ext_if->get_request_option ();
 		opt |= REQUEST_OPTION__WITHOUT_REPLY;
-		mp_ext_if->setRequestOption (opt);
+		mp_ext_if->set_request_option (opt);
 
 		return true;
 	}
 
-	void onPostTsReceive (void) override {
-		uint32_t opt = mp_ext_if->getRequestOption ();
+	void on_post_ts_receive (void) override {
+		uint32_t opt = mp_ext_if->get_request_option ();
 		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-		mp_ext_if->setRequestOption (opt);
+		mp_ext_if->set_request_option (opt);
 
-		mp_ext_if->destroyExternalCp();
+		mp_ext_if->destroy_external_cp();
 	}
 
-	bool onCheckTsReceiveLoop (void) override {
+	bool on_check_ts_receive_loop (void) override {
 		return true;
 	}
 
-	bool onTsReceived (void *p_ts_data, int length) override {
-		switch (m_recProgress) {
+	bool on_ts_received (void *p_ts_data, int length) override {
+		switch (m_rec_progress) {
 		case progress::PRE_PROCESS: {
 			_UTL_LOG_I ("progress::PRE_PROCESS");
 
 			std::unique_ptr<CRecAribB25> b25 (new CRecAribB25(8192, m_recording_tmpfile, m_service_id, m_use_splitter));
 			msp_b25.swap (b25);
 
-			RECORDING_NOTICE_t _notice = {m_recProgress, m_groupId};
-			mp_ext_if->requestAsync (
+			RECORDING_NOTICE_t _notice = {m_rec_progress, m_group_id};
+			mp_ext_if->request_async (
 				EN_MODULE_REC_MANAGER,
-				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
+				static_cast<int>(CRecManagerIf::sequence::recording_notice),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
 			);
 
 			// next
-			m_recProgress = progress::NOW_RECORDING;
+			m_rec_progress = progress::NOW_RECORDING;
 			_UTL_LOG_I ("next  progress::NOW_RECORDING");
 
 			}
@@ -141,16 +139,16 @@ public:
 		case progress::END_SUCCESS: {
 			_UTL_LOG_I ("progress::END_SUCCESS");
 
-			RECORDING_NOTICE_t _notice = {m_recProgress, m_groupId};
-			mp_ext_if->requestAsync (
+			RECORDING_NOTICE_t _notice = {m_rec_progress, m_group_id};
+			mp_ext_if->request_async (
 				EN_MODULE_REC_MANAGER,
-				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
+				static_cast<int>(CRecManagerIf::sequence::recording_notice),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
 			);
 
 			// next
-			m_recProgress = progress::POST_PROCESS;
+			m_rec_progress = progress::POST_PROCESS;
 
 			}
 			break;
@@ -158,16 +156,16 @@ public:
 		case progress::END_ERROR: {
 			_UTL_LOG_I ("progress::END_ERROR");
 
-			RECORDING_NOTICE_t _notice = {m_recProgress, m_groupId};
-			mp_ext_if->requestAsync (
+			RECORDING_NOTICE_t _notice = {m_rec_progress, m_group_id};
+			mp_ext_if->request_async (
 				EN_MODULE_REC_MANAGER,
-				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
+				static_cast<int>(CRecManagerIf::sequence::recording_notice),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
 			);
 
 			// next
-			m_recProgress = progress::POST_PROCESS;
+			m_rec_progress = progress::POST_PROCESS;
 
 			}
 			break;
@@ -178,16 +176,16 @@ public:
 			msp_b25->flush();
 			msp_b25->release();
 
-			RECORDING_NOTICE_t _notice = {m_recProgress, m_groupId};
-			mp_ext_if->requestAsync (
+			RECORDING_NOTICE_t _notice = {m_rec_progress, m_group_id};
+			mp_ext_if->request_async (
 				EN_MODULE_REC_MANAGER,
-				EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
+				static_cast<int>(CRecManagerIf::sequence::recording_notice),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
 			);
 
 			// next
-			m_recProgress = progress::INIT;
+			m_rec_progress = progress::INIT;
 
 			}
 			break;
@@ -201,11 +199,11 @@ public:
 
 
 private:
-	CThreadMgrExternalIf *mp_ext_if;
-	progress m_recProgress;
+	threadmgr::CThreadMgrExternalIf *mp_ext_if;
+	progress m_rec_progress;
 	std::string m_recording_tmpfile;
-	unique_ptr<CRecAribB25> msp_b25;
-	uint8_t m_groupId;
+	std::unique_ptr<CRecAribB25> msp_b25;
+	uint8_t m_group_id;
 	uint16_t m_service_id;
 	bool m_use_splitter;
 };

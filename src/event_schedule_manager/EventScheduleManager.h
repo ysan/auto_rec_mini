@@ -34,15 +34,12 @@
 #include "cereal/types/vector.hpp"
 
 
-using namespace ThreadManager;
-
-
 // notify category
 #define NOTIFY_CAT__CACHE_SCHEDULE			((uint8_t)0)
 
 
 class CEventScheduleManager
-	:public CThreadMgrBase
+	:public threadmgr::CThreadMgrBase
 {
 public:
 	class CReserve {
@@ -113,7 +110,7 @@ public:
 			}
 		}
 
-		bool isValid (void) {
+		bool is_valid (void) {
 			if (transport_stream_id && original_network_id && service_id) {
 				return true;
 			} else {
@@ -188,7 +185,7 @@ public:
 				);
 			}
 
-			SERVICE_KEY_t key;
+			service_key_t key;
 			int item_num;
 		};
 
@@ -246,11 +243,11 @@ public:
 			end_time.clear();
 		}
 
-		void set_startTime (void) {
+		void set_start_time (void) {
 			start_time.setCurrentTime();
 		}
 
-		void set_endTime (void) {
+		void set_end_time (void) {
 			end_time.setCurrentTime();
 		}
 
@@ -274,84 +271,84 @@ public:
 	};
 
 public:
-	CEventScheduleManager (char *pszName, uint8_t nQueNum);
+	CEventScheduleManager (std::string name, uint8_t que_max);
 	virtual ~CEventScheduleManager (void);
 
 
-	void onReq_moduleUp (CThreadMgrIf *pIf);
-	void onReq_moduleDown (CThreadMgrIf *pIf);
-	void onReq_registerCacheScheduleStateNotify (CThreadMgrIf *pIf);
-	void onReq_unregisterCacheScheduleStateNotify (CThreadMgrIf *pIf);
-	void onReq_getCacheScheduleState (CThreadMgrIf *pIf);
-	void onReq_checkLoop (CThreadMgrIf *pIf);
-	void onReq_parserNotice (CThreadMgrIf *pIf);
-	void onReq_execCacheSchedule (CThreadMgrIf *pIf);
-	void onReq_cacheSchedule (CThreadMgrIf *pIf);
-	void onReq_cacheSchedule_forceCurrentService (CThreadMgrIf *pIf);
-	void onReq_stopCacheSchedule (CThreadMgrIf *pIf);
-	void onReq_getEvent (CThreadMgrIf *pIf);
-	void onReq_getEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
-	void onReq_dumpEvent_latestDumpedSchedule (CThreadMgrIf *pIf);
-	void onReq_getEvents_keywordSearch (CThreadMgrIf *pIf);
-	void onReq_addReserves (CThreadMgrIf *pIf);
-	void onReq_dumpScheduleMap (CThreadMgrIf *pIf);
-	void onReq_dumpSchedule (CThreadMgrIf *pIf);
-	void onReq_dumpReserves (CThreadMgrIf *pIf);
-	void onReq_dumpHistories (CThreadMgrIf *pIf);
+	void on_module_up (threadmgr::CThreadMgrIf *p_if);
+	void on_module_down (threadmgr::CThreadMgrIf *p_if);
+	void on_register_cache_schedule_state_notify (threadmgr::CThreadMgrIf *p_if);
+	void on_unregister_cache_schedule_state_notify (threadmgr::CThreadMgrIf *p_if);
+	void on_get_cache_schedule_state (threadmgr::CThreadMgrIf *p_if);
+	void on_check_loop (threadmgr::CThreadMgrIf *p_if);
+	void on_parser_notice (threadmgr::CThreadMgrIf *p_if);
+	void on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_if);
+	void on_cache_schedule (threadmgr::CThreadMgrIf *p_if);
+	void on_cache_schedule_force_current_service (threadmgr::CThreadMgrIf *p_if);
+	void on_stop_cache_schedule (threadmgr::CThreadMgrIf *p_if);
+	void on_get_event (threadmgr::CThreadMgrIf *p_if);
+	void on_get_event_latest_dumped_schedule (threadmgr::CThreadMgrIf *p_if);
+	void on_dump_event_latest_dumped_schedule (threadmgr::CThreadMgrIf *p_if);
+	void on_get_events_keyword_search (threadmgr::CThreadMgrIf *p_if);
+	void on_add_reserves (threadmgr::CThreadMgrIf *p_if);
+	void on_dump_schedule_map (threadmgr::CThreadMgrIf *p_if);
+	void on_dump_schedule (threadmgr::CThreadMgrIf *p_if);
+	void on_dump_reserves (threadmgr::CThreadMgrIf *p_if);
+	void on_dump_histories (threadmgr::CThreadMgrIf *p_if);
 
 
-	void onReceiveNotify (CThreadMgrIf *pIf) override;
+	void on_receive_notify (threadmgr::CThreadMgrIf *p_if) override;
 
 
 private:
-	void cacheSchedule (
+	void cache_schedule (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id,
 		std::vector <CEvent*> *p_out_sched
 	);
-	void cacheSchedule_extended (std::vector <CEvent*> *p_out_sched);
-	void cacheSchedule_extended (CEvent* p_out_event);
+	void cache_schedule_extended (std::vector <CEvent*> *p_out_sched);
+	void cache_schedule_extended (CEvent* p_out_event);
 
 
-	bool addReserve (
+	bool add_reserve (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id,
 		CEtime * p_start_time,
 		CReserve::type_t _type
 	);
-	bool addReserve (const CReserve &reserve);
-	bool removeReserve (const CReserve &reserve);
-	bool isDuplicateReserve (const CReserve& reserve) const;
-	void check2executeReserves (void) ;
-	bool isExistReserve (const CReserve& reserve) const;
-	void dumpReserves (void) const;
+	bool add_reserve (const CReserve &reserve);
+	bool remove_reserve (const CReserve &reserve);
+	bool is_duplicate_reserve (const CReserve& reserve) const;
+	void check2execute_reserves (void) ;
+	bool is_exist_reserve (const CReserve& reserve) const;
+	void dump_reserves (void) const;
 
 
-	void pushHistories (const CHistory *p_history);
-	void dumpHistories (void) const;
+	void push_histories (const CHistory *p_history);
+	void dump_histories (void) const;
 
-	void saveHistories (void) ;
-	void loadHistories (void) ;
+	void save_histories (void) ;
+	void load_histories (void) ;
 
 
 	CSettings *mp_settings;
 
-	EN_CACHE_SCHEDULE_STATE_t m_state;
+	CEventScheduleManagerIf::cache_schedule_state m_state;
 
-	uint8_t m_tunerNotify_clientId;
-	uint8_t m_eventChangeNotify_clientId;
+	uint8_t m_tuner_notify_client_id;
+	uint8_t m_event_change_notify_client_id;
 
 	CEventInformationTable_sched *mp_EIT_H_sched;
-	CEventInformationTable_sched::CReference mEIT_H_sched_ref;
+	CEventInformationTable_sched::CReference m_EIT_H_sched_ref;
 
 
-	CEtime m_lastUpdate_EITSched;
-	CEtime m_startTime_EITSched;
+	CEtime m_last_update_EIT_sched;
+	CEtime m_start_time_EIT_sched;
 
 
-	SERVICE_KEY_t m_latest_dumped_key;
+	service_key_t m_latest_dumped_key;
 
 
 	CEtime m_schedule_cache_next_day;

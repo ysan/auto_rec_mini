@@ -19,52 +19,49 @@
 #include "Forker.h"
 
 
-using namespace ThreadManager;
-
-enum {
-	EN_SEQ_TUNE_THREAD_MODULE_UP = 0,
-	EN_SEQ_TUNE_THREAD_MODULE_DOWN,
-	EN_SEQ_TUNE_THREAD_TUNE,
-	EN_SEQ_TUNE_THREAD_FORCE_KILL,
-
-	EN_SEQ_TUNE_THREAD_NUM,
-};
-
-class CTuneThread : public CThreadMgrBase, public CGroup
+class CTuneThread : public threadmgr::CThreadMgrBase, public CGroup
 {
 public:
+	enum class sequence : int {
+		module_up = 0,
+		module_down,
+		tune,
+		force_kill,
+		max,
+	};
+
 	enum class state : int {
-		CLOSED = 0,
-		OPENED,
-		TUNE_BEGINED,
-		TUNED,
-		TUNE_ENDED,
+		closed = 0,
+		opened,
+		tune_begined,
+		tuned,
+		tune_ended,
 	};
 
 	typedef struct tune_param {
 		uint32_t freq;
-		std::mutex * pMutexTsReceiveHandlers;
-		CTunerControlIf::ITsReceiveHandler ** pTsReceiveHandlers;
-		bool *pIsReqStop;
-	} TUNE_PARAM_t;
+		std::mutex * p_mutex_ts_receive_handlers;
+		CTunerControlIf::ITsReceiveHandler ** p_ts_receive_handlers;
+		bool *p_is_req_stop;
+	} tune_param_t;
 
 public:
-	CTuneThread (char *pszName, uint8_t nQueNum, uint8_t groupId);
+	CTuneThread (std::string name, uint8_t que_max, uint8_t group_id);
 	virtual ~CTuneThread (void);
 
 
-	void moduleUp (CThreadMgrIf *pIf);
-	void moduleDown (CThreadMgrIf *pIf);
-	void tune (CThreadMgrIf *pIf);
-	void forceKill (CThreadMgrIf *pIf);
+	void on_module_up (threadmgr::CThreadMgrIf *pIf);
+	void on_module_down (threadmgr::CThreadMgrIf *pIf);
+	void on_tune (threadmgr::CThreadMgrIf *pIf);
+	void on_force_kill (threadmgr::CThreadMgrIf *pIf);
 
 	// direct getter
-	state getState (void) {
-		return mState;
+	state get_state (void) {
+		return m_state;
 	}
 
 private:
-	state mState;
+	state m_state;
 	CSettings *mp_settings;
 	CForker m_forker;
 };

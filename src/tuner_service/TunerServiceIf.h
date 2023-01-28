@@ -11,23 +11,20 @@
 #include "modules.h"
 
 
-using namespace ThreadManager;
-
-class CTunerServiceIf : public CThreadMgrExternalIf
+class CTunerServiceIf : public threadmgr::CThreadMgrExternalIf
 {
 public:
-	enum sequence {
-		MODULE_UP = 0,
-		MODULE_DOWN,
-		OPEN,
-		CLOSE,
-		TUNE,
-		TUNE_WITH_RETRY,
-		TUNE_ADVANCE,
-		TUNE_STOP,
-		DUMP_ALLOCATES,
-
-		NUM,
+	enum class sequence : int {
+		module_up = 0,
+		module_down,
+		open,
+		close,
+		tune,
+		tune_with_retry,
+		tune_advance,
+		tune_stop,
+		dump_allocates,
+		max
 	};
 
 	typedef struct _tune_param {
@@ -44,86 +41,118 @@ public:
 	} tune_advance_param_t;
 
 public:
-	explicit CTunerServiceIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
+	explicit CTunerServiceIf (CThreadMgrExternalIf *p_if) : CThreadMgrExternalIf (p_if) {
 	};
 
 	virtual ~CTunerServiceIf (void) {
 	};
 
 
-	bool reqModuleUp (void) {
-		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::MODULE_UP);
+	bool request_module_up (void) {
+		int sequence = static_cast<int>(sequence::module_up);
+		return request_async (EN_MODULE_TUNER_SERVICE, sequence);
 	};
 
-	bool reqModuleDown (void) {
-		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::MODULE_DOWN);
+	bool request_module_down (void) {
+		int sequence = static_cast<int>(sequence::module_down);
+		return request_async (EN_MODULE_TUNER_SERVICE, sequence);
 	};
 
-	bool reqOpen (void) {
-		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::OPEN);
+	bool request_open (void) {
+		int sequence = static_cast<int>(sequence::open);
+		return request_async (EN_MODULE_TUNER_SERVICE, sequence);
 	};
 
-	bool reqOpenSync (void) {
-		return requestSync (EN_MODULE_TUNER_SERVICE, sequence::OPEN);
+	bool request_open_sync (void) {
+		int sequence = static_cast<int>(sequence::open);
+		return request_sync (EN_MODULE_TUNER_SERVICE, sequence);
 	};
 
-	bool reqClose (uint8_t tuner_id) {
-		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::CLOSE, (uint8_t*)&tuner_id, sizeof(tuner_id));
+	bool request_close (uint8_t tuner_id) {
+		int sequence = static_cast<int>(sequence::close);
+		return request_async (
+					EN_MODULE_TUNER_SERVICE,
+					sequence,
+					(uint8_t*)&tuner_id,
+					sizeof(tuner_id)
+				);
 	};
 
-	bool reqCloseSync (uint8_t tuner_id) {
-		return requestSync (EN_MODULE_TUNER_SERVICE, sequence::CLOSE, (uint8_t*)&tuner_id, sizeof(tuner_id));
+	bool request_close_sync (uint8_t tuner_id) {
+		int sequence = static_cast<int>(sequence::close);
+		return request_sync (
+					EN_MODULE_TUNER_SERVICE,
+					sequence,
+					(uint8_t*)&tuner_id,
+					sizeof(tuner_id)
+				);
 	};
 
-	bool reqTune (const tune_param_t *p_param) {
+	bool request_tune (const tune_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::tune);
+		return request_async (
 					EN_MODULE_TUNER_SERVICE,
-					sequence::TUNE,
+					sequence,
 					(uint8_t*)p_param,
 					sizeof(tune_param_t)
 				);
 	};
 
-	bool reqTune_withRetry (const tune_param_t *p_param) {
+	bool request_tune_with_retry (const tune_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::tune_with_retry);
+		return request_async (
 					EN_MODULE_TUNER_SERVICE,
-					sequence::TUNE_WITH_RETRY,
+					sequence,
 					(uint8_t*)p_param,
 					sizeof(tune_param_t)
 				);
 	};
 
-	bool reqTuneAdvance (const tune_advance_param_t *p_param) {
+	bool request_tune_advance (const tune_advance_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::tune_advance);
+		return request_async (
 					EN_MODULE_TUNER_SERVICE,
-					sequence::TUNE_ADVANCE,
+					sequence,
 					(uint8_t*)p_param,
 					sizeof(tune_advance_param_t)
 				);
 	};
 
-	bool reqTuneStop (uint8_t tuner_id) {
-		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::TUNE_STOP, (uint8_t*)&tuner_id, sizeof(tuner_id));
+	bool request_tune_stop (uint8_t tuner_id) {
+		int sequence = static_cast<int>(sequence::tune_stop);
+		return request_async (
+					EN_MODULE_TUNER_SERVICE,
+					sequence,
+					(uint8_t*)&tuner_id,
+					sizeof(tuner_id)
+				);
 	};
 
-	bool reqTuneStopSync (uint8_t tuner_id) {
-		return requestSync (EN_MODULE_TUNER_SERVICE, sequence::TUNE_STOP, (uint8_t*)&tuner_id, sizeof(tuner_id));
+	bool request_tune_stop_sync (uint8_t tuner_id) {
+		int sequence = static_cast<int>(sequence::tune_stop);
+		return request_sync (
+					EN_MODULE_TUNER_SERVICE,
+					sequence,
+					(uint8_t*)&tuner_id,
+					sizeof(tuner_id)
+				);
 	};
 
-	bool reqDumpAllocates (void) {
-		return requestAsync (EN_MODULE_TUNER_SERVICE, sequence::DUMP_ALLOCATES);
+	bool request_dump_allocates (void) {
+		int sequence = static_cast<int>(sequence::dump_allocates);
+		return request_async (EN_MODULE_TUNER_SERVICE, sequence);
 	};
 };
 

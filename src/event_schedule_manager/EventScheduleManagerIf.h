@@ -14,58 +14,27 @@
 #include "Utils.h"
 
 
-using namespace ThreadManager;
-
-enum {
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_UP = 0,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_DOWN,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__REG_CACHE_SCHEDULE_STATE_NOTIFY,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__UNREG_CACHE_SCHEDULE_STATE_NOTIFY,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_CACHE_SCHEDULE_STATE,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__CHECK_LOOP,				// inner
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__PARSER_NOTICE,           // inner
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__EXEC_CACHE_SCHEDULE,		// inner
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_FORCE_CURRENT_SERVICE,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__STOP_CACHE_SCHEDULE,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_EVENT__LATEST_DUMPED_SCHEDULE,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__ADD_RESERVES,			// inner
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_RESERVES,
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_HISTORIES,
-
-
-	EN_SEQ_EVENT_SCHEDULE_MANAGER__NUM,
-};
-
-typedef enum {
-	EN_CACHE_SCHEDULE_STATE__INIT = 0,
-	EN_CACHE_SCHEDULE_STATE__BUSY,
-	EN_CACHE_SCHEDULE_STATE__READY,
-
-} EN_CACHE_SCHEDULE_STATE_t;
-
-
-class CEventScheduleManagerIf : public CThreadMgrExternalIf
+class CEventScheduleManagerIf : public threadmgr::CThreadMgrExternalIf
 {
 public:
+	enum class cache_schedule_state: int {
+		init = 0,
+		busy,
+		ready,
+	};
+
 	typedef struct _service_key {
 		uint16_t transport_stream_id;
 		uint16_t original_network_id;
 		uint16_t service_id;
-	} SERVICE_KEY_t;
+	} service_key_t;
 
 	typedef struct _event_key {
 		uint16_t transport_stream_id;
 		uint16_t original_network_id;
 		uint16_t service_id;
 		uint16_t event_id;
-	} EVENT_KEY_t;
+	} event_key_t;
 
 	typedef struct _event {
 		uint16_t transport_stream_id;
@@ -90,250 +59,271 @@ public:
 			p_text = NULL;
 		}
 
-	} EVENT_t;
+	} event_t;
 
-	typedef struct _req_event_param {
+	typedef struct _request_event_param {
 		union _arg {
 			// key指定 or index指定 or キーワード
-			EVENT_KEY_t key;
+			event_key_t key;
 			int index;
 			const char *p_keyword;
 		} arg;
 
-		EVENT_t *p_out_event;
+		event_t *p_out_event;
 
 		// キーワードで複数検索されたときのため
 		// p_out_event元が配列になっている前提のもの
 		int array_max_num;
 
-	} REQ_EVENT_PARAM_t;
+	} request_event_param_t;
 
 public:
-	explicit CEventScheduleManagerIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
+	enum class sequence : int {
+		module_up = 0,
+		module_down,
+		reg_cache_schedule_state_notify,
+		unreg_cache_schedule_state_notify,
+		get_cache_schedule_state,
+		check_loop, // inner
+		parser_notice, // inner
+		exec_cache_schedule, // inner
+		cache_schedule,
+		cache_schedule_force_current_service,
+		stop_cache_schedule,
+		get_event,
+		get_event__latest_dumped_schedule,
+		dump_event__latest_dumped_schedule,
+		get_events__keyword_search,
+		get_events__keyword_search_ex,
+		add_reserves, // inner
+		dump_schedule_map,
+		dump_schedule,
+		dump_reserves,
+		dump_histories,
+		max,
+	};
+
+	explicit CEventScheduleManagerIf (CThreadMgrExternalIf *p_if) : CThreadMgrExternalIf (p_if) {
 	};
 
 	virtual ~CEventScheduleManagerIf (void) {
 	};
 
 
-	bool reqModuleUp (void) {
-		return requestAsync (EN_MODULE_EVENT_SCHEDULE_MANAGER, EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_UP);
+	bool request_module_up (void) {
+		int sequence = static_cast<int>(sequence::module_up);
+		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
 	};
 
-	bool reqModuleDown (void) {
-		return requestAsync (EN_MODULE_EVENT_SCHEDULE_MANAGER, EN_SEQ_EVENT_SCHEDULE_MANAGER__MODULE_DOWN);
+	bool request_module_down (void) {
+		int sequence = static_cast<int>(sequence::module_down);
+		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
 	};
 
-	bool reqRegisterCacheScheduleStateNotify (void) {
-		return requestAsync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__REG_CACHE_SCHEDULE_STATE_NOTIFY
-				);
+	bool request_register_cache_schedule_state_notify (void) {
+		int sequence = static_cast<int>(sequence::reg_cache_schedule_state_notify);
+		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
 	};
 
-	bool reqUnregisterCacheScheduleStateNotify (int client_id) {
+	bool request_unregister_cache_schedule_state_notify (int client_id) {
+		int sequence = static_cast<int>(sequence::unreg_cache_schedule_state_notify);
 		int _id = client_id;
-		return requestAsync (
+		return request_async (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__UNREG_CACHE_SCHEDULE_STATE_NOTIFY,
+					sequence,
 					(uint8_t*)&_id,
 					sizeof(_id)
 				);
 	};
 
-	bool reqGetCacheScheduleState (void) {
-		return requestAsync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_CACHE_SCHEDULE_STATE
-				);
+	bool request_get_cache_schedule_state (void) {
+		int sequence = static_cast<int>(sequence::get_cache_schedule_state);
+		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
 	};
 
-	bool syncGetCacheScheduleState (void) {
-		return requestSync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_CACHE_SCHEDULE_STATE
-				);
+	bool request_get_cache_schedule_state_sync (void) {
+		int sequence = static_cast<int>(sequence::get_cache_schedule_state);
+		return request_sync (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
 	};
 
-	bool reqCacheSchedule (void) {
-		return requestAsync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE
-				);
+	bool request_cache_schedule (void) {
+		int sequence = static_cast<int>(sequence::cache_schedule);
+		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
 	};
 
-	bool reqCacheSchedule_forceCurrentService (uint8_t group_id) {
-		return requestAsync (
+	bool request_cache_schedule_force_current_service (uint8_t group_id) {
+		int sequence = static_cast<int>(sequence::cache_schedule_force_current_service);
+		return request_async (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__CACHE_SCHEDULE_FORCE_CURRENT_SERVICE,
+					sequence,
 					(uint8_t*)&group_id,
 					sizeof(uint8_t)
 				);
 	};
 
-	bool reqStopCacheSchedule (void) {
-		return requestAsync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__STOP_CACHE_SCHEDULE
-				);
+	bool request_stop_cache_schedule (void) {
+		int sequence = static_cast<int>(sequence::stop_cache_schedule);
+		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
 	};
 
-	bool syncStopCacheSchedule (void) {
-		return requestSync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__STOP_CACHE_SCHEDULE
-				);
+	bool request_stop_cache_schedule_sync (void) {
+		int sequence = static_cast<int>(sequence::stop_cache_schedule);
+		return request_sync (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
 	};
 
-	bool reqGetEvent (REQ_EVENT_PARAM_t *p_param) {
+	bool request_get_event (request_event_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::get_event);
+		return request_async (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REQ_EVENT_PARAM_t)
+					sizeof (request_event_param_t)
 				);
 	};
 
-	bool syncGetEvent (REQ_EVENT_PARAM_t *p_param) {
+	bool request_get_event_sync (request_event_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestSync (
+		int sequence = static_cast<int>(sequence::get_event);
+		return request_sync (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REQ_EVENT_PARAM_t)
+					sizeof (request_event_param_t)
 				);
 	};
 
-	bool reqGetEvent_latestDumpedSchedule (REQ_EVENT_PARAM_t *p_param) {
+	bool request_get_event_latest_dumped_schedule (request_event_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::get_event__latest_dumped_schedule);
+		return request_async (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REQ_EVENT_PARAM_t)
+					sizeof (request_event_param_t)
 				);
 	};
 
-	bool syncGetEvent_latestDumpedSchedule (REQ_EVENT_PARAM_t *p_param) {
+	bool request_get_event_latest_dumped_schedule_sync (request_event_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestSync (
+		int sequence = static_cast<int>(sequence::get_event__latest_dumped_schedule);
+		return request_sync (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENT__LATEST_DUMPED_SCHEDULE,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REQ_EVENT_PARAM_t)
+					sizeof (request_event_param_t)
 				);
 	};
 
-	bool reqDumpEvent_latestDumpedSchedule (REQ_EVENT_PARAM_t *p_param) {
+	bool request_dump_event_latest_dumped_schedule (request_event_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::dump_event__latest_dumped_schedule);
+		return request_async (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_EVENT__LATEST_DUMPED_SCHEDULE,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REQ_EVENT_PARAM_t)
+					sizeof (request_event_param_t)
 				);
 	};
 
-	bool reqGetEvents_keyword (REQ_EVENT_PARAM_t *p_param) {
+	bool request_get_events_keyword (request_event_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::get_events__keyword_search);
+		return request_async (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REQ_EVENT_PARAM_t)
+					sizeof (request_event_param_t)
 				);
 	};
 
-	bool syncGetEvents_keyword (REQ_EVENT_PARAM_t *p_param) {
+	bool request_get_events_keyword_sync (request_event_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestSync (
+		int sequence = static_cast<int>(sequence::get_events__keyword_search);
+		return request_sync (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REQ_EVENT_PARAM_t)
+					sizeof (request_event_param_t)
 				);
 	};
 
-	bool reqGetEvents_keyword_ex (REQ_EVENT_PARAM_t *p_param) {
+	bool request_get_events_keyword_ex (request_event_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::get_events__keyword_search_ex);
+		return request_async (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REQ_EVENT_PARAM_t)
+					sizeof (request_event_param_t)
 				);
 	};
 
-	bool syncGetEvents_keyword_ex (REQ_EVENT_PARAM_t *p_param) {
+	bool request_get_events_keyword_ex_sync (request_event_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestSync (
+		int sequence = static_cast<int>(sequence::get_events__keyword_search_ex);
+		return request_sync (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__GET_EVENTS__KEYWORD_SEARCH_EX,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REQ_EVENT_PARAM_t)
+					sizeof (request_event_param_t)
 				);
 	};
 
-	bool reqDumpScheduleMap (void) {
-		return requestAsync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE_MAP
-				);
+	bool request_dump_schedule_map (void) {
+		int sequence = static_cast<int>(sequence::dump_schedule_map);
+		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
 	};
 
-	bool reqDumpSchedule (SERVICE_KEY_t *p_key) {
+	bool request_dump_schedule (service_key_t *p_key) {
 		if (!p_key) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::dump_schedule);
+		return request_async (
 					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_SCHEDULE,
+					sequence,
 					(uint8_t*)p_key,
-					sizeof (SERVICE_KEY_t)
+					sizeof (service_key_t)
 				);
 	};
 
-	bool reqDumpReserves (void) {
-		return requestAsync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_RESERVES
-				);
+	bool request_dump_reserves (void) {
+		int sequence = static_cast<int>(sequence::dump_reserves);
+		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
 	};
 
-	bool reqDumpHistories (void) {
-		return requestAsync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
-					EN_SEQ_EVENT_SCHEDULE_MANAGER__DUMP_HISTORIES
-				);
+	bool request_dump_histories (void) {
+		int sequence = static_cast<int>(sequence::dump_histories);
+		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
 	};
 
 };

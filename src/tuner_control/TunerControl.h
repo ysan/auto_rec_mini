@@ -16,60 +16,57 @@
 #include "TunerControlIf.h"
 
 
-using namespace ThreadManager;
-
-
 // notify category
 #define _TUNER_NOTIFY							((uint8_t)0)
 
-class CTunerControl : public CThreadMgrBase, public CGroup
+class CTunerControl : public threadmgr::CThreadMgrBase, public CGroup
 {
 public:
-	CTunerControl (char *pszName, uint8_t nQueNum, uint8_t groupId);
+	CTunerControl (std::string name, uint8_t que_max, uint8_t group_id);
 	virtual ~CTunerControl (void);
 
 
-	void moduleUp (CThreadMgrIf *pIf);
-	void moduleDown (CThreadMgrIf *pIf);
+	void on_module_up (threadmgr::CThreadMgrIf *p_if);
+	void on_module_down (threadmgr::CThreadMgrIf *p_if);
 
-	void tune (CThreadMgrIf *pIf);
-	void tuneStart (CThreadMgrIf *pIf);
-	void tuneStop (CThreadMgrIf *pIf);
+	void on_tune (threadmgr::CThreadMgrIf *p_if);
+	void on_tune_start (threadmgr::CThreadMgrIf *p_if);
+	void on_tune_stop (threadmgr::CThreadMgrIf *p_if);
 
-	void registerTunerNotify (CThreadMgrIf *pIf);
-	void unregisterTunerNotify (CThreadMgrIf *pIf);
+	void on_register_tuner_notify (threadmgr::CThreadMgrIf *p_if);
+	void on_unregister_tuner_notify (threadmgr::CThreadMgrIf *p_if);
 
-	void registerTsReceiveHandler (CThreadMgrIf *pIf);
-	void unregisterTsReceiveHandler (CThreadMgrIf *pIf);
+	void on_register_ts_receive_handler (threadmgr::CThreadMgrIf *p_if);
+	void on_unregister_ts_receive_handler (threadmgr::CThreadMgrIf *p_if);
 
-	void getState (CThreadMgrIf *pIf);
+	void on_get_state (threadmgr::CThreadMgrIf *p_if);
 
 
 
-	std::mutex* getMutexTsReceiveHandlers (void) {
-		return &mMutexTsReceiveHandlers;
+	std::mutex* get_mutex_ts_receive_handlers (void) {
+		return &m_mutex_ts_receive_handlers;
 	}
 
-	CTunerControlIf::ITsReceiveHandler** getTsReceiveHandlers (void) {
-		return mpRegTsReceiveHandlers;
+	CTunerControlIf::ITsReceiveHandler** get_ts_receive_handlers (void) {
+		return mp_reg_ts_receive_handlers;
 	}
 
 private:
-	int registerTsReceiveHandler (CTunerControlIf::ITsReceiveHandler *pHandler);
-	void unregisterTsReceiveHandler (int id);
-	void setState (EN_TUNER_STATE s);
+	int register_ts_receive_handler (CTunerControlIf::ITsReceiveHandler *p_handler);
+	void unregister_ts_receive_handler (int id);
+	void set_state (CTunerControlIf::tuner_state s);
 
 
-	uint32_t mFreq;
-	uint32_t mWkFreq;
-	uint32_t mStartFreq;
-	int mChkcnt;
+	uint32_t m_freq;
+	uint32_t m_wk_freq;
+	uint32_t m_start_freq;
+	int m_chkcnt;
 
-	std::mutex mMutexTsReceiveHandlers;
-	CTunerControlIf::ITsReceiveHandler *mpRegTsReceiveHandlers [TS_RECEIVE_HANDLER_REGISTER_NUM_MAX];
+	std::mutex m_mutex_ts_receive_handlers;
+	CTunerControlIf::ITsReceiveHandler *mp_reg_ts_receive_handlers [TS_RECEIVE_HANDLER_REGISTER_NUM_MAX];
 
-	EN_TUNER_STATE mState;
-	bool mIsReqStop;
+	CTunerControlIf::tuner_state m_state;
+	bool m_is_req_stop;
 };
 
 #endif

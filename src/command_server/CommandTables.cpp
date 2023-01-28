@@ -20,7 +20,7 @@
 #include "EventSearchCommands.h"
 
 
-const char *g_szLogLevels [] = {
+const char *g_sz_log_levels [] = {
 	"debug",
 	"info",
 	"warning",
@@ -28,12 +28,12 @@ const char *g_szLogLevels [] = {
 	"perror",
 };
 
-static void _echo (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _echo (int argc, char* argv[], threadmgr::CThreadMgrBase *pBase)
 {
 	_COM_SVR_PRINT ("%s\n", __func__);
 }
 
-static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _close (int argc, char* argv[], threadmgr::CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -41,10 +41,10 @@ static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
 
 //	CCommandServer *p = (CCommandServer*)pBase;
 	CCommandServer* p = dynamic_cast <CCommandServer*> (pBase);
-	p->connectionClose ();
+	p->connection_close();
 }
 
-static void _threadmgr_status_dump (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _threadmgr_status_dump (int argc, char* argv[], threadmgr::CThreadMgrBase *pBase)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -53,7 +53,7 @@ static void _threadmgr_status_dump (int argc, char* argv[], CThreadMgrBase *pBas
 	kill (0, SIGQUIT);
 }
 
-static void _log_level (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _log_level (int argc, char* argv[], threadmgr::CThreadMgrBase *pBase)
 {
 	if (argc != 1) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: lv {0|1|2|3|4})\n");
@@ -68,11 +68,11 @@ static void _log_level (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	CLogger::level lvl = (CLogger::level) atoi (argv[0]);
 	CUtils::get_logger()->set_log_level (lvl);
-	_COM_SVR_PRINT ("set %s\n", g_szLogLevels [static_cast<int>(lvl)]);
+	_COM_SVR_PRINT ("set %s\n", g_sz_log_levels [static_cast<int>(lvl)]);
 }
 
 
-static ST_COMMAND_INFO g_systemCommands [] = {
+static command_info_t g_system_commands [] = {
 	{
 		"e",
 		"echo from commandServer",
@@ -109,54 +109,54 @@ static ST_COMMAND_INFO g_systemCommands [] = {
 
 
 ///////////  root command table  ///////////
-ST_COMMAND_INFO g_rootCommandTable [] = { // extern
+command_info_t g_root_command_table [] = { // extern
 	{
 		"s",
 		"system commands",
 		NULL,
-		g_systemCommands,
+		g_system_commands,
 	},
 	{
 		"tc",
 		"tuner control",
 		NULL,
-		g_tunerControlCommands,
+		g_tuner_control_commands,
 	},
 	{
 		"pm",
 		"psisi manager",
 		NULL,
-		g_psisiManagerCommands,
+		g_psisi_manager_commands,
 	},
 	{
 		"ts",
 		"tuner service",
 		NULL,
-		g_tunerServiceCommands,
+		g_tuner_service_commands,
 	},
 	{
 		"rec",
 		"rec manager",
 		NULL,
-		g_recManagerCommands,
+		g_rec_manager_commands,
 	},
 	{
 		"cm",
 		"channel manager",
 		NULL,
-		g_chManagerCommands,
+		g_channel_manager_commands,
 	},
 	{
 		"em",
 		"event schedule manager",
 		NULL,
-		g_eventScheduleManagerCommands,
+		g_event_schedule_manager_commands,
 	},
 	{
 		"es",
 		"event search",
 		NULL,
-		g_eventSearchCommands,
+		g_event_search_commands,
 	},
 
 

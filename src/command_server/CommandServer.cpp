@@ -16,37 +16,39 @@
 #include "CommandServer.h"
 #include "CommandServerIf.h"
 
+#include "ThreadMgrIf.h"
 #include "Utils.h"
 #include "modules.h"
 
 
 // callbacks
-static void (*on_command_wait_begin) (void);
-static void (*on_command_line_through) (void);
-static void (*on_command_line_available)(const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase);
-static void (*on_command_wait_end) (void);
+static void (*_on_command_wait_begin) (void);
+static void (*_on_command_line_through) (void);
+static void (*_on_command_line_available)(const char* psz_command, int argc, char *argv[], threadmgr::CThreadMgrBase *p_base);
+static void (*_on_command_wait_end) (void);
 
 
-static ST_COMMAND_INFO *gp_current_command_table = NULL;
+static command_info_t *gp_current_command_table = NULL;
 
 
-CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
-	:CThreadMgrBase (pszName, nQueNum)
-	,mClientfd (0)
-	,m_isConnectionClose (false)
+CCommandServer::CCommandServer (std::string name, uint8_t que_max)
+	:CThreadMgrBase (name, que_max)
+	,m_clientfd (0)
+	,m_is_connection_close (false)
 {
-	SEQ_BASE_t seqs [EN_SEQ_COMMAND_SERVER_NUM] = {
-		{(PFN_SEQ_BASE)&CCommandServer::moduleUp, (char*)"moduleUp"}, // EN_SEQ_COMMAND_SERVER_MODULE_UP
-		{(PFN_SEQ_BASE)&CCommandServer::moduleDown, (char*)"moduleDown"}, // EN_SEQ_COMMAND_SERVER_MODULE_DOWN
-		{(PFN_SEQ_BASE)&CCommandServer::serverLoop, (char*)"serverLoop"}, // EN_SEQ_COMMAND_SERVER_SERVER_LOOP
+	const int _max = static_cast<int>(CCommandServerIf::sequence::max);
+	threadmgr::sequence_t seqs [_max] = {
+		{[&](threadmgr::CThreadMgrIf *p_if){on_module_up(p_if);}, "on_module_up"},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_module_down(p_if);}, "on_module_down"},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_server_loop(p_if);}, "on_server_loop"},
 	};
-	setSeqs (seqs, EN_SEQ_COMMAND_SERVER_NUM);
+	set_sequences (seqs, _max);
 
 
-	on_command_wait_begin = onCommandWaitBegin;
-	on_command_line_through = onCommandLineThrough;
-	on_command_line_available = onCommandLineAvailable;
-	on_command_wait_end = onCommandWaitEnd;
+	_on_command_wait_begin = on_command_wait_begin;
+	_on_command_line_through = on_command_line_through;
+	_on_command_line_available = on_command_line_available;
+	_on_command_wait_end = on_command_wait_end;
 
 	gp_current_command_table = NULL;
 //	CCommandServerLog::setFileptr (stdout);
@@ -54,149 +56,150 @@ CCommandServer::CCommandServer (char *pszName, uint8_t nQueNum)
 
 CCommandServer::~CCommandServer (void)
 {
+	reset_sequences();
 }
 
 
-void CCommandServer::onCreate (void)
+void CCommandServer::on_create (void)
 {
-	clearNeedDestroy();
+	clear_need_destroy();
 }
 
-void CCommandServer::moduleUp (CThreadMgrIf *pIf)
+void CCommandServer::on_module_up (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	uint8_t section_id;
+	threadmgr::action act;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
 
 	// mask SIGPIPE
-	ignoreSigpipe ();
+	ignore_sigpipe ();
 
 
-	uint32_t opt = getRequestOption ();
+	threadmgr::request_option::type opt = get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;	
-	setRequestOption (opt);
+	set_request_option (opt);
 
-	requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_SERVER_LOOP);
+	request_async (EN_MODULE_COMMAND_SERVER, static_cast<int>(CCommandServerIf::sequence::server_loop));
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	setRequestOption (opt);
+	set_request_option (opt);
 
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = THM_SECT_ID_INIT;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CCommandServer::moduleDown (CThreadMgrIf *pIf)
+void CCommandServer::on_module_down (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	uint8_t section_id;
+	threadmgr::action enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 //
-// do nothing
+// do something
 //
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = THM_SECT_ID_INIT;
+	enAct = threadmgr::action::done;
+	p_if->set_section_id (section_id, enAct);
 }
 
-void CCommandServer::serverLoop (CThreadMgrIf *pIf)
+void CCommandServer::on_server_loop (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	uint8_t section_id;
+	threadmgr::action enAct;
 	enum {
 		SECTID_ENTRY = THM_SECT_ID_INIT,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
-
-
-	serverLoop ();
+	p_if->reply (threadmgr::result::success);
 
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	server_loop ();
+
+
+	section_id = THM_SECT_ID_INIT;
+	enAct = threadmgr::action::done;
+	p_if->set_section_id (section_id, enAct);
 }
 
-int CCommandServer::getClientFd (void)
+int CCommandServer::get_client_fd (void)
 {
-	return mClientfd ;
+	return m_clientfd ;
 }
 
-void CCommandServer::connectionClose (void)
+void CCommandServer::connection_close (void)
 {
-	m_isConnectionClose = true;
+	m_is_connection_close = true;
 }
 
-void CCommandServer::serverLoop (void)
+void CCommandServer::server_loop (void)
 {
 	int r = 0;
-	int fdSockSv = 0;
-	char szBuff [128];
+	int fd_sock_sv = 0;
+	char sz_buff [128];
 	uint16_t port = 0;
-	struct sockaddr_in stAddrSv;
-	struct sockaddr_in stAddrCl;
-	socklen_t addrLenCl = sizeof(struct sockaddr_in);
+	struct sockaddr_in st_addr_sv;
+	struct sockaddr_in st_addr_cl;
+	socklen_t addr_len_cl = sizeof(struct sockaddr_in);
 
-	fd_set stFds;
-	struct timeval stTimeout;
+	fd_set st_fds;
+	struct timeval st_timeout;
 
-	memset (szBuff, 0x00, sizeof(szBuff));
-	memset (&stAddrSv, 0x00, sizeof(struct sockaddr_in));
-	memset (&stAddrCl, 0x00, sizeof(struct sockaddr_in));
+	memset (sz_buff, 0x00, sizeof(sz_buff));
+	memset (&st_addr_sv, 0x00, sizeof(struct sockaddr_in));
+	memset (&st_addr_cl, 0x00, sizeof(struct sockaddr_in));
 
 	port = CSettings::getInstance()->getParams()->getCommandServerPort();
-	stAddrSv.sin_family = AF_INET;
-	stAddrSv.sin_addr.s_addr = htonl (INADDR_ANY);
-	stAddrSv.sin_port = htons (port);
+	st_addr_sv.sin_family = AF_INET;
+	st_addr_sv.sin_addr.s_addr = htonl (INADDR_ANY);
+	st_addr_sv.sin_port = htons (port);
 
 
-	if ((fdSockSv = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd_sock_sv = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
 		_UTL_PERROR ("socket()");
 		return;
 	}
 
 	int optval = 1;
-	r = setsockopt (fdSockSv, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+	r = setsockopt (fd_sock_sv, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 	if (r < 0) {
 		_UTL_PERROR ("setsockopt()");
-		close (fdSockSv);
+		close (fd_sock_sv);
 		return;
 	}
 
-	if (bind(fdSockSv, (struct sockaddr*)&stAddrSv, sizeof(struct sockaddr_in)) < 0) {
+	if (bind(fd_sock_sv, (struct sockaddr*)&st_addr_sv, sizeof(struct sockaddr_in)) < 0) {
 		_UTL_PERROR ("bind()");
-		close (fdSockSv);
+		close (fd_sock_sv);
 		return;
 	}
 
-	if (listen (fdSockSv, SOMAXCONN) < 0) {
+	if (listen (fd_sock_sv, SOMAXCONN) < 0) {
 		_UTL_PERROR ("listen()");
-		close (fdSockSv);
+		close (fd_sock_sv);
 		return;
 	}
 
@@ -204,60 +207,60 @@ void CCommandServer::serverLoop (void)
 	while (1) {
 //		_UTL_LOG_I ("accept blocking...");
 
-		FD_ZERO (&stFds);
-		FD_SET (fdSockSv, &stFds);
-		stTimeout.tv_sec = 1;
-		stTimeout.tv_usec = 0;
-		r = select (fdSockSv+1, &stFds, NULL, NULL, &stTimeout);
+		FD_ZERO (&st_fds);
+		FD_SET (fd_sock_sv, &st_fds);
+		st_timeout.tv_sec = 1;
+		st_timeout.tv_usec = 0;
+		r = select (fd_sock_sv+1, &st_fds, NULL, NULL, &st_timeout);
 		if (r < 0) {
 			_UTL_PERROR ("select()");
 			continue;
 
 		} else if (r == 0) {
 			// timeout
-			if (isNeedDestroy()) {
-				_UTL_LOG_I ("destroy --> serverLoop break\n");
-				clearNeedDestroy();
+			if (is_need_destroy()) {
+				_UTL_LOG_I ("destroy --> server_loop break\n");
+				clear_need_destroy();
 				break;
 			}
 		}
 
-		if (FD_ISSET (fdSockSv, &stFds)) {
+		if (FD_ISSET (fd_sock_sv, &st_fds)) {
 
-			if ((mClientfd = accept (fdSockSv, (struct sockaddr*)&stAddrCl, &addrLenCl)) < 0 ) {
+			if ((m_clientfd = accept (fd_sock_sv, (struct sockaddr*)&st_addr_cl, &addr_len_cl)) < 0 ) {
 				_UTL_PERROR ("accept()");
-				close (fdSockSv);
+				close (fd_sock_sv);
 				continue;
 			}
 				
 			_UTL_LOG_I (
-				"clientAddr:[%s] SocketFd:[%d] --- connected.\n",
-				inet_ntoa(stAddrCl.sin_addr),
-				mClientfd
+				"client_addr:[%s] Socket_fd:[%d] --- connected.\n",
+				inet_ntoa(st_addr_cl.sin_addr),
+				m_clientfd
 			);
 
 			// 接続してきたsocketにログ出力をつなぎます
-			int fd_copy = dup (mClientfd);
+			int fd_copy = dup (m_clientfd);
 			FILE *fp = fdopen (fd_copy, "w");
 			CUtils::get_logger()->remove_handler(stdout);
 			CUtils::get_logger()->append_handler(fp);
 
 
 			// begin
-			if (on_command_wait_begin) {
-				on_command_wait_begin ();
+			if (_on_command_wait_begin) {
+				_on_command_wait_begin ();
 			}
 
 			while (1) {
-				r = recvParseDelimiter (mClientfd, szBuff, sizeof(szBuff), (char*)"\r\n");
+				r = recv_parse_delimiter (m_clientfd, sz_buff, sizeof(sz_buff), (char*)"\r\n");
 				if (r <= 0) {
 					break;
 				}
 			}
 
 			// end
-			if (on_command_wait_end) {
-				on_command_wait_end ();
+			if (_on_command_wait_end) {
+				_on_command_wait_end ();
 			}
 
 
@@ -266,117 +269,117 @@ void CCommandServer::serverLoop (void)
 			CUtils::get_logger()->append_handler(stdout);
 
 			fclose (fp);
-			close (mClientfd);
+			close (m_clientfd);
 
 			_UTL_LOG_I (
 				"client:[%s] fd:[%d] --- disconnected.\n",
-				inet_ntoa(stAddrCl.sin_addr),
-				mClientfd
+				inet_ntoa(st_addr_cl.sin_addr),
+				m_clientfd
 			);
 
-			mClientfd = 0;
+			m_clientfd = 0;
 		}
 	}
 
-	close (fdSockSv);
+	close (fd_sock_sv);
 }
 
-int CCommandServer::recvParseDelimiter (int fd, char *pszBuff, int buffSize, const char* pszDelim)
+int CCommandServer::recv_parse_delimiter (int fd, char *psz_buff, int buff_size, const char* psz_delim)
 {
-	if (!pszBuff || buffSize <= 0) {
+	if (!psz_buff || buff_size <= 0) {
 		return -1;
 	}
-	if (!pszDelim || (int)strlen(pszDelim) == 0) {
+	if (!psz_delim || (int)strlen(psz_delim) == 0) {
 		return -1;
 	}
 
-	int rSize = 0;
-	int rSizeTotal = 0;
+	int r_size = 0;
+	int r_size_total = 0;
 
 	bool is_parse_remain = false;
 	int offset = 0;
 
 	int r = 0;
-	fd_set stFds;
-	struct timeval stTimeout;
+	fd_set st_fds;
+	struct timeval st_timeout;
 
 	while (1) {
 		if (is_parse_remain) {
-			offset = (int)strlen(pszBuff);
+			offset = (int)strlen(psz_buff);
 		} else {
-			memset (pszBuff, 0x00, buffSize);
+			memset (psz_buff, 0x00, buff_size);
 			offset = 0;
 		}
 
-		FD_ZERO (&stFds);
-		FD_SET (fd, &stFds);
-		stTimeout.tv_sec = 1;
-		stTimeout.tv_usec = 0;
-		r = select (fd+1, &stFds, NULL, NULL, &stTimeout);
+		FD_ZERO (&st_fds);
+		FD_SET (fd, &st_fds);
+		st_timeout.tv_sec = 1;
+		st_timeout.tv_usec = 0;
+		r = select (fd+1, &st_fds, NULL, NULL, &st_timeout);
 		if (r < 0) {
 			_UTL_PERROR ("select()");
 			continue;
 
 		} else if (r == 0) {
 			// timeout
-			if (m_isConnectionClose) {
-				_UTL_LOG_I ("connection close --> recvParseDelimiter break\n");
-				m_isConnectionClose = false;
+			if (m_is_connection_close) {
+				_UTL_LOG_I ("connection close --> recv_parse_delimiter break\n");
+				m_is_connection_close = false;
 				return 0;
 			}
 
-			if (isNeedDestroy()) {
-				_UTL_LOG_I ("destroy --> recvParseDelimiter break\n");
+			if (is_need_destroy()) {
+				_UTL_LOG_I ("destroy --> recv_parse_delimiter break\n");
 				break;
 			}
 		}
 
-		if (FD_ISSET (fd, &stFds)) {
+		if (FD_ISSET (fd, &st_fds)) {
 
-			rSize = CUtils::recvData (fd, (uint8_t*)pszBuff + offset, buffSize - offset, NULL);
-			if (rSize < 0) {
+			r_size = CUtils::recvData (fd, (uint8_t*)psz_buff + offset, buff_size - offset, NULL);
+			if (r_size < 0) {
 				return -1;
 
-			} else if (rSize == 0) {
+			} else if (r_size == 0) {
 				return 0;
 
 			} else {
 				// recv ok
-				rSizeTotal += rSize;
+				r_size_total += r_size;
 
-				is_parse_remain = parseDelimiter (pszBuff, buffSize, pszDelim);
+				is_parse_remain = parse_delimiter (psz_buff, buff_size, psz_delim);
 
 			}
 
 		}
 	}
 
-	return rSizeTotal;
+	return r_size_total;
 }
 
-bool CCommandServer::parseDelimiter (char *pszBuff, int buffSize, const char *pszDelim)
+bool CCommandServer::parse_delimiter (char *psz_buff, int buff_size, const char *psz_delim)
 {
-	if (!pszBuff || (int)strlen(pszBuff) == 0 || buffSize <= 0) {
-		return NULL;
+	if (!psz_buff || (int)strlen(psz_buff) == 0 || buff_size <= 0) {
+		return false;
 	}
-	if (!pszDelim || (int)strlen(pszDelim) == 0) {
-		return NULL;
+	if (!psz_delim || (int)strlen(psz_delim) == 0) {
+		return false;
 	}
 
 	bool is_remain = false;
 	char *token = NULL;
 	char *saveptr = NULL;
-	char *s = pszBuff;
+	char *s = psz_buff;
 	bool is_tail_delim = false;
 	int n = 0;
 
 	while (1) {
-		token = strtok_r_impl (s, pszDelim, &saveptr, &is_tail_delim);
+		token = strtok_r_impl (s, psz_delim, &saveptr, &is_tail_delim);
 		if (token == NULL) {
 			if (n == 0) {
 				// not yet recv delimiter
 				// carryover remain
-//printf ("=> carryover  pszBuff[%s]\n", pszBuff);
+//printf ("=> carryover  psz_buff[%s]\n", psz_buff);
 				is_remain = true;
 
 			} else {
@@ -388,8 +391,8 @@ bool CCommandServer::parseDelimiter (char *pszBuff, int buffSize, const char *ps
 //printf ("[%s]\n", token);
 		if ((int)strlen(token) == 0) {
 			// through
-			if (on_command_line_through) {
-				on_command_line_through ();
+			if (_on_command_line_through) {
+				_on_command_line_through ();
 			}
 
 		} else {
@@ -399,7 +402,7 @@ bool CCommandServer::parseDelimiter (char *pszBuff, int buffSize, const char *ps
 				CUtils::deleteHeadSp (token);
 				CUtils::deleteTailSp (token);
 //printf ("=> GOT - exist next [%s]\n", token);
-				parseCommand (token);
+				parse_command (token);
 
 			} else {
 				// got
@@ -410,13 +413,13 @@ bool CCommandServer::parseDelimiter (char *pszBuff, int buffSize, const char *ps
 					CUtils::deleteHeadSp (token);
 					CUtils::deleteTailSp (token);
 //printf ("-> GOT - last tail delimiter [%s]\n", token);
-					parseCommand (token);
+					parse_command (token);
 
 				} else {
 					// not yet recv delimiter
 					// carryover remain
-					strncpy (pszBuff, token, buffSize);
-//printf ("=> carryover  pszBuff[%s]\n", pszBuff);
+					strncpy (psz_buff, token, buff_size);
+//printf ("=> carryover  psz_buff[%s]\n", psz_buff);
 					is_remain = true;
 				}
 			}
@@ -429,25 +432,25 @@ bool CCommandServer::parseDelimiter (char *pszBuff, int buffSize, const char *ps
 	return is_remain;
 }
 
-void CCommandServer::parseCommand (char *pszBuff)
+void CCommandServer::parse_command (char *psz_buff)
 {
-	if (!pszBuff || ((int)strlen(pszBuff) == 0)) {
+	if (!psz_buff || ((int)strlen(psz_buff) == 0)) {
 		return ;
 	}
 
-	const char *pszDelim = (const char*)" ";
+	const char *psz_delim = (const char*)" ";
 
-//	char szTmp [(int)strlen(pszBuff) + 1] = {0};
-	char szTmp [128] = {0};
-	strncpy (szTmp, pszBuff, sizeof(szTmp));
+//	char sz_tmp [(int)strlen(psz_buff) + 1] = {0};
+	char sz_tmp [128] = {0};
+	strncpy (sz_tmp, psz_buff, sizeof(sz_tmp));
 
 	// count args
-	char *str = szTmp;
+	char *str = sz_tmp;
 	char *token = NULL;
 	char *saveptr = NULL;
 	int n_arg = 0;
 	while (1) {
-		token = strtok_r(str, pszDelim, &saveptr);
+		token = strtok_r(str, psz_delim, &saveptr);
 		if (!token) {
 			break;
 		}
@@ -459,8 +462,8 @@ void CCommandServer::parseCommand (char *pszBuff)
 		return;
 
 	} else if (n_arg == 1) {
-		if (on_command_line_available) {
-			on_command_line_available (pszBuff, 0, NULL, this);
+		if (_on_command_line_available) {
+			_on_command_line_available (psz_buff, 0, NULL, this);
 		}
 
 	} else {
@@ -470,12 +473,12 @@ void CCommandServer::parseCommand (char *pszBuff)
 		char *argv[n_arg -1];
 
 		// parse args
-		char *str = pszBuff;
+		char *str = psz_buff;
 		char *token = NULL;
 		char *saveptr = NULL;
 		int n = 0;
 		while (1) {
-			token = strtok_r(str, pszDelim, &saveptr);
+			token = strtok_r(str, psz_delim, &saveptr);
 			if (!token) {
 				break;
 			}
@@ -489,13 +492,13 @@ void CCommandServer::parseCommand (char *pszBuff)
 			str = NULL;
 		}
 
-		if (on_command_line_available) {
-			on_command_line_available (p_command, argc, argv, this);
+		if (_on_command_line_available) {
+			_on_command_line_available (p_command, argc, argv, this);
 		}
 	}
 }
 
-void CCommandServer::ignoreSigpipe (void)
+void CCommandServer::ignore_sigpipe (void)
 {
 	sigset_t sigset;
 	sigemptyset (&sigset);
@@ -503,27 +506,27 @@ void CCommandServer::ignoreSigpipe (void)
 	sigprocmask (SIG_BLOCK, &sigset, NULL);
 }
 
-void CCommandServer::needDestroy (void)
+void CCommandServer::need_destroy (void)
 {
 	fopen("/tmp/_server_loop_destory", "w");
 }
 
-void CCommandServer::clearNeedDestroy (void)
+void CCommandServer::clear_need_destroy (void)
 {
 	std::remove ("/tmp/_server_loop_destory");
 }
 
-bool CCommandServer::isNeedDestroy (void)
+bool CCommandServer::is_need_destroy (void)
 {
 	FILE *fp = fopen("/tmp/_server_loop_destory", "r");
 	return (fp != NULL) ? true: false;
 }
 
 
-static CStack <ST_COMMAND_INFO> m_stack;
-static CStack <ST_COMMAND_INFO> m_stack_sub;
+static CStack <command_info_t> m_stack;
+static CStack <command_info_t> m_stack_sub;
 
-void CCommandServer::printSubTables (void)
+void CCommandServer::print_sub_tables (void)
 {
 	int sp = m_stack_sub.get_sp();
 	if (sp < 1) {
@@ -532,87 +535,87 @@ void CCommandServer::printSubTables (void)
 	}
 
 	for (int i = 0; i < sp; ++ i) {
-		ST_COMMAND_INFO *p = m_stack_sub.ref (i);
-		_COM_SVR_PRINT ("/%s", p->pszDesc);
+		command_info_t *p = m_stack_sub.ref (i);
+		_COM_SVR_PRINT ("/%s", p->desc);
 	}
 }
 
-void CCommandServer::showList (const char *pszDesc)
+void CCommandServer::show_list (const char *psz_desc)
 {
-	const ST_COMMAND_INFO *pWorkTable = gp_current_command_table;
+	const command_info_t *p_work_table = gp_current_command_table;
 
-	_COM_SVR_PRINT ("\n  ------ %s ------\n", pszDesc ? pszDesc: "???");
+	_COM_SVR_PRINT ("\n  ------ %s ------\n", psz_desc ? psz_desc: "???");
 
-	for (int i = 0; pWorkTable->pszCommand != NULL; ++ i) {
-		_COM_SVR_PRINT ("  %-20s -- %-30s\n", pWorkTable->pszCommand, pWorkTable->pszDesc);
-		++ pWorkTable;
+	for (int i = 0; p_work_table->command != NULL; ++ i) {
+		_COM_SVR_PRINT ("  %-20s -- %-30s\n", p_work_table->command, p_work_table->desc);
+		++ p_work_table;
 	}
 	_COM_SVR_PRINT ("\n");
 
-	printSubTables ();
+	print_sub_tables ();
 	_COM_SVR_PRINT (" > ");
 }
 
-void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase)
+void CCommandServer::find_command (const char* psz_command, int argc, char *argv[], CThreadMgrBase *p_base)
 {
-	if (((int)strlen("..") == (int)strlen(pszCommand)) && strncmp ("..", pszCommand, (int)strlen(pszCommand)) == 0) {
+	if (((int)strlen("..") == (int)strlen(psz_command)) && strncmp ("..", psz_command, (int)strlen(psz_command)) == 0) {
 		if (argc > 0) {
 			_COM_SVR_PRINT ("invalid arguments...\n");
 			return;
 		}
 
-		ST_COMMAND_INFO *p = m_stack.pop ();
+		command_info_t *p = m_stack.pop ();
 		m_stack_sub.pop();
 		if (p) {
 			gp_current_command_table = p;
 
-			if (gp_current_command_table == g_rootCommandTable) {
-				showList ("root tables");
+			if (gp_current_command_table == g_root_command_table) {
+				show_list ("root tables");
 			} else{
-				showList (m_stack_sub.peep()->pszDesc);
+				show_list (m_stack_sub.peep()->desc);
 			}
 		}
 
-	} else if ((int)strlen(".") == (int)strlen(pszCommand) && strncmp (".", pszCommand, (int)strlen(pszCommand)) == 0) {
+	} else if ((int)strlen(".") == (int)strlen(psz_command) && strncmp (".", psz_command, (int)strlen(psz_command)) == 0) {
 		if (argc > 0) {
 			_COM_SVR_PRINT ("invalid arguments...\n");
 			return;
 		}
 
-		if (gp_current_command_table == g_rootCommandTable) {
-			showList ("root tables");
+		if (gp_current_command_table == g_root_command_table) {
+			show_list ("root tables");
 		} else{
-			showList (m_stack_sub.peep()->pszDesc);
+			show_list (m_stack_sub.peep()->desc);
 		}
 
 	} else {
-		ST_COMMAND_INFO *pWorkTable = gp_current_command_table;
-		bool isMatch = false;
+		command_info_t *p_work_table = gp_current_command_table;
+		bool is_match = false;
 
-		while (pWorkTable->pszCommand) {
+		while (p_work_table->command) {
 			if (
-				((int)strlen(pWorkTable->pszCommand) == (int)strlen(pszCommand)) &&
-				(strncmp (pWorkTable->pszCommand, pszCommand, (int)strlen(pszCommand)) == 0)
+				((int)strlen(p_work_table->command) == (int)strlen(psz_command)) &&
+				(strncmp (p_work_table->command, psz_command, (int)strlen(psz_command)) == 0)
 			) {
 				// コマンドが一致した
-				isMatch = true;
+				is_match = true;
 
-				if (pWorkTable->pcbCommand) {
+				if (p_work_table->cb_command) {
 
 					// コマンド実行
-					(void) (pWorkTable->pcbCommand) (argc, argv, pBase);
+					(void) (p_work_table->cb_command) (argc, argv, p_base);
 
 				} else {
 					// 下位テーブルに移る
-					if (pWorkTable->pNext) {
+					if (p_work_table->next) {
 						if (argc > 0) {
 							_COM_SVR_PRINT ("invalid arguments...\n");
 
 						} else {
 							m_stack.push (gp_current_command_table);
-							m_stack_sub.push (pWorkTable);
-							gp_current_command_table = pWorkTable->pNext;
-							showList (pWorkTable->pszDesc);
+							m_stack_sub.push (p_work_table);
+							gp_current_command_table = p_work_table->next;
+							show_list (p_work_table->desc);
 						}
 
 					} else {
@@ -622,38 +625,38 @@ void CCommandServer::findCommand (const char* pszCommand, int argc, char *argv[]
 				break;
 			}
 
-			++ pWorkTable ;
+			++ p_work_table ;
 		}
 
-		if (!isMatch) {
+		if (!is_match) {
 			_COM_SVR_PRINT ("invalid command...\n");
 		}
 	}
 }
 
-void CCommandServer::onCommandWaitBegin (void)
+void CCommandServer::on_command_wait_begin (void)
 {
 	m_stack.clear();
 	m_stack_sub.clear();
 
 	_COM_SVR_PRINT ("###  command line  begin. ###\n");
 
-	gp_current_command_table = g_rootCommandTable ;
-	showList ("root tables");
+	gp_current_command_table = g_root_command_table ;
+	show_list ("root tables");
 }
 
-void CCommandServer::onCommandLineThrough (void)
+void CCommandServer::on_command_line_through (void)
 {
-	printSubTables ();
+	print_sub_tables ();
 	_COM_SVR_PRINT (" > ");
 }
 
-void CCommandServer::onCommandLineAvailable (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase)
+void CCommandServer::on_command_line_available (const char* psz_command, int argc, char *argv[], CThreadMgrBase *p_base)
 {
-	findCommand (pszCommand, argc, argv, pBase);
+	find_command (psz_command, argc, argv, p_base);
 }
 
-void CCommandServer::onCommandWaitEnd (void)
+void CCommandServer::on_command_wait_end (void)
 {
 	_COM_SVR_PRINT ("\n###  command line  exit. ###\n");
 

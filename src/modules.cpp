@@ -40,7 +40,7 @@ static CEventSearch          s_eventSearch       ((char*)"EventSearch"         ,
 static CCommandServer        s_commandServer     ((char*)"CommandServer"       , 10);
 
 
-static CThreadMgrBase *gp_modules [] = {
+static threadmgr::CThreadMgrBase *gp_modules [] = {
 	&s_tuneThread_gr0,		// group0
 	&s_tuneThread_gr1,		// group1
 	&s_tuneThread_gr2,		// group2
@@ -66,12 +66,12 @@ static CThreadMgrBase *gp_modules [] = {
 };
 
 
-CThreadMgrBase **getModules (void)
+threadmgr::CThreadMgrBase **getModules (void)
 {
 	return gp_modules;
 }
 
-CThreadMgrBase *getModule (EN_MODULE enModule)
+threadmgr::CThreadMgrBase *getModule (EN_MODULE enModule)
 {
 	if (enModule < EN_MODULE_NUM) {
 		return gp_modules [enModule];

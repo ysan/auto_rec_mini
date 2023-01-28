@@ -5,8 +5,6 @@
 #include "ThreadMgrBase.h"
 
 
-using namespace ThreadManager;
-
 typedef enum {
 	EN_MODULE_TUNE_THREAD = 0,		// group0
 	EN_MODULE_TUNE_THREAD_1,		// group1
@@ -35,7 +33,7 @@ typedef enum {
 } EN_MODULE;
 
 
-extern CThreadMgrBase **getModules (void);
-extern CThreadMgrBase *getModule (EN_MODULE enModule);
+extern threadmgr::CThreadMgrBase **getModules (void);
+extern threadmgr::CThreadMgrBase *getModule (EN_MODULE enModule);
 
 #endif

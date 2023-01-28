@@ -11,37 +11,33 @@
 #include "modules.h"
 
 
-using namespace ThreadManager;
-
-enum {
-	EN_SEQ_CHANNEL_MANAGER__MODULE_UP = 0,
-	EN_SEQ_CHANNEL_MANAGER__MODULE_DOWN,
-	EN_SEQ_CHANNEL_MANAGER__CHANNEL_SCAN,
-	EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_SERVICE_ID,
-	EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_REMOTE_CONTROL_KEY_ID,
-	EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS,
-	EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME,
-	EN_SEQ_CHANNEL_MANAGER__GET_SERVICE_NAME,
-	EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS,
-
-	EN_SEQ_CHANNEL_MANAGER__NUM,
-};
-
-
-class CChannelManagerIf : public CThreadMgrExternalIf
+class CChannelManagerIf : public threadmgr::CThreadMgrExternalIf
 {
 public:
+	enum class sequence : int {
+		module_up = 0,
+		module_down,
+		channel_scan,
+		get_pysical_channel_by_service_id,
+		get_pysical_channel_by_remote_control_key_id,
+		get_channels,
+		get_transport_stream_name,
+		get_service_name,
+		dump_scan_results,
+		max,
+	};
+
 	typedef struct _service_id_param {
 		uint16_t transport_stream_id;
 		uint16_t original_network_id;
 		uint16_t service_id;
-	} SERVICE_ID_PARAM_t;
+	} service_id_param_t;
 
 	typedef struct _remote_control_id_param {
 		uint16_t transport_stream_id;
 		uint16_t original_network_id;
 		uint8_t remote_control_key_id;
-	} REMOTE_CONTROL_ID_PARAM_t;
+	} remote_control_id_param_t;
 
 	typedef struct _channel {
 		uint16_t pysical_channel;
@@ -50,140 +46,152 @@ public:
 		uint8_t remote_control_key_id;
 		uint16_t service_ids[10];
 		int service_num;
-	} CHANNEL_t;
+	} channel_t;
 
-	typedef struct _req_channels_param {
-		CHANNEL_t *p_out_channels;
+	typedef struct _request_channels_param {
+		channel_t *p_out_channels;
 		int array_max_num;
-	} REQ_CHANNELS_PARAM_t;
+	} request_channels_param_t;
 
 
 public:
-	explicit CChannelManagerIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
+	explicit CChannelManagerIf (CThreadMgrExternalIf *p_if) : CThreadMgrExternalIf (p_if) {
 	};
 
 	virtual ~CChannelManagerIf (void) {
 	};
 
 
-	bool reqModuleUp (void) {
-		return requestAsync (EN_MODULE_CHANNEL_MANAGER, EN_SEQ_CHANNEL_MANAGER__MODULE_UP);
+	bool request_module_up (void) {
+		int sequence = static_cast<int>(sequence::module_up);
+		return request_async (EN_MODULE_CHANNEL_MANAGER, sequence);
 	};
 
-	bool reqModuleDown (void) {
-		return requestAsync (EN_MODULE_CHANNEL_MANAGER, EN_SEQ_CHANNEL_MANAGER__MODULE_DOWN);
+	bool request_module_down (void) {
+		int sequence = static_cast<int>(sequence::module_down);
+		return request_async (EN_MODULE_CHANNEL_MANAGER, sequence);
 	};
 
-	bool reqChannelScan (void) {
-		return requestAsync (EN_MODULE_CHANNEL_MANAGER, EN_SEQ_CHANNEL_MANAGER__CHANNEL_SCAN);
+	bool request_channel_scan (void) {
+		int sequence = static_cast<int>(sequence::channel_scan);
+		return request_async (EN_MODULE_CHANNEL_MANAGER, sequence);
 	};
 
-	bool reqGetPysicalChannelByServiceId (const SERVICE_ID_PARAM_t *p_param) {
+	bool request_get_pysical_channel_by_service_id (const service_id_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::get_pysical_channel_by_service_id);
+		return request_async (
 					EN_MODULE_CHANNEL_MANAGER,
-					EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_SERVICE_ID,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (SERVICE_ID_PARAM_t)
+					sizeof (service_id_param_t)
 				);
 	};
 
-	bool reqGetPysicalChannelByRemoteControlKeyId (const REMOTE_CONTROL_ID_PARAM_t *p_param) {
+	bool request_get_pysical_channel_By_remote_control_key_id (const remote_control_id_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::get_pysical_channel_by_remote_control_key_id);
+		return request_async (
 					EN_MODULE_CHANNEL_MANAGER,
-					EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_REMOTE_CONTROL_KEY_ID,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REMOTE_CONTROL_ID_PARAM_t)
+					sizeof (remote_control_id_param_t)
 				);
 	};
 
-	bool reqGetChannels (REQ_CHANNELS_PARAM_t *p_param) {
+	bool request_get_channels (request_channels_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::get_channels);
+		return request_async (
 					EN_MODULE_CHANNEL_MANAGER,
-					EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REQ_CHANNELS_PARAM_t)
+					sizeof (request_channels_param_t)
 				);
 	};
 
-	bool syncGetChannels (REQ_CHANNELS_PARAM_t *p_param) {
+	bool request_get_channels_sync (request_channels_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestSync (
+		int sequence = static_cast<int>(sequence::get_channels);
+		return request_sync (
 					EN_MODULE_CHANNEL_MANAGER,
-					EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REQ_CHANNELS_PARAM_t)
+					sizeof (request_channels_param_t)
 				);
 	};
 
-	bool reqGetTransportStreamName (const SERVICE_ID_PARAM_t *p_param) {
+	bool request_get_transport_stream_name (const service_id_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::get_transport_stream_name);
+		return request_async (
 					EN_MODULE_CHANNEL_MANAGER,
-					EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (SERVICE_ID_PARAM_t)
+					sizeof (service_id_param_t)
 				);
 	};
 
-	bool syncGetTransportStreamName (const SERVICE_ID_PARAM_t *p_param) {
+	bool request_get_transport_stream_name_sync (const service_id_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestSync (
+		int sequence = static_cast<int>(sequence::get_transport_stream_name);
+		return request_sync (
 					EN_MODULE_CHANNEL_MANAGER,
-					EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (SERVICE_ID_PARAM_t)
+					sizeof (service_id_param_t)
 				);
 	};
 
-	bool reqGetServiceName (const SERVICE_ID_PARAM_t *p_param) {
+	bool request_get_service_name (const service_id_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::get_service_name);
+		return request_async (
 					EN_MODULE_CHANNEL_MANAGER,
-					EN_SEQ_CHANNEL_MANAGER__GET_SERVICE_NAME,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (SERVICE_ID_PARAM_t)
+					sizeof (service_id_param_t)
 				);
 	};
 
-	bool syncGetServiceName (const SERVICE_ID_PARAM_t *p_param) {
+	bool request_get_service_name_sync (const service_id_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestSync (
+		int sequence = static_cast<int>(sequence::get_service_name);
+		return request_sync (
 					EN_MODULE_CHANNEL_MANAGER,
-					EN_SEQ_CHANNEL_MANAGER__GET_SERVICE_NAME,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (SERVICE_ID_PARAM_t)
+					sizeof (service_id_param_t)
 				);
 	};
 
-	bool reqDumpChannels (void) {
-		return requestAsync (EN_MODULE_CHANNEL_MANAGER, EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS);
+	bool request_dump_channels (void) {
+		int sequence = static_cast<int>(sequence::dump_scan_results);
+		return request_async (EN_MODULE_CHANNEL_MANAGER, sequence);
 	};
 
 };

@@ -33,9 +33,6 @@
 #include "cereal/archives/json.hpp"
 
 
-using namespace ThreadManager;
-
-
 #define RESERVE_NUM_MAX		(50)
 #define RESULT_NUM_MAX		(20)
 
@@ -54,22 +51,12 @@ using namespace ThreadManager;
 #define RESERVE_STATE__END_SUCCESS						(0x80000000)
 
 
-typedef enum {
-	EN_REC_PROGRESS__INIT = 0,
-	EN_REC_PROGRESS__PRE_PROCESS,
-	EN_REC_PROGRESS__NOW_RECORDING,
-	EN_REC_PROGRESS__END_SUCCESS,
-	EN_REC_PROGRESS__END_ERROR,
-	EN_REC_PROGRESS__POST_PROCESS,
-} EN_REC_PROGRESS;
-
-
 struct reserve_state_pair {
 	uint32_t state;
-	const char *psz_reserveState;
+	const char *psz_reserve_state;
 };
 
-const char * getReserveStateString (uint32_t state);
+const char * get_reserve_state_string (uint32_t state);
 
 
 class CRecReserve {
@@ -121,7 +108,7 @@ public:
 	std::string service_name;
 
 	bool is_event_type ;
-	EN_RESERVE_REPEATABILITY repeatability;
+	CRecManagerIf::reserve_repeatability repeatability;
 
 	uint32_t state;
 
@@ -143,7 +130,7 @@ public:
 		const char *psz_title_name,
 		const char *psz_service_name,
 		bool _is_event_type,
-		EN_RESERVE_REPEATABILITY _repeatability
+		CRecManagerIf::reserve_repeatability _repeatability
 	)
 	{
 		this->transport_stream_id = _transport_stream_id;
@@ -180,7 +167,7 @@ public:
 		service_name.clear();
 		service_name.shrink_to_fit();
 		is_event_type = false;
-		repeatability = EN_RESERVE_REPEATABILITY__NONE;
+		repeatability = CRecManagerIf::reserve_repeatability::none;
 		state = RESERVE_STATE__INIT;
 		recording_start_time.clear();
 		recording_end_time.clear();	
@@ -201,11 +188,11 @@ public:
 			start_time.toString(),
 			end_time.toString(),
 			is_event_type,
-			repeatability == 0 ? "NONE" :
-				repeatability == 1 ? "DAILY" :
-					repeatability == 2 ? "WEEKLY" :
-						repeatability == 3 ? "AUTO" : "???",
-			getReserveStateString (state)
+			repeatability == CRecManagerIf::reserve_repeatability::none ? "none" :
+				repeatability == CRecManagerIf::reserve_repeatability::daily ? "daily" :
+					repeatability == CRecManagerIf::reserve_repeatability::weekly ? "weekly" :
+						repeatability == CRecManagerIf::reserve_repeatability::auto_ ? "auto" : "???",
+			get_reserve_state_string (state)
 		);
 		_UTL_LOG_I ("title:[%s]", title_name.c_str());
 		_UTL_LOG_I ("service_name:[%s]", service_name.c_str());
@@ -229,7 +216,7 @@ public:
 
 
 class CRecManager
-	:public CThreadMgrBase
+	:public threadmgr::CThreadMgrBase
 ////	,public CTunerControlIf::ITsReceiveHandler
 {
 public:
@@ -237,30 +224,30 @@ public:
 	virtual ~CRecManager (void);
 
 
-	void onReq_moduleUp (CThreadMgrIf *pIf);
-	void onReq_moduleDown (CThreadMgrIf *pIf);
-	void onReq_moduleUpByGroupId (CThreadMgrIf *pIf);
-	void onReq_moduleDownByGroupId (CThreadMgrIf *pIf);
-	void onReq_checkLoop (CThreadMgrIf *pIf);
-	void onReq_checkReservesEventLoop (CThreadMgrIf *pIf);
-	void onReq_checkRecordingsEventLoop (CThreadMgrIf *pIf);
-	void onReq_recordingNotice (CThreadMgrIf *pIf);
-	void onReq_startRecording (CThreadMgrIf *pIf);
-	void onReq_addReserve_currentEvent (CThreadMgrIf *pIf);
-	void onReq_addReserve_event (CThreadMgrIf *pIf);
-	void onReq_addReserve_eventHelper (CThreadMgrIf *pIf);
-	void onReq_addReserve_manual (CThreadMgrIf *pIf);
-	void onReq_removeReserve (CThreadMgrIf *pIf);
-	void onReq_removeReserve_byIndex (CThreadMgrIf *pIf);
-	void onReq_getReserves (CThreadMgrIf *pIf);
-	void onReq_stopRecording (CThreadMgrIf *pIf);
-	void onReq_dumpReserves (CThreadMgrIf *pIf);
+	void on_module_up (threadmgr::CThreadMgrIf *p_if);
+	void on_module_down (threadmgr::CThreadMgrIf *p_if);
+	void on_module_up_by_group_id (threadmgr::CThreadMgrIf *p_if);
+	void on_module_down_by_group_id (threadmgr::CThreadMgrIf *p_if);
+	void on_check_loop (threadmgr::CThreadMgrIf *p_if);
+	void on_check_reserves_event_loop (threadmgr::CThreadMgrIf *p_if);
+	void on_check_recordings_event_loop (threadmgr::CThreadMgrIf *p_if);
+	void on_recording_notice (threadmgr::CThreadMgrIf *p_if);
+	void on_start_recording (threadmgr::CThreadMgrIf *p_if);
+	void on_add_reserve_current_event (threadmgr::CThreadMgrIf *p_if);
+	void on_add_reserve_event (threadmgr::CThreadMgrIf *p_if);
+	void on_add_reserve_event_helper (threadmgr::CThreadMgrIf *p_if);
+	void on_add_reserve_manual (threadmgr::CThreadMgrIf *p_if);
+	void on_remove_reserve (threadmgr::CThreadMgrIf *p_if);
+	void on_remove_reserve_by_index (threadmgr::CThreadMgrIf *p_if);
+	void on_get_reserves (threadmgr::CThreadMgrIf *p_if);
+	void on_stop_recording (threadmgr::CThreadMgrIf *p_if);
+	void on_dump_reserves (threadmgr::CThreadMgrIf *p_if);
 
-	void onReceiveNotify (CThreadMgrIf *pIf) override;
+	void on_receive_notify (threadmgr::CThreadMgrIf *p_if) override;
 
 
 private:
-	bool addReserve (
+	bool add_reserve (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id,
@@ -270,63 +257,63 @@ private:
 		const char *psz_title_name,
 		const char *psz_service_name,
 		bool _is_event_type,
-		EN_RESERVE_REPEATABILITY repeatability,
+		CRecManagerIf::reserve_repeatability repeatability,
 		bool _is_rescheduled=false
 	);
-	int getReserveIndex (
+	int get_reserve_index (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id,
 		uint16_t _event_id
 	);
-	bool removeReserve (int index, bool isConsiderRepeatability, bool isApplyResult);
-	CRecReserve* searchAscendingOrderReserve (CEtime *p_start_time_rf);
-	bool isExistEmptyReserve (void) const;
-	CRecReserve *findEmptyReserve (void);
-	bool isDuplicateReserve (const CRecReserve* p_reserve) const;
-	bool isOverrapTimeReserve (const CRecReserve* p_reserve) const;
-	void checkReserves (void);
-	void refreshReserves (uint32_t state);
-	bool isExistReqStartRecordingReserve (void);
-	bool pickReqStartRecordingReserve (uint8_t groupId);
-	void setResult (CRecReserve *p);
-	void checkRecordingEnd (void);
-	void checkDiskFree (void);
-	void checkRepeatability (const CRecReserve *p_reserve);
-	int getReserves (CRecManagerIf::RESERVE_t *p_out_reserves, int out_array_num) const;
-	void dumpReserves (void) const;
-	void dumpResults (void) const;
-	void dumpRecording (void) const;
-	void clearReserves (void);
-	void clearResults (void);
+	bool remove_reserve (int index, bool is_consider_repeatability, bool is_apply_result);
+	CRecReserve* search_ascending_order_reserve (CEtime *p_start_time_rf);
+	bool is_exist_empty_reserve (void) const;
+	CRecReserve *find_empty_reserve (void);
+	bool is_duplicate_reserve (const CRecReserve* p_reserve) const;
+	bool is_overrap_time_reserve (const CRecReserve* p_reserve) const;
+	void check_reserves (void);
+	void refresh_reserves (uint32_t state);
+	bool is_exist_req_start_recording_reserve (void);
+	bool pick_req_start_recording_reserve (uint8_t group_id);
+	void set_result (CRecReserve *p);
+	void check_recording_end (void);
+	void check_disk_free (void);
+	void check_repeatability (const CRecReserve *p_reserve);
+	int get_reserves (CRecManagerIf::reserve_t *p_out_reserves, int out_array_num) const;
+	void dump_reserves (void) const;
+	void dump_results (void) const;
+	void dump_recording (void) const;
+	void clear_reserves (void);
+	void clear_results (void);
 
 
-	// CTunerControlIf::ITsReceiveHandler
-////	bool onPreTsReceive (void) override;
-////	void onPostTsReceive (void) override;
-////	bool onCheckTsReceiveLoop (void) override;
-////	bool onTsReceived (void *p_ts_data, int length) override;
+	// CTuner_control_if::ITsReceiveHandler
+////	bool on_pre_ts_receive (void) override;
+////	void on_post_ts_receive (void) override;
+////	bool on_check_ts_receive_loop (void) override;
+////	bool on_ts_received (void *p_ts_data, int length) override;
 
 
-	void saveReserves (void);
-	void loadReserves (void);
+	void save_reserves (void);
+	void load_reserves (void);
 
-	void saveResults (void);
-	void loadResults (void);
+	void save_results (void);
+	void load_results (void);
 
 
 	CSettings *mp_settings;
 	
-////	uint8_t m_tunerNotify_clientId;
-////	int m_tsReceive_handlerId;
-////	uint8_t m_patDetectNotify_clientId;
-////	uint8_t m_eventChangeNotify_clientId;
-	uint8_t m_tunerNotify_clientId [CGroup::GROUP_MAX];
-	int m_tsReceive_handlerId [CGroup::GROUP_MAX];
-	uint8_t m_patDetectNotify_clientId [CGroup::GROUP_MAX];
-	uint8_t m_eventChangeNotify_clientId [CGroup::GROUP_MAX];
+////	uint8_t m_tuner_notify_client_id;
+////	int m_ts_receive_handler_id;
+////	uint8_t m_pat_detect_notify_client_id;
+////	uint8_t m_event_change_notify_client_id;
+	uint8_t m_tuner_notify_client_id [CGroup::GROUP_MAX];
+	int m_ts_receive_handler_id [CGroup::GROUP_MAX];
+	uint8_t m_pat_detect_notify_client_id [CGroup::GROUP_MAX];
+	uint8_t m_event_change_notify_client_id [CGroup::GROUP_MAX];
 
-////	EN_REC_PROGRESS m_recProgress; // tuneThreadと共有する とりあえず排他はいれません
+////	EN_REC_PROGRESS m_rec_progress; // tune_threadと共有する とりあえず排他はいれません
 
 	CRecReserve m_reserves [RESERVE_NUM_MAX];
 	CRecReserve m_results [RESULT_NUM_MAX];
@@ -335,7 +322,7 @@ private:
 
 ////	char m_recording_tmpfile [PATH_MAX];
 	char m_recording_tmpfiles [CGroup::GROUP_MAX][PATH_MAX];
-////	unique_ptr<CRecAribB25> msp_b25;
+////	unique_ptr<CRec_arib_b25> msp_b25;
 
 	std::unique_ptr <CRecInstance> msp_rec_instances [CGroup::GROUP_MAX];
 	CTunerControlIf::ITsReceiveHandler *mp_ts_handlers [CGroup::GROUP_MAX];

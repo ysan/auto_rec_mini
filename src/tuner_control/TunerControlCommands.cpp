@@ -13,7 +13,7 @@
 #include "TsAribCommon.h"
 
 
-static void tune (int argc, char* argv[], CThreadMgrBase *pBase)
+static void tune (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 2) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: t {frequesncy[kHz]} {tuner id})\n");
@@ -39,18 +39,18 @@ static void tune (int argc, char* argv[], CThreadMgrBase *pBase)
 	uint8_t id = atoi (argv[1]);
 	_COM_SVR_PRINT ("freq=[%d]kHz id=[%d]\n", freq, id);
 
-	CTunerControlIf ctl(pBase->getExternalIf(), id);
-	ctl.reqTuneSync (freq);
+	CTunerControlIf ctl(base->get_external_if(), id);
+	ctl.request_tune_sync (freq);
 
-	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-	if (enRslt == EN_THM_RSLT_SUCCESS) {
+	threadmgr::result rslt = base->get_if()->get_source().get_result();
+	if (rslt == threadmgr::result::success) {
 		_COM_SVR_PRINT ("tune success\n");
 	} else {
 		_COM_SVR_PRINT ("tune error\n");
 	}
 }
 
-static void ch_tune (int argc, char* argv[], CThreadMgrBase *pBase)
+static void ch_tune (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 2) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: ch {physical channel} {tuner id})\n");
@@ -84,18 +84,18 @@ static void ch_tune (int argc, char* argv[], CThreadMgrBase *pBase)
 	uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
 	_COM_SVR_PRINT ("freq=[%d]kHz\n", freq);
 
-	CTunerControlIf ctl(pBase->getExternalIf(), id);
-	ctl.reqTuneSync (freq);
+	CTunerControlIf ctl(base->get_external_if(), id);
+	ctl.request_tune_sync (freq);
 
-	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-	if (enRslt == EN_THM_RSLT_SUCCESS) {
+	threadmgr::result rslt = base->get_if()->get_source().get_result();
+	if (rslt == threadmgr::result::success) {
 		_COM_SVR_PRINT ("tune success\n");
 	} else {
 		_COM_SVR_PRINT ("tune error\n");
 	}
 }
 
-static void tuneStop (int argc, char* argv[], CThreadMgrBase *pBase)
+static void tune_stop (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 1) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: stop {tuner id})\n");
@@ -111,18 +111,18 @@ static void tuneStop (int argc, char* argv[], CThreadMgrBase *pBase)
 	uint8_t id = atoi (argv[0]);
 	_COM_SVR_PRINT ("id=[%d]\n", id);
 
-	CTunerControlIf ctl(pBase->getExternalIf(), id);
-	ctl.reqTuneStopSync ();
+	CTunerControlIf ctl(base->get_external_if(), id);
+	ctl.request_tune_stop_sync ();
 
-	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-	if (enRslt == EN_THM_RSLT_SUCCESS) {
+	threadmgr::result rslt = base->get_if()->get_source().get_result();
+	if (rslt == threadmgr::result::success) {
 		_COM_SVR_PRINT ("tune stop success\n");
 	} else {
 		_COM_SVR_PRINT ("tune stop error\n");
 	}
 }
 
-static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
+static void get_state (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -131,30 +131,30 @@ static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
 	for (uint8_t id = 0; id < CGroup::GROUP_MAX; ++ id) {
 		_COM_SVR_PRINT ("tuner id=[%d]\n", id);
 
-		CTunerControlIf ctl(pBase->getExternalIf(), id);
-		ctl.reqGetStateSync ();
+		CTunerControlIf ctl(base->get_external_if(), id);
+		ctl.request_get_state_sync ();
 
-		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
+		threadmgr::result rslt = base->get_if()->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
 			_COM_SVR_PRINT ("  get state success\n");
 		} else {
 			_COM_SVR_PRINT ("  get state error\n");
 			return;
 		}
 
-		EN_TUNER_STATE state = *(EN_TUNER_STATE*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+		CTunerControlIf::tuner_state state = *(CTunerControlIf::tuner_state*)(base->get_if()->get_source().get_message().data());
 		switch (state) {
-		case EN_TUNER_STATE__TUNING_BEGIN:
-			_COM_SVR_PRINT ("  EN_TUNER_STATE__TUNING_BEGIN\n");
+		case CTunerControlIf::tuner_state::tuning_begin:
+			_COM_SVR_PRINT ("  CTunerControlIf::tuner_state::tuning_begin\n");
 			break;
-		case EN_TUNER_STATE__TUNING_SUCCESS:
-			_COM_SVR_PRINT ("  EN_TUNER_STATE__TUNING_SUCCESS\n");
+		case CTunerControlIf::tuner_state::tuning_success:
+			_COM_SVR_PRINT ("  CTunerControlIf::tuner_state::tuning_success\n");
 			break;
-		case EN_TUNER_STATE__TUNING_ERROR_STOP:
-			_COM_SVR_PRINT ("  EN_TUNER_STATE__TUNING_ERROR_STOP\n");
+		case CTunerControlIf::tuner_state::tuning_error_stop:
+			_COM_SVR_PRINT ("  CTunerControlIf::tuner_state::tuning_error_stop\n");
 			break;
-		case EN_TUNER_STATE__TUNE_STOP:
-			_COM_SVR_PRINT ("  EN_TUNER_STATE__TUNE_STOP\n");
+		case CTunerControlIf::tuner_state::tune_stop:
+			_COM_SVR_PRINT ("  CTunerControlIf::tuner_state::tune_stop\n");
 			break;
 		default:
 			break;
@@ -162,7 +162,7 @@ static void getState (int argc, char* argv[], CThreadMgrBase *pBase)
 	}
 }
 
-ST_COMMAND_INFO g_tunerControlCommands [] = { // extern
+command_info_t g_tuner_control_commands [] = { // extern
 	{
 		"t",
 		"tune by frequency (usage: t {frequesncy[kHz]} {tuner id})",
@@ -178,13 +178,13 @@ ST_COMMAND_INFO g_tunerControlCommands [] = { // extern
 	{
 		"stop",
 		"tune stop (usage: stop {tuner id})",
-		tuneStop,
+		tune_stop,
 		NULL,
 	},
 	{
 		"s",
 		"get tuner state",
-		getState,
+		get_state,
 		NULL,
 	},
 	//-- term --//

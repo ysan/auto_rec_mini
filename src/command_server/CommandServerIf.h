@@ -11,32 +11,32 @@
 #include "modules.h"
 
 
-using namespace ThreadManager;
-
-enum {
-	EN_SEQ_COMMAND_SERVER_MODULE_UP = 0,
-	EN_SEQ_COMMAND_SERVER_MODULE_DOWN,
-	EN_SEQ_COMMAND_SERVER_SERVER_LOOP,
-	EN_SEQ_COMMAND_SERVER_NUM,
-};
-
-
-class CCommandServerIf : public CThreadMgrExternalIf
+class CCommandServerIf : public threadmgr::CThreadMgrExternalIf
 {
 public:
-	explicit CCommandServerIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
+	enum class sequence : int {
+		module_up = 0,
+		module_down,
+		server_loop,
+		max,
+	};
+
+public:
+	explicit CCommandServerIf (CThreadMgrExternalIf *p_if) : CThreadMgrExternalIf (p_if) {
 	};
 
 	virtual ~CCommandServerIf (void) {
 	};
 
 
-	bool reqModuleUp (void) {
-		return requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_MODULE_UP);
+	bool request_module_up (void) {
+		int sequence = static_cast<int>(sequence::module_up);
+		return request_async (EN_MODULE_COMMAND_SERVER, sequence);
 	};
 
-	bool reqModuleDown (void) {
-		return requestAsync (EN_MODULE_COMMAND_SERVER, EN_SEQ_COMMAND_SERVER_MODULE_DOWN);
+	bool request_module_down (void) {
+		int sequence = static_cast<int>(sequence::module_down);
+		return request_async (EN_MODULE_COMMAND_SERVER, sequence);
 	};
 };
 

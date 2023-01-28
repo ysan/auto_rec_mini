@@ -13,25 +13,25 @@
 #include "Utils.h"
 
 
-static void _open (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _open (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	CTunerServiceIf _if(pBase->getExternalIf());
-	_if.reqOpenSync ();
+	CTunerServiceIf _if(base->get_external_if());
+	_if.request_open_sync ();
 
-	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-	if (enRslt == EN_THM_RSLT_SUCCESS) {
-		uint8_t tuner_id = *(uint8_t*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+	threadmgr::result rslt = base->get_if()->get_source().get_result();
+	if (rslt == threadmgr::result::success) {
+		uint8_t tuner_id = *(uint8_t*)(base->get_if()->get_source().get_message().data());
 		_COM_SVR_PRINT ("open: tuner_id=[%d]\n", tuner_id);
 	} else {
 		_COM_SVR_PRINT ("open: failure.\n");
 	}
 }
 
-static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _close (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 1) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: cl {tuner_id})\n");
@@ -45,18 +45,18 @@ static void _close (int argc, char* argv[], CThreadMgrBase *pBase)
 	}
 	uint8_t tuner_id = atoi(argv[0]);
 
-	CTunerServiceIf _if(pBase->getExternalIf());
-	_if.reqCloseSync (tuner_id);
+	CTunerServiceIf _if(base->get_external_if());
+	_if.request_close_sync (tuner_id);
 
-	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-	if (enRslt == EN_THM_RSLT_SUCCESS) {
+	threadmgr::result rslt = base->get_if()->get_source().get_result();
+	if (rslt == threadmgr::result::success) {
 		_COM_SVR_PRINT ("close: success.\n");
 	} else {
 		_COM_SVR_PRINT ("close: error.\n");
 	}
 }
 
-static void _tune (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _tune (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 2) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: t {physical channel} {tuner id})\n");
@@ -79,18 +79,18 @@ static void _tune (int argc, char* argv[], CThreadMgrBase *pBase)
 	uint8_t id = atoi(argv[1]);
 	CTunerServiceIf::tune_param_t param = {ch, id};
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CTunerServiceIf _if(pBase->getExternalIf());
-	_if.reqTune_withRetry (&param);
+	CTunerServiceIf _if(base->get_external_if());
+	_if.request_tune_with_retry (&param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void _tune_advance (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _tune_advance (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 4) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: ta {tsid} {org_nid} {svcid} {tuner id})\n");
@@ -148,18 +148,18 @@ static void _tune_advance (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	CTunerServiceIf::tune_advance_param_t param = {_tsid, _org_nid, _svcid, id, true}; // need retry
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CTunerServiceIf _if(pBase->getExternalIf());
-	_if.reqTuneAdvance (&param);
+	CTunerServiceIf _if(base->get_external_if());
+	_if.request_tune_advance (&param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void _tune_stop (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _tune_stop (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 1) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: stop {tuner_id})\n");
@@ -173,35 +173,35 @@ static void _tune_stop (int argc, char* argv[], CThreadMgrBase *pBase)
 	}
 	uint8_t tuner_id = atoi(argv[0]);
 
-	CTunerServiceIf _if(pBase->getExternalIf());
-	_if.reqTuneStopSync (tuner_id);
+	CTunerServiceIf _if(base->get_external_if());
+	_if.request_tune_stop_sync (tuner_id);
 
-	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-	if (enRslt == EN_THM_RSLT_SUCCESS) {
+	threadmgr::result rslt = base->get_if()->get_source().get_result();
+	if (rslt == threadmgr::result::success) {
 		_COM_SVR_PRINT ("tune stop success\n");
 	} else {
 		_COM_SVR_PRINT ("tune stop error\n");
 	}
 }
 
-static void _dump (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _dump (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CTunerServiceIf _if(pBase->getExternalIf());
-	_if.reqDumpAllocates ();
+	CTunerServiceIf _if(base->get_external_if());
+	_if.request_dump_allocates ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-ST_COMMAND_INFO g_tunerServiceCommands [] = { // extern
+command_info_t g_tuner_service_commands [] = { // extern
 	{
 		"op",
 		"open tuner resource",

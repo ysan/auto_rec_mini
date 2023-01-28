@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include <vector>
+#include <memory>
 
 #include "threadmgr_if.h"
 #include "threadmgr_util.h"
@@ -17,19 +18,20 @@
 #include "ThreadMgrBase.h"
 
 
-namespace ThreadManager {
+namespace threadmgr {
 
 class CThreadMgr
 {
 public:
-	static CThreadMgr *getInstance (void);
+	static CThreadMgr *get_instance (void);
 
-	bool setup (CThreadMgrBase *pThreads[], int threadNum);
-	bool setup (std::vector<CThreadMgrBase*> &threads);
+	bool setup (CThreadMgrBase* p_threads[], int thread_max);
+	bool setup (std::shared_ptr<CThreadMgrBase> threads[], int thread_max);
+	bool setup (std::vector<std::shared_ptr<CThreadMgrBase>> &threads);
 	void wait (void);
 	void teardown (void);
 
-	CThreadMgrExternalIf * getExternalIf (void) const;
+	CThreadMgrExternalIf * get_external_if (void) const;
 
 
 private:
@@ -37,19 +39,19 @@ private:
 	CThreadMgr (void);
 	virtual ~CThreadMgr (void);
 
-	bool registerThreads (CThreadMgrBase *pThreads[], int threadNum);
-	void unRegisterThreads (void);
+	bool register_threads (CThreadMgrBase *threads[], int thread_max);
+	void unregister_threads (void);
 
 	bool setup (void);
 
 
-	std::vector <CThreadMgrBase*> mThreads;
-	int mThreadNum;
+	std::vector <CThreadMgrBase*> m_threads;
+	int m_thread_max;
 
-	ST_THM_REG_TBL *mpRegTbl;
-	CThreadMgrExternalIf *mpExtIf;
+	ST_THM_REG_TBL *mp_reg_table;
+	CThreadMgrExternalIf *mp_ext_if;
 };
 
-} // namespace ThreadManager
+} // namespace threadmgr
 
 #endif

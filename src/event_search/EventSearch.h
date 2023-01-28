@@ -24,13 +24,12 @@
 #include "cereal/cereal.hpp"
 #include "cereal/types/vector.hpp"
 #include "cereal/archives/json.hpp"
+#include "threadmgr_if.h"
 
 
-using namespace ThreadManager;
-
-
-class CEventSearch : public CThreadMgrBase
+class CEventSearch : public threadmgr::CThreadMgrBase
 {
+public:
 	class CHistory {
 	public:
 		struct event {
@@ -124,39 +123,38 @@ class CEventSearch : public CThreadMgrBase
 	};
 
 public:
-	CEventSearch (char *pszName, uint8_t nQueNum);
+	CEventSearch (std::string name, uint8_t que_max);
 	virtual ~CEventSearch (void);
 
 
-	void onDestroy (void) override;
+	void on_destroy (void) override;
 
-	void onReq_moduleUp (CThreadMgrIf *pIf);
-	void onReq_moduleDown (CThreadMgrIf *pIf);
-	void onReq_addRecReserve_keywordSearch (CThreadMgrIf *pIf);
-	void onReq_dumpHistories (CThreadMgrIf *pIf);
+	void on_module_up (threadmgr::CThreadMgrIf *p_if);
+	void on_module_down (threadmgr::CThreadMgrIf *p_if);
+	void on_add_rec_reserve_keyword_search (threadmgr::CThreadMgrIf *p_if);
+	void on_dump_histories (threadmgr::CThreadMgrIf *p_if);
 
-	void onReceiveNotify (CThreadMgrIf *pIf) override;
+	void on_receive_notify (threadmgr::CThreadMgrIf *p_if) override;
 
 
 private:
+	void dump_event_name_keywords (void) const;
+	void dump_extended_event_keywords (void) const;
 
-	void dumpEventNameKeywords (void) const;
-	void dumpExtendedEventKeywords (void) const;
+	void push_histories (const CHistory &history, std::vector<CHistory> &histories);
+	void dump_histories (const std::vector<CHistory> &histories) const;
 
-	void pushHistories (const CHistory &history, std::vector<CHistory> &histories);
-	void dumpHistories (const std::vector<CHistory> &histories) const;
+	void save_event_name_keywords (void);
+	void load_event_name_keywords (void);
 
-	void saveEventNameKeywords (void);
-	void loadEventNameKeywords (void);
+	void save_extended_event_keywords (void);
+	void load_extended_event_keywords (void);
 
-	void saveExtendedEventKeywords (void);
-	void loadExtendedEventKeywords (void);
+	void save_event_name_search_histories (void);
+	void load_event_name_search_histories (void);
 
-	void saveEventNameSearchHistories (void);
-	void loadEventNameSearchHistories (void);
-
-	void saveExtendedEventSearchHistories (void);
-	void loadExtendedEventSearchHistories (void);
+	void save_extended_event_search_histories (void);
+	void load_extended_event_search_histories (void);
 
 
 	uint8_t m_cache_sched_state_notify_client_id;

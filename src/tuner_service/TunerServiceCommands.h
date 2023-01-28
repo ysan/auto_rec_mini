@@ -12,9 +12,6 @@
 #include "Utils.h"
 
 
-using namespace ThreadManager;
-
-
-extern ST_COMMAND_INFO g_tunerServiceCommands [] ;
+extern command_info_t g_tuner_service_commands [] ;
 
 #endif

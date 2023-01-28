@@ -32,39 +32,39 @@ public:
 	CEventScheduleContainer (void);
 	virtual ~CEventScheduleContainer (void);
 
-	void setScheduleMapJsonPath (std::string sched_map_json_path);
+	void set_schedule_map_json_path (std::string sched_map_json_path);
 
-	bool addScheduleMap (const SERVICE_KEY_t &key, std::vector <CEvent*> *p_sched);
-	void deleteScheduleMap (const SERVICE_KEY_t &key);
-	bool hasScheduleMap (const SERVICE_KEY_t &key) const;
-	void dumpScheduleMap (void) const;
-	void dumpScheduleMap (const SERVICE_KEY_t &key) const;
+	bool add_schedule_map (const service_key_t &key, std::vector <CEvent*> *p_sched);
+	void delete_schedule_map (const service_key_t &key);
+	bool has_schedule_map (const service_key_t &key) const;
+	void dump_schedule_map (void) const;
+	void dump_schedule_map (const service_key_t &key) const;
 
-	const CEvent *getEvent (const SERVICE_KEY_t &key, uint16_t event_id) const;
-	const CEvent *getEvent (const SERVICE_KEY_t &key, int index) const;
-	int getEvents (
+	const CEvent *get_event (const service_key_t &key, uint16_t event_id) const;
+	const CEvent *get_event (const service_key_t &key, int index) const;
+	int get_events (
 		const char *p_keyword,
-		CEventScheduleManagerIf::EVENT_t *p_out_event,
+		CEventScheduleManagerIf::event_t *p_out_event,
 		int out_array_num,
-		bool is_check_extendedEvent
+		bool is_check_extended_event
 	) const;
 
 	void clear (void);
 
-	void saveScheduleMap (void);
-	void loadScheduleMap (void);
+	void save_schedule_map (void);
+	void load_schedule_map (void);
 
 private:
-//	void clearSchedule (std::vector <CEvent*> *p_sched);
-	void clearSchedule (std::vector<std::unique_ptr<CEvent>> &sched);
-//	void dumpSchedule (const std::vector <CEvent*> *p_sched) const;
-	void dumpSchedule (const std::vector<std::unique_ptr<CEvent>> &sched) const;
+//	void clear_schedule (std::vector <CEvent*> *p_sched);
+	void clear_schedule (std::vector<std::unique_ptr<CEvent>> &sched);
+//	void dump_schedule (const std::vector <CEvent*> *p_sched) const;
+	void dump_schedule (const std::vector<std::unique_ptr<CEvent>> &sched) const;
 
 	CSettings *mp_settings;
 	std::string m_sched_map_json_path;
 
-//	std::map <SERVICE_KEY_t, std::vector <CEvent*> *> m_sched_map;
-	std::map <SERVICE_KEY_t, std::unique_ptr<std::vector<std::unique_ptr<CEvent>>>> m_sched_map;
+//	std::map <service_key_t, std::vector <CEvent*> *> m_sched_map;
+	std::map <service_key_t, std::unique_ptr<std::vector<std::unique_ptr<CEvent>>>> m_sched_map;
 
 };
 

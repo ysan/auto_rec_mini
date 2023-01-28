@@ -26,10 +26,7 @@
 #include "TsAribCommon.h" 
 
 
-using namespace ThreadManager;
-
-
-class CTunerService : public CThreadMgrBase
+class CTunerService : public threadmgr::CThreadMgrBase
 {
 public:
 	enum class client_priority : int {
@@ -74,7 +71,7 @@ public:
 					"tuner_id:[0x%02x] module:[%d:%.10s] priority:[%d] [%s] -> tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x]",
 					tuner_id,
 					module,
-					module != EN_MODULE_NUM ? getModule(module)->getName() : "----------",
+					module != EN_MODULE_NUM ? getModule(module)->get_name() : "----------",
 					static_cast<int>(priority),
 					is_now_tuned ? "now_tuned" : "---",
 					transport_stream_id,
@@ -87,7 +84,7 @@ public:
 					"tuner_id:[0x%02x] module:[%d:%.10s] priority:[%d] [%s]",
 					tuner_id,
 					module,
-					module != EN_MODULE_NUM ? getModule(module)->getName() : "----------",
+					module != EN_MODULE_NUM ? getModule(module)->get_name() : "----------",
 					static_cast<int>(priority),
 					is_now_tuned ? "now_tuned" : "---"
 				);
@@ -117,27 +114,27 @@ public:
 
 
 public:
-	CTunerService (char *pszName, uint8_t nQueNum);
+	CTunerService (std::string name, uint8_t que_max);
 	virtual ~CTunerService (void);
 
 
-	void onReq_moduleUp (CThreadMgrIf *pIf);
-	void onReq_moduleDown (CThreadMgrIf *pIf);
-	void onReq_open (CThreadMgrIf *pIf);
-	void onReq_close (CThreadMgrIf *pIf);
-	void onReq_tune (CThreadMgrIf *pIf);
-	void onReq_tune_withRetry (CThreadMgrIf *pIf);
-	void onReq_tuneAdvance (CThreadMgrIf *pIf);
-	void onReq_tuneStop (CThreadMgrIf *pIf);
-	void onReq_dumpAllocates (CThreadMgrIf *pIf);
+	void on_module_up (threadmgr::CThreadMgrIf *p_if);
+	void on_module_down (threadmgr::CThreadMgrIf *p_if);
+	void on_open (threadmgr::CThreadMgrIf *p_if);
+	void on_close (threadmgr::CThreadMgrIf *p_if);
+	void on_tune (threadmgr::CThreadMgrIf *p_if);
+	void on_tune_with_retry (threadmgr::CThreadMgrIf *p_if);
+	void on_tune_advance (threadmgr::CThreadMgrIf *p_if);
+	void on_tune_stop (threadmgr::CThreadMgrIf *p_if);
+	void on_dump_allocates (threadmgr::CThreadMgrIf *p_if);
 
 private:
-	uint8_t allocateLinear (EN_MODULE module);
-	uint8_t allocateRoundRobin (EN_MODULE module);
+	uint8_t allocate_linear (EN_MODULE module);
+	uint8_t allocate_round_robin (EN_MODULE module);
 	bool release (uint8_t tuner_id);
-	bool preCheck (uint8_t tuner_id, EN_MODULE module, bool is_req_tune) const;
-	client_priority getPriority (EN_MODULE module) const;
-	void dumpAllocates (void) const;
+	bool pre_check (uint8_t tuner_id, EN_MODULE module, bool is_req_tune) const;
+	client_priority get_priority (EN_MODULE module) const;
+	void dump_allocates (void) const;
 
 	int m_tuner_resource_max;
 	std::vector <std::shared_ptr<resource_t>> m_resource_allcates;

@@ -34,8 +34,6 @@ TARGET_TYPE	:=	SHARED
 #   Compile sources
 #
 SRCS_CPP	:= \
-	ThreadMgrIf.cpp \
-	ThreadMgrExternalIf.cpp \
 	ThreadMgrBase.cpp \
 	ThreadMgr.cpp \
 

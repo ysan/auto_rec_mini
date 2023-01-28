@@ -12,9 +12,6 @@
 #include "Utils.h"
 
 
-using namespace ThreadManager;
-
-
-extern ST_COMMAND_INFO g_eventScheduleManagerCommands [] ;
+extern command_info_t g_event_schedule_manager_commands [] ;
 
 #endif

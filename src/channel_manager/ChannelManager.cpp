@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <unistd.h>
 #include <errno.h>
 
@@ -10,21 +11,22 @@
 #include "Settings.h"
 
 
-CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
-	:CThreadMgrBase (pszName, nQueNum)
+CChannelManager::CChannelManager (std::string name, uint8_t que_max)
+	:threadmgr::CThreadMgrBase (name, que_max)
 {
-	SEQ_BASE_t seqs [EN_SEQ_CHANNEL_MANAGER__NUM] = {
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleUp, (char*)"onReq_moduleUp"},                                                           // EN_SEQ_CHANNEL_MANAGER__MODULE_UP
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_moduleDown, (char*)"onReq_moduleDown"},                                                       // EN_SEQ_CHANNEL_MANAGER__MODULE_DOWN
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_channelScan, (char*)"onReq_channelScan"},                                                     // EN_SEQ_CHANNEL_MANAGER__CHANNEL_SCAN
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByServiceId, (char*)"onReq_getPysicalChannelByServiceId"},                   // EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_SERVICE_ID
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_getPysicalChannelByRemoteControlKeyId, (char*)"onReq_getPysicalChannelByRemoteControlKeyId"}, // EN_SEQ_CHANNEL_MANAGER__GET_PYSICAL_CHANNEL_BY_REMOTE_CONTROL_KEY_ID
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_getChannels, (char*)"onReq_getChannels"},                                                     // EN_SEQ_CHANNEL_MANAGER__GET_CHANNELS
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_getTransportStreamName, (char*)"onReq_getTransportStreamName"},                               // EN_SEQ_CHANNEL_MANAGER__GET_TRANSPORT_STREAM_NAME
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_getServiceName, (char*)"onReq_getServiceName"},                                               // EN_SEQ_CHANNEL_MANAGER__GET_SERVICE_NAME
-		{(PFN_SEQ_BASE)&CChannelManager::onReq_dumpChannels, (char*)"onReq_dumpChannels"},                                                   // EN_SEQ_CHANNEL_MANAGER__DUMP_SCAN_RESULTS
+	const int _max = static_cast<int>(CChannelManagerIf::sequence::max);
+	threadmgr::sequence_t seqs [_max] = {
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_module_up(p_if);}, "on_module_up"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_module_down(p_if);}, "on_module_down"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_channel_scan(p_if);}, "on_channel_scan"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_pysical_channel_by_service_id(p_if);}, "on_get_pysical_channel_by_service_id"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_pysical_channel_by_remote_control_key_id(p_if);}, "on_get_pysical_channel_by_remote_control_key_id"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_channels(p_if);}, "on_get_channels"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_transport_stream_name(p_if);}, "on_get_transport_stream_name"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_service_name(p_if);}, "on_get_service_name"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_dump_channels(p_if);}, "on_dump_channels"},
 	};
-	setSeqs (seqs, EN_SEQ_CHANNEL_MANAGER__NUM);
+	set_sequences (seqs, _max);
 
 
 	m_channels.clear ();
@@ -34,75 +36,77 @@ CChannelManager::CChannelManager (char *pszName, uint8_t nQueNum)
 CChannelManager::~CChannelManager (void)
 {
 	m_channels.clear ();
+
+	reset_sequences();
 }
 
 
-void CChannelManager::onReq_moduleUp (CThreadMgrIf *pIf)
+void CChannelManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	switch (sectId) {
+	switch (section_id) {
 	case SECTID_ENTRY:
 
-		loadChannels ();
-		dumpChannels_simple ();
+		load_channels ();
+		dump_channels_simple ();
 
 
-		sectId = SECTID_END;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_END;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_END:
-		pIf->reply (EN_THM_RSLT_SUCCESS);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		p_if->reply (threadmgr::result::success);
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	default:
 		break;
 	}
 
-	pIf->setSectId (sectId, enAct);
+	p_if->set_section_id (section_id, act);
 }
 
-void CChannelManager::onReq_moduleDown (CThreadMgrIf *pIf)
+void CChannelManager::on_module_down (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 //
-// do nothing
+// do something
 //
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
+void CChannelManager::on_channel_scan (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_REQ_OPEN,
 		SECTID_WAIT_OPEN,
 		SECTID_CHECK_FREQ,
@@ -119,139 +123,139 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 	static uint16_t s_ch = UHF_PHYSICAL_CHANNEL_MIN;	
-	static PSISI_NETWORK_INFO s_network_info = {0};	
-	static PSISI_SERVICE_INFO s_service_infos[10];
-	EN_THM_RSLT enRslt = EN_THM_RSLT_SUCCESS;
+	static psisi_structs::network_info_t s_network_info = {0};	
+	static psisi_structs::service_info_t s_service_infos[10];
+	threadmgr::result rslt = threadmgr::result::success;
 	static uint8_t s_group_id = 0xff;
 
 
-	switch (sectId) {
+	switch (section_id) {
 	case SECTID_ENTRY:
-		pIf->lock();
+		p_if->lock();
 
 		// 先にreplyしておきます
-		pIf->reply (EN_THM_RSLT_SUCCESS);
+		p_if->reply (threadmgr::result::success);
 
 		m_channels.clear ();
 
-		sectId = SECTID_REQ_OPEN;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_REQ_OPEN;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_REQ_OPEN: {
 
-		CTunerServiceIf _if (getExternalIf());
-		_if.reqOpen ();
+		CTunerServiceIf _if (get_external_if());
+		_if.request_open ();
 
-		sectId = SECTID_WAIT_OPEN;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_OPEN;
+		act = threadmgr::action::wait;
 		}
 		break;
 
 	case SECTID_WAIT_OPEN:
-		enRslt = getIf()->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			s_group_id = *(uint8_t*)(getIf()->getSrcInfo()->msg.pMsg);
-			_UTL_LOG_I ("reqOpen group_id:[0x%02x]", s_group_id);
-			sectId = SECTID_CHECK_FREQ;
-			enAct = EN_THM_ACT_CONTINUE;
+		rslt = get_if()->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			s_group_id = *(uint8_t*)(get_if()->get_source().get_message().data());
+			_UTL_LOG_I ("req_open group_id:[0x%02x]", s_group_id);
+			section_id = SECTID_CHECK_FREQ;
+			act = threadmgr::action::continue_;
 
 		} else {
 			_UTL_LOG_E ("someone is using a tuner.");
-			sectId = SECTID_END;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_END;
+			act = threadmgr::action::continue_;
 		}
 		break;
 
 	case SECTID_CHECK_FREQ:
 
 		if (s_ch >= UHF_PHYSICAL_CHANNEL_MIN && s_ch <= UHF_PHYSICAL_CHANNEL_MAX) {
-			sectId = SECTID_REQ_TUNE;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_REQ_TUNE;
+			act = threadmgr::action::continue_;
 
 		} else {
-			sectId = SECTID_END;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_END;
+			act = threadmgr::action::continue_;
 		}
 		break;
 
 	case SECTID_REQ_TUNE: {
 
 		uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (s_ch);
-		_UTL_LOG_I ("(%s) ------  pysical channel:[%d] -> freq:[%d]kHz", pIf->getSeqName(), s_ch, freq);
+		_UTL_LOG_I ("(%s) ------  pysical channel:[%d] -> freq:[%d]k_hz", p_if->get_sequence_name(), s_ch, freq);
 
 		CTunerServiceIf::tune_param_t param = {
 			s_ch,
 			s_group_id
 		};
 
-		CTunerServiceIf _if (getExternalIf());
-		_if.reqTune (&param);
+		CTunerServiceIf _if (get_external_if());
+		_if.request_tune (&param);
 
-		sectId = SECTID_WAIT_TUNE;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_TUNE;
+		act = threadmgr::action::wait;
 		}
 		break;
 
 	case SECTID_WAIT_TUNE:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			sectId = SECTID_WAIT_AFTER_TUNE;
-			enAct = EN_THM_ACT_CONTINUE;
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			section_id = SECTID_WAIT_AFTER_TUNE;
+			act = threadmgr::action::continue_;
 
 		} else {
 			_UTL_LOG_W ("tune is failure -> skip");
-			sectId = SECTID_REQ_TUNE_STOP;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_REQ_TUNE_STOP;
+			act = threadmgr::action::continue_;
 		}
 		break;
 
 	case SECTID_WAIT_AFTER_TUNE:
-		sectId = SECTID_REQ_GET_NETWORK_INFO;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_REQ_GET_NETWORK_INFO;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_REQ_GET_NETWORK_INFO: {
 
-		CPsisiManagerIf _if (getExternalIf(), s_group_id);
-		_if.reqGetCurrentNetworkInfo (&s_network_info);
+		CPsisiManagerIf _if (get_external_if(), s_group_id);
+		_if.request_get_current_network_info (&s_network_info);
 
-		sectId = SECTID_WAIT_GET_NETWORK_INFO;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_GET_NETWORK_INFO;
+		act = threadmgr::action::wait;
 		}
 		break;
 
 	case SECTID_WAIT_GET_NETWORK_INFO:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			sectId = SECTID_REQ_GET_SERVICE_INFOS;
-			enAct = EN_THM_ACT_CONTINUE;
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			section_id = SECTID_REQ_GET_SERVICE_INFOS;
+			act = threadmgr::action::continue_;
 
 		} else {
 			_UTL_LOG_W ("network info is not found -> skip");
-			sectId = SECTID_REQ_TUNE_STOP;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_REQ_TUNE_STOP;
+			act = threadmgr::action::continue_;
 		}
 		break;
 
 	case SECTID_REQ_GET_SERVICE_INFOS: {
-		CPsisiManagerIf _if (getExternalIf(), s_group_id);
-		_if.reqGetCurrentServiceInfos (s_service_infos, 10);
+		CPsisiManagerIf _if (get_external_if(), s_group_id);
+		_if.request_get_current_service_infos (s_service_infos, 10);
 
-		sectId = SECTID_WAIT_GET_SERVICE_INFOS;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_GET_SERVICE_INFOS;
+		act = threadmgr::action::wait;
 
         }
 		break;
 
 	case SECTID_WAIT_GET_SERVICE_INFOS:
-		enRslt = pIf->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			int n_svc = *(int*)(pIf->getSrcInfo()->msg.pMsg);
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			int n_svc = *(int*)(p_if->get_source().get_message().data());
 			if (n_svc > 0) {
 
 				CChannel::service _services [10];
@@ -274,40 +278,40 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 					n_svc
 				);
 
-				if (!isDuplicateChannel (&r)) {
+				if (!is_duplicate_channel (&r)) {
 					r.dump();
-					m_channels.insert (pair<uint16_t, CChannel>(s_ch, r));
+					m_channels.insert (std::pair<uint16_t, CChannel>(s_ch, r));
 				}
 
-				sectId = SECTID_REQ_TUNE_STOP;
-				enAct = EN_THM_ACT_CONTINUE;
+				section_id = SECTID_REQ_TUNE_STOP;
+				act = threadmgr::action::continue_;
 
 			} else {
-				_UTL_LOG_W ("reqGetCurrentServiceInfos  num is 0 -> skip");
-				sectId = SECTID_REQ_TUNE_STOP;
-				enAct = EN_THM_ACT_CONTINUE;
+				_UTL_LOG_W ("req_get_current_service_infos  num is 0 -> skip");
+				section_id = SECTID_REQ_TUNE_STOP;
+				act = threadmgr::action::continue_;
 			}
 
 		} else {
 			_UTL_LOG_W ("service infos is not found -> skip");
-			sectId = SECTID_REQ_TUNE_STOP;
-			enAct = EN_THM_ACT_CONTINUE;
+			section_id = SECTID_REQ_TUNE_STOP;
+			act = threadmgr::action::continue_;
 		}
 		break;
 
 	case SECTID_REQ_TUNE_STOP: {
-		CTunerServiceIf _if (getExternalIf());
-		_if.reqTuneStop (s_group_id);
+		CTunerServiceIf _if (get_external_if());
+		_if.request_tune_stop (s_group_id);
 
-		sectId = SECTID_WAIT_TUNE_STOP;
-		enAct = EN_THM_ACT_WAIT;
+		section_id = SECTID_WAIT_TUNE_STOP;
+		act = threadmgr::action::wait;
 		}
 		break;
 
 	case SECTID_WAIT_TUNE_STOP:
 		// とくに結果はみません
-		sectId = SECTID_NEXT;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_NEXT;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_NEXT:
@@ -318,12 +322,12 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		memset (&s_network_info, 0x00, sizeof (s_network_info));
 		memset (&s_service_infos, 0x00, sizeof (s_service_infos));
 
-		sectId = SECTID_CHECK_FREQ;
-		enAct = EN_THM_ACT_CONTINUE;
+		section_id = SECTID_CHECK_FREQ;
+		act = threadmgr::action::continue_;
 		break;
 
 	case SECTID_END:
-		pIf->unlock();
+		p_if->unlock();
 
 		// reset pysical ch
 		s_ch = UHF_PHYSICAL_CHANNEL_MIN;
@@ -331,203 +335,203 @@ void CChannelManager::onReq_channelScan (CThreadMgrIf *pIf)
 		memset (&s_network_info, 0x00, sizeof (s_network_info));
 		memset (&s_service_infos, 0x00, sizeof (s_service_infos));
 
-		dumpChannels ();
-		saveChannels ();
+		dump_channels ();
+		save_channels ();
 
 		_UTL_LOG_I ("channel scan end.");
 
 
 		//-----------------------------//
 		{
-			uint32_t opt = getRequestOption ();
+			uint32_t opt = get_request_option ();
 			opt |= REQUEST_OPTION__WITHOUT_REPLY;
-			setRequestOption (opt);
+			set_request_option (opt);
 
 			// 選局を停止しときます tune stop
 			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-			CTunerServiceIf _if (getExternalIf());
-			_if.reqTuneStop (s_group_id);
-			_if.reqClose (s_group_id);
+			CTunerServiceIf _if (get_external_if());
+			_if.request_tune_stop (s_group_id);
+			_if.request_close (s_group_id);
 
 			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-			setRequestOption (opt);
+			set_request_option (opt);
 		}
 		//-----------------------------//
 
 
 		s_group_id = 0xff;
 
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
 		break;
 
 	default:
 		break;
 	}
 
-	pIf->setSectId (sectId, enAct);
+	p_if->set_section_id (section_id, act);
 }
 
-void CChannelManager::onReq_getPysicalChannelByServiceId (CThreadMgrIf *pIf)
+void CChannelManager::on_get_pysical_channel_by_service_id (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	CChannelManagerIf::SERVICE_ID_PARAM_t param =
-			*(CChannelManagerIf::SERVICE_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CChannelManagerIf::service_id_param_t param =
+			*(CChannelManagerIf::service_id_param_t*)(p_if->get_source().get_message().data());
 
-	uint16_t _ch = getPysicalChannelByServiceId (
+	uint16_t _ch = get_pysical_channel_by_service_id (
 						param.transport_stream_id,
 						param.original_network_id,
 						param.service_id
 					);
 	if (_ch == 0xffff) {
 
-		_UTL_LOG_E ("getPysicalChannelByServiceId is failure.");
-		pIf->reply (EN_THM_RSLT_ERROR);
+		_UTL_LOG_E ("get_pysical_channel_by_service_id is failure.");
+		p_if->reply (threadmgr::result::error);
 
 	} else {
 
 		// リプライmsgに結果を乗せます
-		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&_ch, sizeof(_ch));
+		p_if->reply (threadmgr::result::success, (uint8_t*)&_ch, sizeof(_ch));
 
 	}
 
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CChannelManager::onReq_getPysicalChannelByRemoteControlKeyId (CThreadMgrIf *pIf)
+void CChannelManager::on_get_pysical_channel_by_remote_control_key_id (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	CChannelManagerIf::REMOTE_CONTROL_ID_PARAM_t param =
-			*(CChannelManagerIf::REMOTE_CONTROL_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CChannelManagerIf::remote_control_id_param_t param =
+			*(CChannelManagerIf::remote_control_id_param_t*)(p_if->get_source().get_message().data());
 
-	uint16_t _ch = getPysicalChannelByRemoteControlKeyId (
+	uint16_t _ch = get_pysical_channel_by_remote_control_key_id (
 						param.transport_stream_id,
 						param.original_network_id,
 						param.remote_control_key_id
 					);
 	if (_ch == 0xffff) {
 
-		_UTL_LOG_E ("getPysicalChannelByRemoteControlKeyId is failure.");
-		pIf->reply (EN_THM_RSLT_ERROR);
+		_UTL_LOG_E ("get_pysical_channel_by_remote_control_key_id is failure.");
+		p_if->reply (threadmgr::result::error);
 
 	} else {
 
 		// リプライmsgに結果を乗せます
-		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&_ch, sizeof(_ch));
+		p_if->reply (threadmgr::result::success, (uint8_t*)&_ch, sizeof(_ch));
 
 	}
 
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CChannelManager::onReq_getChannels (CThreadMgrIf *pIf)
+void CChannelManager::on_get_channels (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	CChannelManagerIf::REQ_CHANNELS_PARAM_t _param =
-				*(CChannelManagerIf::REQ_CHANNELS_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CChannelManagerIf::request_channels_param_t _param =
+				*(CChannelManagerIf::request_channels_param_t*)(p_if->get_source().get_message().data());
 	if (!_param.p_out_channels || _param.array_max_num == 0) {
-		pIf->reply (EN_THM_RSLT_ERROR);
+		p_if->reply (threadmgr::result::error);
 
 	} else {
-		int n = getChannels (_param.p_out_channels, _param.array_max_num);
+		int n = get_channels (_param.p_out_channels, _param.array_max_num);
 
 		// reply msgで格納数を渡します
-		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)&n, sizeof(n));
+		p_if->reply (threadmgr::result::success, (uint8_t*)&n, sizeof(n));
 	}
 
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CChannelManager::onReq_getTransportStreamName (CThreadMgrIf *pIf)
+void CChannelManager::on_get_transport_stream_name (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	CChannelManagerIf::SERVICE_ID_PARAM_t _param =
-				*(CChannelManagerIf::SERVICE_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CChannelManagerIf::service_id_param_t _param =
+				*(CChannelManagerIf::service_id_param_t*)(p_if->get_source().get_message().data());
 
-	const char *pname = getTransportStreamName (
+	const char *pname = get_transport_stream_name (
 							_param.transport_stream_id,
 							_param.original_network_id
 						);
 
 	if (pname && strlen(pname) > 0) {
 		// reply msgで nameを渡します
-		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)pname, strlen(pname));
+		p_if->reply (threadmgr::result::success, (uint8_t*)pname, strlen(pname));
 	} else {
-		pIf->reply (EN_THM_RSLT_ERROR);
+		p_if->reply (threadmgr::result::error);
 	}
 
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CChannelManager::onReq_getServiceName (CThreadMgrIf *pIf)
+void CChannelManager::on_get_service_name (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	CChannelManagerIf::SERVICE_ID_PARAM_t _param =
-				*(CChannelManagerIf::SERVICE_ID_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CChannelManagerIf::service_id_param_t _param =
+				*(CChannelManagerIf::service_id_param_t*)(p_if->get_source().get_message().data());
 
-	const char *pname = getServiceName (
+	const char *pname = get_service_name (
 							_param.transport_stream_id,
 							_param.original_network_id,
 							_param.service_id
@@ -535,41 +539,41 @@ void CChannelManager::onReq_getServiceName (CThreadMgrIf *pIf)
 
 	if (pname && strlen(pname) > 0) {
 		// reply msgで nameを渡します
-		pIf->reply (EN_THM_RSLT_SUCCESS, (uint8_t*)pname, strlen(pname));
+		p_if->reply (threadmgr::result::success, (uint8_t*)pname, strlen(pname));
 	} else {
-		pIf->reply (EN_THM_RSLT_ERROR);
+		p_if->reply (threadmgr::result::error);
 	}
 
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CChannelManager::onReq_dumpChannels (CThreadMgrIf *pIf)
+void CChannelManager::on_dump_channels (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	dumpChannels ();
+	dump_channels ();
 
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-uint16_t CChannelManager::getPysicalChannelByServiceId (
+uint16_t CChannelManager::get_pysical_channel_by_service_id (
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
 	uint16_t _service_id
@@ -598,7 +602,7 @@ uint16_t CChannelManager::getPysicalChannelByServiceId (
 	return 0xffff;
 }
 
-uint16_t CChannelManager::getPysicalChannelByRemoteControlKeyId (
+uint16_t CChannelManager::get_pysical_channel_by_remote_control_key_id (
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
 	uint8_t _remote_control_key_id
@@ -615,7 +619,7 @@ uint16_t CChannelManager::getPysicalChannelByRemoteControlKeyId (
 //   m_channels に同じremote_control_key_idのCChannel がある場合は
 //   検索順で先のものが得られるので あまりよくないやりかたです
 //   --> 引数 transport_stream_id, original_network_idで切り分けすれば問題ないはず
-//   --> getPysicalChannelByServiceId を使うべき
+//   --> get_pysical_channel_by_service_id を使うべき
 //				(p_ch->transport_stream_id == _transport_stream_id) &&
 //				(p_ch->original_network_id == _original_network_id) &&
 				(p_ch->remote_control_key_id == _remote_control_key_id)
@@ -629,7 +633,7 @@ uint16_t CChannelManager::getPysicalChannelByRemoteControlKeyId (
 	return 0xffff;
 }
 
-bool CChannelManager::isDuplicateChannel (const CChannel* p_channel) const
+bool CChannelManager::is_duplicate_channel (const CChannel* p_channel) const
 {
 	if (!p_channel) {
 		return false;
@@ -649,7 +653,7 @@ bool CChannelManager::isDuplicateChannel (const CChannel* p_channel) const
 	return false;
 }
 
-const CChannel* CChannelManager::findChannel (uint16_t pych) const
+const CChannel* CChannelManager::find_channel (uint16_t pych) const
 {
 	std::map<uint16_t, CChannel>::const_iterator iter = m_channels.find (pych);
 
@@ -660,7 +664,7 @@ const CChannel* CChannelManager::findChannel (uint16_t pych) const
 	return &(iter->second);
 }
 
-int CChannelManager::getChannels (CChannelManagerIf::CHANNEL_t *p_out_channels, int array_max_num) const
+int CChannelManager::get_channels (CChannelManagerIf::channel_t *p_out_channels, int array_max_num) const
 {
 	if (!p_out_channels || array_max_num == 0) {
 		return 0;
@@ -698,7 +702,7 @@ int CChannelManager::getChannels (CChannelManagerIf::CHANNEL_t *p_out_channels, 
 	return n;
 }
 
-const char* CChannelManager::getTransportStreamName (
+const char* CChannelManager::get_transport_stream_name (
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id
 ) const
@@ -719,7 +723,7 @@ const char* CChannelManager::getTransportStreamName (
 	return NULL;
 }
 
-const char* CChannelManager::getServiceName (
+const char* CChannelManager::get_service_name (
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
 	uint16_t _service_id
@@ -746,7 +750,7 @@ const char* CChannelManager::getServiceName (
 	return NULL;
 }
 
-void CChannelManager::dumpChannels (void) const
+void CChannelManager::dump_channels (void) const
 {
 	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
 	for (; iter != m_channels.end(); ++ iter) {
@@ -757,7 +761,7 @@ void CChannelManager::dumpChannels (void) const
 	}
 }
 
-void CChannelManager::dumpChannels_simple (void) const
+void CChannelManager::dump_channels_simple (void) const
 {
 	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
 	for (; iter != m_channels.end(); ++ iter) {
@@ -795,7 +799,7 @@ void serialize (Archive &archive, CChannel &r)
 	);
 }
 
-void CChannelManager::saveChannels (void)
+void CChannelManager::save_channels (void)
 {
 	std::stringstream ss;
 	{
@@ -811,7 +815,7 @@ void CChannelManager::saveChannels (void)
 	ss.clear();
 }
 
-void CChannelManager::loadChannels (void)
+void CChannelManager::load_channels (void)
 {
 	std::string *p_path = CSettings::getInstance()->getParams()->getChannelsJsonPath();
 	std::ifstream ifs (p_path->c_str(), std::ios::in);

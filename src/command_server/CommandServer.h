@@ -17,49 +17,46 @@
 #include "Settings.h"
 
 
-using namespace ThreadManager;
-
-
-class CCommandServer : public CThreadMgrBase
+class CCommandServer : public threadmgr::CThreadMgrBase
 {
 public:
-	CCommandServer (char *pszName, uint8_t nQueNum);
+	CCommandServer (std::string name, uint8_t que_max);
 	virtual ~CCommandServer (void);
 
 
-	void onCreate (void) override;
+	void on_create (void) override;
 
-	void moduleUp (CThreadMgrIf *pIf);
-	void moduleDown (CThreadMgrIf *pIf);
-	void serverLoop (CThreadMgrIf *pIf);
+	void on_module_up (threadmgr::CThreadMgrIf *pIf);
+	void on_module_down (threadmgr::CThreadMgrIf *pIf);
+	void on_server_loop (threadmgr::CThreadMgrIf *pIf);
 
-	static void needDestroy (void);
-	static void clearNeedDestroy (void);
-	static bool isNeedDestroy (void);
+	static void need_destroy (void);
+	static void clear_need_destroy (void);
+	static bool is_need_destroy (void);
 
-	int getClientFd (void);
-	void connectionClose (void);
+	int get_client_fd (void);
+	void connection_close (void);
 
 private:
-	void serverLoop (void);
-	int recvParseDelimiter (int fd, char *pszBuff, int buffSize, const char* pszDelim);
-	bool parseDelimiter (char *pszBuff, int buffSize, const char *pszDelim);
-	void parseCommand (char *pszBuff);
-	void ignoreSigpipe (void);
+	void server_loop (void);
+	int recv_parse_delimiter (int fd, char *psz_buff, int buff_size, const char* psz_delim);
+	bool parse_delimiter (char *psz_buff, int buff_size, const char *psz_delim);
+	void parse_command (char *psz_buff);
+	void ignore_sigpipe (void);
 
-	static void printSubTables (void);
-	static void showList (const char *pszDesc);
-	static void findCommand (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase);
+	static void print_sub_tables (void);
+	static void show_list (const char *psz_desc);
+	static void find_command (const char* psz_command, int argc, char *argv[], CThreadMgrBase *p_base);
 
 	// callbacks
-	static void onCommandWaitBegin (void);
-	static void onCommandLineAvailable (const char* pszCommand, int argc, char *argv[], CThreadMgrBase *pBase);
-	static void onCommandLineThrough (void);
-	static void onCommandWaitEnd (void);
+	static void on_command_wait_begin (void);
+	static void on_command_line_available (const char* psz_command, int argc, char *argv[], CThreadMgrBase *p_base);
+	static void on_command_line_through (void);
+	static void on_command_wait_end (void);
 
 
-	int mClientfd;
-	bool m_isConnectionClose;
+	int m_clientfd;
+	bool m_is_connection_close;
 
 };
 

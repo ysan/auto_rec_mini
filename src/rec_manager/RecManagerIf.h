@@ -14,41 +14,37 @@
 #include "Utils.h"
 
 
-using namespace ThreadManager;
-
-enum {
-	EN_SEQ_REC_MANAGER__MODULE_UP = 0,
-	EN_SEQ_REC_MANAGER__MODULE_UP_BY_GROUPID,			// inner
-	EN_SEQ_REC_MANAGER__MODULE_DOWN,
-	EN_SEQ_REC_MANAGER__CHECK_LOOP,						// inner
-	EN_SEQ_REC_MANAGER__CHECK_RESERVES_EVENT_LOOP,		// inner
-	EN_SEQ_REC_MANAGER__CHECK_RECORDINGS_EVENT_LOOP,	// inner
-	EN_SEQ_REC_MANAGER__RECORDING_NOTICE,				// inner
-	EN_SEQ_REC_MANAGER__START_RECORDING,				// inner
-	EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT,
-	EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT,
-	EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER,
-	EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL,
-	EN_SEQ_REC_MANAGER__REMOVE_RESERVE,
-	EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX,
-	EN_SEQ_REC_MANAGER__GET_RESERVES,
-	EN_SEQ_REC_MANAGER__STOP_RECORDING,
-	EN_SEQ_REC_MANAGER__DUMP_RESERVES,
-
-	EN_SEQ_REC_MANAGER__NUM,
-};
-
-typedef enum {
-	EN_RESERVE_REPEATABILITY__NONE = 0,
-	EN_RESERVE_REPEATABILITY__DAILY,
-	EN_RESERVE_REPEATABILITY__WEEKLY,
-	EN_RESERVE_REPEATABILITY__AUTO,		// for event_type
-} EN_RESERVE_REPEATABILITY;
-
-
-class CRecManagerIf : public CThreadMgrExternalIf
+class CRecManagerIf : public threadmgr::CThreadMgrExternalIf
 {
 public:
+	enum class sequence : int {
+		module_up = 0,
+		module_up_by_groupid,			// inner
+		module_down,
+		check_loop,						// inner
+		check_reserves_event_loop,		// inner
+		check_recordings_event_loop,	// inner
+		recording_notice,				// inner
+		start_recording,				// inner
+		add_reserve_current_event,
+		add_reserve_event,
+		add_reserve_event_helper,
+		add_reserve_manual,
+		remove_reserve,
+		remove_reserve_by_index,
+		get_reserves,
+		stop_recording,
+		dump_reserves,
+		max,
+	};
+
+	enum class reserve_repeatability : int {
+		none = 0,
+		daily,
+		weekly,
+		auto_,		// for event_type
+	};
+
 	typedef struct {
 		uint16_t transport_stream_id;
 		uint16_t original_network_id;
@@ -58,7 +54,7 @@ public:
 		CEtime start_time;
 		CEtime end_time;
 
-		EN_RESERVE_REPEATABILITY repeatablity;
+		reserve_repeatability repeatablity;
 
 		void clear (void) {
 			transport_stream_id = 0;
@@ -67,7 +63,7 @@ public:
 			event_id = 0;
 			start_time.clear();
 			end_time.clear();
-			repeatablity = EN_RESERVE_REPEATABILITY__NONE;
+			repeatablity = reserve_repeatability::none;
 		}
 
 		void dump (void) const {
@@ -83,12 +79,12 @@ public:
 			);
 		}
 
-	} ADD_RESERVE_PARAM_t;
+	} add_reserve_param_t;
 
 	typedef struct {
 		int index;
-		EN_RESERVE_REPEATABILITY repeatablity;
-	} ADD_RESERVE_HELPER_PARAM_t;
+		reserve_repeatability repeatablity;
+	} add_reserve_helper_param_t;
 
 	typedef struct {
 		union _arg {
@@ -102,10 +98,10 @@ public:
 			int index;
 		} arg;
 
-		bool isConsiderRepeatability;
-		bool isApplyResult;
+		bool is_consider_repeatability;
+		bool is_apply_result;
 
-	} REMOVE_RESERVE_PARAM_t;
+	} remove_reserve_param_t;
 
 	typedef struct _reserve {
 		uint16_t transport_stream_id;
@@ -120,146 +116,158 @@ public:
 		std::string *p_service_name;
 
 		bool is_event_type ;
-		EN_RESERVE_REPEATABILITY repeatability;
+		reserve_repeatability repeatability;
 
-	} RESERVE_t;
+	} reserve_t;
 
 	typedef struct _get_reserves_param {
-		RESERVE_t *p_out_reserves;
+		reserve_t *p_out_reserves;
 		int array_max_num;
-	} GET_RESERVES_PARAM_t;
+	} get_reserves_param_t;
 
 
 public:
-	explicit CRecManagerIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
+	explicit CRecManagerIf (CThreadMgrExternalIf *p_if) : CThreadMgrExternalIf (p_if) {
 	};
 
 	virtual ~CRecManagerIf (void) {
 	};
 
 
-	bool reqModuleUp (void) {
-		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__MODULE_UP);
+	bool request_module_up (void) {
+		int sequence = static_cast<int>(sequence::module_up);
+		return request_async (EN_MODULE_REC_MANAGER, sequence);
 	};
 
-	bool reqModuleDown (void) {
-		return requestAsync (EN_MODULE_REC_MANAGER, EN_SEQ_REC_MANAGER__MODULE_DOWN);
+	bool request_module_down (void) {
+		int sequence = static_cast<int>(sequence::module_down);
+		return request_async (EN_MODULE_REC_MANAGER, sequence);
 	};
 
-	bool reqAddReserve_currentEvent (uint8_t groupId) {
-		return requestAsync (
+	bool request_add_reserve_current_event (uint8_t group_id) {
+		int sequence = static_cast<int>(sequence::add_reserve_current_event);
+		return request_async (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__ADD_RESERVE_CURRENT_EVENT,
-					(uint8_t*)&groupId,
+					sequence,
+					(uint8_t*)&group_id,
 					sizeof(uint8_t)
 				);
 	};
 
-	bool reqAddReserve_event (ADD_RESERVE_PARAM_t *p_param) {
+	bool request_add_reserve_event (add_reserve_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::add_reserve_event);
+		return request_async (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (ADD_RESERVE_PARAM_t)
+					sizeof (add_reserve_param_t)
 				);
 	};
 
-	bool reqAddReserve_eventHelper (ADD_RESERVE_HELPER_PARAM_t *p_param) {
+	bool request_add_reserve_event_helper (add_reserve_helper_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::add_reserve_event_helper);
+		return request_async (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__ADD_RESERVE_EVENT_HELPER,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (ADD_RESERVE_HELPER_PARAM_t)
+					sizeof (add_reserve_helper_param_t)
 				);
 	};
 
-	bool reqAddReserve_manual (ADD_RESERVE_PARAM_t *p_param) {
+	bool request_add_reserve_manual (add_reserve_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::add_reserve_manual);
+		return request_async (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__ADD_RESERVE_MANUAL,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (ADD_RESERVE_PARAM_t)
+					sizeof (add_reserve_param_t)
 				);
 	};
 
-	bool reqRemoveReserve (REMOVE_RESERVE_PARAM_t *p_param) {
+	bool request_remove_reserve (remove_reserve_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::remove_reserve);
+		return request_async (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__REMOVE_RESERVE,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REMOVE_RESERVE_PARAM_t)
+					sizeof (remove_reserve_param_t)
 				);
 	};
 
-	bool reqRemoveReserve_byIndex (REMOVE_RESERVE_PARAM_t *p_param) {
+	bool request_remove_reserve_by_index (remove_reserve_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::remove_reserve_by_index);
+		return request_async (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__REMOVE_RESERVE_BY_INDEX,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (REMOVE_RESERVE_PARAM_t)
+					sizeof (remove_reserve_param_t)
 				);
 	};
 
-	bool reqGetReserves (GET_RESERVES_PARAM_t *p_param) {
+	bool request_get_reserves (get_reserves_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::get_reserves);
+		return request_async (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__GET_RESERVES,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (GET_RESERVES_PARAM_t)
+					sizeof (get_reserves_param_t)
 				);
 	};
 
-	bool syncGetReserves (GET_RESERVES_PARAM_t *p_param) {
+	bool request_get_reserves_sync (get_reserves_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		return requestSync (
+		int sequence = static_cast<int>(sequence::get_reserves);
+		return request_sync (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__GET_RESERVES,
+					sequence,
 					(uint8_t*)p_param,
-					sizeof (GET_RESERVES_PARAM_t)
+					sizeof (get_reserves_param_t)
 				);
 	};
 
-	bool reqStopRecording (uint8_t groupId) {
-		return requestAsync (
+	bool request_stop_recording (uint8_t group_id) {
+		int sequence = static_cast<int>(sequence::stop_recording);
+		return request_async (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__STOP_RECORDING,
-					(uint8_t*)&groupId,
+					sequence,
+					(uint8_t*)&group_id,
 					sizeof(uint8_t)
 				);
 	};
 
-	bool reqDumpReserves (int type) {
+	bool request_dump_reserves (int type) {
 		int _type = type;
-		return requestAsync (
+		int sequence = static_cast<int>(sequence::dump_reserves);
+		return request_async (
 					EN_MODULE_REC_MANAGER,
-					EN_SEQ_REC_MANAGER__DUMP_RESERVES,
+					sequence,
 					(uint8_t*)&_type,
 					sizeof(_type)
 				);

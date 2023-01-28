@@ -34,9 +34,6 @@
 #include "CommonDataTable.h"
 
 
-using namespace ThreadManager;
-
-
 // notify category
 #define NOTIFY_CAT__PAT_DETECT			((uint8_t)0)
 #define NOTIFY_CAT__EVENT_CHANGE		((uint8_t)1)
@@ -50,16 +47,15 @@ using namespace ThreadManager;
 #define TMP_PROGRAM_MAPS_MAX		(16)
 
 
-typedef enum {
-	EN_EVENT_PF_STATE__INIT = 0,
-	EN_EVENT_PF_STATE__PRESENT,
-	EN_EVENT_PF_STATE__FOLLOW,
-	EN_EVENT_PF_STATE__ALREADY_PASSED,
+enum class event_pf_state : int {
+	init = 0,
+	present,
+	follow,
+	already_passed,
+	max,
+};
 
-	EN_EVENT_PF_STATE__MAX,
-} EN_EVENT_PF_STATE;
-
-static const char *gpszEventPfState [EN_EVENT_PF_STATE__MAX] = {
+static const char *gpsz_event_pf_state [static_cast<int>(event_pf_state::max)] = {
 	// for debug log
 	"-",
 	"P",
@@ -160,7 +156,7 @@ public:
 	uint16_t program_number;
 	uint16_t program_map_PID;
 
-	CProgramAssociationTable::CTable* p_orgTable;
+	CProgramAssociationTable::CTable* p_org_table;
 
 	std::vector<std::shared_ptr<_stream>> streams;
 
@@ -171,14 +167,14 @@ public:
 		transport_stream_id = 0;
 		program_number = 0;
 		program_map_PID = 0;
-		p_orgTable = NULL;
+		p_org_table = NULL;
 		streams.clear();
 		is_used = false;
 	}
 
 	void dump (void) {
-		if (p_orgTable) {
-			p_orgTable->header.dump();
+		if (p_org_table) {
+			p_org_table->header.dump();
 		}
 		_UTL_LOG_I (
 			"  tblid:[0x%02x] tsid:[0x%04x] pgm_num:[0x%04x] pmt_pid:[0x%04x]",
@@ -196,7 +192,7 @@ public:
 		}
 	}
 
-} _PROGRAM_INFO;
+} _program_info_t;
 
 typedef struct _event_pf_info {
 public:
@@ -218,9 +214,9 @@ public:
 
 	char event_name_char [MAXSECLEN];
 
-	EN_EVENT_PF_STATE state;
+	event_pf_state state;
 
-	CEventInformationTable::CTable* p_orgTable;
+	CEventInformationTable::CTable* p_org_table;
 
 	bool is_used;
 
@@ -233,14 +229,14 @@ public:
 		start_time.clear();
 		end_time.clear();
 		memset (event_name_char, 0x00, sizeof(event_name_char));
-		state = EN_EVENT_PF_STATE__INIT;
-		p_orgTable = NULL;
+		state = event_pf_state::init;
+		p_org_table = NULL;
 		is_used = false;
 	}
 
 	void dump (void) const{
-		if (p_orgTable) {
-			p_orgTable->header.dump();
+		if (p_org_table) {
+			p_org_table->header.dump();
 		}
 		_UTL_LOG_I (
 			"  tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
@@ -252,14 +248,14 @@ public:
 		);
 		_UTL_LOG_I (
 			"  p/f:[%s] time:[%s - %s]",
-			gpszEventPfState [state],
+			gpsz_event_pf_state [static_cast<int>(state)],
 			start_time.toString(),
 			end_time.toString()
 		);
 		_UTL_LOG_I ("  event_name:[%s]", event_name_char);
 	}
 
-} _EVENT_PF_INFO;
+} _event_pf_info_t;
 
 typedef struct _service_info {
 public:
@@ -280,12 +276,12 @@ public:
 
 	// -- clear each tuning
 	bool is_tune_target;
-	_EVENT_PF_INFO eventFollowInfo;
+	_event_pf_info_t event_follow_info;
 	// --
 
 	CEtime last_update;
 
-	CServiceDescriptionTable::CTable* p_orgTable;
+	CServiceDescriptionTable::CTable* p_org_table;
 
 	bool is_used;
 
@@ -297,20 +293,20 @@ public:
 		service_type = 0;
 		memset (service_name_char, 0x00, sizeof(service_name_char))	;
 		is_tune_target = false;
-		eventFollowInfo.clear();
+		event_follow_info.clear();
 		last_update.clear();
-		p_orgTable = NULL;
+		p_org_table = NULL;
 		is_used = false;
 	}
 
-	void clear_atTuning (void) {
+	void clear_at_tuning (void) {
 		is_tune_target = false;
-		eventFollowInfo.clear();
+		event_follow_info.clear();
 	}
 
 	void dump (void) {
-		if (p_orgTable) {
-			p_orgTable->header.dump();
+		if (p_org_table) {
+			p_org_table->header.dump();
 		}
 		_UTL_LOG_I (
 			"  tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] svctype:[0x%02x]",
@@ -326,12 +322,12 @@ public:
 			service_name_char,
 			last_update.toString()
 		);
-		if (eventFollowInfo.is_used) {
-			eventFollowInfo.dump();
+		if (event_follow_info.is_used) {
+			event_follow_info.dump();
 		}
 	}
 
-} _SERVICE_INFO;
+} _service_info_t;
 
 typedef struct _network_info {
 public:
@@ -373,7 +369,7 @@ public:
 	//----- transport_stream_loop ------
 
 
-	CNetworkInformationTable::CTable* p_orgTable;
+	CNetworkInformationTable::CTable* p_org_table;
 
 	bool is_used;
 
@@ -390,13 +386,13 @@ public:
 		transmission_mode = 0;
 		remote_control_key_id = 0;
 		memset (ts_name_char, 0x00, sizeof(ts_name_char));
-		p_orgTable = NULL;
+		p_org_table = NULL;
 		is_used = false;
 	}
 
 	void dump (void) {
-		if (p_orgTable) {
-			p_orgTable->header.dump();
+		if (p_org_table) {
+			p_org_table->header.dump();
 		}
 		_UTL_LOG_I (
 			"  tblid:[0x%02x] tsid:[0x%04x] org_nid:[0x%04x]",
@@ -427,7 +423,7 @@ public:
 		);
 	}
 
-} _NETWORK_INFO;
+} _network_info_t;
 
 typedef struct _section_comp_flag {
 public:
@@ -461,124 +457,124 @@ public:
 private:
 	int m_flag;
 
-} SECTION_COMP_FLAG_t ;
+} section_comp_flag_t ;
 
 
 class CPsisiManager
-	:public CThreadMgrBase
+	:public threadmgr::CThreadMgrBase
 	,public CGroup
 	,public CTunerControlIf::ITsReceiveHandler
 	,public CTsParser::IParserListener
 	,public CEventInformationTable_sched::IEventScheduleHandler
 {
 public:
-	CPsisiManager (char *pszName, uint8_t nQueNum, uint8_t groupId);
+	CPsisiManager (std::string name, uint8_t que_max, uint8_t group_id);
 	virtual ~CPsisiManager (void);
 
 
-	void onCreate (void) override;
+	void on_create (void) override;
 
-	void onReq_moduleUp (CThreadMgrIf *pIf);
-	void onReq_moduleDown (CThreadMgrIf *pIf);
-	void onReq_getState (CThreadMgrIf *pIf);
-	void onReq_checkLoop (CThreadMgrIf *pIf);
-	void onReq_parserNotice (CThreadMgrIf *pIf);
-	void onReq_stabilizationAfterTuning (CThreadMgrIf *pIf);
-	void onReq_registerPatDetectNotify (CThreadMgrIf *pIf);
-	void onReq_unregisterPatDetectNotify (CThreadMgrIf *pIf);
-	void onReq_registerEventChangeNotify (CThreadMgrIf *pIf);
-	void onReq_unregisterEventChangeNotify (CThreadMgrIf *pIf);
-	void onReq_registerPsisiStateNotify (CThreadMgrIf *pIf);
-	void onReq_unregisterPsisiStateNotify (CThreadMgrIf *pIf);
-	void onReq_getPatDetectState (CThreadMgrIf *pIf);
-	void onReq_getStreamInfos (CThreadMgrIf *pIf);
-	void onReq_getCurrentServiceInfos (CThreadMgrIf *pIf);
-	void onReq_getPresentEventInfo (CThreadMgrIf *pIf);
-	void onReq_getFollowEventInfo (CThreadMgrIf *pIf);
-	void onReq_getCurrentNetworkInfo (CThreadMgrIf *pIf);
-	void onReq_enableParseEITSched (CThreadMgrIf *pIf);
-	void onReq_disableParseEITSched (CThreadMgrIf *pIf);
-	void onReq_dumpCaches (CThreadMgrIf *pIf);
-	void onReq_dumpTables (CThreadMgrIf *pIf);
+	void on_module_up (threadmgr::CThreadMgrIf *p_if);
+	void on_module_down (threadmgr::CThreadMgrIf *p_if);
+	void on_get_state (threadmgr::CThreadMgrIf *p_if);
+	void on_check_loop (threadmgr::CThreadMgrIf *p_if);
+	void on_parser_notice (threadmgr::CThreadMgrIf *p_if);
+	void on_stabilization_after_tuning (threadmgr::CThreadMgrIf *p_if);
+	void on_register_pat_detect_notify (threadmgr::CThreadMgrIf *p_if);
+	void on_unregister_pat_detect_notify (threadmgr::CThreadMgrIf *p_if);
+	void on_register_event_change_notify (threadmgr::CThreadMgrIf *p_if);
+	void on_unregister_event_change_notify (threadmgr::CThreadMgrIf *p_if);
+	void on_register_psisi_state_notify (threadmgr::CThreadMgrIf *p_if);
+	void on_unregister_psisi_state_notify (threadmgr::CThreadMgrIf *p_if);
+	void on_get_pat_detect_state (threadmgr::CThreadMgrIf *p_if);
+	void on_get_stream_infos (threadmgr::CThreadMgrIf *p_if);
+	void on_get_current_service_infos (threadmgr::CThreadMgrIf *p_if);
+	void on_get_present_event_info (threadmgr::CThreadMgrIf *p_if);
+	void on_get_follow_event_info (threadmgr::CThreadMgrIf *p_if);
+	void on_get_current_network_info (threadmgr::CThreadMgrIf *p_if);
+	void on_enable_parse_eit_sched (threadmgr::CThreadMgrIf *p_if);
+	void on_disable_parse_eit_sched (threadmgr::CThreadMgrIf *p_if);
+	void on_dump_caches (threadmgr::CThreadMgrIf *p_if);
+	void on_dump_tables (threadmgr::CThreadMgrIf *p_if);
 
-	void onReceiveNotify (CThreadMgrIf *pIf) override;
+	void on_receive_notify (threadmgr::CThreadMgrIf *p_if) override;
 
 
 private:
-	//-- programInfo --
-	void cacheProgramInfos (void);
-	void dumpProgramInfos (void);
-	void clearProgramInfos (void);
+	//-- program_info --
+	void cache_program_infos (void);
+	void dump_program_infos (void);
+	void clear_program_infos (void);
 
 	// for request
-	int getStreamInfos (uint16_t program_map_PID, EN_STREAM_TYPE type, PSISI_STREAM_INFO *p_out_streamInfos, int num);
+	int get_stream_infos (uint16_t program_map_PID, EN_STREAM_TYPE type, psisi_structs::stream_info_t *p_out_stream_infos, int num);
 
 
-	//-- serviceInfo --
-	void cacheServiceInfos (bool is_atTuning);
-	_SERVICE_INFO* findServiceInfo (
+	//-- service_info --
+	void cache_service_infos (bool is_at_tuning);
+	_service_info_t* find_service_info (
 		uint8_t _table_id,
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id
 	);
-	_SERVICE_INFO* findEmptyServiceInfo (void);
-	bool isExistServiceTable (
+	_service_info_t* find_empty_service_info (void);
+	bool is_exist_service_table (
 		uint8_t _table_id,
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id
 	);
-	void assignFollowEventToServiceInfos (void);
-	void checkFollowEventAtServiceInfos (CThreadMgrIf *pIf);
-	void dumpServiceInfos (void);
-	void clearServiceInfos (void);
-	void clearServiceInfos (bool is_atTuning);
+	void assign_follow_event_to_service_infos (void);
+	void check_follow_event_at_service_infos (threadmgr::CThreadMgrIf *p_if);
+	void dump_service_infos (void);
+	void clear_service_infos (void);
+	void clear_service_infos (bool is_at_tuning);
 
 	// for request
-	int getCurrentServiceInfos (PSISI_SERVICE_INFO *p_out_serviceInfos, int num);
+	int get_current_service_infos (psisi_structs::service_info_t *p_out_service_infos, int num);
 
 
-	//-- eventPfInfo --
-	void cacheEventPfInfos (void);
-	bool cacheEventPfInfos (
+	//-- event_pf_info --
+	void cache_event_pf_infos (void);
+	bool cache_event_pf_infos (
 		uint8_t _table_id,
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id
 	);
-	_EVENT_PF_INFO* findEmptyEventPfInfo (void);
-	void checkEventPfInfos (void);
-	void refreshEventPfInfos (void);
-	void dumpEventPfInfos (void);
-	void clearEventPfInfo (_EVENT_PF_INFO *pInfo);
-	void clearEventPfInfos (void);
+	_event_pf_info_t* find_empty_event_pf_info (void);
+	void check_event_pf_infos (void);
+	void refresh_event_pf_infos (void);
+	void dump_event_pf_infos (void);
+	void clear_event_pf_info (_event_pf_info_t *p_info);
+	void clear_event_pf_infos (void);
 
 	// for request
-	_EVENT_PF_INFO* findEventPfInfo (
+	_event_pf_info_t* find_event_pf_info (
 		uint8_t _table_id,
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id,
-		EN_EVENT_PF_STATE state
+		event_pf_state state
 	);
 
 
-	//-- networkInfo --
-	void cacheNetworkInfo (void);
-	void dumpNetworkInfo (void);
-	void clearNetworkInfo (void);
+	//-- network_info --
+	void cache_network_info (void);
+	void dump_network_info (void);
+	void clear_network_info (void);
 
 
 	// -- logo --
-	void storeLogo (void);
+	void store_logo (void);
 
 
 	// CTunerControlIf::ITsReceiveHandler
-	bool onPreTsReceive (void) override;
-	void onPostTsReceive (void) override;
-	bool onCheckTsReceiveLoop (void) override;
-	bool onTsReceived (void *p_ts_data, int length) override;
+	bool on_pre_ts_receive (void) override;
+	void on_post_ts_receive (void) override;
+	bool on_check_ts_receive_loop (void) override;
+	bool on_ts_received (void *p_ts_data, int length) override;
 
 	// CTsParser::IParserListener
 	bool onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size) override;
@@ -597,11 +593,11 @@ private:
 	int m_ts_receive_handler_id;
 
 	// tuner is tuned 
-	bool m_tunerIsTuned ;
+	bool m_tuner_is_tuned ;
 
-	bool m_isDetectedPAT;
+	bool m_is_detected_PAT;
 
-	EN_PSISI_STATE m_state;
+	CPsisiManagerIf::psisi_state m_state;
 
 	CProgramAssociationTable mPAT;
 	CEventInformationTable mEIT_H;
@@ -610,28 +606,28 @@ private:
 	CConditionalAccessTable mCAT;
 	CCommonDataTable mCDT;
 
-	CProgramMap m_programMap;
+	CProgramMap m_program_map;
 
 //	CProgramAssociationTable::CReference mPAT_ref;
 //	CEventInformationTable::CReference mEIT_H_ref;
 //	CNetworkInformationTable::CReference mNIT_ref;
 //	CServiceDescriptionTable::CReference mSDT_ref;
 
-	CEtime m_patRecvTime;
+	CEtime m_pat_recv_time;
 
-	_PROGRAM_INFO m_programInfos [PROGRAM_INFOS_MAX];
-	_SERVICE_INFO m_serviceInfos [SERVICE_INFOS_MAX];
-	_EVENT_PF_INFO m_eventPfInfos [EVENT_PF_INFOS_MAX];
-	_NETWORK_INFO m_networkInfo ;
+	_program_info_t m_program_infos [PROGRAM_INFOS_MAX];
+	_service_info_t m_service_infos [SERVICE_INFOS_MAX];
+	_event_pf_info_t m_event_pf_infos [EVENT_PF_INFOS_MAX];
+	_network_info_t m_network_info ;
 
-	SECTION_COMP_FLAG_t m_EIT_H_comp_flag;
-	SECTION_COMP_FLAG_t m_SDT_comp_flag;
-	SECTION_COMP_FLAG_t m_NIT_comp_flag;
+	section_comp_flag_t m_EIT_H_comp_flag;
+	section_comp_flag_t m_SDT_comp_flag;
+	section_comp_flag_t m_NIT_comp_flag;
 
 
 	// for EIT schedule
 	CEventInformationTable_sched mEIT_H_sched;
-	bool m_isEnableEITSched;
+	bool m_is_enable_EIT_sched;
 
 };
 

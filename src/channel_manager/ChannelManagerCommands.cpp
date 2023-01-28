@@ -14,24 +14,24 @@
 #include "Utils.h"
 
 
-static void _scan (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _scan (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CChannelManagerIf _if(pBase->getExternalIf());
-	_if.reqChannelScan ();
+	CChannelManagerIf _if(base->get_external_if());
+	_if.request_channel_scan ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _tune_interactive (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -39,11 +39,11 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	uint8_t group_id = 0xff;
 	{
-		CTunerServiceIf _if(pBase->getExternalIf());
-		_if.reqOpenSync ();
-		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
-			group_id = *(uint8_t*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+		CTunerServiceIf _if(base->get_external_if());
+		_if.request_open_sync();
+		threadmgr::result rslt = base->get_if()->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			group_id = *(uint8_t*)(base->get_if()->get_source().get_message().data());
 			_COM_SVR_PRINT ("open: group_id=[%d]\n", group_id);
 		} else {
 			_COM_SVR_PRINT ("open: failure.\n");
@@ -51,23 +51,23 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 		}
 	}
 
-	CCommandServer* pcs = dynamic_cast <CCommandServer*> (pBase);
-	int fd = pcs->getClientFd();
+	CCommandServer* pcs = dynamic_cast <CCommandServer*> (base);
+	int fd = pcs->get_client_fd();
 
 	char buf[32] = {0};
 
 
-	CChannelManagerIf::CHANNEL_t channels[20] = {0};
-	CChannelManagerIf::REQ_CHANNELS_PARAM_t param = {channels, 20};
-	CChannelManagerIf _if(pBase->getExternalIf());
-	_if.syncGetChannels (&param);
-	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-	if (enRslt == EN_THM_RSLT_ERROR) {
+	CChannelManagerIf::channel_t channels[20] = {0};
+	CChannelManagerIf::request_channels_param_t param = {channels, 20};
+	CChannelManagerIf _if(base->get_external_if());
+	_if.request_get_channels_sync (&param);
+	threadmgr::result rslt = base->get_if()->get_source().get_result();
+	if (rslt == threadmgr::result::error) {
 		_COM_SVR_PRINT ("syncGetChannels is failure.\n");
 		return ;
 	}
 
-	int ch_num = *(int*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+	int ch_num = *(int*)(base->get_if()->get_source().get_message().data());
 	_COM_SVR_PRINT ("syncGetChannels ch_num:[%d]\n", ch_num);
 
 	if (ch_num == 0) {
@@ -78,18 +78,18 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	// list ts channel
 	for (int i = 0; i < 20; ++ i) {
-		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+		CChannelManagerIf::service_id_param_t param = {
 			channels[i].transport_stream_id,
 			channels[i].original_network_id,
 			0 // no need service_id
 		};
-		CChannelManagerIf _if(pBase->getExternalIf());
-		_if.syncGetTransportStreamName (&param);
-		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_ERROR) {
+		CChannelManagerIf _if(base->get_external_if());
+		_if.request_get_transport_stream_name_sync (&param);
+		threadmgr::result rslt = base->get_if()->get_source().get_result();
+		if (rslt == threadmgr::result::error) {
 			continue ;
 		}
-		char* ts_name = (char*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+		char* ts_name = (char*)(base->get_if()->get_source().get_message().data());
 		_COM_SVR_PRINT ("  %2d: [%s]\n", i, ts_name);
 	}
 	_COM_SVR_PRINT ("  'q': exit\n");
@@ -109,8 +109,8 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 			CUtils::deleteTailSp (buf);
 
 			if (buf[0] == 'q' && strlen(buf) == 1) {
-				CTunerServiceIf _if(pBase->getExternalIf());
-				_if.reqCloseSync (group_id);
+				CTunerServiceIf _if(base->get_external_if());
+				_if.request_close_sync (group_id);
 				return;
 			}
 
@@ -128,17 +128,17 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 
 	// list service
 	for (int i = 0; i < channels[sel_ch_num].service_num; ++ i) {
-		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+		CChannelManagerIf::service_id_param_t param = {
 			channels[sel_ch_num].transport_stream_id,
 			channels[sel_ch_num].original_network_id,
 			channels[sel_ch_num].service_ids[i]
 		};
-		_if.syncGetServiceName (&param);
-		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_ERROR) {
+		_if.request_get_service_name_sync (&param);
+		threadmgr::result rslt = base->get_if()->get_source().get_result();
+		if (rslt == threadmgr::result::error) {
 			continue ;
 		}
-		char* svc_name = (char*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+		char* svc_name = (char*)(base->get_if()->get_source().get_message().data());
 		_COM_SVR_PRINT ("  %2d: [%s]\n", i, svc_name);
 	}
 	_COM_SVR_PRINT ("  'q': exit\n");
@@ -158,8 +158,8 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 			CUtils::deleteTailSp (buf);
 
 			if (buf[0] == 'q' && strlen(buf) == 1) {
-				CTunerServiceIf _if(pBase->getExternalIf());
-				_if.reqCloseSync (group_id);
+				CTunerServiceIf _if(base->get_external_if());
+				_if.request_close_sync (group_id);
 				return;
 			}
 
@@ -185,18 +185,18 @@ static void _tune_interactive (int argc, char* argv[], CThreadMgrBase *pBase)
 	};
 
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 	
-	CTunerServiceIf _ts_if(pBase->getExternalIf());
-	_ts_if.reqTuneAdvance (&tune_param);
+	CTunerServiceIf _ts_if(base->get_external_if());
+	_ts_if.request_tune_advance (&tune_param);
 	
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void _tune_stop (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _tune_stop (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 1) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: stop {group_id})\n");
@@ -211,22 +211,22 @@ static void _tune_stop (int argc, char* argv[], CThreadMgrBase *pBase)
 	uint8_t group_id = atoi(argv[0]);
 
 	{
-		CTunerServiceIf _if(pBase->getExternalIf());
-		_if.reqTuneStopSync (group_id);
+		CTunerServiceIf _if(base->get_external_if());
+		_if.request_tune_stop_sync (group_id);
 	
-		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
+		threadmgr::result rslt = base->get_if()->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
 			_COM_SVR_PRINT ("tune stop success\n");
 		} else {
 			_COM_SVR_PRINT ("tune stop error\n");
 		}
 	}
 	{
-		CTunerServiceIf _if(pBase->getExternalIf());
-		_if.reqCloseSync (group_id);
+		CTunerServiceIf _if(base->get_external_if());
+		_if.request_close_sync (group_id);
 	
-		EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-		if (enRslt == EN_THM_RSLT_SUCCESS) {
+		threadmgr::result rslt = base->get_if()->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
 			_COM_SVR_PRINT ("close success\n");
 		} else {
 			_COM_SVR_PRINT ("close error\n");
@@ -234,25 +234,25 @@ static void _tune_stop (int argc, char* argv[], CThreadMgrBase *pBase)
 	}
 }
 
-static void _dump_channels (int argc, char* argv[], CThreadMgrBase *pBase)
+static void _dump_channels (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CChannelManagerIf _if(pBase->getExternalIf());
-	_if.reqDumpChannels ();
+	CChannelManagerIf _if(base->get_external_if());
+	_if.request_dump_channels ();
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
 
-ST_COMMAND_INFO g_chManagerCommands [] = { // extern
+command_info_t g_channel_manager_commands [] = { // extern
 	{
 		"scan",
 		"channel scan",

@@ -12,7 +12,7 @@
 #include "Utils.h"
 
 
-static void addReserve_currentEvent (int argc, char* argv[], CThreadMgrBase *pBase)
+static void add_reserve_current_event (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 1) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: ce {group_id})\n");
@@ -26,15 +26,15 @@ static void addReserve_currentEvent (int argc, char* argv[], CThreadMgrBase *pBa
 	}
 	uint8_t group_id = atoi(argv[0]);
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqAddReserve_currentEvent (group_id);
+	CRecManagerIf _if (base->get_external_if());
+	_if.request_add_reserve_current_event (group_id);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
 // yyyyMMddHHmmss to epoch time 
@@ -101,7 +101,7 @@ static time_t dateString2epoch (char *pszDate)
 	return mktime (&t);
 }
 
-static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
+static void add_reserve_manual (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 6) {
 		_COM_SVR_PRINT ("invalid arguments.\n");
@@ -187,10 +187,10 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 		_COM_SVR_PRINT ("invalid arguments. (repeat)\n");
 		return;
 	}
-	EN_RESERVE_REPEATABILITY r = (EN_RESERVE_REPEATABILITY) atoi (argv[5]);
+	CRecManagerIf::reserve_repeatability r = (CRecManagerIf::reserve_repeatability) atoi (argv[5]);
 
 
-	CRecManagerIf::ADD_RESERVE_PARAM_t _param;
+	CRecManagerIf::add_reserve_param_t _param;
 	_param.transport_stream_id = _tsid ;
 	_param.original_network_id = _org_nid;
 	_param.service_id = _svc_id;
@@ -201,18 +201,18 @@ static void addReserve_manual (int argc, char* argv[], CThreadMgrBase *pBase)
 	_param.dump();
 
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqAddReserve_manual (&_param);
+	CRecManagerIf _if (base->get_external_if());
+	_if.request_add_reserve_manual (&_param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
+static void add_reserve_event (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 5) {
 		_COM_SVR_PRINT ("invalid arguments.\n");
@@ -282,10 +282,10 @@ static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 		return;
 	}
 	int rpt = atoi (argv[4]);
-	EN_RESERVE_REPEATABILITY r = rpt == 0 ? EN_RESERVE_REPEATABILITY__NONE: EN_RESERVE_REPEATABILITY__AUTO;
+	CRecManagerIf::reserve_repeatability r = rpt == 0 ? CRecManagerIf::reserve_repeatability::none: CRecManagerIf::reserve_repeatability::auto_;
 
 
-	CRecManagerIf::ADD_RESERVE_PARAM_t _param;
+	CRecManagerIf::add_reserve_param_t _param;
 	_param.transport_stream_id = _tsid ;
 	_param.original_network_id = _org_nid;
 	_param.service_id = _svc_id;
@@ -295,18 +295,18 @@ static void addReserve_event (int argc, char* argv[], CThreadMgrBase *pBase)
 	_param.dump();
 
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqAddReserve_event (&_param);
+	CRecManagerIf _if (base->get_external_if());
+	_if.request_add_reserve_event (&_param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void addReserve_eventHelper (int argc, char* argv[], CThreadMgrBase *pBase)
+static void add_reserve_event_helper (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 2) {
 		_COM_SVR_PRINT ("invalid arguments.\n");
@@ -327,26 +327,26 @@ static void addReserve_eventHelper (int argc, char* argv[], CThreadMgrBase *pBas
 		return;
 	}
 	int rpt = atoi (argv[1]);
-	EN_RESERVE_REPEATABILITY r = rpt == 0 ? EN_RESERVE_REPEATABILITY__NONE: EN_RESERVE_REPEATABILITY__AUTO;
+	CRecManagerIf::reserve_repeatability r = rpt == 0 ? CRecManagerIf::reserve_repeatability::none: CRecManagerIf::reserve_repeatability::auto_;
 
 
-	CRecManagerIf::ADD_RESERVE_HELPER_PARAM_t _param;
+	CRecManagerIf::add_reserve_helper_param_t _param;
 	_param.index = _idx ;
 	_param.repeatablity = r;
 
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqAddReserve_eventHelper (&_param);
+	CRecManagerIf _if (base->get_external_if());
+	_if.request_add_reserve_event_helper (&_param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
+static void remove_reserve (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 5) {
 		_COM_SVR_PRINT ("invalid arguments.\n");
@@ -414,29 +414,29 @@ static void removeReserve (int argc, char* argv[], CThreadMgrBase *pBase)
 		_COM_SVR_PRINT ("invalid arguments. (consider repeatability)\n");
 		return;
 	}
-	bool isConsiderRepeatability = (atoi(argv[4]) == 0 ? false : true);
+	bool is_consider_repeatability = (atoi(argv[4]) == 0 ? false : true);
 
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CRecManagerIf::REMOVE_RESERVE_PARAM_t param; 
+	CRecManagerIf::remove_reserve_param_t param; 
 	param.arg.key.transport_stream_id = _tsid;
 	param.arg.key.original_network_id = _org_nid;
 	param.arg.key.service_id = _svc_id;
 	param.arg.key.event_id = _evt_id;
-	param.isConsiderRepeatability = isConsiderRepeatability;
-	param.isApplyResult = true;
+	param.is_consider_repeatability = is_consider_repeatability;
+	param.is_apply_result = true;
 
-	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqRemoveReserve (&param);
+	CRecManagerIf _if (base->get_external_if());
+	_if.request_remove_reserve (&param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void removeReserve_byIndex (int argc, char* argv[], CThreadMgrBase *pBase)
+static void remove_reserve_by_index (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 2) {
 		_COM_SVR_PRINT ("invalid arguments.\n");
@@ -456,38 +456,38 @@ static void removeReserve_byIndex (int argc, char* argv[], CThreadMgrBase *pBase
 	}
 
 	int index = atoi(argv[0]);
-	bool isConsiderRepeatability = (atoi(argv[1]) == 0 ? false : true);
+	bool is_consider_repeatability = (atoi(argv[1]) == 0 ? false : true);
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CRecManagerIf::REMOVE_RESERVE_PARAM_t param; 
+	CRecManagerIf::remove_reserve_param_t param; 
 	param.arg.index = index;
-	param.isConsiderRepeatability = isConsiderRepeatability;
-	param.isApplyResult = true;
+	param.is_consider_repeatability = is_consider_repeatability;
+	param.is_apply_result = true;
 
-	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqRemoveReserve_byIndex (&param);
+	CRecManagerIf _if (base->get_external_if());
+	_if.request_remove_reserve_by_index (&param);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void get_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
+static void get_reserves (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	CRecManagerIf::RESERVE_t reserves[50] = {0}; // max 50
-	CRecManagerIf::GET_RESERVES_PARAM_t param = {reserves, 50};
-	CRecManagerIf _if (pBase->getExternalIf());
-	_if.syncGetReserves (&param);
+	CRecManagerIf::reserve_t reserves[50] = {0}; // max 50
+	CRecManagerIf::get_reserves_param_t param = {reserves, 50};
+	CRecManagerIf _if (base->get_external_if());
+	_if.request_get_reserves_sync (&param);
 
-	EN_THM_RSLT enRslt = pBase->getIf()->getSrcInfo()->enRslt;
-	if (enRslt == EN_THM_RSLT_SUCCESS) {
-		int n =  *(int*)(pBase->getIf()->getSrcInfo()->msg.pMsg);
+	threadmgr::result rslt = base->get_if()->get_source().get_result();
+	if (rslt == threadmgr::result::success) {
+		int n =  *(int*)(base->get_if()->get_source().get_message().data());
 		_COM_SVR_PRINT ("syncGetReserves success\n");
 		_COM_SVR_PRINT ("num of reserves is [%d]\n", n);
 		for (int i = 0; i < n; ++ i) {
@@ -518,7 +518,7 @@ static void get_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
 	}
 }
 
-static void stop (int argc, char* argv[], CThreadMgrBase *pBase)
+static void stop (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 1) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: stop {group_id})\n");
@@ -532,75 +532,75 @@ static void stop (int argc, char* argv[], CThreadMgrBase *pBase)
 	}
 	uint8_t group_id = atoi(argv[0]);
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqStopRecording (group_id);
+	CRecManagerIf _if (base->get_external_if());
+	_if.request_stop_recording (group_id);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_reserves (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_reserves (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqDumpReserves (0);
+	CRecManagerIf _if (base->get_external_if());
+	_if.request_dump_reserves (0);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_results (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_results (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqDumpReserves (1);
+	CRecManagerIf _if (base->get_external_if());
+	_if.request_dump_reserves (1);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_recording (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_recording (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
 	}
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CRecManagerIf _if (pBase->getExternalIf());
-	_if.reqDumpReserves (2);
+	CRecManagerIf _if (base->get_external_if());
+	_if.request_dump_reserves (2);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
 
 
-ST_COMMAND_INFO g_recManagerCommands [] = { // extern
+command_info_t g_rec_manager_commands [] = { // extern
 	{
 		"ce",
 		"add reserve - CurrentEvent (usage: ce {group_id})",
-		addReserve_currentEvent,
+		add_reserve_current_event,
 		NULL,
 	},
 	{
@@ -608,7 +608,7 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 		"add reserve - event\n\
                                 (usage: e {tsid} {org_nid} {svcid} {evtid} {repeat})\n\
                                            - repeat is 0 (none), 1 (auto)",
-		addReserve_event,
+		add_reserve_event,
 		NULL,
 	},
 	{
@@ -616,7 +616,7 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
 		"add reserve - event (helper)\n\
                                 (usage: eh {index} {repeat})\n\
                                            - repeat is 0 (none), 1 (auto)",
-		addReserve_eventHelper,
+		add_reserve_event_helper,
 		NULL,
 	},
 	{
@@ -625,21 +625,21 @@ ST_COMMAND_INFO g_recManagerCommands [] = { // extern
                                 (usage: m {tsid} {org_nid} {svcid} {start_time} {end_time} {repeat})\n\
                                            - start_time, end_time format is \"yyyyMMddHHmmss\"\n\
                                            - repeat is 0 (none), 1 (daily), 2 (weekly)",
-		addReserve_manual,
+		add_reserve_manual,
 		NULL,
 	},
 	{
 		"r",
 		"remove reserve (usage: r {tsid} {org_nid} {svcid} {evtid} {consider repeatability})\n\
                                            - consider repeatability is 0 (false), 1 (true)",
-		removeReserve,
+		remove_reserve,
 		NULL,
 	},
 	{
 		"rx",
 		"remove reserve by index (usage: rx {index} {consider repeatability})\n\
                                            - consider repeatability is 0 (false), 1 (true)",
-		removeReserve_byIndex,
+		remove_reserve_by_index,
 		NULL,
 	},
 	{

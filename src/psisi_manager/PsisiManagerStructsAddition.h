@@ -15,7 +15,7 @@
 //---------------------------------------------------
 typedef struct {
     CEventInformationTable_sched *p_parser;
-} Enable_PARSE_EIT_SCHED_REPLY_PARAM_t;
+} enable_parse_eit_sched_reply_param_t;
 
 
 

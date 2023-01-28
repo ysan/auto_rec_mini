@@ -9,54 +9,57 @@
 
 #include "ThreadMgrpp.h"
 #include "modules.h"
+#include "threadmgr_if.h"
 
 
-using namespace ThreadManager;
-
-enum {
-	EN_SEQ_EVENT_SEARCH__MODULE_UP = 0,
-	EN_SEQ_EVENT_SEARCH__MODULE_DOWN,
-	EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH,
-	EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX,
-	EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES,
-	EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES_EX,
-
-	EN_SEQ_EVENT_SEARCH__NUM,
-};
-
-
-class CEventSearchIf : public CThreadMgrExternalIf
+class CEventSearchIf : public threadmgr::CThreadMgrExternalIf
 {
 public:
-	explicit CEventSearchIf (CThreadMgrExternalIf *pIf) : CThreadMgrExternalIf (pIf) {
+	enum class sequence : int {
+		module_up = 0,
+		module_down,
+		add_rec_reserve_keyword_search,
+		add_rec_reserve_keyword_search_ex,
+		dump_histories,
+		dump_histories_ex,
+		max,
+	};
+
+	explicit CEventSearchIf (CThreadMgrExternalIf *p_if) : CThreadMgrExternalIf (p_if) {
 	};
 
 	virtual ~CEventSearchIf (void) {
 	};
 
 
-	bool reqModuleUp (void) {
-		return requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__MODULE_UP);
+	bool request_module_up (void) {
+		int sequence = static_cast<int>(sequence::module_up);
+		return request_async (EN_MODULE_EVENT_SEARCH, sequence);
 	};
 
-	bool reqModuleDown (void) {
-		return requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__MODULE_DOWN);
+	bool request_module_down (void) {
+		int sequence = static_cast<int>(sequence::module_down);
+		return request_async (EN_MODULE_EVENT_SEARCH, sequence);
 	};
 
-	bool reqAddRecReserve_keywordSearch (void) {
-		return requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH);
+	bool request_add_rec_reserve_keyword_search (void) {
+		int sequence = static_cast<int>(sequence::add_rec_reserve_keyword_search);
+		return request_async (EN_MODULE_EVENT_SEARCH, sequence);
 	};
 
-	bool reqAddRecReserve_keywordSearch_ex (void) {
-		return requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__ADD_REC_RESERVE__KEYWORD_SEARCH_EX);
+	bool request_add_rec_reserve_keyword_search_ex (void) {
+		int sequence = static_cast<int>(sequence::add_rec_reserve_keyword_search_ex);
+		return request_async (EN_MODULE_EVENT_SEARCH, sequence);
 	};
 
-	bool reqDumpHistories (void) {
-		return requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES);
+	bool request_dump_histories (void) {
+		int sequence = static_cast<int>(sequence::dump_histories);
+		return request_async (EN_MODULE_EVENT_SEARCH, sequence);
 	};
 
-	bool reqDumpHistories_ex (void) {
-		return requestAsync (EN_MODULE_EVENT_SEARCH, EN_SEQ_EVENT_SEARCH__DUMP_HISTORIES_EX);
+	bool request_dump_histories_ex (void) {
+		int sequence = static_cast<int>(sequence::dump_histories_ex);
+		return request_async (EN_MODULE_EVENT_SEARCH, sequence);
 	};
 };
 

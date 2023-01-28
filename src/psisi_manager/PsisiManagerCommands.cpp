@@ -12,7 +12,7 @@
 
 static uint8_t s_tuner_id = 0;
 
-static void set_target_tuner_id (int argc, char* argv[], CThreadMgrBase *pBase)
+static void set_target_tuner_id (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 1) {
 		_COM_SVR_PRINT ("invalid arguments. (usage: st {tuner id})\n");
@@ -35,7 +35,7 @@ static void set_target_tuner_id (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("--------------------\n");
 }
 
-static void dump_programInfos (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_programInfos (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -45,18 +45,18 @@ static void dump_programInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpCaches (0);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_caches (0);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_serviceInfos (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_serviceInfos (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -66,18 +66,18 @@ static void dump_serviceInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpCaches (1);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_caches (1);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_eventPfInfos (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_eventPfInfos (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -87,18 +87,18 @@ static void dump_eventPfInfos (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpCaches (2);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_caches (2);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_networkInfo (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_networkInfo (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -108,18 +108,18 @@ static void dump_networkInfo (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpCaches (3);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_caches (3);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_pat (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_pat (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -129,18 +129,18 @@ static void dump_pat (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__PAT);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::PAT);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_pmt (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_pmt (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -150,18 +150,18 @@ static void dump_pmt (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__PMT);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::PMT);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_eit_pf (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_eit_pf (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -171,18 +171,18 @@ static void dump_eit_pf (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__EIT_H_PF);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::EIT_H_PF);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_eit_pf_simple (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_eit_pf_simple (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -192,18 +192,18 @@ static void dump_eit_pf_simple (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__EIT_H_PF_simple);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::EIT_H_PF_simple);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_eit_sch (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_eit_sch (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -213,18 +213,18 @@ static void dump_eit_sch (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__EIT_H_SCHED);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::EIT_H_SCHED);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_eit_sched_event (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_eit_sched_event (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -234,18 +234,18 @@ static void dump_eit_sched_event (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__EIT_H_SCHED_event);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::EIT_H_SCHED_event);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_eit_sched_simple (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_eit_sched_simple (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -255,18 +255,18 @@ static void dump_eit_sched_simple (int argc, char* argv[], CThreadMgrBase *pBase
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__EIT_H_SCHED_simple);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::EIT_H_SCHED_simple);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_nit (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_nit (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -276,18 +276,18 @@ static void dump_nit (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__NIT);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::NIT);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_sdt (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_sdt (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -297,18 +297,18 @@ static void dump_sdt (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__SDT);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::SDT);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_cat (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_cat (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -318,18 +318,18 @@ static void dump_cat (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__CAT);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::CAT);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_cdt (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_cdt (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -339,18 +339,18 @@ static void dump_cdt (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__CDT);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::CDT);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_rst (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_rst (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -360,18 +360,18 @@ static void dump_rst (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__RST);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::RST);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
-static void dump_bit (int argc, char* argv[], CThreadMgrBase *pBase)
+static void dump_bit (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
 		_COM_SVR_PRINT ("ignore arguments.\n");
@@ -381,19 +381,19 @@ static void dump_bit (int argc, char* argv[], CThreadMgrBase *pBase)
 	_COM_SVR_PRINT ("target tuner id=[%d]\n", s_tuner_id);
 	_COM_SVR_PRINT ("--------------------\n");
 
-	uint32_t opt = pBase->getExternalIf()->getRequestOption ();
+	uint32_t opt = base->get_external_if()->get_request_option ();
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 
-	CPsisiManagerIf mgr(pBase->getExternalIf(), s_tuner_id);
-	mgr.reqDumpTables (EN_PSISI_TYPE__BIT);
+	CPsisiManagerIf _if(base->get_external_if(), s_tuner_id);
+	_if.request_dump_tables (CPsisiManagerIf::psisi_type::BIT);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	pBase->getExternalIf()->setRequestOption (opt);
+	base->get_external_if()->set_request_option (opt);
 }
 
 
-ST_COMMAND_INFO g_psisiManagerDumpTables [] = { // extern
+command_info_t g_psisi_manager_dump_tables [] = { // extern
 	{
 		"pat",
 		"dump PAT",
@@ -481,7 +481,7 @@ ST_COMMAND_INFO g_psisiManagerDumpTables [] = { // extern
 	},
 };
 
-ST_COMMAND_INFO g_psisiManagerCommands [] = { // extern
+command_info_t g_psisi_manager_commands [] = { // extern
 	{
 		"st",
 		"set target tuner id (usage: st {tuner id})",
@@ -516,7 +516,7 @@ ST_COMMAND_INFO g_psisiManagerCommands [] = { // extern
 		"t",
 		"dump psisi-tables",
 		NULL,
-		g_psisiManagerDumpTables,
+		g_psisi_manager_dump_tables,
 	},
 	//-- term --//
 	{

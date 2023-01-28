@@ -11,18 +11,20 @@
 #include "TsAribCommon.h"
 
 
+namespace psisi_structs {
+
 //---------------------------------------------------
 typedef struct {
 	uint8_t type;
 	uint16_t pid; // pes pid
-} PSISI_STREAM_INFO;
+} stream_info_t;
 
 typedef struct {
 	uint16_t program_number; // service_id
 	EN_STREAM_TYPE type;
-	PSISI_STREAM_INFO *p_out_streamInfos;
+	stream_info_t *p_out_stream_infos;
 	int array_max_num;
-} REQ_STREAM_INFOS_PARAM;
+} request_stream_infos_param_t;
 
 
 //---------------------------------------------------
@@ -47,12 +49,12 @@ typedef struct {
 		);
 	}
 
-} PSISI_SERVICE_INFO;
+} service_info_t;
 
 typedef struct {
-	PSISI_SERVICE_INFO *p_out_serviceInfos;
+	service_info_t *p_out_service_infos;
 	int array_max_num;
-} REQ_SERVICE_INFOS_PARAM;
+} request_service_infos_param_t;
 
 
 //---------------------------------------------------
@@ -96,12 +98,12 @@ typedef struct {
 		_UTL_LOG_I ("event_name:[%s]", event_name_char);
 	}
 
-} PSISI_EVENT_INFO;
+} event_info_t;
 
 typedef struct {
-	PSISI_SERVICE_INFO key;
-	PSISI_EVENT_INFO *p_out_eventInfo;
-} REQ_EVENT_INFO_PARAM;
+	service_info_t key;
+	event_info_t *p_out_event_info;
+} request_event_info_param_t;
 
 typedef struct {
 	uint8_t table_id;
@@ -113,7 +115,7 @@ typedef struct {
 
 	void dump (void) {
 		_UTL_LOG_I (
-			"psisiNotify eventInfo: tblid:[0x%2x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
+			"psisi_notify event_info: tblid:[0x%2x] tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x] evtid:[0x%04x]",
 			table_id,
 			transport_stream_id,
 			original_network_id,
@@ -122,7 +124,7 @@ typedef struct {
 		);
 	}
 
-} PSISI_NOTIFY_EVENT_INFO;
+} notify_event_info_t;
 
 
 //---------------------------------------------------
@@ -178,10 +180,12 @@ public:
 		);
 	}
 
-} PSISI_NETWORK_INFO;
+} network_info_t;
 
 typedef struct {
-	PSISI_NETWORK_INFO *p_out_networkInfo;
-} REQ_NETWORK_INFO_PARAM;
+	network_info_t *p_out_network_info;
+} request_network_info_param_t;
+
+} // psisi_structs
 
 #endif

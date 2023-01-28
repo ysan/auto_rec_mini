@@ -34,18 +34,19 @@ int forker_log_print (FILE *fp, const char* format, ...)
 	return 0;
 }
 
-CTuneThread::CTuneThread (char *pszName, uint8_t nQueNum, uint8_t groupId)
-	:CThreadMgrBase (pszName, nQueNum)
-	,CGroup (groupId)
-	,mState (state::CLOSED)
+CTuneThread::CTuneThread (std::string name, uint8_t que_max, uint8_t group_id)
+	:threadmgr::CThreadMgrBase (name, que_max)
+	,CGroup (group_id)
+	,m_state (state::closed)
 {
-	SEQ_BASE_t seqs [EN_SEQ_TUNE_THREAD_NUM] = {
-		{(PFN_SEQ_BASE)&CTuneThread::moduleUp, (char*)"moduleUp"},     // EN_SEQ_TUNE_THREAD_MODULE_UP
-		{(PFN_SEQ_BASE)&CTuneThread::moduleDown, (char*)"moduleDown"}, // EN_SEQ_TUNE_THREAD_MODULE_DOWN
-		{(PFN_SEQ_BASE)&CTuneThread::tune, (char*)"tune"},             // EN_SEQ_TUNE_THREAD_TUNE
-		{(PFN_SEQ_BASE)&CTuneThread::forceKill, (char*)"forceKill"},   // EN_SEQ_TUNE_THREAD_FORCE_KILL
+	const int _max = static_cast<int>(CTuneThread::sequence::max);
+	threadmgr::sequence_t seqs [_max] = {
+		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_module_up(p_if);},"on_module_up"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_module_down(p_if);}, "on_module_down"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_tune(p_if);}, "tune"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_force_kill(p_if);}, "on_force_kill"},
 	};
-	setSeqs (seqs, EN_SEQ_TUNE_THREAD_NUM);
+	set_sequences (seqs, _max);
 
 	mp_settings = CSettings::getInstance();
 	m_forker.set_log_cb (forker_log_print);
@@ -53,72 +54,73 @@ CTuneThread::CTuneThread (char *pszName, uint8_t nQueNum, uint8_t groupId)
 
 CTuneThread::~CTuneThread (void)
 {
+	reset_sequences();
 }
 
 
-void CTuneThread::moduleUp (CThreadMgrIf *pIf)
+void CTuneThread::on_module_up (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 //
-// do nothing
+// do something
 //
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CTuneThread::moduleDown (CThreadMgrIf *pIf)
+void CTuneThread::on_module_down (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 //
-// do nothing
+// do something
 //
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CTuneThread::tune (CThreadMgrIf *pIf)
+void CTuneThread::on_tune (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	CTuneThread::TUNE_PARAM_t param = *(CTuneThread::TUNE_PARAM_t*)(pIf->getSrcInfo()->msg.pMsg);
+	CTuneThread::tune_param_t param = *(CTuneThread::tune_param_t*)(p_if->get_source().get_message().data());
 
-	if (mState != state::CLOSED) {
-		_UTL_LOG_E ("mState != CLOSED");
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		pIf->setSectId (sectId, enAct);
+	if (m_state != state::closed) {
+		_UTL_LOG_E ("m_state != closed");
+		p_if->reply (threadmgr::result::error);
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
+		p_if->set_section_id (section_id, act);
 		return;
 	}
 
@@ -126,10 +128,10 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	std::vector<std::string> *p_tuner_hal_allocates = mp_settings->getParams()->getTunerHalAllocates();
 	if (p_tuner_hal_allocates->size() <= getGroupId()) {
 		_UTL_LOG_E ("not allocated tuner hal command... (settings.json ->tuner_hal_allocates)");
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		pIf->setSectId (sectId, enAct);
+		p_if->reply (threadmgr::result::error);
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
+		p_if->set_section_id (section_id, act);
 		return;
 	}
 	std::string com_form = (*p_tuner_hal_allocates) [getGroupId()];
@@ -139,41 +141,41 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 
 	if (!m_forker.create_pipes()) {
 		_UTL_LOG_E("create_pipes failure.");
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		pIf->setSectId (sectId, enAct);
+		p_if->reply (threadmgr::result::error);
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
+		p_if->set_section_id (section_id, act);
 		m_forker.destroy_pipes();
 		return;
 	}
 
 	if (!m_forker.do_fork(command)) {
 		_UTL_LOG_E("do_dork failure.");
-		pIf->reply (EN_THM_RSLT_ERROR);
-		sectId = THM_SECT_ID_INIT;
-		enAct = EN_THM_ACT_DONE;
-		pIf->setSectId (sectId, enAct);
+		p_if->reply (threadmgr::result::error);
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
+		p_if->set_section_id (section_id, act);
 		m_forker.destroy_pipes();
 		return;
 	}
 
-	_UTL_LOG_I ("mState => OPENED");
-	mState = state::OPENED;
+	_UTL_LOG_I ("m_state => opened");
+	m_state = state::opened;
 
 	// ここ以下はループが回りスレッド占有するので
 	// 先にリプライしときます
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	_UTL_LOG_I ("mState => TUNE_BEGINED");
-	mState = state::TUNE_BEGINED;
+	_UTL_LOG_I ("m_state => tune_begined");
+	m_state = state::tune_begined;
 
 	{ //---------------------------
 		_UTL_LOG_I ("onPreTsReceive");
-		std::lock_guard<std::mutex> lock (*param.pMutexTsReceiveHandlers);
-		CTunerControlIf::ITsReceiveHandler **p_handlers = param.pTsReceiveHandlers;
+		std::lock_guard<std::mutex> lock (*param.p_mutex_ts_receive_handlers);
+		CTunerControlIf::ITsReceiveHandler **p_handlers = param.p_ts_receive_handlers;
 		for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
 			if (p_handlers[i]) {
-				(p_handlers[i])->onPreTsReceive ();
+				(p_handlers[i])->on_pre_ts_receive ();
 			}
 		}
 	} //---------------------------
@@ -203,7 +205,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 		} else if (r == 0) {
 			// timeout
 			// check tuner stop request
-			if (*(param.pIsReqStop)) {
+			if (*(param.p_is_req_stop)) {
 				_UTL_LOG_I ("req stoped. (timeout check)");
 				break;
 			}
@@ -222,18 +224,18 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 				break;
 
 			} else {
-				if (mState == state::TUNE_BEGINED) {
+				if (m_state == state::tune_begined) {
 					_UTL_LOG_I ("first ts read _size=[%d]", _size);
-					_UTL_LOG_I ("mState => TUNED");
-					mState = state::TUNED;
+					_UTL_LOG_I ("m_state => TUNED");
+					m_state = state::tuned;
 				}
 
 				{ //---------------------------
-					std::lock_guard<std::mutex> lock (*param.pMutexTsReceiveHandlers);
-					CTunerControlIf::ITsReceiveHandler **p_handlers = param.pTsReceiveHandlers;
+					std::lock_guard<std::mutex> lock (*param.p_mutex_ts_receive_handlers);
+					CTunerControlIf::ITsReceiveHandler **p_handlers = param.p_ts_receive_handlers;
 					for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
 						if (p_handlers[i]) {
-							(p_handlers[i])->onTsReceived (buff, _size);
+							(p_handlers[i])->on_ts_received (buff, _size);
 						}
 					}
 				} //---------------------------
@@ -241,7 +243,7 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 				_total_size += _size;
 
 				// check tuner stop request
-				if (*(param.pIsReqStop)) {
+				if (*(param.p_is_req_stop)) {
 					_UTL_LOG_I ("req stoped.");
 					break;
 				}
@@ -265,25 +267,25 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 				_UTL_LOG_I ("%s", buff);
 
 				// check tuner stop request
-				if (*(param.pIsReqStop)) {
+				if (*(param.p_is_req_stop)) {
 					_UTL_LOG_I ("req stoped.");
 					break;
 				}
 			}
 		}
 	}
-	_UTL_LOG_I ("mState => TUNE_ENDED");
-	mState = state::TUNE_ENDED;
+	_UTL_LOG_I ("m_state => TUNE_ENDED");
+	m_state = state::tune_ended;
 
 	_UTL_LOG_I ("ts read total_size=[%llu]", _total_size);
 
 	{ //---------------------------
 		_UTL_LOG_I ("onPostTsReceive");
-		std::lock_guard<std::mutex> lock (*param.pMutexTsReceiveHandlers);
-		CTunerControlIf::ITsReceiveHandler **p_handlers = param.pTsReceiveHandlers;
+		std::lock_guard<std::mutex> lock (*param.p_mutex_ts_receive_handlers);
+		CTunerControlIf::ITsReceiveHandler **p_handlers = param.p_ts_receive_handlers;
 		for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
 			if (p_handlers[i]) {
-				(p_handlers[i])->onPostTsReceive ();
+				(p_handlers[i])->on_post_ts_receive ();
 			}
 		}
 	} //---------------------------
@@ -291,33 +293,33 @@ void CTuneThread::tune (CThreadMgrIf *pIf)
 	m_forker.wait_child(SIGUSR1);
 	m_forker.destroy_pipes();
 
-	_UTL_LOG_I ("mState => CLSOED");
-	mState = state::CLOSED;
+	_UTL_LOG_I ("m_state => clsoed");
+	m_state = state::closed;
 
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
 
-void CTuneThread::forceKill (CThreadMgrIf *pIf)
+void CTuneThread::on_force_kill (threadmgr::CThreadMgrIf *p_if)
 {
-	uint8_t sectId;
-	EN_THM_ACT enAct;
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
 	enum {
-		SECTID_ENTRY = THM_SECT_ID_INIT,
+		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_END,
 	};
 
-	sectId = pIf->getSectId();
-	_UTL_LOG_D ("(%s) sectId %d\n", pIf->getSeqName(), sectId);
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 	m_forker.wait_child(SIGUSR1);
 	m_forker.destroy_pipes();
 
-	pIf->reply (EN_THM_RSLT_SUCCESS);
+	p_if->reply (threadmgr::result::success);
 
-	sectId = THM_SECT_ID_INIT;
-	enAct = EN_THM_ACT_DONE;
-	pIf->setSectId (sectId, enAct);
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
 }
