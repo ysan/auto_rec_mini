@@ -24,10 +24,10 @@ jobs:
         path: main
         submodules: true
     - name: checkout libarib25
-       uses: actions/checkout@v3
-       with:
-         repository: stz2012/libarib25
-         path: libarib25
+      uses: actions/checkout@v3
+      with:
+        repository: stz2012/libarib25
+        path: libarib25
     - name: install deps
       if: matrix.os == 'ubuntu-latest'
       run: |
