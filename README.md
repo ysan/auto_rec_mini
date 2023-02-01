@@ -3,7 +3,10 @@
 auto_rec_mini
 ===============
 
+[![Build Status](https://github.com/ysan/auto_rec_mini/actions/workflows/ci.yml/badge.svg)](https://github.com/ysan/auto_rec_mini/actions/workflows/ci.yml)
+<!--
 [![Build Status](https://www.travis-ci.com/ysan/auto_rec_mini.svg?branch=master)](https://www.travis-ci.com/ysan/auto_rec_mini)
+-->
 
 Digital broadcast recording system for Japan. The middleware daemon with minimal functions.  
 Keyword search recording reservation is the main function.  

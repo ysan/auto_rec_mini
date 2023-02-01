@@ -1,0 +1,50 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+      with:
+        path: main
+        submodules: true
+    - name: checkout libarib25
+       uses: actions/checkout@v3
+       with:
+         repository: stz2012/libarib25
+         path: libarib25
+    - name: install deps
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt update
+        sudo apt install -y pcscd libpcsclite-dev libccid pcsc-tools cmake g++
+    - name: setup libarib25
+      working-directory: ./libarib25
+      run: |
+        mkdir build
+    - name: build libarib25
+      working-directory: ./libarib25/build
+      run: |
+        cmake ..
+        make
+        sudo make install
+    - name: build
+      working-directory: ./main
+      run: |
+        make
+        sudo make INSTALLDIR=/opt/auto_rec_mini install
