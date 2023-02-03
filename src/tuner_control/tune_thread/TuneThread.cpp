@@ -170,7 +170,7 @@ void CTuneThread::on_tune (threadmgr::CThreadMgrIf *p_if)
 	m_state = state::tune_begined;
 
 	{ //---------------------------
-		_UTL_LOG_I ("onPreTsReceive");
+		_UTL_LOG_I ("on_pre_ts_receive");
 		std::lock_guard<std::mutex> lock (*param.p_mutex_ts_receive_handlers);
 		CTunerControlIf::ITsReceiveHandler **p_handlers = param.p_ts_receive_handlers;
 		for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
@@ -226,7 +226,7 @@ void CTuneThread::on_tune (threadmgr::CThreadMgrIf *p_if)
 			} else {
 				if (m_state == state::tune_begined) {
 					_UTL_LOG_I ("first ts read _size=[%d]", _size);
-					_UTL_LOG_I ("m_state => TUNED");
+					_UTL_LOG_I ("m_state => tuned");
 					m_state = state::tuned;
 				}
 
@@ -274,13 +274,13 @@ void CTuneThread::on_tune (threadmgr::CThreadMgrIf *p_if)
 			}
 		}
 	}
-	_UTL_LOG_I ("m_state => TUNE_ENDED");
+	_UTL_LOG_I ("m_state => tune_ended");
 	m_state = state::tune_ended;
 
 	_UTL_LOG_I ("ts read total_size=[%llu]", _total_size);
 
 	{ //---------------------------
-		_UTL_LOG_I ("onPostTsReceive");
+		_UTL_LOG_I ("on_post_ts_receive");
 		std::lock_guard<std::mutex> lock (*param.p_mutex_ts_receive_handlers);
 		CTunerControlIf::ITsReceiveHandler **p_handlers = param.p_ts_receive_handlers;
 		for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {

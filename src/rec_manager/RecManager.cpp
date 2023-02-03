@@ -207,7 +207,7 @@ void CRecManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 		break;
 
 	case SECTID_REQ_MODULE_UP_BY_GROUPID:
-		request_async (EN_MODULE_REC_MANAGER, static_cast<int>(CRecManagerIf::sequence::module_up_by_groupid), (uint8_t*)&s_gr_cnt, sizeof(s_gr_cnt));
+		request_async (static_cast<uint8_t>(module::module_id::rec_manager), static_cast<int>(CRecManagerIf::sequence::module_up_by_groupid), (uint8_t*)&s_gr_cnt, sizeof(s_gr_cnt));
 		++ s_gr_cnt;
 
 		section_id = SECTID_WAIT_MODULE_UP_BY_GROUPID;
@@ -232,7 +232,7 @@ void CRecManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 		break;
 
 	case SECTID_REQ_CHECK_LOOP:
-		request_async (EN_MODULE_REC_MANAGER, static_cast<int>(CRecManagerIf::sequence::check_loop));
+		request_async (static_cast<uint8_t>(module::module_id::rec_manager), static_cast<int>(CRecManagerIf::sequence::check_loop));
 
 		section_id = SECTID_WAIT_CHECK_LOOP;
 		act = threadmgr::action::wait;
@@ -252,7 +252,7 @@ void CRecManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 		break;
 
 	case SECTID_REQ_CHECK_RESERVES_EVENT_LOOP:
-		request_async (EN_MODULE_REC_MANAGER, static_cast<int>(CRecManagerIf::sequence::check_reserves_event_loop));
+		request_async (static_cast<uint8_t>(module::module_id::rec_manager), static_cast<int>(CRecManagerIf::sequence::check_reserves_event_loop));
 
 		section_id = SECTID_WAIT_CHECK_RESERVES_EVENT_LOOP;
 		act = threadmgr::action::wait;
@@ -272,7 +272,7 @@ void CRecManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 		break;
 
 	case SECTID_REQ_CHECK_RECORDINGS_EVENT_LOOP:
-		request_async (EN_MODULE_REC_MANAGER, static_cast<int>(CRecManagerIf::sequence::check_recordings_event_loop));
+		request_async (static_cast<uint8_t>(module::module_id::rec_manager), static_cast<int>(CRecManagerIf::sequence::check_recordings_event_loop));
 
 		section_id = SECTID_WAIT_CHECK_RECORDINGS_EVENT_LOOP;
 		act = threadmgr::action::wait;
@@ -556,7 +556,7 @@ void CRecManager::on_check_loop (threadmgr::CThreadMgrIf *p_if)
 
 		if (pick_req_start_recording_reserve (group_id)) {
 			// request start recording
-			request_async (EN_MODULE_REC_MANAGER, static_cast<int>(CRecManagerIf::sequence::start_recording), (uint8_t*)&group_id, sizeof(uint8_t));
+			request_async (static_cast<uint8_t>(module::module_id::rec_manager), static_cast<int>(CRecManagerIf::sequence::start_recording), (uint8_t*)&group_id, sizeof(uint8_t));
 
 			section_id = SECTID_WAIT_START_RECORDING;
 			act = threadmgr::action::wait;
@@ -1275,7 +1275,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 		_param.repeatablity = m_recordings[s_group_id].repeatability;
 		_param.dump();
 
-		request_async (EN_MODULE_REC_MANAGER, static_cast<int>(CRecManagerIf::sequence::add_reserve_event), (uint8_t*)&_param, sizeof(_param));
+		request_async (static_cast<uint8_t>(module::module_id::rec_manager), static_cast<int>(CRecManagerIf::sequence::add_reserve_event), (uint8_t*)&_param, sizeof(_param));
 
 		section_id = SECTID_WAIT_ADD_RESERVE_RESCHEDULE;
 		act = threadmgr::action::wait;
@@ -1469,7 +1469,7 @@ void CRecManager::on_add_reserve_current_event (threadmgr::CThreadMgrIf *p_if)
 				section_id = SECTID_REQ_GET_PAT_DETECT_STATE;
 				act = threadmgr::action::continue_;
 			} else {
-				_UTL_LOG_E ("not CTunerControlIf::tuner_state__TUNING_SUCCESS %d", _state);
+				_UTL_LOG_E ("not CTunerControlIf::tuner_state::tuning_success %d", _state);
 #ifdef _DUMMY_TUNER
 				section_id = SECTID_REQ_GET_PAT_DETECT_STATE;
 #else
@@ -1503,7 +1503,7 @@ void CRecManager::on_add_reserve_current_event (threadmgr::CThreadMgrIf *p_if)
 				section_id = SECTID_REQ_GET_SERVICE_INFOS;
 				act = threadmgr::action::continue_;
 			} else {
-				_UTL_LOG_E ("not EN_PAT_DETECT_STATE__DETECTED %d", _state);
+				_UTL_LOG_E ("pat_detection_state::not_detected %d", _state);
 #ifdef _DUMMY_TUNER
 				section_id = SECTID_REQ_GET_SERVICE_INFOS;
 #else
@@ -1681,7 +1681,7 @@ void CRecManager::on_add_reserve_event (threadmgr::CThreadMgrIf *p_if)
 		// rescheduleかのチェックします
 		uint8_t src_thread_idx = p_if->get_source().get_thread_idx();
 		uint8_t src_seq_idx = p_if->get_source().get_sequence_idx();
-		if ((src_thread_idx == EN_MODULE_REC_MANAGER) && (src_seq_idx == static_cast<int>(CRecManagerIf::sequence::start_recording))) {
+		if ((src_thread_idx == static_cast<uint8_t>(module::module_id::rec_manager)) && (src_seq_idx == static_cast<int>(CRecManagerIf::sequence::start_recording))) {
 			_UTL_LOG_I ("(%s) requst from CRecManagerIf::sequence::start_recording", p_if->get_sequence_name());
 			s_is_rescheduled = true;
 		}
@@ -2296,10 +2296,10 @@ void CRecManager::on_receive_notify (threadmgr::CThreadMgrIf *p_if)
 
 			CPsisiManagerIf::pat_detection_state _state = *(CPsisiManagerIf::pat_detection_state*)(p_if->get_source().get_message().data());
 			if (_state == CPsisiManagerIf::pat_detection_state::detected) {
-				_UTL_LOG_I ("EN_PAT_DETECT_STATE__DETECTED");
+				_UTL_LOG_I ("pat_detection_state::detected");
 
 			} else if (_state == CPsisiManagerIf::pat_detection_state::not_detected) {
-				_UTL_LOG_E ("EN_PAT_DETECT_STATE__NOT_DETECTED");
+				_UTL_LOG_E ("pat_detection_state::not_detected");
 
 				// PAT途絶したら録画中止します
 				if (m_recordings[_gr].state & RESERVE_STATE__NOW_RECORDING) {
@@ -2852,7 +2852,7 @@ void CRecManager::check_disk_free (void)
 				uint32_t opt = get_request_option ();
 				opt |= REQUEST_OPTION__WITHOUT_REPLY;
 				set_request_option (opt);
-				request_async (EN_MODULE_REC_MANAGER, static_cast<int>(CRecManagerIf::sequence::stop_recording), (uint8_t*)&group_id, sizeof(uint8_t));
+				request_async (static_cast<uint8_t>(module::module_id::rec_manager), static_cast<int>(CRecManagerIf::sequence::stop_recording), (uint8_t*)&group_id, sizeof(uint8_t));
 				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 				set_request_option (opt);
 			}
@@ -3049,7 +3049,7 @@ bool CRecManager::on_ts_received (void *p_ts_data, int length)
 
 		RECORDING_NOTICE_t _notice = {m_rec_progress, RESERVE_STATE__INIT};
 		request_async (
-			EN_MODULE_REC_MANAGER,
+			static_cast<uint8_t>(module::module_id::rec_manager),
 			EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -3078,7 +3078,7 @@ bool CRecManager::on_ts_received (void *p_ts_data, int length)
 
 		RECORDING_NOTICE_t _notice = {m_rec_progress, RESERVE_STATE__INIT};
 		request_async (
-			EN_MODULE_REC_MANAGER,
+			static_cast<uint8_t>(module::module_id::rec_manager),
 			EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -3095,7 +3095,7 @@ bool CRecManager::on_ts_received (void *p_ts_data, int length)
 
 		RECORDING_NOTICE_t _notice = {m_rec_progress, RESERVE_STATE__INIT};
 		request_async (
-			EN_MODULE_REC_MANAGER,
+			static_cast<uint8_t>(module::module_id::rec_manager),
 			EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -3115,7 +3115,7 @@ bool CRecManager::on_ts_received (void *p_ts_data, int length)
 
 		RECORDING_NOTICE_t _notice = {m_rec_progress, RESERVE_STATE__INIT};
 		request_async (
-			EN_MODULE_REC_MANAGER,
+			static_cast<uint8_t>(module::module_id::rec_manager),
 			EN_SEQ_REC_MANAGER__RECORDING_NOTICE,
 			(uint8_t*)&_notice,
 			sizeof(_notice)

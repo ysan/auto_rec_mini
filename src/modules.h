@@ -4,36 +4,39 @@
 
 #include "ThreadMgrBase.h"
 
+namespace module {
 
-typedef enum {
-	EN_MODULE_TUNE_THREAD = 0,		// group0
-	EN_MODULE_TUNE_THREAD_1,		// group1
-	EN_MODULE_TUNE_THREAD_2,		// group2
-	EN_MODULE_TUNE_THREAD_3,		// group3
+enum class module_id : uint8_t {
+	tune_thread = 0,	// group0
+	tune_thread_1,		// group1
+	tune_thread_2,		// group2
+	tune_thread_3,		// group3
 
-	EN_MODULE_TUNER_CONTROL,		// group0
-	EN_MODULE_TUNER_CONTROL_1,		// group1
-	EN_MODULE_TUNER_CONTROL_2,		// group2
-	EN_MODULE_TUNER_CONTROL_3,		// group3
+	tuner_control,		// group0
+	tuner_control_1,	// group1
+	tuner_control_2,	// group2
+	tuner_control_3,	// group3
 
-	EN_MODULE_PSISI_MANAGER,		// group0
-	EN_MODULE_PSISI_MANAGER_1,		// group1
-	EN_MODULE_PSISI_MANAGER_2,		// group2
-	EN_MODULE_PSISI_MANAGER_3,		// group3
+	psisi_manager,		// group0
+	psisi_manager_1,	// group1
+	psisi_manager_2,	// group2
+	psisi_manager_3,	// group3
 
-	EN_MODULE_TUNER_SERVICE,
-	EN_MODULE_REC_MANAGER,
-	EN_MODULE_CHANNEL_MANAGER,
-	EN_MODULE_EVENT_SCHEDULE_MANAGER,
-	EN_MODULE_EVENT_SEARCH,
-	EN_MODULE_COMMAND_SERVER,
+	tuner_service,
+	rec_manager,
+	channel_manager,
+	event_schedule_manager,
+	event_search,
+	command_server,
 
-	EN_MODULE_NUM,
+	max,
+};
 
-} EN_MODULE;
+
+extern threadmgr::CThreadMgrBase **get_modules (void);
+extern threadmgr::CThreadMgrBase *get_module (module_id id);
 
 
-extern threadmgr::CThreadMgrBase **getModules (void);
-extern threadmgr::CThreadMgrBase *getModule (EN_MODULE enModule);
+}; // namespace module
 
 #endif

@@ -244,7 +244,7 @@ int main (int argc, char *argv[])
 
 	// ----- setup thread manager -----
 	threadmgr::CThreadMgr *p_mgr = threadmgr::CThreadMgr::get_instance();
-	if (!p_mgr->setup (getModules(), EN_MODULE_NUM)) {
+	if (!p_mgr->setup (module::get_modules(), static_cast<int>(module::module_id::max))) {
 		exit (EXIT_FAILURE);
 	}
 

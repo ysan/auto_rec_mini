@@ -12,6 +12,7 @@
 #include "Group.h"
 
 #include "PsisiManagerStructs.h"
+#include "threadmgr_if.h"
 
 
 class CPsisiManagerIf : public threadmgr::CThreadMgrExternalIf, public CGroup
@@ -80,6 +81,7 @@ public:
 	explicit CPsisiManagerIf (CThreadMgrExternalIf *p_if, uint8_t groupId=0)
 		:CThreadMgrExternalIf (p_if)
 		,CGroup (groupId)
+		,m_module_id (static_cast<uint8_t>(module::module_id::psisi_manager))
 	{
 	};
 
@@ -89,18 +91,18 @@ public:
 
 	bool request_module_up (void) {
 		int sequence = static_cast<int>(sequence::module_up);
-		return request_async (EN_MODULE_PSISI_MANAGER + getGroupId(), sequence);
+		return request_async (m_module_id + getGroupId(), sequence);
 	};
 
 	bool request_module_down (void) {
 		int sequence = static_cast<int>(sequence::module_down);
-		return request_async (EN_MODULE_PSISI_MANAGER + getGroupId(), sequence);
+		return request_async (m_module_id + getGroupId(), sequence);
 	};
 
 	bool request_get_state (void) {
 		int sequence = static_cast<int>(sequence::get_state);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence
 				);
 	};
@@ -108,7 +110,7 @@ public:
 	bool request_get_state_sync (void) {
 		int sequence = static_cast<int>(sequence::get_state);
 		return request_sync (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence
 				);
 	};
@@ -116,7 +118,7 @@ public:
 	bool request_register_pat_detect_notify (void) {
 		int sequence = static_cast<int>(sequence::reg_pat_detect_notify);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence
 				);
 	};
@@ -125,7 +127,7 @@ public:
 		int _id = client_id;
 		int sequence = static_cast<int>(sequence::unreg_pat_detect_notify);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&_id,
 					sizeof(_id)
@@ -135,7 +137,7 @@ public:
 	bool request_register_event_change_notify (void) {
 		int sequence = static_cast<int>(sequence::reg_event_change_notify);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence
 				);
 	};
@@ -144,7 +146,7 @@ public:
 		int _id = client_id;
 		int sequence = static_cast<int>(sequence::unreg_event_change_notify);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&_id,
 					sizeof(_id)
@@ -154,7 +156,7 @@ public:
 	bool request_register_psisi_state_notify (void) {
 		int sequence = static_cast<int>(sequence::reg_psisi_state_notify);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence
 				);
 	};
@@ -163,7 +165,7 @@ public:
 		int _id = client_id;
 		int sequence = static_cast<int>(sequence::unreg_psisi_state_notify);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&_id,
 					sizeof(_id)
@@ -173,7 +175,7 @@ public:
 	bool request_get_pat_detect_state (void) {
 		int sequence = static_cast<int>(sequence::get_pat_detect_state);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence
 				);
 	};
@@ -186,7 +188,7 @@ public:
 		psisi_structs::request_stream_infos_param_t param = {program_number, type, p_out_stream_infos, array_max_num};
 		int sequence = static_cast<int>(sequence::get_stream_infos);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&param,
 					sizeof(param)
@@ -201,7 +203,7 @@ public:
 		psisi_structs::request_stream_infos_param_t param = {program_number, type, p_out_stream_infos, array_max_num};
 		int sequence = static_cast<int>(sequence::get_stream_infos);
 		return request_sync (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&param,
 					sizeof(param)
@@ -216,7 +218,7 @@ public:
 		psisi_structs::request_service_infos_param_t param = {p_out_service_infos, array_max_num};
 		int sequence = static_cast<int>(sequence::get_current_service_infos);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&param,
 					sizeof(param)
@@ -231,7 +233,7 @@ public:
 		psisi_structs::request_event_info_param_t param = {*p_key, p_out_event_info};
 		int sequence = static_cast<int>(sequence::get_present_event_info);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&param,
 					sizeof(param)
@@ -246,7 +248,7 @@ public:
 		psisi_structs::request_event_info_param_t param = {*p_key, p_out_event_info};
 		int sequence = static_cast<int>(sequence::get_follow_event_info);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&param,
 					sizeof(param)
@@ -261,7 +263,7 @@ public:
 		psisi_structs::request_network_info_param_t param = {p_out_network_info};
 		int sequence = static_cast<int>(sequence::get_current_network_info);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&param,
 					sizeof(param)
@@ -271,7 +273,7 @@ public:
 	bool request_enable_parse_eit_sched (void) {
 		int sequence = static_cast<int>(sequence::enable_parse_eit_sched);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence
 				);
 	};
@@ -279,7 +281,7 @@ public:
 	bool request_disable_parse_eit_sched (void) {
 		int sequence = static_cast<int>(sequence::disable_parse_eit_sched);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence
 				);
 	};
@@ -288,7 +290,7 @@ public:
 		int _type = type;
 		int sequence = static_cast<int>(sequence::dump_caches);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&_type,
 					sizeof(_type)
@@ -299,13 +301,15 @@ public:
 		psisi_type _type = type;
 		int sequence = static_cast<int>(sequence::dump_tables);
 		return request_async (
-					EN_MODULE_PSISI_MANAGER + getGroupId(),
+					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&_type,
 					sizeof(_type)
 				);
 	};
 
+private:
+	uint8_t m_module_id ;
 };
 
 #endif

@@ -25,6 +25,7 @@
 
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
+#include "modules.h"
 
 
 class CRecInstance : public CTunerControlIf::ITsReceiveHandler
@@ -112,7 +113,7 @@ public:
 
 			RECORDING_NOTICE_t _notice = {m_rec_progress, m_group_id};
 			mp_ext_if->request_async (
-				EN_MODULE_REC_MANAGER,
+				static_cast<uint8_t>(module::module_id::rec_manager),
 				static_cast<int>(CRecManagerIf::sequence::recording_notice),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
@@ -141,7 +142,7 @@ public:
 
 			RECORDING_NOTICE_t _notice = {m_rec_progress, m_group_id};
 			mp_ext_if->request_async (
-				EN_MODULE_REC_MANAGER,
+				static_cast<uint8_t>(module::module_id::rec_manager),
 				static_cast<int>(CRecManagerIf::sequence::recording_notice),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
@@ -158,7 +159,7 @@ public:
 
 			RECORDING_NOTICE_t _notice = {m_rec_progress, m_group_id};
 			mp_ext_if->request_async (
-				EN_MODULE_REC_MANAGER,
+				static_cast<uint8_t>(module::module_id::rec_manager),
 				static_cast<int>(CRecManagerIf::sequence::recording_notice),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
@@ -178,7 +179,7 @@ public:
 
 			RECORDING_NOTICE_t _notice = {m_rec_progress, m_group_id};
 			mp_ext_if->request_async (
-				EN_MODULE_REC_MANAGER,
+				static_cast<uint8_t>(module::module_id::rec_manager),
 				static_cast<int>(CRecManagerIf::sequence::recording_notice),
 				(uint8_t*)&_notice,
 				sizeof(_notice)

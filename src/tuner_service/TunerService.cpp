@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -108,9 +109,9 @@ void CTunerService::on_open (threadmgr::CThreadMgrIf *p_if)
 	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 
-	uint8_t caller_module = p_if->get_source().get_thread_idx();
-//	uint8_t allcated_tuner_id = allocate_linear ((EN_MODULE)caller_module);
-	uint8_t allcated_tuner_id = allocate_round_robin ((EN_MODULE)caller_module);
+	module::module_id caller_module_id = static_cast<module::module_id>(p_if->get_source().get_thread_idx());
+//	uint8_t allcated_tuner_id = allocate_linear (caller_module_id);
+	uint8_t allcated_tuner_id = allocate_round_robin (caller_module_id);
 	if (allcated_tuner_id != 0xff) {
 		p_if->reply (threadmgr::result::success, (uint8_t*)&allcated_tuner_id, sizeof(allcated_tuner_id));
 	} else {
@@ -185,19 +186,19 @@ void CTunerService::on_tune (threadmgr::CThreadMgrIf *p_if)
 		memset (&s_param, 0x00, sizeof(s_param));
 		s_retry = 0;
 
-		uint8_t caller_module = p_if->get_source().get_thread_idx();
-		if (caller_module == EN_MODULE_TUNER_SERVICE) {
+		module::module_id caller_module_id = static_cast<module::module_id>(p_if->get_source().get_thread_idx());
+		if (caller_module_id == module::module_id::tuner_service) {
 			// tune_withRetry, tuneAdvance から呼ばれました
 			_tune_param *p = (_tune_param*)(p_if->get_source().get_message().data());
 			s_param.physical_channel = p->physical_channel;
 			s_param.tuner_id = p->tuner_id;
-			caller_module = p->caller_module;
+			caller_module_id = p->caller_module_id;
 		} else {
 			// 外部モジュールから呼ばれました
 			s_param = *(CTunerServiceIf::tune_param_t*)(p_if->get_source().get_message().data());
 		}
 
-		if (pre_check (s_param.tuner_id, (EN_MODULE)caller_module, true)) {
+		if (pre_check (s_param.tuner_id, caller_module_id, true)) {
 			section_id = SECTID_REQ_TUNE;
 			act = threadmgr::action::continue_;
 		} else {
@@ -349,24 +350,24 @@ void CTunerService::on_tune_with_retry (threadmgr::CThreadMgrIf *p_if)
 //		CTunerServiceIf::tune_param_t *p = (CTunerServiceIf::tune_param_t*)(p_if->get_source().get_message().data());
 //		s_param.physical_channel = p->physical_channel;
 //		s_param.tuner_id = p->tuner_id;
-//		s_param.caller_module = p_if->get_source().get_thread_idx();
+//		s_param.caller_module_id = p_if->get_source().get_thread_idx();
 
-		uint8_t caller_module = p_if->get_source().get_thread_idx();
-		if (caller_module == EN_MODULE_TUNER_SERVICE) {
+		module::module_id caller_module_id = static_cast<module::module_id>(p_if->get_source().get_thread_idx());
+		if (caller_module_id == module::module_id::tuner_service) {
 			// tuneAdvance_withRetry から呼ばれました
 			_tune_param *p = (_tune_param*)(p_if->get_source().get_message().data());
 			s_param.physical_channel = p->physical_channel;
 			s_param.tuner_id = p->tuner_id;
-			s_param.caller_module = p->caller_module; // 引き継ぎます
+			s_param.caller_module_id = p->caller_module_id; // 引き継ぎます
 		} else {
 			// 外部モジュールから呼ばれました
 			CTunerServiceIf::tune_param_t *p = (CTunerServiceIf::tune_param_t*)(p_if->get_source().get_message().data());
 			s_param.physical_channel = p->physical_channel;
 			s_param.tuner_id = p->tuner_id;
-			s_param.caller_module = p_if->get_source().get_thread_idx();
+			s_param.caller_module_id = static_cast<module::module_id>(p_if->get_source().get_thread_idx());
 		}
 
-		if (pre_check (s_param.tuner_id, (EN_MODULE)s_param.caller_module, true)) {
+		if (pre_check (s_param.tuner_id, s_param.caller_module_id, true)) {
 			section_id = SECTID_REQ_TUNE;
 			act = threadmgr::action::continue_;
 		} else {
@@ -382,7 +383,7 @@ void CTunerService::on_tune_with_retry (threadmgr::CThreadMgrIf *p_if)
 	case SECTID_REQ_TUNE:
 
 		request_async (
-			EN_MODULE_TUNER_SERVICE,
+			static_cast<uint8_t>(module::module_id::tuner_service),
 			static_cast<int>(CTunerServiceIf::sequence::tune),
 			(uint8_t*)&s_param,
 			sizeof (s_param)
@@ -460,8 +461,8 @@ void CTunerService::on_tune_advance (threadmgr::CThreadMgrIf *p_if)
 		memset (&s_param, 0x00, sizeof(s_param));
 		memset (&s_adv_param, 0x00, sizeof(s_adv_param));
 
-		uint8_t caller_module = p_if->get_source().get_thread_idx();
-		if (caller_module == EN_MODULE_TUNER_SERVICE) {
+		module::module_id caller_module_id = static_cast<module::module_id>(p_if->get_source().get_thread_idx());
+		if (caller_module_id == module::module_id::tuner_service) {
 			// 内部モジュールから呼ばれました
 			// 今のとこ ここには入らない
 			_tune_advance_param *p = (_tune_advance_param*)(p_if->get_source().get_message().data());
@@ -470,7 +471,7 @@ void CTunerService::on_tune_advance (threadmgr::CThreadMgrIf *p_if)
 			s_adv_param.service_id = p->service_id;
 			s_adv_param.tuner_id = p->tuner_id;
 			s_adv_param.is_need_retry = p->is_need_retry;
-			s_adv_param.caller_module = p->caller_module; // 引き継ぎます
+			s_adv_param.caller_module_id = p->caller_module_id; // 引き継ぎます
 		} else {
 			// 外部モジュールから呼ばれました
 			CTunerServiceIf::tune_advance_param_t *p = (CTunerServiceIf::tune_advance_param_t*)(p_if->get_source().get_message().data());
@@ -479,10 +480,10 @@ void CTunerService::on_tune_advance (threadmgr::CThreadMgrIf *p_if)
 			s_adv_param.service_id = p->service_id;
 			s_adv_param.tuner_id = p->tuner_id;
 			s_adv_param.is_need_retry = p->is_need_retry;
-			s_adv_param.caller_module = p_if->get_source().get_thread_idx();
+			s_adv_param.caller_module_id = static_cast<module::module_id>(p_if->get_source().get_thread_idx());
 		}
 
-		if (pre_check (s_adv_param.tuner_id, (EN_MODULE)s_adv_param.caller_module, true)) {
+		if (pre_check (s_adv_param.tuner_id, s_adv_param.caller_module_id, true)) {
 			section_id = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
 			act = threadmgr::action::continue_;
 		} else {
@@ -515,7 +516,7 @@ void CTunerService::on_tune_advance (threadmgr::CThreadMgrIf *p_if)
 
 			s_param.physical_channel = *(uint16_t*)(p_if->get_source().get_message().data());
 			s_param.tuner_id = s_adv_param.tuner_id;
-			s_param.caller_module = s_adv_param.caller_module;
+			s_param.caller_module_id = s_adv_param.caller_module_id;
 
 			section_id = SECTID_REQ_TUNE;
 			act = threadmgr::action::continue_;
@@ -530,7 +531,7 @@ void CTunerService::on_tune_advance (threadmgr::CThreadMgrIf *p_if)
 	case SECTID_REQ_TUNE:
 
 		request_async (
-			EN_MODULE_TUNER_SERVICE,
+			static_cast<uint8_t>(module::module_id::tuner_service),
 			s_adv_param.is_need_retry ?
 				static_cast<int>(CTunerServiceIf::sequence::tune_with_retry) :
 				static_cast<int>(CTunerServiceIf::sequence::tune),
@@ -603,8 +604,8 @@ void CTunerService::on_tune_stop (threadmgr::CThreadMgrIf *p_if)
 		p_if->lock();
 
 		s_tuner_id = *(uint8_t*)(p_if->get_source().get_message().data());
-		uint8_t caller_module = p_if->get_source().get_thread_idx();
-		if (pre_check (s_tuner_id, (EN_MODULE)caller_module, false)) {
+		module::module_id caller_module_id = static_cast<module::module_id>(p_if->get_source().get_thread_idx());
+		if (pre_check (s_tuner_id, caller_module_id, false)) {
 			section_id = SECTID_REQ_TUNE_STOP;
 			act = threadmgr::action::continue_;
 		} else {
@@ -687,7 +688,7 @@ void CTunerService::on_dump_allocates (threadmgr::CThreadMgrIf *p_if)
 	p_if->set_section_id (section_id, act);
 }
 
-uint8_t CTunerService::allocate_linear (EN_MODULE module)
+uint8_t CTunerService::allocate_linear (module::module_id module_id)
 {
 	uint8_t _id = 0;
 	// 未割り当てを探します
@@ -700,8 +701,8 @@ uint8_t CTunerService::allocate_linear (EN_MODULE module)
 
 	if (_id < m_tuner_resource_max) {
 		m_resource_allcates[_id]->tuner_id = _id;
-		m_resource_allcates[_id]->module = module;
-		m_resource_allcates[_id]->priority = get_priority (module);
+		m_resource_allcates[_id]->module_id = module_id;
+		m_resource_allcates[_id]->priority = get_priority (module_id);
 		_UTL_LOG_I ("allocated. [0x%02x]", _id);
 		return _id;
 
@@ -711,7 +712,7 @@ uint8_t CTunerService::allocate_linear (EN_MODULE module)
 	}
 }
 
-uint8_t CTunerService::allocate_round_robin (EN_MODULE module)
+uint8_t CTunerService::allocate_round_robin (module::module_id module_id)
 {
 	uint8_t _init_id = m_next_allocate_tuner_id;
 	int n = 0;
@@ -725,8 +726,8 @@ uint8_t CTunerService::allocate_round_robin (EN_MODULE module)
 
 		if (m_resource_allcates[_id]->tuner_id == 0xff) {
 			m_resource_allcates[_id]->tuner_id = _id;
-			m_resource_allcates[_id]->module = module;
-			m_resource_allcates[_id]->priority = get_priority (module);
+			m_resource_allcates[_id]->module_id = module_id;
+			m_resource_allcates[_id]->priority = get_priority (module_id);
 			_UTL_LOG_I ("allocated. [0x%02x]", _id);
 
 			//set next
@@ -771,12 +772,12 @@ bool CTunerService::release (uint8_t tuner_id)
 	}
 }
 
-bool CTunerService::pre_check (uint8_t tuner_id, EN_MODULE module, bool is_req_tune) const
+bool CTunerService::pre_check (uint8_t tuner_id, module::module_id module_id, bool is_req_tune) const
 {
 	if (tuner_id < m_tuner_resource_max) {
 		if (
 			(m_resource_allcates[tuner_id]->tuner_id == tuner_id) &&
-			(m_resource_allcates[tuner_id]->module == module)
+			(m_resource_allcates[tuner_id]->module_id == module_id)
 		) {
 			if (is_req_tune) {
 				if (!m_resource_allcates[tuner_id]->is_now_tuned) {
@@ -806,19 +807,19 @@ bool CTunerService::pre_check (uint8_t tuner_id, EN_MODULE module, bool is_req_t
 	}
 }
 
-CTunerService::client_priority CTunerService::get_priority (EN_MODULE module) const
+CTunerService::client_priority CTunerService::get_priority (module::module_id module_id) const
 {
-	switch (module) {
-	case EN_MODULE_REC_MANAGER:
+	switch (module_id) {
+	case module::module_id::rec_manager:
 		return client_priority::RECORDING;
 
-	case EN_MODULE_EVENT_SCHEDULE_MANAGER:
+	case module::module_id::event_schedule_manager:
 		return client_priority::EVENT_SCHEDULE;
 
-	case EN_MODULE_CHANNEL_MANAGER:
+	case module::module_id::channel_manager:
 		return client_priority::CHANNEL_SCAN;
 
-	case EN_MODULE_COMMAND_SERVER:
+	case module::module_id::command_server:
 		return client_priority::COMMAND;
 
 	default:

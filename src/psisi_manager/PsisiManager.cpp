@@ -174,7 +174,7 @@ void CPsisiManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("reqRegisterTunerNotify is failure.");
+			_UTL_LOG_E ("request_register_tuner_notify is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -199,14 +199,14 @@ void CPsisiManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("reqRegisterTsReceiveHandler is failure.");
+			_UTL_LOG_E ("request_register_ts_receive_handler is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
 		break;
 
 	case SECTID_REQ_CHECK_LOOP:
-		request_async (EN_MODULE_PSISI_MANAGER + getGroupId(), static_cast<int>(CPsisiManagerIf::sequence::check_loop));
+		request_async (static_cast<uint8_t>(module::module_id::psisi_manager) + getGroupId(), static_cast<int>(CPsisiManagerIf::sequence::check_loop));
 
 		section_id = SECTID_WAIT_CHECK_LOOP;
 		act = threadmgr::action::wait;
@@ -1375,7 +1375,7 @@ void CPsisiManager::on_receive_notify (threadmgr::CThreadMgrIf *p_if)
 		opt |= REQUEST_OPTION__WITHOUT_REPLY;
 		set_request_option (opt);
 
-		request_async (EN_MODULE_PSISI_MANAGER + getGroupId(), static_cast<int>(CPsisiManagerIf::sequence::stabilization_after_tuning));
+		request_async (static_cast<uint8_t>(module::module_id::psisi_manager) + getGroupId(), static_cast<int>(CPsisiManagerIf::sequence::stabilization_after_tuning));
 
 		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 		set_request_option (opt);
@@ -1920,7 +1920,7 @@ bool CPsisiManager::cache_event_pf_infos (
 
 		_event_pf_info_t * p_info = find_empty_event_pf_info ();
 		if (!p_info) {
-			_UTL_LOG_E ("getEventPfByServiceId failure.");
+			_UTL_LOG_E ("find_empty_event_pf_info failure.");
 			return false;
 		}
 
@@ -2428,7 +2428,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::PAT, p_ts_header, p_payload, payload_size);
 		r = request_async (
-			EN_MODULE_PSISI_MANAGER + getGroupId(),
+			static_cast<uint8_t>(module::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2441,7 +2441,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::EIT_H_PF, p_ts_header, p_payload, payload_size);
 		r = request_async (
-			EN_MODULE_PSISI_MANAGER + getGroupId(),
+			static_cast<uint8_t>(module::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2454,7 +2454,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::NIT, p_ts_header, p_payload, payload_size);
 		r = request_async (
-			EN_MODULE_PSISI_MANAGER + getGroupId(),
+			static_cast<uint8_t>(module::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2467,7 +2467,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::SDT, p_ts_header, p_payload, payload_size);
 		r = request_async (
-			EN_MODULE_PSISI_MANAGER + getGroupId(),
+			static_cast<uint8_t>(module::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2480,7 +2480,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::CAT, p_ts_header, p_payload, payload_size);
 		r = request_async (
-			EN_MODULE_PSISI_MANAGER + getGroupId(),
+			static_cast<uint8_t>(module::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2493,7 +2493,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::CDT, p_ts_header, p_payload, payload_size);
 		r = request_async (
-			EN_MODULE_PSISI_MANAGER + getGroupId(),
+			static_cast<uint8_t>(module::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
 			(uint8_t*)&_notice,
 			sizeof(_notice)
@@ -2515,7 +2515,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		if (m_program_map.has(p_ts_header->pid)) {
 			_parser_notice_t _notice (CPsisiManagerIf::psisi_type::PMT, p_ts_header, p_payload, payload_size);
 			r = request_async (
-				EN_MODULE_PSISI_MANAGER + getGroupId(),
+				static_cast<uint8_t>(module::module_id::psisi_manager) + getGroupId(),
 				static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
@@ -2545,7 +2545,7 @@ void CPsisiManager::onScheduleUpdate (void)
 	CPsisiManagerIf::psisi_type _type = CPsisiManagerIf::psisi_type::EIT_H_SCHED;
 
 	request_async (
-		EN_MODULE_EVENT_SCHEDULE_MANAGER,
+		static_cast<uint8_t>(module::module_id::event_schedule_manager),
 		static_cast<int>(CEventScheduleManagerIf::sequence::parser_notice),
 		(uint8_t*)&_type,
 		sizeof(_type)

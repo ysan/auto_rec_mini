@@ -52,6 +52,7 @@ public:
 	explicit CTunerControlIf (threadmgr::CThreadMgrExternalIf *pIf, uint8_t groupId=0)
 		:threadmgr::CThreadMgrExternalIf (pIf)
 		,CGroup (groupId)
+		,m_module_id (static_cast<uint8_t>(module::module_id::tuner_control))
 	{
 	};
 
@@ -61,69 +62,71 @@ public:
 
 	bool request_module_up (void) {
 		int sequence = static_cast<int>(sequence::module_up);
-		return request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence);
+		return request_async (m_module_id + getGroupId(), sequence);
 	};
 
 	bool request_module_down (void) {
 		int sequence = static_cast<int>(sequence::module_down);
-		return request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence);
+		return request_async (m_module_id + getGroupId(), sequence);
 	};
 
 	bool request_tune (uint32_t frequest_kHz) {
 		uint32_t f = frequest_kHz;
 		int sequence = static_cast<int>(sequence::tune);
-		return request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence, (uint8_t*)&f, sizeof(f));
+		return request_async (m_module_id + getGroupId(), sequence, (uint8_t*)&f, sizeof(f));
 	};
 
 	bool request_tune_sync (uint32_t frequest_kHz) {
 		uint32_t f = frequest_kHz;
 		int sequence = static_cast<int>(sequence::tune);
-		return request_sync (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence, (uint8_t*)&f, sizeof(f));
+		return request_sync (m_module_id + getGroupId(), sequence, (uint8_t*)&f, sizeof(f));
 	};
 
 	bool request_tune_stop (void) {
 		int sequence = static_cast<int>(sequence::tune_stop);
-		return request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence);
+		return request_async (m_module_id + getGroupId(), sequence);
 	};
 
 	bool request_tune_stop_sync (void) {
 		int sequence = static_cast<int>(sequence::tune_stop);
-		return request_sync (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence);
+		return request_sync (m_module_id + getGroupId(), sequence);
 	};
 
 	bool request_register_tuner_notify (void) {
 		int sequence = static_cast<int>(sequence::reg_tuner_notify);
-		return request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence);
+		return request_async (m_module_id + getGroupId(), sequence);
 	};
 
 	bool request_unregister_tuner_notify (int client_id) {
 		int _id = client_id;
 		int sequence = static_cast<int>(sequence::unreg_tuner_notify);
-		return request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence, (uint8_t*)&_id, sizeof(_id));
+		return request_async (m_module_id + getGroupId(), sequence, (uint8_t*)&_id, sizeof(_id));
 	};
 
 	bool request_register_ts_receive_handler (ITsReceiveHandler **p_handler) {
 		ITsReceiveHandler **p = p_handler;
 		int sequence = static_cast<int>(sequence::reg_ts_receive_handler);
-		return request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence, (uint8_t*)p, sizeof(p));
+		return request_async (m_module_id + getGroupId(), sequence, (uint8_t*)p, sizeof(p));
 	};
 
 	bool request_unregister_ts_receive_handler (int client_id) {
 		int _id = client_id;
 		int sequence = static_cast<int>(sequence::unreg_ts_receive_handler);
-		return request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence, (uint8_t*)&_id, sizeof(_id));
+		return request_async (m_module_id + getGroupId(), sequence, (uint8_t*)&_id, sizeof(_id));
 	};
 
 	bool request_get_state (void) {
 		int sequence = static_cast<int>(sequence::get_state);
-		return request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence);
+		return request_async (m_module_id + getGroupId(), sequence);
 	};
 
 	bool request_get_state_sync (void) {
 		int sequence = static_cast<int>(sequence::get_state);
-		return request_sync (EN_MODULE_TUNER_CONTROL + getGroupId(), sequence);
+		return request_sync (m_module_id + getGroupId(), sequence);
 	};
 
+private:
+	uint8_t m_module_id ;
 };
 
 #endif

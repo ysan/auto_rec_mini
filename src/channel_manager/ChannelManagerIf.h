@@ -55,7 +55,10 @@ public:
 
 
 public:
-	explicit CChannelManagerIf (CThreadMgrExternalIf *p_if) : CThreadMgrExternalIf (p_if) {
+	explicit CChannelManagerIf (CThreadMgrExternalIf *p_if)
+		: CThreadMgrExternalIf (p_if)
+		, m_module_id (static_cast<uint8_t>(module::module_id::channel_manager))
+	{
 	};
 
 	virtual ~CChannelManagerIf (void) {
@@ -64,17 +67,17 @@ public:
 
 	bool request_module_up (void) {
 		int sequence = static_cast<int>(sequence::module_up);
-		return request_async (EN_MODULE_CHANNEL_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_module_down (void) {
 		int sequence = static_cast<int>(sequence::module_down);
-		return request_async (EN_MODULE_CHANNEL_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_channel_scan (void) {
 		int sequence = static_cast<int>(sequence::channel_scan);
-		return request_async (EN_MODULE_CHANNEL_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_get_pysical_channel_by_service_id (const service_id_param_t *p_param) {
@@ -84,7 +87,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_pysical_channel_by_service_id);
 		return request_async (
-					EN_MODULE_CHANNEL_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (service_id_param_t)
@@ -98,7 +101,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_pysical_channel_by_remote_control_key_id);
 		return request_async (
-					EN_MODULE_CHANNEL_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (remote_control_id_param_t)
@@ -112,7 +115,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_channels);
 		return request_async (
-					EN_MODULE_CHANNEL_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_channels_param_t)
@@ -126,7 +129,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_channels);
 		return request_sync (
-					EN_MODULE_CHANNEL_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_channels_param_t)
@@ -140,7 +143,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_transport_stream_name);
 		return request_async (
-					EN_MODULE_CHANNEL_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (service_id_param_t)
@@ -154,7 +157,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_transport_stream_name);
 		return request_sync (
-					EN_MODULE_CHANNEL_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (service_id_param_t)
@@ -168,7 +171,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_service_name);
 		return request_async (
-					EN_MODULE_CHANNEL_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (service_id_param_t)
@@ -182,7 +185,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_service_name);
 		return request_sync (
-					EN_MODULE_CHANNEL_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (service_id_param_t)
@@ -191,9 +194,11 @@ public:
 
 	bool request_dump_channels (void) {
 		int sequence = static_cast<int>(sequence::dump_scan_results);
-		return request_async (EN_MODULE_CHANNEL_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
+private:
+	uint8_t m_module_id;
 };
 
 #endif

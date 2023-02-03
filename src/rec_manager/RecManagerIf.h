@@ -127,7 +127,10 @@ public:
 
 
 public:
-	explicit CRecManagerIf (CThreadMgrExternalIf *p_if) : CThreadMgrExternalIf (p_if) {
+	explicit CRecManagerIf (CThreadMgrExternalIf *p_if)
+		: CThreadMgrExternalIf (p_if)
+		, m_module_id (static_cast<uint8_t>(module::module_id::rec_manager))
+	{
 	};
 
 	virtual ~CRecManagerIf (void) {
@@ -136,18 +139,18 @@ public:
 
 	bool request_module_up (void) {
 		int sequence = static_cast<int>(sequence::module_up);
-		return request_async (EN_MODULE_REC_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_module_down (void) {
 		int sequence = static_cast<int>(sequence::module_down);
-		return request_async (EN_MODULE_REC_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_add_reserve_current_event (uint8_t group_id) {
 		int sequence = static_cast<int>(sequence::add_reserve_current_event);
 		return request_async (
-					EN_MODULE_REC_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)&group_id,
 					sizeof(uint8_t)
@@ -161,7 +164,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::add_reserve_event);
 		return request_async (
-					EN_MODULE_REC_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (add_reserve_param_t)
@@ -175,7 +178,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::add_reserve_event_helper);
 		return request_async (
-					EN_MODULE_REC_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (add_reserve_helper_param_t)
@@ -189,7 +192,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::add_reserve_manual);
 		return request_async (
-					EN_MODULE_REC_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (add_reserve_param_t)
@@ -203,7 +206,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::remove_reserve);
 		return request_async (
-					EN_MODULE_REC_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (remove_reserve_param_t)
@@ -217,7 +220,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::remove_reserve_by_index);
 		return request_async (
-					EN_MODULE_REC_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (remove_reserve_param_t)
@@ -231,7 +234,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_reserves);
 		return request_async (
-					EN_MODULE_REC_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (get_reserves_param_t)
@@ -245,7 +248,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_reserves);
 		return request_sync (
-					EN_MODULE_REC_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (get_reserves_param_t)
@@ -255,7 +258,7 @@ public:
 	bool request_stop_recording (uint8_t group_id) {
 		int sequence = static_cast<int>(sequence::stop_recording);
 		return request_async (
-					EN_MODULE_REC_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)&group_id,
 					sizeof(uint8_t)
@@ -266,13 +269,15 @@ public:
 		int _type = type;
 		int sequence = static_cast<int>(sequence::dump_reserves);
 		return request_async (
-					EN_MODULE_REC_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)&_type,
 					sizeof(_type)
 				);
 	};
 
+private:
+	uint8_t m_module_id;
 };
 
 #endif

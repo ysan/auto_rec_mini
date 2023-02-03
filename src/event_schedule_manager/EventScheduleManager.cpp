@@ -210,7 +210,7 @@ void CEventScheduleManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 		break;
 ***/
 	case SECTID_REQ_CHECK_LOOP:
-		request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, static_cast<int>(CEventScheduleManagerIf::sequence::check_loop));
+		request_async (static_cast<uint8_t>(module::module_id::event_schedule_manager), static_cast<int>(CEventScheduleManagerIf::sequence::check_loop));
 
 		section_id = SECTID_WAIT_CHECK_LOOP;
 		act = threadmgr::action::wait;
@@ -413,7 +413,7 @@ void CEventScheduleManager::on_check_loop (threadmgr::CThreadMgrIf *p_if)
 			set_request_option (opt);
 
 			request_async (
-				EN_MODULE_EVENT_SCHEDULE_MANAGER,
+				static_cast<uint8_t>(module::module_id::event_schedule_manager),
 				static_cast<int>(CEventScheduleManagerIf::sequence::add_reserves),
 				(uint8_t*)&_base_time,
 				sizeof(_base_time)
@@ -1090,7 +1090,7 @@ void CEventScheduleManager::on_cache_schedule (threadmgr::CThreadMgrIf *p_if)
 		_base_time.setCurrentTime();
 
 		request_async (
-			EN_MODULE_EVENT_SCHEDULE_MANAGER,
+			static_cast<uint8_t>(module::module_id::event_schedule_manager),
 			static_cast<int>(CEventScheduleManagerIf::sequence::add_reserves),
 			(uint8_t*)&_base_time,
 			sizeof(_base_time)
@@ -2204,7 +2204,7 @@ void CEventScheduleManager::check2execute_reserves (void)
 			set_request_option (opt);
 
 			bool r = request_async (
-				EN_MODULE_EVENT_SCHEDULE_MANAGER,
+				static_cast<uint8_t>(module::module_id::event_schedule_manager),
 				static_cast<int>(CEventScheduleManagerIf::sequence::exec_cache_schedule),
 				(uint8_t*)&_key,
 				sizeof(_key)

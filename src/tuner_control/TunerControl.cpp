@@ -67,7 +67,8 @@ void CTunerControl::on_module_up (threadmgr::CThreadMgrIf *p_if)
 		break;
 
 	case SECTID_REQ_TUNE_THREAD_MODULE_UP:
-		request_async (EN_MODULE_TUNE_THREAD + getGroupId(), static_cast<int>(CTuneThread::sequence::module_up));
+		request_async (static_cast<uint8_t>(module::module_id::tune_thread) + getGroupId(),
+						static_cast<int>(CTuneThread::sequence::module_up));
 
 		section_id = SECTID_WAIT_TUNE_THREAD_MODULE_UP;
 		act = threadmgr::action::wait;
@@ -149,7 +150,8 @@ void CTunerControl::on_tune (threadmgr::CThreadMgrIf *p_if)
 		break;
 
 	case SECTID_REQ_TUNE_STOP:
-		request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), static_cast<int>(CTunerControlIf::sequence::tune_stop));
+		request_async (static_cast<uint8_t>(module::module_id::tuner_control) + getGroupId(),
+						static_cast<int>(CTunerControlIf::sequence::tune_stop));
 		section_id = SECTID_WAIT_TUNE_STOP;
 		act = threadmgr::action::wait;
 		break;
@@ -167,7 +169,8 @@ void CTunerControl::on_tune (threadmgr::CThreadMgrIf *p_if)
 		break;
 
 	case SECTID_REQ_TUNE_START:
-		request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), static_cast<int>(CTunerControlIf::sequence::tune_start), (uint8_t*)&m_wk_freq, sizeof(m_wk_freq));
+		request_async (static_cast<uint8_t>(module::module_id::tuner_control) + getGroupId(),
+						static_cast<int>(CTunerControlIf::sequence::tune_start), (uint8_t*)&m_wk_freq, sizeof(m_wk_freq));
 		section_id = SECTID_WAIT_TUNE_START;
 		act = threadmgr::action::wait;
 		break;
@@ -202,7 +205,8 @@ void CTunerControl::on_tune (threadmgr::CThreadMgrIf *p_if)
 
 			// 選局を停止しときます tune stop
 			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-			request_async (EN_MODULE_TUNER_CONTROL + getGroupId(), static_cast<int>(CTunerControlIf::sequence::tune_stop));
+			request_async (static_cast<uint8_t>(module::module_id::tuner_control) + getGroupId(),
+							static_cast<int>(CTunerControlIf::sequence::tune_stop));
 
 			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 			set_request_option (opt);
@@ -262,7 +266,7 @@ void CTunerControl::on_tune_start (threadmgr::CThreadMgrIf *p_if)
 			mp_reg_ts_receive_handlers,
 			&m_is_req_stop
 		};
-		request_async (EN_MODULE_TUNE_THREAD + getGroupId(),
+		request_async (static_cast<uint8_t>(module::module_id::tune_thread) + getGroupId(),
 						static_cast<int>(CTuneThread::sequence::tune), (uint8_t*)&_param, sizeof(_param));
 
 		section_id = SECTID_WAIT_TUNE_THREAD_TUNE;
@@ -290,8 +294,8 @@ void CTunerControl::on_tune_start (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			EN_MODULE _id = (EN_MODULE)(EN_MODULE_TUNE_THREAD + getGroupId());
-			CTuneThread *p_tuneThread = (CTuneThread*)(getModule(_id));
+			uint8_t _id = static_cast<uint8_t>(module::module_id::tune_thread) + getGroupId();
+			CTuneThread *p_tuneThread = (CTuneThread*)(module::get_module(static_cast<module::module_id>(_id)));
 			if (p_tuneThread->get_state() != CTuneThread::state::tuned) {
 					++ m_chkcnt ;
 				p_if->set_timeout (200);
@@ -361,8 +365,8 @@ void CTunerControl::on_tune_stop (threadmgr::CThreadMgrIf *p_if)
 
 	int chkcnt = 0;
 
-	EN_MODULE _id = (EN_MODULE)(EN_MODULE_TUNE_THREAD + getGroupId());
-	CTuneThread *p_tuneThread = (CTuneThread*)(getModule(_id));
+	uint8_t _id = static_cast<uint8_t>(module::module_id::tune_thread) + getGroupId();
+	CTuneThread *p_tuneThread = (CTuneThread*)(module::get_module(static_cast<module::module_id>(_id)));
 	if (p_tuneThread->get_state() == CTuneThread::state::tuned ||
 			p_tuneThread->get_state() == CTuneThread::state::tune_begined) {
 		m_is_req_stop = true;
@@ -382,7 +386,8 @@ void CTunerControl::on_tune_stop (threadmgr::CThreadMgrIf *p_if)
 				opt |= REQUEST_OPTION__WITHOUT_REPLY;
 				set_request_option (opt);
 
-				request_async (EN_MODULE_TUNE_THREAD + getGroupId(), static_cast<int>(CTuneThread::sequence::force_kill));
+				request_async (static_cast<uint8_t>(module::module_id::tune_thread) + getGroupId(),
+								static_cast<int>(CTuneThread::sequence::force_kill));
 				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 				set_request_option (opt);
 			}
@@ -402,7 +407,7 @@ void CTunerControl::on_tune_stop (threadmgr::CThreadMgrIf *p_if)
 
 		} else {
 			// 100mS * 300
-			_UTL_LOG_E ("tune stop transition failure. (TUNED -> TUNE_ENDED)");
+			_UTL_LOG_E ("tune stop transition failure. (tuned -> tune_ended)");
 			p_if->reply (threadmgr::result::error);
 		}
 
@@ -412,7 +417,7 @@ void CTunerControl::on_tune_stop (threadmgr::CThreadMgrIf *p_if)
 
 #ifdef _DUMMY_TUNER
 		// fire notify
-		EN_TUNER_STATE enNotify = CTunerControlIf::tuner_state::TUNE_STOP;
+		EN_TUNER_STATE enNotify = CTunerControlIf::tuner_state::tune_stop;
 		p_if->notify (_TUNER_NOTIFY, (uint8_t*)&enNotify, sizeof(EN_TUNER_STATE));
 #endif
 
@@ -586,7 +591,7 @@ int CTunerControl::register_ts_receive_handler (CTunerControlIf::ITsReceiveHandl
 	}
 
 	if (i == TS_RECEIVE_HANDLER_REGISTER_NUM_MAX) {
-		_UTL_LOG_E ("mpRegTsReceiveHandlers is full.");
+		_UTL_LOG_E ("mp_reg_ts_receive_handlers is full.");
 		return -1;
 	} else {
 		return i;

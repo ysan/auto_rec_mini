@@ -41,7 +41,7 @@ public:
 	typedef struct _resource {
 		_resource (void) 
 			:tuner_id (0xff)
-			,module (EN_MODULE_NUM)
+			,module_id (module::module_id::max)
 			,priority (client_priority::OTHER)
 			,is_now_tuned (false)
 			,transport_stream_id (0)
@@ -56,7 +56,7 @@ public:
 
 		void clear (void) {
 			tuner_id = 0xff;
-			module = EN_MODULE_NUM;
+			module_id = module::module_id::max;
 			priority = client_priority::OTHER;
 			is_now_tuned = false;
 
@@ -70,8 +70,8 @@ public:
 				_UTL_LOG_I (
 					"tuner_id:[0x%02x] module:[%d:%.10s] priority:[%d] [%s] -> tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x]",
 					tuner_id,
-					module,
-					module != EN_MODULE_NUM ? getModule(module)->get_name() : "----------",
+					module_id,
+					module_id != module::module_id::max ? get_module(module_id)->get_name() : "----------",
 					static_cast<int>(priority),
 					is_now_tuned ? "now_tuned" : "---",
 					transport_stream_id,
@@ -83,8 +83,8 @@ public:
 				_UTL_LOG_I (
 					"tuner_id:[0x%02x] module:[%d:%.10s] priority:[%d] [%s]",
 					tuner_id,
-					module,
-					module != EN_MODULE_NUM ? getModule(module)->get_name() : "----------",
+					module_id,
+					module_id != module::module_id::max ? get_module(module_id)->get_name() : "----------",
 					static_cast<int>(priority),
 					is_now_tuned ? "now_tuned" : "---"
 				);
@@ -92,7 +92,7 @@ public:
 		}
 
 		uint8_t tuner_id;
-		EN_MODULE module;
+		module::module_id module_id;
 		client_priority priority;
 		bool is_now_tuned;
 
@@ -105,11 +105,11 @@ public:
 
 	// tune_withRetryの時に呼び元モジュールを取っておきたいため
 	struct _tune_param : public CTunerServiceIf::tune_param_t {
-		uint8_t caller_module;
+		module::module_id caller_module_id;
 	};
 	// tuneAdvance_withRetryの時に呼び元モジュールを取っておきたいため
 	struct _tune_advance_param : public CTunerServiceIf::tune_advance_param_t {
-		uint8_t caller_module;
+		module::module_id caller_module_id;
 	};
 
 
@@ -129,11 +129,11 @@ public:
 	void on_dump_allocates (threadmgr::CThreadMgrIf *p_if);
 
 private:
-	uint8_t allocate_linear (EN_MODULE module);
-	uint8_t allocate_round_robin (EN_MODULE module);
+	uint8_t allocate_linear (module::module_id module_id);
+	uint8_t allocate_round_robin (module::module_id module_id);
 	bool release (uint8_t tuner_id);
-	bool pre_check (uint8_t tuner_id, EN_MODULE module, bool is_req_tune) const;
-	client_priority get_priority (EN_MODULE module) const;
+	bool pre_check (uint8_t tuner_id, module::module_id module_id, bool is_req_tune) const;
+	client_priority get_priority (module::module_id module_id) const;
 	void dump_allocates (void) const;
 
 	int m_tuner_resource_max;

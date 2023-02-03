@@ -466,8 +466,8 @@ void CEventSearch::on_receive_notify (threadmgr::CThreadMgrIf *p_if)
 		opt |= REQUEST_OPTION__WITHOUT_REPLY;
 		set_request_option (opt);
 
-		request_async (EN_MODULE_EVENT_SEARCH, static_cast<int>(CEventSearchIf::sequence::add_rec_reserve_keyword_search));
-		request_async (EN_MODULE_EVENT_SEARCH, static_cast<int>(CEventSearchIf::sequence::add_rec_reserve_keyword_search_ex));
+		request_async (static_cast<uint8_t>(module::module_id::event_search), static_cast<int>(CEventSearchIf::sequence::add_rec_reserve_keyword_search));
+		request_async (static_cast<uint8_t>(module::module_id::event_search), static_cast<int>(CEventSearchIf::sequence::add_rec_reserve_keyword_search_ex));
 
 		opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 		set_request_option (opt);

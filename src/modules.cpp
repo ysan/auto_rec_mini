@@ -17,6 +17,8 @@
 #include "modules.h"
 
 
+namespace module {
+
 static CTuneThread           s_tuneThread_gr0    ((char*)"TuneTh_0"            , 10, 0);
 static CTuneThread           s_tuneThread_gr1    ((char*)"TuneTh_1"            , 10, 1);
 static CTuneThread           s_tuneThread_gr2    ((char*)"TuneTh_2"            , 10, 2);
@@ -66,16 +68,19 @@ static threadmgr::CThreadMgrBase *gp_modules [] = {
 };
 
 
-threadmgr::CThreadMgrBase **getModules (void)
+threadmgr::CThreadMgrBase **get_modules (void)
 {
 	return gp_modules;
 }
 
-threadmgr::CThreadMgrBase *getModule (EN_MODULE enModule)
+threadmgr::CThreadMgrBase *get_module (module_id id)
 {
-	if (enModule < EN_MODULE_NUM) {
-		return gp_modules [enModule];
+	if (id < module_id::max) {
+		int _id = static_cast<int>(id);
+		return gp_modules [_id];
 	} else {
 		return NULL;
 	}
 }
+
+} // namespace module

@@ -103,7 +103,10 @@ public:
 		max,
 	};
 
-	explicit CEventScheduleManagerIf (CThreadMgrExternalIf *p_if) : CThreadMgrExternalIf (p_if) {
+	explicit CEventScheduleManagerIf (CThreadMgrExternalIf *p_if) 
+		: CThreadMgrExternalIf (p_if)
+		, m_module_id (static_cast<uint8_t>(module::module_id::event_schedule_manager))
+	{
 	};
 
 	virtual ~CEventScheduleManagerIf (void) {
@@ -112,24 +115,24 @@ public:
 
 	bool request_module_up (void) {
 		int sequence = static_cast<int>(sequence::module_up);
-		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_module_down (void) {
 		int sequence = static_cast<int>(sequence::module_down);
-		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_register_cache_schedule_state_notify (void) {
 		int sequence = static_cast<int>(sequence::reg_cache_schedule_state_notify);
-		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_unregister_cache_schedule_state_notify (int client_id) {
 		int sequence = static_cast<int>(sequence::unreg_cache_schedule_state_notify);
 		int _id = client_id;
 		return request_async (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)&_id,
 					sizeof(_id)
@@ -138,23 +141,23 @@ public:
 
 	bool request_get_cache_schedule_state (void) {
 		int sequence = static_cast<int>(sequence::get_cache_schedule_state);
-		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_get_cache_schedule_state_sync (void) {
 		int sequence = static_cast<int>(sequence::get_cache_schedule_state);
-		return request_sync (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
+		return request_sync (m_module_id, sequence);
 	};
 
 	bool request_cache_schedule (void) {
 		int sequence = static_cast<int>(sequence::cache_schedule);
-		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_cache_schedule_force_current_service (uint8_t group_id) {
 		int sequence = static_cast<int>(sequence::cache_schedule_force_current_service);
 		return request_async (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)&group_id,
 					sizeof(uint8_t)
@@ -163,12 +166,12 @@ public:
 
 	bool request_stop_cache_schedule (void) {
 		int sequence = static_cast<int>(sequence::stop_cache_schedule);
-		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_stop_cache_schedule_sync (void) {
 		int sequence = static_cast<int>(sequence::stop_cache_schedule);
-		return request_sync (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
+		return request_sync (m_module_id, sequence);
 	};
 
 	bool request_get_event (request_event_param_t *p_param) {
@@ -178,7 +181,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_event);
 		return request_async (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_event_param_t)
@@ -192,7 +195,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_event);
 		return request_sync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_event_param_t)
@@ -206,7 +209,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_event__latest_dumped_schedule);
 		return request_async (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_event_param_t)
@@ -220,7 +223,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_event__latest_dumped_schedule);
 		return request_sync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_event_param_t)
@@ -234,7 +237,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::dump_event__latest_dumped_schedule);
 		return request_async (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_event_param_t)
@@ -248,7 +251,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_events__keyword_search);
 		return request_async (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_event_param_t)
@@ -262,7 +265,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_events__keyword_search);
 		return request_sync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_event_param_t)
@@ -276,7 +279,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_events__keyword_search_ex);
 		return request_async (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_event_param_t)
@@ -290,7 +293,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::get_events__keyword_search_ex);
 		return request_sync (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_event_param_t)
@@ -299,7 +302,7 @@ public:
 
 	bool request_dump_schedule_map (void) {
 		int sequence = static_cast<int>(sequence::dump_schedule_map);
-		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_dump_schedule (service_key_t *p_key) {
@@ -309,7 +312,7 @@ public:
 
 		int sequence = static_cast<int>(sequence::dump_schedule);
 		return request_async (
-					EN_MODULE_EVENT_SCHEDULE_MANAGER,
+					m_module_id,
 					sequence,
 					(uint8_t*)p_key,
 					sizeof (service_key_t)
@@ -318,14 +321,16 @@ public:
 
 	bool request_dump_reserves (void) {
 		int sequence = static_cast<int>(sequence::dump_reserves);
-		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
 	bool request_dump_histories (void) {
 		int sequence = static_cast<int>(sequence::dump_histories);
-		return request_async (EN_MODULE_EVENT_SCHEDULE_MANAGER, sequence);
+		return request_async (m_module_id, sequence);
 	};
 
+private:
+	uint8_t m_module_id;
 };
 
 #endif
