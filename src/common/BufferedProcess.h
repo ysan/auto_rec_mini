@@ -16,7 +16,7 @@ protected:
 		: m_process (nullptr)
 		, m_finalize (nullptr)
 		, m_buffer_size (0)
-		, m_processed_pos (0)
+		, m_buffered_pos (0)
 	{
 		m_buffer_size = size;
 		std::unique_ptr<uint8_t[]> ubf (new uint8_t[size]);
@@ -40,13 +40,13 @@ public:
 		}
 
 		int r = 0;
-		if (m_processed_pos + length > m_buffer_size) {
+		if (m_buffered_pos + length > m_buffer_size) {
 			// proccess first inner buffer data
 			r = m_process (true, nullptr);
 			if (r < 0) {
 				return r;
 			}
-			m_processed_pos = 0;
+			m_buffered_pos = 0;
 			
 			while (length >= m_buffer_size) {
 				// directly process the data passed as an argument
@@ -74,13 +74,13 @@ public:
 		}
 
 		int r;
-		if (m_processed_pos > 0) {
+		if (m_buffered_pos > 0) {
 			// process remain inner buffer data
 			r = m_process(true, nullptr);
 			if(r < 0)  {
 				return r;
 			}
-			m_processed_pos = 0;
+			m_buffered_pos = 0;
 		}
 
 		return 0;
@@ -103,15 +103,15 @@ protected:
 		return m_buffer_size;
 	}
 
-	size_t get_processed_position() const {
-		return m_processed_pos;
+	size_t get_buffered_position() const {
+		return m_buffered_pos;
 	}
 
 private:
 	void buffering (uint8_t *p_buffer, size_t length) {
 		if (p_buffer && length > 0) {
-			memcpy(m_buffer.get() + m_processed_pos, p_buffer, length);
-			m_processed_pos += length;
+			memcpy(m_buffer.get() + m_buffered_pos, p_buffer, length);
+			m_buffered_pos += length;
 		}
 	}
 
@@ -120,7 +120,7 @@ private:
 
 	std::unique_ptr<uint8_t[]> m_buffer;
 	size_t m_buffer_size;
-	size_t m_processed_pos;
+	size_t m_buffered_pos;
 };
 
 #endif

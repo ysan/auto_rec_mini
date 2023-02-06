@@ -37,7 +37,7 @@ public:
 			}
 
 			uint8_t* p = need_proc_inner_buff ? get_buffer() : p_buffer;
-			size_t len = need_proc_inner_buff ? get_processed_position() : get_buffer_size();
+			size_t len = need_proc_inner_buff ? get_buffered_position() : get_buffer_size();
 
 			int r = 0;
 			while (len > 0) {

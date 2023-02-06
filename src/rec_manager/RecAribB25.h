@@ -75,7 +75,7 @@ public:
 		std::function<int(bool, uint8_t*)> _process = [this] (bool need_proc_inner_buff, uint8_t* p_buffer) {
 			int r = 0;
 			uint8_t* p = need_proc_inner_buff ? get_buffer() : p_buffer;
-			size_t len = need_proc_inner_buff ? get_processed_position() : get_buffer_size();
+			size_t len = need_proc_inner_buff ? get_buffered_position() : get_buffer_size();
 			if (len == 0) {
 				return 0;
 			}
