@@ -174,8 +174,8 @@ public:
 		case progress::POST_PROCESS: {
 			_UTL_LOG_I ("progress::POST_PROCESS");
 
-			msp_b25->flush();
-			msp_b25->release();
+			msp_b25->process_remaining();
+			msp_b25->finalize();
 
 			RECORDING_NOTICE_t _notice = {m_rec_progress, m_group_id};
 			mp_ext_if->request_async (

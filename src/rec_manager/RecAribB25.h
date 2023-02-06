@@ -72,10 +72,10 @@ public:
 
 	void init () {
 
-		std::function<int(bool, uint8_t*)> _process = [this] (bool is_proc_inner_buff, uint8_t* p_buffer) {
+		std::function<int(bool, uint8_t*)> _process = [this] (bool need_proc_inner_buff, uint8_t* p_buffer) {
 			int r = 0;
-			uint8_t* p = is_proc_inner_buff ? getBuffer() : p_buffer;
-			size_t len = is_proc_inner_buff ? getWritedPosition() : getBufferSize();
+			uint8_t* p = need_proc_inner_buff ? get_buffer() : p_buffer;
+			size_t len = need_proc_inner_buff ? get_processed_position() : get_buffer_size();
 			if (len == 0) {
 				return 0;
 			}
@@ -163,7 +163,7 @@ public:
 			return 0;
 		};
 
-		std::function<void(void)> _release = [this] (void) {
+		std::function<void(void)> _finalize = [this] (void) {
 			finaliz_b25();
 
 			if (m_use_splitter) {
@@ -181,7 +181,7 @@ public:
 		};
 
 		set_process_handler (_process);
-		set_release_handler (_release);
+		set_finalize_handler (_finalize);
 	}
 
 	void init_b25 (void) {
@@ -260,9 +260,9 @@ public:
 		}
 	}
 
-	int flush (void) override {
+	int process_remaining (void) override {
 		int r = 0;
-		r = CBufferedProcess::flush();
+		r = CBufferedProcess::process_remaining();
 		if (r < 0) {
 			return r;
 		}
@@ -273,9 +273,9 @@ public:
 		return 0;
 	}
 
-	void release (void) override {
+	void finalize (void) override {
 		m_writer.release();
-		CBufferedProcess::release();
+		CBufferedProcess::finalize();
 	}
 	
 private:
