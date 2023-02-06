@@ -27,6 +27,7 @@ INCLUDES	:= \
 	-I$(ROOTDIR)/event_schedule_manager \
 	-I$(ROOTDIR)/event_search \
 	-I$(ROOTDIR)/command_server \
+	-I$(ROOTDIR)/stream_handler \
 	-I./ \
 
 LIBS		:= \

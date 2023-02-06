@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <getopt.h>
 #include <utility>
+#include <memory>
 
 #include "ThreadMgrpp.h"
 
@@ -26,6 +27,8 @@
 #include "Forker.h"
 #include "modules.h"
 #include "Settings.h"
+
+#include "StreamHandler.h"
 
 
 static CLogger s_logger;
@@ -243,82 +246,74 @@ int main (int argc, char *argv[])
 
 
 	// ----- setup thread manager -----
-	threadmgr::CThreadMgr *p_mgr = threadmgr::CThreadMgr::get_instance();
-	if (!p_mgr->setup (module::get_modules(), static_cast<int>(module::module_id::max))) {
+	threadmgr::CThreadMgr *mgr = threadmgr::CThreadMgr::get_instance();
+	if (!mgr->setup (module::get_modules(), static_cast<int>(module::module_id::max))) {
 		exit (EXIT_FAILURE);
 	}
 
-	p_mgr->get_external_if()->create_external_cp();
+	mgr->get_external_if()->create_external_cp();
 
 
-	CCommandServerIf *p_comSvrIf = new CCommandServerIf (p_mgr->get_external_if());
-#if 0
-	CTunerControlIf *p_tunerCtlIf = new CTunerControlIf (p_mgr->get_external_if());
-	CPsisiManagerIf *p_psisiMgrIf = new CPsisiManagerIf (p_mgr->get_external_if());
-#else
-	CTunerControlIf *p_tunerCtlIf [CGroup::GROUP_MAX];
-	CPsisiManagerIf *p_psisiMgrIf [CGroup::GROUP_MAX];
+	std::unique_ptr<CCommandServerIf> com_svr_if (new CCommandServerIf(mgr->get_external_if()));
+	std::unique_ptr<CTunerControlIf> tuner_ctl_if[CGroup::GROUP_MAX];
+	std::unique_ptr<CPsisiManagerIf> psisi_mgr_if [CGroup::GROUP_MAX];
 	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-		p_tunerCtlIf [_gr] = new CTunerControlIf(p_mgr->get_external_if(), _gr);
-		p_psisiMgrIf [_gr] = new CPsisiManagerIf(p_mgr->get_external_if(), _gr);
+		tuner_ctl_if [_gr] = std::unique_ptr<CTunerControlIf>(new CTunerControlIf(mgr->get_external_if(), _gr));
+		psisi_mgr_if [_gr] = std::unique_ptr<CPsisiManagerIf>(new CPsisiManagerIf(mgr->get_external_if(), _gr));
 	}
-#endif
-	CTunerServiceIf *p_tunerSvcIf = new CTunerServiceIf (p_mgr->get_external_if());
-	CRecManagerIf *p_recMgrIf = new CRecManagerIf (p_mgr->get_external_if());
-	CChannelManagerIf *p_chMgrIf = new CChannelManagerIf (p_mgr->get_external_if());
-	CEventScheduleManagerIf *p_schedMgrIf = new CEventScheduleManagerIf (p_mgr->get_external_if());
-	CEventSearchIf *p_searchIf = new CEventSearchIf (p_mgr->get_external_if());
+	std::unique_ptr<CTunerServiceIf> tuner_svc_if (new CTunerServiceIf (mgr->get_external_if()));
+	std::unique_ptr<CRecManagerIf> rec_mgr_if (new CRecManagerIf (mgr->get_external_if()));
+	std::unique_ptr<CChannelManagerIf> ch_mgr_if (new CChannelManagerIf (mgr->get_external_if()));
+	std::unique_ptr<CEventScheduleManagerIf> sched_mgr_if (new CEventScheduleManagerIf (mgr->get_external_if()));
+	std::unique_ptr<CEventSearchIf> search_if (new CEventSearchIf (mgr->get_external_if()));
 
 
-	uint32_t opt = p_mgr->get_external_if()->get_request_option ();
+	uint32_t opt = mgr->get_external_if()->get_request_option ();
 //	opt |= REQUEST_OPTION__WITH_TIMEOUT_MSEC;
 //	opt &= 0x0000ffff; // clear timeout val
 //	opt |= 1000 << 16; // set timeout 1sec
+	// set without-reply
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	p_mgr->get_external_if()->set_request_option (opt);
-
+	mgr->get_external_if()->set_request_option (opt);
 
 	// modules up
-	p_comSvrIf-> request_module_up();
-#if 0
-	p_tunerCtlIf-> request_module_up ();
-	p_psisiMgrIf->request_module_up();
-#else
+	com_svr_if-> request_module_up();
 	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-		p_tunerCtlIf[_gr]->request_module_up();
-		p_psisiMgrIf[_gr]->request_module_up();
+		tuner_ctl_if[_gr]->request_module_up();
+		psisi_mgr_if[_gr]->request_module_up();
 	}
-#endif
-	p_tunerSvcIf->request_module_up();
-	p_recMgrIf->request_module_up();
-	p_chMgrIf->request_module_up();
-	p_schedMgrIf->request_module_up();
-	p_searchIf->request_module_up();
+	tuner_svc_if->request_module_up();
+	rec_mgr_if->request_module_up();
+	ch_mgr_if->request_module_up();
+	sched_mgr_if->request_module_up();
+	search_if->request_module_up();
+	
+	// reset without-reply
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	mgr->get_external_if()->set_request_option (opt);
 
 
-
-	p_mgr->wait ();
-
-
-	p_mgr->get_external_if()->destroy_external_cp();
-	p_mgr->teardown();
-
-
-	delete p_comSvrIf;
-#if 0
-	delete p_tunerCtlIf;
-	delete p_psisiMgrIf;
-#else
+	// setup stream handlers
+	std::unique_ptr<CStremaHandler> stream_handler [CGroup::GROUP_MAX];
 	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-		delete p_tunerCtlIf[_gr];
-		delete p_psisiMgrIf[_gr];
+		stream_handler [_gr] = std::unique_ptr<CStremaHandler>(new CStremaHandler(mgr->get_external_if(), _gr));
+		CTunerControlIf::ITsReceiveHandler *p = stream_handler[_gr].get();
+		tuner_ctl_if [_gr]->request_register_ts_receive_handler(&p);
+		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
+		if (r.get_result() == threadmgr::result::success) {
+			_UTL_LOG_I ("stream handler: [%p]", p);	
+		} else {
+			_UTL_LOG_E ("stream handler register failed.");
+			exit (EXIT_FAILURE);
+		}
 	}
-#endif
-	delete p_tunerSvcIf;
-	delete p_recMgrIf;
-	delete p_chMgrIf;
-	delete p_schedMgrIf;
-	delete p_searchIf;
+
+
+	mgr->wait ();
+
+
+	mgr->get_external_if()->destroy_external_cp();
+	mgr->teardown();
 
 
 	exit (EXIT_SUCCESS);
