@@ -22,16 +22,16 @@ CTunerControl::CTunerControl (std::string name, uint8_t que_max, uint8_t group_i
 {
 	const int _max = static_cast<int>(CTunerControlIf::sequence::max);
 	threadmgr::sequence_t seqs [_max] = {
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_module_up(p_if);}, "on_module_up"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_module_down(p_if);}, "on_module_down"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_tune(p_if);}, "on_tune"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_tune_start(p_if);}, "on_tune_start"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_tune_stop(p_if);}, "on_tune_stop"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_register_tuner_notify(p_if);}, "on_register_tuner_notify"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_unregister_tuner_notify(p_if);}, "on_unregister_tuner_notify"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_register_ts_receive_handler(p_if);}, "on_register_ts_receive_handler"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_unregister_ts_receive_handler(p_if);}, "on_unregister_ts_receive_handler"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_get_state(p_if);}, "on_get_state"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_module_up(p_if);}, std::move("on_module_up")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_module_down(p_if);}, std::move("on_module_down")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_tune(p_if);}, std::move("on_tune")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_tune_start(p_if);}, std::move("on_tune_start")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_tune_stop(p_if);}, std::move("on_tune_stop")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_register_tuner_notify(p_if);}, std::move("on_register_tuner_notify")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_unregister_tuner_notify(p_if);}, std::move("on_unregister_tuner_notify")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_register_ts_receive_handler(p_if);}, std::move("on_register_ts_receive_handler")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_unregister_ts_receive_handler(p_if);}, std::move("on_unregister_ts_receive_handler")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerControl::on_get_state(p_if);}, std::move("on_get_state")},
 	};
 	set_sequences (seqs, _max);
 

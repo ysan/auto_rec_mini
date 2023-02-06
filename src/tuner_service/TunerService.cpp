@@ -20,15 +20,15 @@ CTunerService::CTunerService (std::string name, uint8_t que_max)
 {
 	const int _max = static_cast<int>(CTunerServiceIf::sequence::max);
 	threadmgr::sequence_t seqs [_max] = {
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_module_up(p_if);}, "on_module_up"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_module_down(p_if);}, "on_module_down"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_open(p_if);}, "on_open"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_close(p_if);}, "on_close"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune(p_if);}, "on_tune"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune_with_retry(p_if);}, "on_tune_with_retry"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune_advance(p_if);}, "on_tune_advance"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune_stop(p_if);}, "on_tune_stop"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_dump_allocates(p_if);}, "on_dump_allocates"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_module_up(p_if);}, std::move("on_module_up")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_module_down(p_if);}, std::move("on_module_down")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_open(p_if);}, std::move("on_open")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_close(p_if);}, std::move("on_close")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune(p_if);}, std::move("on_tune")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune_with_retry(p_if);}, std::move("on_tune_with_retry")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune_advance(p_if);}, std::move("on_tune_advance")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune_stop(p_if);}, std::move("on_tune_stop")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_dump_allocates(p_if);}, std::move("on_dump_allocates")},
 	};
 	set_sequences (seqs, _max);
 

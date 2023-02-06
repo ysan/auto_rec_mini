@@ -93,23 +93,23 @@ CRecManager::CRecManager (char *psz_name, uint8_t n_que_num)
 {
 	const int _max = static_cast<int>(CRecManagerIf::sequence::max);
 	threadmgr::sequence_t seqs [_max] = {
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_module_up(p_if);}, "on_module_up"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_module_up_by_group_id(p_if);}, "on_module_up_by_group_id"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_module_down(p_if);}, "on_module_down"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_check_loop(p_if);}, "on_check_loop"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_check_reserves_event_loop(p_if);}, "on_check_reserves_event_loop"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_check_recordings_event_loop(p_if);}, "on_check_recordings_event_loop"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_recording_notice(p_if);}, "on_recording_notice"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_start_recording(p_if);}, "on_start_recording"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_add_reserve_current_event(p_if);}, "on_add_reserve_current_event"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_add_reserve_event(p_if);}, "on_add_reserve_event"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_add_reserve_event_helper(p_if);}, "on_add_reserve_event_helper"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_add_reserve_manual(p_if);}, "on_add_reserve_manual"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_remove_reserve(p_if);}, "on_remove_reserve"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_remove_reserve_by_index(p_if);}, "on_remove_reserve_by_index"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_get_reserves(p_if);}, "on_get_reserves"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_stop_recording(p_if);}, "on_stop_recording"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_dump_reserves(p_if);}, "on_dump_reserves"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_module_up(p_if);}, std::move("on_module_up")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_module_up_by_group_id(p_if);}, std::move("on_module_up_by_group_id")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_module_down(p_if);}, std::move("on_module_down")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_check_loop(p_if);}, std::move("on_check_loop")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_check_reserves_event_loop(p_if);}, std::move("on_check_reserves_event_loop")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_check_recordings_event_loop(p_if);}, std::move("on_check_recordings_event_loop")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_recording_notice(p_if);}, std::move("on_recording_notice")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_start_recording(p_if);}, std::move("on_start_recording")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_add_reserve_current_event(p_if);}, std::move("on_add_reserve_current_event")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_add_reserve_event(p_if);}, std::move("on_add_reserve_event")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_add_reserve_event_helper(p_if);}, std::move("on_add_reserve_event_helper")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_add_reserve_manual(p_if);}, std::move("on_add_reserve_manual")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_remove_reserve(p_if);}, std::move("on_remove_reserve")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_remove_reserve_by_index(p_if);}, std::move("on_remove_reserve_by_index")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_get_reserves(p_if);}, std::move("on_get_reserves")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_stop_recording(p_if);}, std::move("on_stop_recording")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CRecManager::on_dump_reserves(p_if);}, std::move("on_dump_reserves")},
 	};
 	set_sequences (seqs, _max);
 
@@ -365,7 +365,7 @@ void CRecManager::on_module_up_by_group_id (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("req_register_tuner_notify is failure.");
+			_UTL_LOG_E ("request_register_tuner_notify is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -390,7 +390,7 @@ void CRecManager::on_module_up_by_group_id (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("req_register_ts_receive_handler is failure.");
+			_UTL_LOG_E ("request_register_ts_receive_handler is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -413,7 +413,7 @@ void CRecManager::on_module_up_by_group_id (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("req_register_pat_detect_notify is failure.");
+			_UTL_LOG_E ("request_register_pat_detect_notify is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -436,7 +436,7 @@ void CRecManager::on_module_up_by_group_id (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("req_register_event_change_notify is failure.");
+			_UTL_LOG_E ("request_register_event_change_notify is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -475,7 +475,7 @@ void CRecManager::on_module_down (threadmgr::CThreadMgrIf *p_if)
 	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
 //
-// do nothing
+// do something
 //
 
 	p_if->reply (threadmgr::result::success);
@@ -536,10 +536,10 @@ void CRecManager::on_check_loop (threadmgr::CThreadMgrIf *p_if)
 			rslt = get_if()->get_source().get_result();
 			if (rslt == threadmgr::result::success) {
 				group_id = *(uint8_t*)(get_if()->get_source().get_message().data());
-				_UTL_LOG_I ("req_open group_id:[0x%02x]", group_id);
+				_UTL_LOG_I ("request_open group_id:[0x%02x]", group_id);
 
 				if (m_recordings[group_id].is_used) {
-					// m_recordingsのidxはreq_openで取ったtuner_idで決まります
+					// m_recordingsのidxはrequest_openで取ったtuner_idで決まります
 					// is_usedになってるはずない...
 					_UTL_LOG_E ("??? m_recordings[group_id].is_used ???  group_id:[0x%02x]", group_id);
 					section_id = SECTID_CHECK;
@@ -855,7 +855,7 @@ void CRecManager::on_check_recordings_event_loop (threadmgr::CThreadMgrIf *p_if)
 			}
 
 		} else {
-			_UTL_LOG_E ("(%s) req_get_present_event_info err", p_if->get_sequence_name());
+			_UTL_LOG_E ("(%s) request_get_present_event_info err", p_if->get_sequence_name());
 		}
 
 		++ s_group_id;
@@ -1072,7 +1072,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 
 		// EPG取得中だったら止めてから録画開始します
 		CEventScheduleManagerIf _if (get_external_if());
-		_if.req_stop_cache_schedule ();
+		_if.request_stop_cache_schedule ();
 
 		section_id = SECTID_WAIT_STOP_CACHE_SCHED;
 		act = threadmgr::action::wait;
@@ -1096,7 +1096,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 		};
 
 		CChannelManagerIf _if (get_external_if());
-		_if.req_get_pysical_channel_by_service_id (&param);
+		_if.request_get_pysical_channel_by_service_id (&param);
 
 		section_id = SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID;
 		act = threadmgr::action::wait;
@@ -1113,7 +1113,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("req_get_pysical_channel_by_service_id is failure.");
+			_UTL_LOG_E ("request_get_pysical_channel_by_service_id is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -1128,7 +1128,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 		};
 
 		CTunerServiceIf _if (get_external_if());
-		_if.req_tune_with_retry (&param);
+		_if.request_tune_with_retry (&param);
 ***/
 		CTunerServiceIf::tune_advance_param_t param = {
 			m_recordings[s_group_id].transport_stream_id,
@@ -1162,7 +1162,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 			}
 
 		} else {
-			_UTL_LOG_E ("req_tune is failure.");
+			_UTL_LOG_E ("request_tune is failure.");
 			_UTL_LOG_E ("tune is failure  -> not start recording");
 
 			m_recordings[s_group_id].state |= RESERVE_STATE__END_ERROR__TUNE_ERR;
@@ -1209,7 +1209,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 
 		} else {
 			if (s_retry_get_event_info >= 10) {
-				_UTL_LOG_E ("(%s) req_get_present_event_info err", p_if->get_sequence_name());
+				_UTL_LOG_E ("(%s) request_get_present_event_info err", p_if->get_sequence_name());
 
 				m_recordings[s_group_id].state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
 				set_result (&m_recordings[s_group_id]);
@@ -1222,7 +1222,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 				// workaround
 				// たまにエラーになることがあるので 暫定対策として200m_s待ってリトライしてみます
 				// psi/siの選局完了時に確実にEIT p/fを取得できてないのが直接の原因だと思われます
-				_UTL_LOG_W ("(%s) req_get_present_event_info retry", p_if->get_sequence_name());
+				_UTL_LOG_W ("(%s) request_get_present_event_info retry", p_if->get_sequence_name());
 
 				usleep (200000); // 200m_s
 				++ s_retry_get_event_info;
@@ -1254,7 +1254,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("(%s) req_cache_schedule_force_current_service err", p_if->get_sequence_name());
+			_UTL_LOG_E ("(%s) request_cache_schedule_force_current_service err", p_if->get_sequence_name());
 
 			m_recordings[s_group_id].state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
 			set_result (&m_recordings[s_group_id]);
@@ -1539,13 +1539,13 @@ s_service_infos[0].dump();
 				act = threadmgr::action::continue_;
 
 			} else {
-				_UTL_LOG_E ("req_get_current_service_infos is 0");
+				_UTL_LOG_E ("request_get_current_service_infos is 0");
 				section_id = SECTID_END_ERROR;
 				act = threadmgr::action::continue_;
 			}
 
 		} else {
-			_UTL_LOG_E ("req_get_current_service_infos err");
+			_UTL_LOG_E ("request_get_current_service_infos err");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -1602,7 +1602,7 @@ s_present_event_info.dump();
 			}
 
 		} else {
-			_UTL_LOG_E ("(%s) req_get_present_event_info err", p_if->get_sequence_name());
+			_UTL_LOG_E ("(%s) request_get_present_event_info err", p_if->get_sequence_name());
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -1718,7 +1718,7 @@ void CRecManager::on_add_reserve_event (threadmgr::CThreadMgrIf *p_if)
 
 		} else {
 			// 予約に対応するイベントがなかった あらら...
-			_UTL_LOG_E ("on_add_reserve_event - req_get_event error");
+			_UTL_LOG_E ("on_add_reserve_event - request_get_event error");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -1863,7 +1863,7 @@ void CRecManager::on_add_reserve_event_helper (threadmgr::CThreadMgrIf *p_if)
 
 		} else {
 			// 予約に対応するイベントがなかった あらら...
-			_UTL_LOG_E ("req_get_event error");
+			_UTL_LOG_E ("request_get_event error");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -2003,7 +2003,7 @@ void CRecManager::on_add_reserve_manual (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("req_get_pysical_channel_by_service_id is failure.");
+			_UTL_LOG_E ("request_get_pysical_channel_by_service_id is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}

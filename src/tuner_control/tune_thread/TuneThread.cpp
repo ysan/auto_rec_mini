@@ -41,10 +41,10 @@ CTuneThread::CTuneThread (std::string name, uint8_t que_max, uint8_t group_id)
 {
 	const int _max = static_cast<int>(CTuneThread::sequence::max);
 	threadmgr::sequence_t seqs [_max] = {
-		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_module_up(p_if);},"on_module_up"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_module_down(p_if);}, "on_module_down"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_tune(p_if);}, "tune"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_force_kill(p_if);}, "on_force_kill"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_module_up(p_if);},std::move("on_module_up")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_module_down(p_if);}, std::move("on_module_down")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_tune(p_if);}, std::move("tune")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CTuneThread::on_force_kill(p_if);}, std::move("on_force_kill")},
 	};
 	set_sequences (seqs, _max);
 
@@ -150,7 +150,7 @@ void CTuneThread::on_tune (threadmgr::CThreadMgrIf *p_if)
 	}
 
 	if (!m_forker.do_fork(command)) {
-		_UTL_LOG_E("do_dork failure.");
+		_UTL_LOG_E("do_fork failure.");
 		p_if->reply (threadmgr::result::error);
 		section_id = threadmgr::section_id::init;
 		act = threadmgr::action::done;

@@ -38,9 +38,9 @@ CCommandServer::CCommandServer (std::string name, uint8_t que_max)
 {
 	const int _max = static_cast<int>(CCommandServerIf::sequence::max);
 	threadmgr::sequence_t seqs [_max] = {
-		{[&](threadmgr::CThreadMgrIf *p_if){on_module_up(p_if);}, "on_module_up"},
-		{[&](threadmgr::CThreadMgrIf *p_if){on_module_down(p_if);}, "on_module_down"},
-		{[&](threadmgr::CThreadMgrIf *p_if){on_server_loop(p_if);}, "on_server_loop"},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_module_up(p_if);}, std::move("on_module_up")},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_module_down(p_if);}, std::move("on_module_down")},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_server_loop(p_if);}, std::move("on_server_loop")},
 	};
 	set_sequences (seqs, _max);
 

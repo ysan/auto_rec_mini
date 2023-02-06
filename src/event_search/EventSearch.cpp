@@ -21,12 +21,12 @@ CEventSearch::CEventSearch (std::string name, uint8_t que_max)
 {
 	const int _max = static_cast<int>(CEventSearchIf::sequence::max);
 	threadmgr::sequence_t seqs [_max] = {
-		{[&](threadmgr::CThreadMgrIf *p_if){on_module_up(p_if);}, "on_module_up"},
-		{[&](threadmgr::CThreadMgrIf *p_if){on_module_down(p_if);}, "on_module_up"},
-		{[&](threadmgr::CThreadMgrIf *p_if){on_add_rec_reserve_keyword_search(p_if);}, "on_add_rec_reserve_keyword_search"},
-		{[&](threadmgr::CThreadMgrIf *p_if){on_add_rec_reserve_keyword_search(p_if);}, "on_add_rec_reserve_keyword_search(ex)"},
-		{[&](threadmgr::CThreadMgrIf *p_if){on_dump_histories(p_if);}, "on_dump_histories"},
-		{[&](threadmgr::CThreadMgrIf *p_if){on_dump_histories(p_if);}, "on_dump_histories(ex)"},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_module_up(p_if);}, std::move("on_module_up")},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_module_down(p_if);}, std::move("on_module_up")},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_add_rec_reserve_keyword_search(p_if);}, std::move("on_add_rec_reserve_keyword_search")},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_add_rec_reserve_keyword_search(p_if);}, std::move("on_add_rec_reserve_keyword_search(ex)")},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_dump_histories(p_if);}, std::move("on_dump_histories")},
+		{[&](threadmgr::CThreadMgrIf *p_if){on_dump_histories(p_if);}, std::move("on_dump_histories(ex)")},
 	};
 	set_sequences (seqs, _max);
 

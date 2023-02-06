@@ -16,15 +16,15 @@ CChannelManager::CChannelManager (std::string name, uint8_t que_max)
 {
 	const int _max = static_cast<int>(CChannelManagerIf::sequence::max);
 	threadmgr::sequence_t seqs [_max] = {
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_module_up(p_if);}, "on_module_up"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_module_down(p_if);}, "on_module_down"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_channel_scan(p_if);}, "on_channel_scan"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_pysical_channel_by_service_id(p_if);}, "on_get_pysical_channel_by_service_id"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_pysical_channel_by_remote_control_key_id(p_if);}, "on_get_pysical_channel_by_remote_control_key_id"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_channels(p_if);}, "on_get_channels"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_transport_stream_name(p_if);}, "on_get_transport_stream_name"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_service_name(p_if);}, "on_get_service_name"},
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_dump_channels(p_if);}, "on_dump_channels"},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_module_up(p_if);}, std::string("on_module_up")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_module_down(p_if);}, std::string("on_module_down")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_channel_scan(p_if);}, std::string("on_channel_scan")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_pysical_channel_by_service_id(p_if);}, std::string("on_get_pysical_channel_by_service_id")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_pysical_channel_by_remote_control_key_id(p_if);}, std::string("on_get_pysical_channel_by_remote_control_key_id")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_channels(p_if);}, std::string("on_get_channels")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_transport_stream_name(p_if);}, std::string("on_get_transport_stream_name")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_service_name(p_if);}, std::string("on_get_service_name")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_dump_channels(p_if);}, std::string("on_dump_channels")},
 	};
 	set_sequences (seqs, _max);
 
