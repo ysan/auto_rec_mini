@@ -220,7 +220,7 @@ class CRecManager
 ////	,public CTunerControlIf::ITsReceiveHandler
 {
 public:
-	CRecManager (char *pszName, uint8_t nQueNum);
+	CRecManager (std::string name, uint8_t que_max);
 	virtual ~CRecManager (void);
 
 

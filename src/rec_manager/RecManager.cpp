@@ -82,8 +82,8 @@ const char *g_repeatability [] = {
 ////} RECORDING_NOTICE_t;
 
 
-CRecManager::CRecManager (char *psz_name, uint8_t n_que_num)
-	:threadmgr::CThreadMgrBase (psz_name, n_que_num)
+CRecManager::CRecManager (std::string name, uint8_t que_max)
+	:threadmgr::CThreadMgrBase (name, que_max)
 ////	,m_tuner_notify_client_id (0xff)
 ////	,m_ts_receive_handler_id (-1)
 ////	,m_pat_detect_notify_client_id (0xff)
