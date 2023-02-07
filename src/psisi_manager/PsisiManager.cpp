@@ -1399,6 +1399,7 @@ void CPsisiManager::on_receive_notify (threadmgr::CThreadMgrIf *p_if)
 		clear_event_pf_infos();
 
 		m_tuner_is_tuned = false;
+		m_is_detected_PAT = false;
 
 		}
 		break;
@@ -1418,6 +1419,7 @@ void CPsisiManager::on_receive_notify (threadmgr::CThreadMgrIf *p_if)
 		clear_event_pf_infos();
 
 		m_tuner_is_tuned = false;
+		m_is_detected_PAT = false;
 
 		}
 		break;
