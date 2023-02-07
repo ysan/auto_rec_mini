@@ -26,7 +26,6 @@ Features
 * channel scan
 * Record and schedule recording
   * Simultaneous recording with multiple tuners.
-  * Up to 50 reservations.
   * Event tracking.
   * After obtaining the EPG, search for the registered keyword and schedule recording.
   * Introduced tssplitter_lite.
