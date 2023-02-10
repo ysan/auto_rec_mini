@@ -27,6 +27,7 @@ enum class module_id : uint8_t {
 	channel_manager,
 	event_schedule_manager,
 	event_search,
+	viewing_manager,
 	command_server,
 
 	max,

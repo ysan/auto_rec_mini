@@ -13,8 +13,10 @@
 #include "ChannelManager.h"
 #include "EventScheduleManager.h"
 #include "EventSearch.h"
+#include "ViewingManager.h"
 
 #include "modules.h"
+#include "viewing_manager/ViewingManager.h"
 
 
 namespace module {
@@ -39,6 +41,7 @@ static CRecManager           s_recManager        ((char*)"RecManager"          ,
 static CChannelManager       s_chennelManager    ((char*)"ChannelManager"      , 10);
 static CEventScheduleManager s_eventSchedManager ((char*)"EventScheduleManager", 50);
 static CEventSearch          s_eventSearch       ((char*)"EventSearch"         , 10);
+static CViewingManager       s_viewingManager    ((char*)"ViewingManager"      , 10);
 static CCommandServer        s_commandServer     ((char*)"CommandServer"       , 10);
 
 
@@ -63,6 +66,7 @@ static threadmgr::CThreadMgrBase *gp_modules [] = {
 	&s_chennelManager,
 	&s_eventSchedManager,
 	&s_eventSearch,
+	&s_viewingManager,
 	&s_commandServer,
 
 };

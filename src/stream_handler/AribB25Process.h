@@ -20,7 +20,7 @@
 class CAribB25Process : public CBufferedProcess
 {
 public:
-	CAribB25Process (size_t size, uint16_t service_id, bool use_splitter, std::function<void (void *buff, size_t size)> b25_processed_handler)
+	CAribB25Process (size_t size, uint16_t service_id, bool use_splitter, std::function<int (const void *buff, size_t size)> b25_processed_handler)
 		: CBufferedProcess (size > TS_PACKET_LEN * 512 ? size : TS_PACKET_LEN * 512)
 		, mp_b25 (NULL)
 		, mp_b25cas (NULL)
@@ -156,7 +156,9 @@ public:
 			}
 
 			if (m_b25_processed_handler) {
-				m_b25_processed_handler (p, len);
+				if (m_b25_processed_handler (p, len) < 0) {
+					return -1;
+				}
 			}
 
 			return 0;
@@ -283,7 +285,7 @@ private:
 	splitter *mp_splitter;
 	splitbuf_t m_splitbuf;
 	int m_split_select_state;
-	std::function<void (void *buff, size_t size)> m_b25_processed_handler;
+	std::function<int (void *buff, size_t size)> m_b25_processed_handler;
 };
 
 #endif

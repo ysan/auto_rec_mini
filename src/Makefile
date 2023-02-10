@@ -26,6 +26,7 @@ INCLUDES	:= \
 	-I$(ROOTDIR)/channel_manager \
 	-I$(ROOTDIR)/event_schedule_manager \
 	-I$(ROOTDIR)/event_search \
+	-I$(ROOTDIR)/viewing_manager \
 	-I$(ROOTDIR)/command_server \
 	-I$(ROOTDIR)/stream_handler \
 	-I./ \
@@ -45,7 +46,9 @@ LIBS		:= \
 	-L$(ROOTDIR)/channel_manager -lchannelmanager \
 	-L$(ROOTDIR)/event_schedule_manager -leventschedulemanager \
 	-L$(ROOTDIR)/event_search -leventsearch \
+	-L$(ROOTDIR)/viewing_manager -lviewingmanager \
 	-L$(ROOTDIR)/command_server -lcommandserver \
+	-L$(ROOTDIR)/stream_handler -lstreamhandler \
 	-larib25 \
 	-lpthread \
 	-lpcsclite \
@@ -56,6 +59,7 @@ SUBDIRS		:= \
 	common \
 	parser \
 	parser_test \
+	stream_handler \
 	tuner_control \
 	psisi_manager \
 	tuner_service \
@@ -63,6 +67,7 @@ SUBDIRS		:= \
 	channel_manager \
 	event_schedule_manager \
 	event_search \
+	viewing_manager \
 	command_server \
 
 

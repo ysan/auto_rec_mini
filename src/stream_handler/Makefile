@@ -5,21 +5,20 @@ BASEDIR		:=	../../
 ROOTDIR		:=	$(BASEDIR)/src/
 
 CFLAGS		:=	-std=c++11
+ifeq ($(shell getconf LONG_BIT),32)
+CFLAGS		+=	-D_FILE_OFFSET_BITS=64
+endif
 
 INCLUDES	:= \
+	-I$(ROOTDIR) \
 	-I$(ROOTDIR)/threadmgr \
 	-I$(ROOTDIR)/threadmgrpp \
 	-I$(ROOTDIR)/common \
 	-I$(ROOTDIR)/tuner_control \
-	-I$(ROOTDIR)/psisi_manager \
-	-I$(ROOTDIR)/tuner_service \
-	-I$(ROOTDIR)/rec_manager \
-	-I$(ROOTDIR)/channel_manager \
-	-I$(ROOTDIR)/event_schedule_manager \
-	-I$(ROOTDIR)/event_search \
 	-I$(ROOTDIR)/viewing_manager \
+	-I$(ROOTDIR)/parser \
+	-I$(ROOTDIR)/parser/tssplitter_lite \
 	-I./ \
-	-I../ \
 
 LIBS		:= \
 	-L$(ROOTDIR)/threadmgr -lthreadmgr \
@@ -29,11 +28,10 @@ LIBS		:= \
 
 USERDEFS	:= \
 
-
 #
 #   Target object
 #
-TARGET_NAME	:=	commandserver
+TARGET_NAME	:=	streamhandler
 
 #
 #   Target type
@@ -45,8 +43,7 @@ TARGET_TYPE	:=	SHARED
 #   Compile sources
 #
 SRCS_CPP	:= \
-	CommandServer.cpp \
-	CommandTables.cpp \
+	StreamHandler.cpp \
 
 
 #

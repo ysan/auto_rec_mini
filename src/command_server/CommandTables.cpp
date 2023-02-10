@@ -18,6 +18,7 @@
 #include "ChannelManagerCommands.h"
 #include "EventScheduleManagerCommands.h"
 #include "EventSearchCommands.h"
+#include "ViewingManagerCommands.h"
 
 
 const char *g_sz_log_levels [] = {
@@ -157,6 +158,12 @@ command_info_t g_root_command_table [] = { // extern
 		"event search",
 		NULL,
 		g_event_search_commands,
+	},
+	{
+		"vm",
+		"viewing manager",
+		NULL,
+		g_viewing_manager_commands,
 	},
 
 

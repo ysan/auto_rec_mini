@@ -2264,9 +2264,9 @@ void CPsisiManager::store_logo (void)
 			}
 
 			CForker::CChildStatus cs = forker.wait_child();
-			_UTL_LOG_I ("is_normal_end %d  get_return_code %d", cs.is_normal_end(), cs.get_return_code());
+			_UTL_LOG_I ("get_status %d  get_return_code %d", cs.get_status(), cs.get_return_code());
 			forker.destroy_pipes();
-			if (cs.is_normal_end() && cs.get_return_code() == 0) {
+			if (cs.get_status() == 1 && cs.get_return_code() == 0) {
 				// success
 				_UTL_LOG_I ("mkdir -p %s\n", p_path->c_str());
 			} else {

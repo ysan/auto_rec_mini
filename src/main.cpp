@@ -19,6 +19,7 @@
 #include "ChannelManagerIf.h"
 #include "EventScheduleManagerIf.h"
 #include "EventSearchIf.h"
+#include "ViewingManagerIf.h"
 
 #include "threadmgr_util.h"
 #include "tssplitter_lite.h"
@@ -193,9 +194,9 @@ int main (int argc, char *argv[])
 			}
 
 			CForker::CChildStatus cs = forker.wait_child();
-			printf ("is_normal_end %d  get_return_code %d", cs.is_normal_end(), cs.get_return_code());
+			printf ("get_status %d  get_return_code %d", cs.get_status(), cs.get_return_code());
 			forker.destroy_pipes();
-			if (cs.is_normal_end() && cs.get_return_code() == 0) {
+			if (cs.get_status() == 1 && cs.get_return_code() == 0) {
 				// success
 				printf ("mkdir -p %s\n", change_directory_path.c_str());
 			} else {
@@ -254,59 +255,109 @@ int main (int argc, char *argv[])
 	mgr->get_external_if()->create_external_cp();
 
 
-	std::unique_ptr<CCommandServerIf> com_svr_if (new CCommandServerIf(mgr->get_external_if()));
+	CCommandServerIf com_svr_if (mgr->get_external_if());
 	std::unique_ptr<CTunerControlIf> tuner_ctl_if[CGroup::GROUP_MAX];
 	std::unique_ptr<CPsisiManagerIf> psisi_mgr_if [CGroup::GROUP_MAX];
 	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
 		tuner_ctl_if [_gr] = std::unique_ptr<CTunerControlIf>(new CTunerControlIf(mgr->get_external_if(), _gr));
 		psisi_mgr_if [_gr] = std::unique_ptr<CPsisiManagerIf>(new CPsisiManagerIf(mgr->get_external_if(), _gr));
 	}
-	std::unique_ptr<CTunerServiceIf> tuner_svc_if (new CTunerServiceIf (mgr->get_external_if()));
-	std::unique_ptr<CRecManagerIf> rec_mgr_if (new CRecManagerIf (mgr->get_external_if()));
-	std::unique_ptr<CChannelManagerIf> ch_mgr_if (new CChannelManagerIf (mgr->get_external_if()));
-	std::unique_ptr<CEventScheduleManagerIf> sched_mgr_if (new CEventScheduleManagerIf (mgr->get_external_if()));
-	std::unique_ptr<CEventSearchIf> search_if (new CEventSearchIf (mgr->get_external_if()));
+	CTunerServiceIf tuner_svc_if (mgr->get_external_if());
+	CRecManagerIf rec_mgr_if (mgr->get_external_if());
+	CChannelManagerIf ch_mgr_if (mgr->get_external_if());
+	CEventScheduleManagerIf sched_mgr_if (mgr->get_external_if());
+	CEventSearchIf search_if (mgr->get_external_if());
+	CViewingManagerIf view_mgr_if (mgr->get_external_if());
 
 
-	uint32_t opt = mgr->get_external_if()->get_request_option ();
+//	uint32_t opt = mgr->get_external_if()->get_request_option ();
 //	opt |= REQUEST_OPTION__WITH_TIMEOUT_MSEC;
 //	opt &= 0x0000ffff; // clear timeout val
 //	opt |= 1000 << 16; // set timeout 1sec
 	// set without-reply
-	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	mgr->get_external_if()->set_request_option (opt);
+//	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+//	mgr->get_external_if()->set_request_option (opt);
 
-	// modules up
-	com_svr_if-> request_module_up();
-	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-		tuner_ctl_if[_gr]->request_module_up();
-		psisi_mgr_if[_gr]->request_module_up();
-	}
-	tuner_svc_if->request_module_up();
-	rec_mgr_if->request_module_up();
-	ch_mgr_if->request_module_up();
-	sched_mgr_if->request_module_up();
-	search_if->request_module_up();
-	
-	// reset without-reply
-	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	mgr->get_external_if()->set_request_option (opt);
-
-
-	// setup stream handlers
-	std::unique_ptr<CStremaHandler> stream_handler [CGroup::GROUP_MAX];
-	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-		stream_handler [_gr] = std::unique_ptr<CStremaHandler>(new CStremaHandler(mgr->get_external_if(), _gr));
-		CTunerControlIf::ITsReceiveHandler *p = stream_handler[_gr].get();
-		tuner_ctl_if [_gr]->request_register_ts_receive_handler(&p);
+	// ----- modules up -----
+	{
+		com_svr_if.request_module_up();
 		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
-		if (r.get_result() == threadmgr::result::success) {
-			_UTL_LOG_I ("stream handler: [%p]", p);	
-		} else {
-			_UTL_LOG_E ("stream handler register failed.");
+		if (r.get_result() != threadmgr::result::success) {
+			_UTL_LOG_E ("commnd server module up failed.");
 			exit (EXIT_FAILURE);
 		}
 	}
+	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
+		tuner_ctl_if[_gr]->request_module_up();
+		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
+		if (r.get_result() != threadmgr::result::success) {
+			_UTL_LOG_E ("tuner control %d module up failed.", _gr);
+			exit (EXIT_FAILURE);
+		}
+	}
+	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
+		psisi_mgr_if[_gr]->request_module_up();
+		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
+		if (r.get_result() != threadmgr::result::success) {
+			_UTL_LOG_E ("psisi manager %d module up failed.", _gr);
+			exit (EXIT_FAILURE);
+		}
+	}
+	{
+		tuner_svc_if.request_module_up();
+		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
+		if (r.get_result() != threadmgr::result::success) {
+			_UTL_LOG_E ("tuner service module up failed.");
+			exit (EXIT_FAILURE);
+		}
+	}
+	{
+		rec_mgr_if.request_module_up();
+		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
+		if (r.get_result() != threadmgr::result::success) {
+			_UTL_LOG_E ("rec manager module up failed.");
+			exit (EXIT_FAILURE);
+		}
+	}
+	{
+		ch_mgr_if.request_module_up();
+		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
+		if (r.get_result() != threadmgr::result::success) {
+			_UTL_LOG_E ("channel manager module up failed.");
+			exit (EXIT_FAILURE);
+		}
+	}
+	{
+		sched_mgr_if.request_module_up();
+		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
+		if (r.get_result() != threadmgr::result::success) {
+			_UTL_LOG_E ("event schedule manager module up failed.");
+			exit (EXIT_FAILURE);
+		}
+	}
+	{
+		search_if.request_module_up();
+		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
+		if (r.get_result() != threadmgr::result::success) {
+			_UTL_LOG_E ("event search module up failed.");
+			exit (EXIT_FAILURE);
+		}
+	}
+	{
+		view_mgr_if.request_module_up();
+		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
+		if (r.get_result() != threadmgr::result::success) {
+			_UTL_LOG_E ("viewing manager module up failed.");
+			exit (EXIT_FAILURE);
+		}
+	}
+	
+	// reset without-reply
+//	opt &= ~REQUEST_OPTION__WITH_TIMEOUT_MSEC;
+//	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+//	mgr->get_external_if()->set_request_option (opt);
+
+	stream_handler_funcs::setup_instance(mgr->get_external_if());
 
 
 	mgr->wait ();

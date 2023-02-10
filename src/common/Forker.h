@@ -84,15 +84,19 @@ private:
 public:
 	class CChildStatus {
 	public:
-		CChildStatus (bool is_normal_end, int return_code)
-			: m_is_normal_end(is_normal_end)
+		CChildStatus (int status, int return_code)
+			: m_status(status)
 			, m_return_code(return_code)
 		{
 		}
 		virtual ~CChildStatus (void) = default;
 
-		bool is_normal_end (void) const {
-			return m_is_normal_end;
+		// ret -1 : abromal function,
+		//      0 : child alive,
+		//      1 : child normal end,
+		//      2 : child abrobal end (by signal etc...)
+		int get_status (void) const {
+			return m_status;
 		}
 
 		int get_return_code (void) const {
@@ -100,7 +104,7 @@ public:
 		}
 
 	private:
-		bool m_is_normal_end;
+		int m_status;
 		int m_return_code;
 	};
 
@@ -109,11 +113,11 @@ public:
 		: m_child_pid (0)
 		, m_fprintf_cb(nullptr)
 	{
-		m_command.clear();
+		m_child_commandline.clear();
 	}
 	
 	virtual ~CForker (void) {
-		m_command.clear();
+		m_child_commandline.clear();
 		destroy_pipes();
 	}
 
@@ -145,13 +149,13 @@ public:
 			if (m_fprintf_cb) m_fprintf_cb(stderr, "command is none\n");
 			return false;
 		}
-		m_command = command;
+		m_child_commandline = command;
 
 		auto splited = split (command, " ");
 		char *_coms[splited->size() +1] ;
 		if (m_fprintf_cb) m_fprintf_cb (stdout, "execv args\n");
 		for (size_t i = 0; i < splited->size(); ++ i) {
-			const auto vec = *splited;
+			const auto &vec = *splited;
 			_coms [i] = (char*)vec[i].c_str();
 			if (m_fprintf_cb) m_fprintf_cb (stdout, "  [%s]\n", _coms [i]);
 		}
@@ -200,7 +204,7 @@ public:
 			m_pipe_c2p_stderr.close_writer_fd();
 
 			const auto vec = *splited;
-			int r = execv (vec[0].c_str(), _coms);
+			int r = execv (_coms[0], _coms);
 			if (r < 0) {
 				if (m_fprintf_cb) m_fprintf_cb(stderr, "execv: %s\n", strerror(errno));
 				exit (EXIT_FAILURE);
@@ -236,14 +240,34 @@ public:
 		return m_pipe_c2p_stderr.get_reader_fd();
 	}
 
-	CChildStatus wait_child (int killsignal=-1) {
+	bool has_child (void) const {
+		return m_child_pid != 0 ? true : false;
+	}
+
+	bool is_alive_child (void) const {
+		if (m_child_pid == 0) {
+			return false;
+		}
+		int r = kill (m_child_pid, 0);
+		if (r == 0) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	const std::string &get_child_commandline (void) const {
+		return m_child_commandline;
+	}
+
+	CChildStatus wait_child (int killsignal=-1, bool is_oneshot=false) {
 		if (m_child_pid == 0) {
 			if (m_fprintf_cb) m_fprintf_cb(stderr, "not exists child process\n");
-			CChildStatus cs{false, 0};
+			CChildStatus cs{-1, 0};
 			return cs;
 		}
 
-		bool _is_child_normal_end = true;
+		int _status = 0;
 		int _child_return_code = 0;
 
 		int r = 0;
@@ -255,10 +279,11 @@ public:
 			_r_pid = waitpid (m_child_pid, &_stat, WNOHANG);
 			if (_r_pid == -1) {
 				if (m_fprintf_cb) m_fprintf_cb(stderr, "waitpid: %s\n", strerror(errno));
-				_is_child_normal_end = false;
+				_status = -1;
 				break;
 
 			} else if (_r_pid == 0) {
+				// alive
 				if (killsignal == -1) {
 					// do not kill
 				} else {
@@ -275,17 +300,24 @@ public:
 				}
 
 			} else {
+				// not alive
 				if (WIFEXITED(_stat)) {
+					_status = 1;
 					_child_return_code = WEXITSTATUS(_stat);
 					if (m_fprintf_cb) m_fprintf_cb (stdout, "child exited with status of [%d]\n", _child_return_code);
 				} else {
-					_is_child_normal_end = false;
+					_status = 2;
 					if (m_fprintf_cb) m_fprintf_cb (stdout, "child exited abnromal.\n");
 				}
-				if (m_fprintf_cb) m_fprintf_cb (stdout, "---> [%s]\n", m_command.c_str());
+				if (m_fprintf_cb) m_fprintf_cb (stdout, "---> [%s]\n", m_child_commandline.c_str());
 
 				// ** clear m_child_pid **
 				m_child_pid = 0;
+				m_child_commandline.clear();
+				break;
+			}
+
+			if (is_oneshot) {
 				break;
 			}
 
@@ -293,7 +325,7 @@ public:
 			++ _cnt;
 		}
 
-		CChildStatus cs {_is_child_normal_end, _child_return_code};
+		CChildStatus cs {_status, _child_return_code};
 		return cs;
 	}
 
@@ -347,7 +379,7 @@ private:
 	CPipe m_pipe_c2p_stdout;
 	CPipe m_pipe_c2p_stderr;
 	pid_t m_child_pid;
-	std::string m_command;
+	std::string m_child_commandline;
 
 	// for log print
 	int (*m_fprintf_cb)(FILE *fp, const char *format, ...) ;
