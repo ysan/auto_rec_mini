@@ -20,6 +20,7 @@ public:
 		channel_scan,
 		get_pysical_channel_by_service_id,
 		get_pysical_channel_by_remote_control_key_id,
+		get_service_id_by_pysical_channel,
 		get_channels,
 		get_transport_stream_name,
 		get_service_name,
@@ -38,6 +39,11 @@ public:
 		uint16_t original_network_id;
 		uint8_t remote_control_key_id;
 	} remote_control_id_param_t;
+
+	typedef struct _request_service_id_param {
+		uint16_t pysical_channel;
+		int service_idx;
+	} request_service_id_param_t;
 
 	typedef struct _channel {
 		uint16_t pysical_channel;
@@ -94,7 +100,7 @@ public:
 				);
 	};
 
-	bool request_get_pysical_channel_By_remote_control_key_id (const remote_control_id_param_t *p_param) {
+	bool request_get_pysical_channel_by_remote_control_key_id (const remote_control_id_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
@@ -105,6 +111,16 @@ public:
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (remote_control_id_param_t)
+				);
+	};
+
+	bool request_get_service_id_by_pysical_channel (const request_service_id_param_t *param) {
+		int sequence = static_cast<int>(sequence::get_service_id_by_pysical_channel);
+		return request_async (
+					m_module_id,
+					sequence,
+					(uint8_t*)param,
+					sizeof (request_service_id_param_t)
 				);
 	};
 

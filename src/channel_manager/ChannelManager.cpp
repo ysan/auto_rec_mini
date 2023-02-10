@@ -6,6 +6,7 @@
 #include <errno.h>
 
 #include "ChannelManager.h"
+#include "ChannelManagerIf.h"
 #include "modules.h"
 
 #include "Settings.h"
@@ -21,6 +22,7 @@ CChannelManager::CChannelManager (std::string name, uint8_t que_max)
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_channel_scan(p_if);}, std::string("on_channel_scan")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_pysical_channel_by_service_id(p_if);}, std::string("on_get_pysical_channel_by_service_id")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_pysical_channel_by_remote_control_key_id(p_if);}, std::string("on_get_pysical_channel_by_remote_control_key_id")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_service_id_by_pysical_channel(p_if);}, std::string("on_get_service_id_by_pysical_channel")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_channels(p_if);}, std::string("on_get_channels")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_transport_stream_name(p_if);}, std::string("on_get_transport_stream_name")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_service_name(p_if);}, std::string("on_get_service_name")},
@@ -160,7 +162,7 @@ void CChannelManager::on_channel_scan (threadmgr::CThreadMgrIf *p_if)
 		rslt = get_if()->get_source().get_result();
 		if (rslt == threadmgr::result::success) {
 			s_group_id = *(uint8_t*)(get_if()->get_source().get_message().data());
-			_UTL_LOG_I ("req_open group_id:[0x%02x]", s_group_id);
+			_UTL_LOG_I ("request_open group_id:[0x%02x]", s_group_id);
 			section_id = SECTID_CHECK_FREQ;
 			act = threadmgr::action::continue_;
 
@@ -287,7 +289,7 @@ void CChannelManager::on_channel_scan (threadmgr::CThreadMgrIf *p_if)
 				act = threadmgr::action::continue_;
 
 			} else {
-				_UTL_LOG_W ("req_get_current_service_infos  num is 0 -> skip");
+				_UTL_LOG_W ("request_get_current_service_infos  num is 0 -> skip");
 				section_id = SECTID_REQ_TUNE_STOP;
 				act = threadmgr::action::continue_;
 			}
@@ -441,6 +443,46 @@ void CChannelManager::on_get_pysical_channel_by_remote_control_key_id (threadmgr
 
 		// リプライmsgに結果を乗せます
 		p_if->reply (threadmgr::result::success, (uint8_t*)&_ch, sizeof(_ch));
+
+	}
+
+
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
+}
+
+void CChannelManager::on_get_service_id_by_pysical_channel (threadmgr::CThreadMgrIf *p_if)
+{
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
+	enum {
+		SECTID_ENTRY = threadmgr::section_id::init,
+		SECTID_END,
+	};
+
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
+
+
+	CChannelManagerIf::request_service_id_param_t param =
+			*(reinterpret_cast<CChannelManagerIf::request_service_id_param_t*>(p_if->get_source().get_message().data()));
+
+	CChannelManagerIf::service_id_param_t _out;
+	bool r = get_service_id_by_pysical_channel (
+						param.pysical_channel,
+						param.service_idx,
+						&_out
+					);
+	if (!r) {
+
+		_UTL_LOG_E ("get_service_id_by_pysical_channel is failure.");
+		p_if->reply (threadmgr::result::error);
+
+	} else {
+
+		// リプライmsgに結果を乗せます
+		p_if->reply (threadmgr::result::success, (uint8_t*)&_out, sizeof(_out));
 
 	}
 
@@ -631,6 +673,38 @@ uint16_t CChannelManager::get_pysical_channel_by_remote_control_key_id (
 
 	// not found
 	return 0xffff;
+}
+
+bool CChannelManager::get_service_id_by_pysical_channel (
+	uint16_t _pysical_channel,
+	int _service_idx,
+	CChannelManagerIf::service_id_param_t *_out_service_id
+) const
+{
+	if (!_out_service_id) {
+		return false;
+	}
+
+	if (_pysical_channel < UHF_PHYSICAL_CHANNEL_MIN || _pysical_channel > UHF_PHYSICAL_CHANNEL_MAX) {
+		_UTL_LOG_E ("get_service_id_by_pysical_channel pysical_channel[%d] is not UHF_PHYSICAL_CHANNEL...", _pysical_channel);
+		return false;
+	}
+
+	const CChannel* ch = find_channel(_pysical_channel);
+	if (!ch) {
+		return false;
+	}
+
+	if ((int)(ch->services.size() -1) < _service_idx) {
+		_UTL_LOG_E ("get_service_id_by_pysical_channel service_idx[%d] is overflow. services.size[%d]", _service_idx, ch->services.size());
+		return false;
+	}
+
+	_out_service_id->transport_stream_id = ch->transport_stream_id;
+	_out_service_id->original_network_id = ch->original_network_id;
+	_out_service_id->service_id = ch->services[_service_idx].service_id;
+
+	return true;
 }
 
 bool CChannelManager::is_duplicate_channel (const CChannel* p_channel) const

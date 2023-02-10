@@ -63,15 +63,15 @@ static void _tune_interactive (int argc, char* argv[], threadmgr::CThreadMgrBase
 	_if.request_get_channels_sync (&param);
 	threadmgr::result rslt = base->get_if()->get_source().get_result();
 	if (rslt == threadmgr::result::error) {
-		_COM_SVR_PRINT ("syncGetChannels is failure.\n");
+		_COM_SVR_PRINT ("request_get_channels_sync is failure.\n");
 		return ;
 	}
 
 	int ch_num = *(int*)(base->get_if()->get_source().get_message().data());
-	_COM_SVR_PRINT ("syncGetChannels ch_num:[%d]\n", ch_num);
+	_COM_SVR_PRINT ("request_get_channels_sync ch_num:[%d]\n", ch_num);
 
 	if (ch_num == 0) {
-		_COM_SVR_PRINT ("syncGetChannels is 0\n");
+		_COM_SVR_PRINT ("request_get_channels_sync is 0\n");
 		return ;
 	}
 
@@ -176,12 +176,9 @@ static void _tune_interactive (int argc, char* argv[], threadmgr::CThreadMgrBase
 	}
 
 
-	CTunerServiceIf::tune_advance_param_t tune_param = {
-		channels[sel_ch_num].transport_stream_id,
-		channels[sel_ch_num].original_network_id,
-		channels[sel_ch_num].service_ids[sel_svc_num],
+	CTunerServiceIf::tune_param_t tune_param = {
+		channels[sel_ch_num].pysical_channel,
 		group_id,
-		true
 	};
 
 
@@ -190,7 +187,7 @@ static void _tune_interactive (int argc, char* argv[], threadmgr::CThreadMgrBase
 	base->get_external_if()->set_request_option (opt);
 	
 	CTunerServiceIf _ts_if(base->get_external_if());
-	_ts_if.request_tune_advance (&tune_param);
+	_ts_if.request_tune (&tune_param);
 	
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	base->get_external_if()->set_request_option (opt);

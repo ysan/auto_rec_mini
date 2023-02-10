@@ -201,6 +201,7 @@ public:
 	void on_channel_scan (threadmgr::CThreadMgrIf *p_if);
 	void on_get_pysical_channel_by_service_id (threadmgr::CThreadMgrIf *p_if);
 	void on_get_pysical_channel_by_remote_control_key_id (threadmgr::CThreadMgrIf *p_if);
+	void on_get_service_id_by_pysical_channel (threadmgr::CThreadMgrIf *p_if);
 	void on_get_channels (threadmgr::CThreadMgrIf *p_if);
 	void on_get_transport_stream_name (threadmgr::CThreadMgrIf *p_if);
 	void on_get_service_name (threadmgr::CThreadMgrIf *p_if);
@@ -218,6 +219,12 @@ private:
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint8_t _remote_control_key_id
+	) const;
+
+	bool get_service_id_by_pysical_channel (
+		uint16_t _pysical_channel,
+		int _service_idx,
+		CChannelManagerIf::service_id_param_t *_out_service_id
 	) const;
 
 	bool is_duplicate_channel (const CChannel* p_channel) const;
@@ -242,7 +249,7 @@ private:
 	void load_channels (void);
 
 
-	std::map <uint16_t, CChannel> m_channels; // <pysical channel, CChannel>
+	std::map <uint16_t, CChannel> m_channels; // <pysical_channel, CChannel>
 
 };
 
