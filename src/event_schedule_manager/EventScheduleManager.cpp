@@ -165,7 +165,7 @@ void CEventScheduleManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 /***
 	case SECTID_REQ_REG_TUNER_NOTIFY: {
 		CTuner_control_if _if (get_external_if());
-		_if.req_register_tuner_notify ();
+		_if.request_register_tuner_notify ();
 
 		section_id = SECTID_WAIT_REG_TUNER_NOTIFY;
 		act = threadmgr::action::wait;
@@ -180,7 +180,7 @@ void CEventScheduleManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("req_register_tuner_notify is failure.");
+			_UTL_LOG_E ("request_register_tuner_notify is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -188,7 +188,7 @@ void CEventScheduleManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 
 	case SECTID_REQ_REG_EVENT_CHANGE_NOTIFY: {
 		CPsisiManagerIf _if (get_external_if());
-		_if.req_register_event_change_notify ();
+		_if.request_register_event_change_notify ();
 
 		section_id = SECTID_WAIT_REG_EVENT_CHANGE_NOTIFY;
 		act = threadmgr::action::wait;
@@ -203,7 +203,7 @@ void CEventScheduleManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("req_register_event_change_notify is failure.");
+			_UTL_LOG_E ("request_register_event_change_notify is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -499,8 +499,8 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 		SECTID_ENTRY = threadmgr::section_id::init,
 		SECTID_REQ_OPEN,
 		SECTID_WAIT_OPEN,
-//		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
-//		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
+		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
+		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
 		SECTID_REQ_TUNE,
 		SECTID_WAIT_TUNE,
 		SECTID_REQ_GET_SERVICE_INFOS,
@@ -527,7 +527,7 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 	static bool s_is_timeouted = false;
 	static bool s_is_already_using_tuner = false;
 	static uint8_t s_group_id = 0xff;
-//	static uint16_t s_ch = 0;
+	static uint16_t s_ch = 0;
 
 
 	switch (section_id) {
@@ -592,9 +592,8 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 		rslt = get_if()->get_source().get_result();
 		if (rslt == threadmgr::result::success) {
 			s_group_id = *(uint8_t*)(get_if()->get_source().get_message().data());
-			_UTL_LOG_I ("req_open group_id:[0x%02x]", s_group_id);
-//			section_id = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
-			section_id = SECTID_REQ_TUNE;
+			_UTL_LOG_I ("requst_open group_id:[0x%02x]", s_group_id);
+			section_id = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
 			act = threadmgr::action::continue_;
 
 		} else {
@@ -606,16 +605,16 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 
 		}
 		break;
-/***
+
 	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
-		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+		CChannelManagerIf::service_id_param_t param = {
 			s_service_key.transport_stream_id,
 			s_service_key.original_network_id,
 			s_service_key.service_id
 		};
 
 		CChannelManagerIf _if (get_external_if());
-		_if.req_get_pysical_channel_by_service_id (&param);
+		_if.request_get_pysical_channel_by_service_id (&param);
 
 		section_id = SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID;
 		act = threadmgr::action::wait;
@@ -632,32 +631,20 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("req_get_pysical_channel_by_service_id is failure.");
+			_UTL_LOG_E ("request_get_pysical_channel_by_service_id is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
 		break;
-***/
+
 	case SECTID_REQ_TUNE: {
-/***
 		CTunerServiceIf::tune_param_t param = {
 			s_ch,
 			s_group_id
 		};
 
 		CTunerServiceIf _if (get_external_if());
-		_if.req_tune_with_retry (&param);
-***/
-		CTunerServiceIf::tune_advance_param_t param = {
-			s_service_key.transport_stream_id,
-			s_service_key.original_network_id,
-			s_service_key.service_id,
-			s_group_id,
-			true // enable retry
-		};
-
-		CTunerServiceIf _if (get_external_if());
-		_if.request_tune_advance (&param);
+		_if.request_tune_with_retry (&param);
 
 		section_id = SECTID_WAIT_TUNE;
 		act = threadmgr::action::wait;
@@ -671,7 +658,7 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("CTunerServiceIf::req_tune is failure.");
+			_UTL_LOG_E ("CTunerServiceIf::request_tune is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -691,7 +678,7 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 			section_id = SECTID_WAIT_GET_SERVICE_INFOS;
 			act = threadmgr::action::wait;
 		} else {
-			_UTL_LOG_E ("CPsisiManagerIf::req_get_current_service_infos is failure.");
+			_UTL_LOG_E ("CPsisiManagerIf::request_get_current_service_infos is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -709,13 +696,13 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 				act = threadmgr::action::continue_;
 
 			} else {
-				_UTL_LOG_E ("req_get_current_service_infos  num is 0");
+				_UTL_LOG_E ("request_get_current_service_infos  num is 0");
 				section_id = SECTID_END_ERROR;
 				act = threadmgr::action::continue_;
 			}
 
 		} else {
-			_UTL_LOG_E ("req_get_current_service_infos err");
+			_UTL_LOG_E ("request_get_current_service_infos err");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -736,7 +723,7 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 			section_id = SECTID_WAIT_ENABLE_PARSE_EIT_SCHED;
 			act = threadmgr::action::wait;
 		} else {
-			_UTL_LOG_E ("CPsisiManagerIf::req_enable_parse_eITSched is failure.");
+			_UTL_LOG_E ("CPsisiManagerIf::request_enable_parse_eit_sched is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -836,7 +823,7 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 		} else {
 			// キューがいっぱいでした
 			// disable は必ず行いたいので 少し待ってリトライします（無限）
-			_UTL_LOG_E ("CPsisiManagerIf::req_disable_parse_eITSched is failure. --> retry");
+			_UTL_LOG_E ("CPsisiManagerIf::request_disable_parse_eit_sched is failure. --> retry");
 			p_if->set_timeout (500); // 500m_s
 			section_id = SECTID_REQ_DISABLE_PARSE_EIT_SCHED;
 			act = threadmgr::action::wait;
@@ -1046,7 +1033,7 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 		mp_EIT_H_sched = NULL;
 		m_executing_reserve.clear();
 		s_group_id = 0xff;
-//		s_ch = 0;
+		s_ch = 0;
 
 		section_id = threadmgr::section_id::init;
 		act = threadmgr::action::done;
@@ -1187,7 +1174,7 @@ void CEventScheduleManager::on_cache_schedule_force_current_service (threadmgr::
 			section_id = SECTID_WAIT_GET_SERVICE_INFOS;
 			act = threadmgr::action::wait;
 		} else {
-			_UTL_LOG_E ("CPsisiManagerIf::req_get_current_service_infos is failure.");
+			_UTL_LOG_E ("CPsisiManagerIf::request_get_current_service_infos is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -1205,13 +1192,13 @@ void CEventScheduleManager::on_cache_schedule_force_current_service (threadmgr::
 				act = threadmgr::action::continue_;
 
 			} else {
-				_UTL_LOG_E ("req_get_current_service_infos is 0");
+				_UTL_LOG_E ("request_get_current_service_infos is 0");
 				section_id = SECTID_END_ERROR;
 				act = threadmgr::action::continue_;
 			}
 
 		} else {
-			_UTL_LOG_E ("req_get_current_service_infos err");
+			_UTL_LOG_E ("request_get_current_service_infos err");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -1628,19 +1615,19 @@ void CEventScheduleManager::on_add_reserves (threadmgr::CThreadMgrIf *p_if)
 		rslt = p_if->get_source().get_result();
 		if (rslt == threadmgr::result::success) {
 			s_ch_num = *(int*)(p_if->get_source().get_message().data());
-			_UTL_LOG_I ("req_get_channels s_ch_num:[%d]", s_ch_num);
+			_UTL_LOG_I ("request_get_channels s_ch_num:[%d]", s_ch_num);
 
 			if (s_ch_num > 0) {
 				section_id = SECTID_ADD_RESERVES;
 				act = threadmgr::action::continue_;
 			} else {
-				_UTL_LOG_E ("req_get_channels is 0");
+				_UTL_LOG_E ("request_get_channels is 0");
 				section_id = SECTID_END_ERROR;
 				act = threadmgr::action::continue_;
 			}
 
 		} else {
-			_UTL_LOG_E ("req_get_channels is failure.");
+			_UTL_LOG_E ("request_get_channels is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
         }
