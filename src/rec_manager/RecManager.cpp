@@ -542,6 +542,7 @@ void CRecManager::on_check_loop (threadmgr::CThreadMgrIf *p_if)
 					// m_recordingsのidxはrequest_openで取ったtuner_idで決まります
 					// is_usedになってるはずない...
 					_UTL_LOG_E ("??? m_recordings[group_id].is_used ???  group_id:[0x%02x]", group_id);
+//TODO should be close
 					section_id = SECTID_CHECK;
 					act = threadmgr::action::continue_;
 					break;
@@ -996,8 +997,8 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 		SECTID_CHECK_DISK_FREE_SPACE,
 //		SECTID_REQ_STOP_CACHE_SCHED,
 //		SECTID_WAIT_STOP_CACHE_SCHED,
-//		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
-//		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
+		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
+		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
 		SECTID_REQ_TUNE,
 		SECTID_WAIT_TUNE,
 		SECTID_REQ_GET_PRESENT_EVENT_INFO,
@@ -1018,7 +1019,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 	static psisi_structs::event_info_t s_present_event_info;
 	static int s_retry_get_event_info;
 	static uint8_t s_group_id = 0xff;
-//	static uint16_t s_ch = 0;
+	static uint16_t s_ch = 0;
 
 
 	switch (section_id) {
@@ -1060,8 +1061,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 		} else {
 //TODO
 //			section_id = SECTID_REQ_STOP_CACHE_SCHED;
-//			section_id = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
-			section_id = SECTID_REQ_TUNE;
+			section_id = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
 			act = threadmgr::action::continue_;
 		}
 
@@ -1086,10 +1086,10 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 		act = threadmgr::action::continue_;
 		break;
 ***/
-/***
+
 	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
 
-		CChannelManagerIf::SERVICE_ID_PARAM_t param = {
+		CChannelManagerIf::service_id_param_t param = {
 			m_recordings[s_group_id].transport_stream_id,
 			m_recordings[s_group_id].original_network_id,
 			m_recordings[s_group_id].service_id
@@ -1118,10 +1118,9 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 		}
 		break;
-***/
+
 	case SECTID_REQ_TUNE: {
 
-/***
 		CTunerServiceIf::tune_param_t param = {
 			s_ch,
 			s_group_id
@@ -1129,17 +1128,6 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 
 		CTunerServiceIf _if (get_external_if());
 		_if.request_tune_with_retry (&param);
-***/
-		CTunerServiceIf::tune_advance_param_t param = {
-			m_recordings[s_group_id].transport_stream_id,
-			m_recordings[s_group_id].original_network_id,
-			m_recordings[s_group_id].service_id,
-			s_group_id,
-			true // enable retry
-		};
-
-		CTunerServiceIf _if(get_external_if());
-		_if.request_tune_advance (&param);
 
 		section_id = SECTID_WAIT_TUNE;
 		act = threadmgr::action::wait;
@@ -1220,11 +1208,11 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 
 			} else {
 				// workaround
-				// たまにエラーになることがあるので 暫定対策として200m_s待ってリトライしてみます
+				// たまにエラーになることがあるので 暫定対策として200mS待ってリトライしてみます
 				// psi/siの選局完了時に確実にEIT p/fを取得できてないのが直接の原因だと思われます
 				_UTL_LOG_W ("(%s) request_get_present_event_info retry", p_if->get_sequence_name());
 
-				usleep (200000); // 200m_s
+				usleep (200000); // 200mS
 				++ s_retry_get_event_info;
 
 				section_id = SECTID_REQ_GET_PRESENT_EVENT_INFO;
@@ -1361,11 +1349,10 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 
 	case SECTID_END_SUCCESS:
 
-//		memset (&s_present_event_info, 0x00, sizeof(s_present_event_info));
 		s_present_event_info.clear();
 		s_retry_get_event_info = 0;
 		s_group_id = 0xff;
-//		s_ch = 0;
+		s_ch = 0;
 
 		p_if->reply (threadmgr::result::success);
 		section_id = threadmgr::section_id::init;
@@ -1391,11 +1378,10 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 		}
 		//-----------------------------//
 
-//		memset (&s_present_event_info, 0x00, sizeof(s_present_event_info));
 		s_present_event_info.clear();
 		s_retry_get_event_info = 0;
 		s_group_id = 0xff;
-//		s_ch = 0;
+		s_ch = 0;
 
 		p_if->reply (threadmgr::result::error);
 		section_id = threadmgr::section_id::init;
@@ -1577,6 +1563,7 @@ s_present_event_info.dump();
 			_if.request_get_service_name_sync (&param); // sync wait
 			rslt = get_if()->get_source().get_result();
 			if (rslt == threadmgr::result::success) {
+				// この後のadd_reserve内で実態コピーすること前提です
 				p_svc_name = (char*)(get_if()->get_source().get_message().data());
 			}
 
@@ -1737,6 +1724,7 @@ void CRecManager::on_add_reserve_event (threadmgr::CThreadMgrIf *p_if)
 		_if.request_get_service_name_sync (&param); // sync wait
 		rslt = get_if()->get_source().get_result();
 		if (rslt == threadmgr::result::success) {
+			// この後のadd_reserve内で実態コピーすること前提です
 			p_svc_name = (char*)(get_if()->get_source().get_message().data());
 		}
 
@@ -1882,6 +1870,7 @@ void CRecManager::on_add_reserve_event_helper (threadmgr::CThreadMgrIf *p_if)
 		_if.request_get_service_name_sync (&param); // sync wait
 		rslt = get_if()->get_source().get_result();
 		if (rslt == threadmgr::result::success) {
+			// この後のadd_reserve内で実態コピーすること前提です
 			p_svc_name = (char*)(get_if()->get_source().get_message().data());
 		}
 
@@ -2021,6 +2010,7 @@ void CRecManager::on_add_reserve_manual (threadmgr::CThreadMgrIf *p_if)
 		_if.request_get_service_name_sync (&param); // sync wait
 		rslt = get_if()->get_source().get_result();
 		if (rslt == threadmgr::result::success) {
+			// この後のadd_reserve内で実態コピーすること前提です
 			p_svc_name = (char*)(get_if()->get_source().get_message().data());
 		}
 
