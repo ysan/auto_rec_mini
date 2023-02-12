@@ -770,7 +770,7 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 		s_retry_get_event_info = 0;
 		s_group_id = 0xff;
 
-		p_if->reply (threadmgr::result::success);
+		p_if->reply (threadmgr::result::success, reinterpret_cast<uint8_t*>(&s_group_id), sizeof(s_group_id));
 		section_id = threadmgr::section_id::init;
 		act = threadmgr::action::done;
 		break;
