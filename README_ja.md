@@ -4,15 +4,13 @@ auto_rec_mini
 ===============
 
 [![Build Status](https://github.com/ysan/auto_rec_mini/actions/workflows/ci.yml/badge.svg)](https://github.com/ysan/auto_rec_mini/actions/workflows/ci.yml)
-<!--
-[![Build Status](https://www.travis-ci.com/ysan/auto_rec_mini.svg?branch=master)](https://www.travis-ci.com/ysan/auto_rec_mini)
--->
 
 最小機能のTV録画ミドルウェア。  
-主にキーワード検索録画予約機能がメインになります。  
+録画、EPG取得、キーワード検索録画予約が主な機能です。  
+（リアルタイム視聴機能（HLSによるブラウザ再生）も予定しています。）  
+構築と使用が簡単。  
   
 MPEG-2TSやARIBの勉強のため。  
-環境によっては動作が安定しない可能性があります。
 
 <!--
 ![demo](https://github.com/ysan/auto_rec_mini/blob/master/etc/demo.gif)
@@ -86,8 +84,8 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 	$ make
 	$ sudo make install
 
-PLEX社製チューナー向けファームウェアをインストールします。  
-(sdbt_rio.inp -- arch all)
+*PLEX社製チューナー向けファームウェアをインストールします。
+(isdbt_rio.inp -- arch all)*
 
 	$ wget http://plex-net.co.jp/plex/px-s1ud/PX-S1UD_driver_Ver.1.0.1.zip
 	$ unzip PX-S1UD_driver_Ver.1.0.1.zip

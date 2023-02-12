@@ -4,15 +4,13 @@ auto_rec_mini
 ===============
 
 [![Build Status](https://github.com/ysan/auto_rec_mini/actions/workflows/ci.yml/badge.svg)](https://github.com/ysan/auto_rec_mini/actions/workflows/ci.yml)
-<!--
-[![Build Status](https://www.travis-ci.com/ysan/auto_rec_mini.svg?branch=master)](https://www.travis-ci.com/ysan/auto_rec_mini)
--->
 
-Digital broadcast recording system for Japan. The middleware daemon with minimal functions.  
-Keyword search recording reservation is the main function.  
+Digital broadcast recording system for Japan. This middleware is a tiny and minimal implementation.  
+Recording, EPG acquisition, keyword search recording reservation are the main functions.  
+(Real-time viewing function (playback in browser by HLS) is also planned.)  
+Simple to build and use.--
   
 For studying MPEG-2 TS and ARIB.  
-The operation may not be stable depending on the environment.  
 
 <!--
 ![demo](https://github.com/ysan/auto_rec_mini/blob/master/etc/demo.gif)
@@ -23,13 +21,13 @@ Features
 * Tuning
   * Terrestrial digital only.
   * Simultaneous selection by multiple tuners.
-* channel scan
+* Channel scan
 * Record and schedule recording
   * Simultaneous recording with multiple tuners.
   * Event tracking.
   * After obtaining the EPG, search for the registered keyword and schedule recording.
   * Introduced tssplitter_lite.
-* EPGs
+* EPG
   * Perform scheduled EPG acquisition.
 * Broadcaster logo download
   * Save what fell during song selection in PNG format.
@@ -86,8 +84,8 @@ Please install as appropriate.
 	$ make
 	$ sudo make install
 
-Install firmware for PLEX tuners.   
-(sdbt_rio.inp -- arch all)
+*Install firmware for PLEX tuners.
+(isdbt_rio.inp -- arch all)*
 
 	$ wget http://plex-net.co.jp/plex/px-s1ud/PX-S1UD_driver_Ver.1.0.1.zip
 	$ unzip PX-S1UD_driver_Ver.1.0.1.zip
