@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <unistd.h>
 #include <errno.h>
 
@@ -61,6 +62,11 @@ CCommandServer::~CCommandServer (void)
 
 
 void CCommandServer::on_create (void)
+{
+//	clear_need_destroy();
+}
+
+void CCommandServer::on_destroy (void)
 {
 	clear_need_destroy();
 }
@@ -508,18 +514,40 @@ void CCommandServer::ignore_sigpipe (void)
 
 void CCommandServer::need_destroy (void)
 {
-	fopen("/tmp/_server_loop_destory", "w");
+	pid_t pid = getpid();
+	std::string path = "/tmp/_server_loop_destor_" + std::to_string(pid);
+	FILE *fp = fopen(path.c_str(), "w");
+	if (fp) {
+		fclose(fp);
+		_UTL_LOG_I("%s opend", path.c_str());
+	} else {
+		_UTL_PERROR("fopen");
+		_UTL_LOG_E("%s open failed", path.c_str());
+	}
 }
 
 void CCommandServer::clear_need_destroy (void)
 {
-	std::remove ("/tmp/_server_loop_destory");
+	pid_t pid = getpid();
+	std::string path = "/tmp/_server_loop_destor_" + std::to_string(pid);
+	if (remove (path.c_str()) == 0) {
+		_UTL_LOG_I("%s removed", path.c_str());
+	} else {
+		_UTL_LOG_E("%s remove failed", path.c_str());
+	}
 }
 
 bool CCommandServer::is_need_destroy (void)
 {
-	FILE *fp = fopen("/tmp/_server_loop_destory", "r");
-	return (fp != NULL) ? true: false;
+	pid_t pid = getpid();
+	std::string path = "/tmp/_server_loop_destor_" + std::to_string(pid);
+	FILE *fp = fopen(path.c_str(), "r");
+	if (fp) {
+		fclose(fp);
+		return true;
+	} else {
+		return false;
+	}
 }
 
 

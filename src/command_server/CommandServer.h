@@ -25,6 +25,7 @@ public:
 
 
 	void on_create (void) override;
+	void on_destroy (void) override;
 
 	void on_module_up (threadmgr::CThreadMgrIf *pIf);
 	void on_module_down (threadmgr::CThreadMgrIf *pIf);
