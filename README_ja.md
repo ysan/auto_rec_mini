@@ -7,7 +7,7 @@ auto_rec_mini
 
 最小機能のTV録画ミドルウェア。  
 録画、EPG取得、キーワード検索録画予約が主な機能です。  
-（リアルタイム視聴機能（HLSによるブラウザ再生）も予定しています。）  
+（リアルタイム視聴機能（HLSによるブラウザ再生）追加予定。）  
 構築と使用が簡単。  
   
 MPEG-2TSやARIBの勉強のため。  
@@ -69,7 +69,7 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 下記のライブラリに依存します。  
 適宜インストールをお願いします。  
   
-*libpcsclite
+*libpcsclite*
 
 	$ sudo apt-get install pcscd libpcsclite-dev libccid pcsc-tools
 
@@ -299,8 +299,9 @@ Component diagram
 
 Others
 ------------
-設定値や保持するデータの読み込み/書き込みは [`cereal`](https://github.com/USCiLab/cereal) のjsonシリアライザを使用しています。  
-(現状DBは使用していません。)
+内部のHTTPサーバーには [`cpp-httplib`](https://github.com/yhirose/cpp-httplib) を使用しています.  
+設定値や保持するデータの読み込み/書き込みは [`cereal`](https://github.com/USCiLab/cereal) のjsonシリアライザを使用しています。(現状DBは使用していません。)  
+[`thread_manger`](https://github.com/ysan/thread_manager) を使用した実験的実装。  
   
 以下のレポジトリ様に影響を受けたり参考にさせていただいています。
 * [`libarib25`](https://github.com/stz2012/libarib25)
