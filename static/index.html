@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <title>hls</title>
+  </head>
+  <style type="text/css">
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    .video-outer {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    @media (aspect-ratio: 16/9), (min-aspect-ratio: 16/9) {
+      video {
+        height: 100%;
+        width: 177vh;
+      }
+    }
+    @media (max-aspect-ratio: 16/9) {
+      video {
+        width: 100%;
+        height: 56vw;
+      }
+    }
+    video {
+      object-fit: fill;
+
+      position: absolute;
+      margin: auto;
+      /*
+      height: 100%;
+      width: 100%;
+      */
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+    }
+  </style>
+  <body>
+    <div class="video-outer">
+      <video
+        id="video"
+        autoplay
+        controls
+        controlslist="nodownload"
+        disablePictureInPicture
+      ></video>
+    </div>
+    <script>
+      const video = document.getElementById("video");
+      const videoSrc = "/stream/stream.m3u8";
+      const state = document.getElementById("state");
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(videoSrc);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+          console.log("video and hls.js are now bound together !");
+          //video.muted = true;
+          //video.play();
+        });
+        hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+          console.log(
+            "manifest loaded, found " + data.levels.length + " quality level"
+          );
+        });
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = videoSrc;
+        video.addEventListener("loadedmetadata", function () {});
+        video.addEventListener("loadeddata", function () {});
+        video.addEventListener("canplay", function () {
+          video.play();
+        });
+        video.addEventListener("playing", function () {});
+      }
+    </script>
+  </body>
+</html>

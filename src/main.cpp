@@ -9,6 +9,8 @@
 #include <utility>
 #include <memory>
 
+#include "http_server.h"
+
 #include "ThreadMgrpp.h"
 
 #include "CommandServerIf.h"
@@ -286,6 +288,7 @@ int main (int argc, char *argv[])
 			_UTL_LOG_E ("commnd server module up failed.");
 			exit (EXIT_FAILURE);
 		}
+		_UTL_LOG_I ("commnd server module up done.");
 	}
 	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
 		tuner_ctl_if[_gr]->request_module_up();
@@ -294,6 +297,7 @@ int main (int argc, char *argv[])
 			_UTL_LOG_E ("tuner control %d module up failed.", _gr);
 			exit (EXIT_FAILURE);
 		}
+		_UTL_LOG_I ("tuner control %d module up done.", _gr);
 	}
 	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
 		psisi_mgr_if[_gr]->request_module_up();
@@ -302,6 +306,7 @@ int main (int argc, char *argv[])
 			_UTL_LOG_E ("psisi manager %d module up failed.", _gr);
 			exit (EXIT_FAILURE);
 		}
+		_UTL_LOG_I ("psisi manager %d module up done.", _gr);
 	}
 	{
 		tuner_svc_if.request_module_up();
@@ -310,6 +315,7 @@ int main (int argc, char *argv[])
 			_UTL_LOG_E ("tuner service module up failed.");
 			exit (EXIT_FAILURE);
 		}
+		_UTL_LOG_I ("tuner service module up done.");
 	}
 	{
 		rec_mgr_if.request_module_up();
@@ -318,6 +324,7 @@ int main (int argc, char *argv[])
 			_UTL_LOG_E ("rec manager module up failed.");
 			exit (EXIT_FAILURE);
 		}
+		_UTL_LOG_I ("rec manager module up done.");
 	}
 	{
 		ch_mgr_if.request_module_up();
@@ -326,6 +333,7 @@ int main (int argc, char *argv[])
 			_UTL_LOG_E ("channel manager module up failed.");
 			exit (EXIT_FAILURE);
 		}
+		_UTL_LOG_I ("channel manager module up done.");
 	}
 	{
 		sched_mgr_if.request_module_up();
@@ -334,6 +342,7 @@ int main (int argc, char *argv[])
 			_UTL_LOG_E ("event schedule manager module up failed.");
 			exit (EXIT_FAILURE);
 		}
+		_UTL_LOG_I ("event schedule manager module up done.");
 	}
 	{
 		search_if.request_module_up();
@@ -342,6 +351,7 @@ int main (int argc, char *argv[])
 			_UTL_LOG_E ("event search module up failed.");
 			exit (EXIT_FAILURE);
 		}
+		_UTL_LOG_I ("event search module up done.");
 	}
 	{
 		view_mgr_if.request_module_up();
@@ -350,6 +360,7 @@ int main (int argc, char *argv[])
 			_UTL_LOG_E ("viewing manager module up failed.");
 			exit (EXIT_FAILURE);
 		}
+		_UTL_LOG_I ("viewing manager module up done.");
 	}
 	
 	// reset without-reply
@@ -357,11 +368,19 @@ int main (int argc, char *argv[])
 //	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 //	mgr->get_external_if()->set_request_option (opt);
 
-	stream_handler_funcs::setup_instance(mgr->get_external_if());
+	if (!stream_handler_funcs::setup_instance(mgr->get_external_if())) {
+		_UTL_LOG_E ("stream handlers setup_instance failed.");
+	}
+	_UTL_LOG_I ("stream handlers setup_instance done.");
+
+	http_server http;
+	http.up();
 
 
 	mgr->wait ();
 
+
+	http.down();
 
 	mgr->get_external_if()->destroy_external_cp();
 	mgr->teardown();
