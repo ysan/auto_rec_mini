@@ -710,7 +710,7 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 				break;
 			}
 
-			std::string command = "/usr/bin/ffmpeg -i pipe:0 -f hls -hls_segment_type mpegts -hls_time 10 -hls_list_size 0 -hls_allow_cache 0 -hls_playlist_type event -hls_flags delete_segments -hls_segment_filename stream_%05d.ts -hls_wrap 5 -c:v h264_omx -b:v 4000k -c:a aac -ac 2 -ab 128K -ar 48000 stream.m3u8";
+			std::string command = "/usr/bin/ffmpeg -i pipe:0 -f hls -hls_segment_type mpegts -hls_time 10 -hls_list_size 0 -hls_allow_cache 0 -hls_playlist_type event -hls_flags delete_segments -hls_segment_filename stream/stream_%05d.ts -hls_wrap 5 -c:v h264_omx -b:v 4000k -c:a aac -ac 2 -ab 128K -ar 48000 stream/stream.m3u8";
 			if (!m_forker[s_group_id].do_fork(command)) {
 				_UTL_LOG_E("do_fork failure.");
 				m_forker[s_group_id].destroy_pipes();
