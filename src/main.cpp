@@ -183,30 +183,16 @@ int main (int argc, char *argv[])
 	if (change_directory_path.length() > 0) {
 		struct stat _s;
 		if (stat(change_directory_path.c_str(), &_s) != 0) {
-			CForker forker;
-			if (!forker.create_pipes()) {
-				printf ("forker.create_pipes failure\n");
-				exit (EXIT_FAILURE);
-			}
-			std::string s = "/bin/mkdir -p " + change_directory_path;
-			printf ("[%s]", s.c_str());
-			if (!forker.do_fork(std::move(s))) {
-				printf ("forker.do_fork failure\n");
-				exit (EXIT_FAILURE);
-			}
-
-			CForker::CChildStatus cs = forker.wait_child();
-			printf ("get_status %d  get_return_code %d", cs.get_status(), cs.get_return_code());
-			forker.destroy_pipes();
-			if (cs.get_status() == 1 && cs.get_return_code() == 0) {
-				// success
-				printf ("mkdir -p %s\n", change_directory_path.c_str());
+			printf ("mkdir [%s]\n", change_directory_path.c_str());
+			int r = CUtils::makedir (change_directory_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+			if (r == 0) {
+				printf ("mkdir success [%s]\n", change_directory_path.c_str());
 			} else {
-				printf ("mkdir failure [mkdir -p %s]\n", change_directory_path.c_str());
+				printf ("mkdir failure [%s]\n", change_directory_path.c_str());
 				exit (EXIT_FAILURE);
 			}
 		}
-		printf ("chdir %s\n", change_directory_path.c_str());
+		printf ("chdir [%s]\n", change_directory_path.c_str());
 		chdir (change_directory_path.c_str());
 	}
 

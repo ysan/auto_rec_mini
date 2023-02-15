@@ -57,7 +57,10 @@ void CChannelManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 
 
 	switch (section_id) {
-	case SECTID_ENTRY:
+	case SECTID_ENTRY: {
+
+		std::string *path = CSettings::getInstance()->getParams()->getChannelsJsonPath();
+		CUtils::makedir(path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
 		load_channels ();
 		dump_channels_simple ();
@@ -65,6 +68,7 @@ void CChannelManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 
 		section_id = SECTID_END;
 		act = threadmgr::action::continue_;
+		}
 		break;
 
 	case SECTID_END:

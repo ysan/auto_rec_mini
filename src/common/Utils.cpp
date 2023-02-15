@@ -673,6 +673,52 @@ void CUtils::dumper (const uint8_t *pSrc, int nSrcLen, bool isAddAscii)
 }
 #endif
 
+int CUtils::makedir (const char* file_path, mode_t mode, bool is_recognized_base_name) {
+	if (!file_path || strlen(file_path) == 0) {
+		return -1;
+	}
+
+	char *_path = (char*)malloc(strlen(file_path) + 1);
+	if (!_path) {
+		return -1;
+	}
+	strncpy (_path, file_path, strlen(file_path) + 1);
+
+	char* p = strchr(_path + 1, '/');
+	if (!p && !is_recognized_base_name) {
+		if (mkdir(_path, mode) == -1) {
+			if (errno != EEXIST) {
+				free(_path);
+				return -1;
+			}
+		}
+	}
+
+	while (p) {
+		*p = '\0';
+		if (mkdir(_path, mode) == -1) {
+			if (errno != EEXIST) {
+				*p = '/';
+				free(_path);
+				return -1;
+			}
+		}
+		*p = '/';
+		p = strchr(p + 1, '/');
+		if (!p && !is_recognized_base_name) {
+			if (mkdir(_path, mode) == -1) {
+				if (errno != EEXIST) {
+					free(_path);
+					return -1;
+				}
+			}
+		}
+	}
+
+	free(_path);
+	return 0;
+}
+
 CLogger *CUtils::m_logger = NULL;
 
 void CUtils::set_logger (CLogger *logger)

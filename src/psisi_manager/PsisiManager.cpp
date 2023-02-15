@@ -2251,27 +2251,13 @@ void CPsisiManager::store_logo (void)
 	if (p_path->length() > 0) {
 		struct stat _s;
 		if (stat(p_path->c_str(), &_s) != 0) {
-			CForker forker;
-			if (!forker.create_pipes()) {
-				_UTL_LOG_I ("forker.create_pipes failure\n");
-				return;
-			}
-			std::string s = "/bin/mkdir -p " + *p_path;
-			_UTL_LOG_I ("[%s]", s.c_str());
-			if (!forker.do_fork(std::move(s))) {
-				_UTL_LOG_I ("forker.do_fork failure\n");
-				return;
-			}
-
-			CForker::CChildStatus cs = forker.wait_child();
-			_UTL_LOG_I ("get_status %d  get_return_code %d", cs.get_status(), cs.get_return_code());
-			forker.destroy_pipes();
-			if (cs.get_status() == 1 && cs.get_return_code() == 0) {
-				// success
-				_UTL_LOG_I ("mkdir -p %s\n", p_path->c_str());
+			_UTL_LOG_I ("mkdir [%s]\n", p_path->c_str());
+			int r = CUtils::makedir (p_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+			if (r == 0) {
+				printf ("mkdir success [%s]\n", p_path->c_str());
 			} else {
-				_UTL_LOG_I ("mkdir failure [mkdir -p %s]\n", p_path->c_str());
-				return;
+				printf ("mkdir failure [%s]\n", p_path->c_str());
+				exit (EXIT_FAILURE);
 			}
 		}
 	}

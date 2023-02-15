@@ -131,7 +131,6 @@ Installation files:
 ### Running as a Linux service (use systemd) ###
 設定ファイル(`settings.json`) を /opt/auto_rec_mini/ にコピーします。
 
-	$ sudo mkdir -p /opt/auto_rec_mini/data
 	$ sudo cp settings.json /opt/auto_rec_mini
 
 systemdユニット設定ファイルをコピーします。(`auto_rec_mini.service`)

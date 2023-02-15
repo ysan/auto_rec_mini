@@ -131,7 +131,6 @@ Installation files:
 ### Running as a Linux service (use systemd) ###
 Copy the configuration file(`settings.json`) to /opt/auto_rec_mini/ .
 
-	$ sudo mkdir -p /opt/auto_rec_mini/data
 	$ sudo cp settings.json /opt/auto_rec_mini
 
 Copy the systemd unit file. (`auto_rec_mini.service`)

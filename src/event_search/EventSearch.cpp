@@ -72,7 +72,19 @@ void CEventSearch::on_module_up (threadmgr::CThreadMgrIf *p_if)
 
 
 	switch (section_id) {
-	case SECTID_ENTRY:
+	case SECTID_ENTRY: {
+
+		std::string *keywords_path = CSettings::getInstance()->getParams()->getEventNameKeywordsJsonPath();
+		CUtils::makedir(keywords_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+
+		std::string *exkeywords_path = CSettings::getInstance()->getParams()->getExtendedEventKeywordsJsonPath();
+		CUtils::makedir(exkeywords_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+
+		std::string *history_path = CSettings::getInstance()->getParams()->getEventNameSearchHistoriesJsonPath();
+		CUtils::makedir(history_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+
+		std::string *exhistory_path = CSettings::getInstance()->getParams()->getExtendedEventSearchHistoriesJsonPath();
+		CUtils::makedir(exhistory_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
 		load_event_name_search_histories ();
 		load_extended_event_search_histories ();
@@ -80,6 +92,7 @@ void CEventSearch::on_module_up (threadmgr::CThreadMgrIf *p_if)
 
 		section_id = SECTID_REQ_REG_CACHE_SCHED_STATE_NOTIFY;
 		act = threadmgr::action::continue_;
+		}
 		break;
 
 	case SECTID_REQ_REG_CACHE_SCHED_STATE_NOTIFY: {

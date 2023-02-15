@@ -165,6 +165,8 @@ public:
 
 	static void dumper (const uint8_t *pSrc, int nSrcLen, bool isAddAscii=true);
 
+	static int makedir (const char* file_path, mode_t mode, bool is_recognized_base_name=false);
+
 	static void set_logger (CLogger *logger);
 	static CLogger* get_logger (void);
 

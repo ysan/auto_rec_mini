@@ -186,10 +186,19 @@ void CRecManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 	static uint8_t s_gr_cnt = 0;
 
 	switch (section_id) {
-	case SECTID_ENTRY:
+	case SECTID_ENTRY: {
 
 		// settingsを使って初期化する場合はmodule upで
 		m_tuner_resource_max = CSettings::getInstance()->getParams()->getTunerHalAllocates()->size(); 
+
+		std::string *ts_path = mp_settings->getParams()->getRecTsPath();
+		CUtils::makedir(ts_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+
+		std::string *reserve_path = mp_settings->getParams()->getRecReservesJsonPath();
+		CUtils::makedir(reserve_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+
+		std::string *result_path = mp_settings->getParams()->getRecReservesJsonPath();
+		CUtils::makedir(result_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
 		load_reserves ();
 		load_results ();
@@ -204,6 +213,7 @@ void CRecManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 
 		section_id = SECTID_REQ_MODULE_UP_BY_GROUPID;
 		act = threadmgr::action::continue_;
+		}
 		break;
 
 	case SECTID_REQ_MODULE_UP_BY_GROUPID:

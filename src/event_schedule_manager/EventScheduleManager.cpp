@@ -146,10 +146,16 @@ void CEventScheduleManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 
 
 	switch (section_id) {
-	case SECTID_ENTRY:
+	case SECTID_ENTRY: {
 
 		// settingsを使って初期化する場合はmodule upで
 		m_tuner_resource_max = CSettings::getInstance()->getParams()->getTunerHalAllocates()->size();
+
+		std::string *cache_data_path = CSettings::getInstance()->getParams()->getEventScheduleCacheDataJsonPath();
+		CUtils::makedir(cache_data_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+
+		std::string *cache_history_path = CSettings::getInstance()->getParams()->getEventScheduleCacheHistoriesJsonPath();
+		CUtils::makedir(cache_history_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
 		m_schedule_cache_next_day.setCurrentDay();
 
@@ -161,6 +167,7 @@ void CEventScheduleManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 //		section_id = SECTID_REQ_REG_TUNER_NOTIFY;
 		section_id = SECTID_REQ_CHECK_LOOP;
 		act = threadmgr::action::continue_;
+		}
 		break;
 /***
 	case SECTID_REQ_REG_TUNER_NOTIFY: {
