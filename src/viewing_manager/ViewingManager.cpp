@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -109,13 +110,21 @@ void CViewingManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 	static uint8_t s_gr_cnt = 0;
 
 	switch (section_id) {
-	case SECTID_ENTRY:
+	case SECTID_ENTRY: {
 
 		// settingsを使って初期化する場合はmodule upで
-		m_tuner_resource_max = CSettings::getInstance()->getParams()->getTunerHalAllocates()->size(); 
+		m_tuner_resource_max = CSettings::getInstance()->getParams()->getTunerHalAllocates()->size();
+
+		std::string *stream_path = CSettings::getInstance()->getParams()->getViewingStreamDataPath();
+		for (int i = 0; i < m_tuner_resource_max; ++ i) {
+			std::string path = *stream_path + "/";
+			path += std::to_string(i);
+			CUtils::makedir(path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+		}
 
 		section_id = SECTID_REQ_MODULE_UP_BY_GROUPID;
 		act = threadmgr::action::continue_;
+		}
 		break;
 
 	case SECTID_REQ_MODULE_UP_BY_GROUPID:
@@ -710,8 +719,13 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 				break;
 			}
 
-			std::string command = "/usr/bin/ffmpeg -i pipe:0 -f hls -hls_segment_type mpegts -hls_time 10 -hls_list_size 0 -hls_allow_cache 0 -hls_playlist_type event -hls_flags delete_segments -hls_segment_filename stream/stream_%05d.ts -hls_wrap 5 -c:v h264_omx -b:v 4000k -c:a aac -ac 2 -ab 128K -ar 48000 stream/stream.m3u8";
-			if (!m_forker[s_group_id].do_fork(command)) {
+			std::string *path = CSettings::getInstance()->getParams()->getViewingStreamDataPath();
+			std::string *fmt = CSettings::getInstance()->getParams()->getViewingStreamCommandFormat();
+			char command[1024] = {0};
+			std::string gr = std::to_string(s_group_id);
+			snprintf(command, sizeof(command), fmt->c_str(), path->c_str(), gr.c_str(), path->c_str(), gr.c_str());
+			std::string _c = command;
+			if (!m_forker[s_group_id].do_fork(std::move(_c))) {
 				_UTL_LOG_E("do_fork failure.");
 				m_forker[s_group_id].destroy_pipes();
 
@@ -744,7 +758,7 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 
 			// ######################################### //
 			stream_handler_funcs::get_instance(s_group_id)->set_service_id(m_viewings[s_group_id].service_id);
-			stream_handler_funcs::get_instance(s_group_id)->set_use_splitter(CSettings::getInstance()->getParams()->isRecUseSplitter());
+			stream_handler_funcs::get_instance(s_group_id)->set_use_splitter(CSettings::getInstance()->getParams()->isViewingUseSplitter());
 			stream_handler_funcs::get_instance(s_group_id)->set_process_handler(std::move(handler));
 			stream_handler_funcs::get_instance(s_group_id)->set_next_progress(CStreamHandler::progress::pre_process);
 			// ######################################### //

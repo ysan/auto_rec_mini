@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <thread>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -359,14 +360,18 @@ int main (int argc, char *argv[])
 	}
 	_UTL_LOG_I ("stream handlers setup_instance done.");
 
-	http_server http;
-	http.up();
+	uint16_t port = CSettings::getInstance()->getParams()->getHttpServerPort();
+	http_server http{port};
+	std::thread t([&http]{
+		http.up();
+	});
 
 
 	mgr->wait ();
 
 
 	http.down();
+	t.join();
 
 	mgr->get_external_if()->destroy_external_cp();
 	mgr->teardown();

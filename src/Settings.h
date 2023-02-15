@@ -98,6 +98,21 @@ public:
 		std::string *getExtendedEventSearchHistoriesJsonPath (void) {
 			return &m_extended_event_search_histories_json_path;
 		}
+		std::string *getViewingStreamDataPath (void) {
+			return &m_viewing_stream_data_path;
+		}
+		std::string *getViewingStreamCommandFormat (void) {
+			return &m_viewing_stream_command_format;
+		}
+		bool isViewingUseSplitter (void) {
+			return m_viewing_use_splitter;
+		}
+		uint16_t getHttpServerPort (void) {
+			return m_http_server_port;
+		}
+		std::string *getHttpServerStaticContentsPath (void) {
+			return &m_http_server_static_contents_path;
+		}
 		std::string *getLogoPath (void) {
 			return &m_logo_path;
 		}
@@ -130,6 +145,11 @@ public:
 			_UTL_LOG_I ("extended_event_keywords_json_path:[%s]", m_extended_event_keywords_json_path.c_str());
 			_UTL_LOG_I ("event_name_search_histories_json_path:[%s]", m_event_name_search_histories_json_path.c_str());
 			_UTL_LOG_I ("extended_event_search_histories_json_path:[%s]", m_extended_event_search_histories_json_path.c_str());
+			_UTL_LOG_I ("viewing_stream_data_path:[%s]", m_viewing_stream_data_path.c_str());
+			_UTL_LOG_I ("viewing_stream_command_format:[%s]", m_viewing_stream_command_format.c_str());
+			_UTL_LOG_I ("viewing_use_splitter:[%d]", m_viewing_use_splitter);
+			_UTL_LOG_I ("http_server_port:[%d]", m_http_server_port);
+			_UTL_LOG_I ("http_server_static_contents_path:[%s]", m_http_server_static_contents_path.c_str());
 			_UTL_LOG_I ("logo_path:[%s]", m_logo_path.c_str());
 			_UTL_LOG_I ("--------------------------------");
 		}
@@ -191,6 +211,11 @@ public:
 				,cereal::make_nvp("extended_event_keywords_json_path", m_extended_event_keywords_json_path)
 				,cereal::make_nvp("event_name_search_histories_json_path", m_event_name_search_histories_json_path)
 				,cereal::make_nvp("extended_event_search_histories_json_path", m_extended_event_search_histories_json_path)
+				,cereal::make_nvp("viewing_stream_data_path", m_viewing_stream_data_path)
+				,cereal::make_nvp("viewing_stream_command_format", m_viewing_stream_command_format)
+				,cereal::make_nvp("viewing_use_splitter", m_viewing_use_splitter)
+				,cereal::make_nvp("http_server_port", m_http_server_port)
+				,cereal::make_nvp("http_server_static_contents_path", m_http_server_static_contents_path)
 				,cereal::make_nvp("logo_path", m_logo_path)
 
 			);
@@ -220,6 +245,11 @@ public:
 		std::string m_extended_event_keywords_json_path;
 		std::string m_event_name_search_histories_json_path;
 		std::string m_extended_event_search_histories_json_path;
+		std::string m_viewing_stream_data_path;
+		std::string m_viewing_stream_command_format;
+		bool m_viewing_use_splitter;
+		uint16_t m_http_server_port;
+		std::string m_http_server_static_contents_path;
 		std::string m_logo_path;
 
 	};

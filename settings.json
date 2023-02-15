@@ -33,6 +33,13 @@
     "event_name_search_histories_json_path": "./data/event_name_search_histories.json",
     "extended_event_search_histories_json_path": "./data/extended_event_search_histories.json",
 
+    "viewing_stream_data_path": "./stream",
+    "viewing_stream_command_format": "/usr/bin/ffmpeg -i pipe:0 -f hls -hls_segment_type mpegts -hls_time 10 -hls_list_size 0 -hls_allow_cache 0 -hls_playlist_type event -hls_flags delete_segments -hls_segment_filename %s/%s/stream_%%05d.ts -hls_wrap 5 -c:v h264_omx -b:v 4000k -c:a aac -ac 2 -ab 128K -ar 48000 %s/%s/stream.m3u8",
+    "viewing_use_splitter": true,
+
+    "http_server_port": 80,
+    "http_server_static_contents_path": "./static",
+
     "logo_path": "./data/logo/"
   }
 }

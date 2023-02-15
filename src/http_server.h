@@ -3,6 +3,9 @@
 
 #include "httplib.h"
 
+#include "Utils.h"
+#include "Settings.h"
+
 
 class http_server {
 public:
@@ -33,20 +36,21 @@ std::cout << "resbody[" << body << "]" << std::endl;
 		}
 
 		{
-			auto ret = m_server.set_mount_point("/", "./static");
-			if (!ret) {
-std::cout << "aaaa" << std::endl;
+			std::string *static_path = CSettings::getInstance()->getParams()->getHttpServerStaticContentsPath();
+			if (!m_server.set_mount_point("/", static_path->c_str())) {
+				_UTL_LOG_E("set_mount_point [%s] failure.", static_path->c_str());
 			}
 		}
 		{
-			auto ret = m_server.set_mount_point("/stream/", "./stream");
-			if (!ret) {
-std::cout << "bbbbb" << std::endl;
+			std::string *stream_path = CSettings::getInstance()->getParams()->getViewingStreamDataPath();
+			if (!m_server.set_mount_point("/stream/", stream_path->c_str())) {
+				_UTL_LOG_E("set_mount_point [%s] failure.", stream_path->c_str());
 			}
 		}
 
-
-		m_server.listen("0.0.0.0", m_port);
+		if (!m_server.listen("0.0.0.0", m_port)) {
+			_UTL_LOG_E("HTTP bind failure.");
+		}
 	}
 
 	void down (void) {

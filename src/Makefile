@@ -29,7 +29,6 @@ INCLUDES	:= \
 	-I$(ROOTDIR)/viewing_manager \
 	-I$(ROOTDIR)/command_server \
 	-I$(ROOTDIR)/stream_handler \
-	-I$(ROOTDIR)/http_server \
 	-I./ \
 
 LIBS		:= \
