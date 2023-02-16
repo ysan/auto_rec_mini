@@ -129,7 +129,7 @@ void CViewingManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 
 	case SECTID_REQ_MODULE_UP_BY_GROUPID:
 		request_async (
-			static_cast<uint8_t>(module::module_id::viewing_manager),
+			static_cast<uint8_t>(modules::module_id::viewing_manager),
 			static_cast<uint8_t>(CViewingManagerIf::sequence::module_up_by_groupid),
 			reinterpret_cast<uint8_t*>(&s_gr_cnt),
 			sizeof(s_gr_cnt)
@@ -159,7 +159,7 @@ void CViewingManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 		break;
 
 	case SECTID_REQ_CHECK_LOOP:
-		request_async (static_cast<uint8_t>(module::module_id::viewing_manager), static_cast<uint8_t>(CViewingManagerIf::sequence::check_loop));
+		request_async (static_cast<uint8_t>(modules::module_id::viewing_manager), static_cast<uint8_t>(CViewingManagerIf::sequence::check_loop));
 
 		section_id = SECTID_WAIT_CHECK_LOOP;
 		act = threadmgr::action::wait;

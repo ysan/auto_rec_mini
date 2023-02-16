@@ -94,7 +94,7 @@ void CCommandServer::on_module_up (threadmgr::CThreadMgrIf *p_if)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;	
 	set_request_option (opt);
 
-	request_async (static_cast<uint8_t>(module::module_id::command_server), static_cast<int>(CCommandServerIf::sequence::server_loop));
+	request_async (static_cast<uint8_t>(modules::module_id::command_server), static_cast<int>(CCommandServerIf::sequence::server_loop));
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	set_request_option (opt);

@@ -24,7 +24,7 @@ public:
 public:
 	explicit CCommandServerIf (CThreadMgrExternalIf *p_if)
 		: CThreadMgrExternalIf (p_if)
-		, m_module_id (static_cast<uint8_t>(module::module_id::command_server))
+		, m_module_id (static_cast<uint8_t>(modules::module_id::command_server))
 	{
 	};
 

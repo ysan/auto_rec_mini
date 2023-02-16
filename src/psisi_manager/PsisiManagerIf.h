@@ -81,7 +81,7 @@ public:
 	explicit CPsisiManagerIf (CThreadMgrExternalIf *p_if, uint8_t groupId=0)
 		:CThreadMgrExternalIf (p_if)
 		,CGroup (groupId)
-		,m_module_id (static_cast<uint8_t>(module::module_id::psisi_manager))
+		,m_module_id (static_cast<uint8_t>(modules::module_id::psisi_manager))
 	{
 	};
 

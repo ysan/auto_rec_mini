@@ -67,7 +67,7 @@ void CTunerControl::on_module_up (threadmgr::CThreadMgrIf *p_if)
 		break;
 
 	case SECTID_REQ_TUNE_THREAD_MODULE_UP:
-		request_async (static_cast<uint8_t>(module::module_id::tune_thread) + getGroupId(),
+		request_async (static_cast<uint8_t>(modules::module_id::tune_thread) + getGroupId(),
 						static_cast<int>(CTuneThread::sequence::module_up));
 
 		section_id = SECTID_WAIT_TUNE_THREAD_MODULE_UP;
@@ -150,7 +150,7 @@ void CTunerControl::on_tune (threadmgr::CThreadMgrIf *p_if)
 		break;
 
 	case SECTID_REQ_TUNE_STOP:
-		request_async (static_cast<uint8_t>(module::module_id::tuner_control) + getGroupId(),
+		request_async (static_cast<uint8_t>(modules::module_id::tuner_control) + getGroupId(),
 						static_cast<int>(CTunerControlIf::sequence::tune_stop));
 		section_id = SECTID_WAIT_TUNE_STOP;
 		act = threadmgr::action::wait;
@@ -169,7 +169,7 @@ void CTunerControl::on_tune (threadmgr::CThreadMgrIf *p_if)
 		break;
 
 	case SECTID_REQ_TUNE_START:
-		request_async (static_cast<uint8_t>(module::module_id::tuner_control) + getGroupId(),
+		request_async (static_cast<uint8_t>(modules::module_id::tuner_control) + getGroupId(),
 						static_cast<int>(CTunerControlIf::sequence::tune_start), (uint8_t*)&m_wk_freq, sizeof(m_wk_freq));
 		section_id = SECTID_WAIT_TUNE_START;
 		act = threadmgr::action::wait;
@@ -205,7 +205,7 @@ void CTunerControl::on_tune (threadmgr::CThreadMgrIf *p_if)
 
 			// 選局を停止しときます tune stop
 			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-			request_async (static_cast<uint8_t>(module::module_id::tuner_control) + getGroupId(),
+			request_async (static_cast<uint8_t>(modules::module_id::tuner_control) + getGroupId(),
 							static_cast<int>(CTunerControlIf::sequence::tune_stop));
 
 			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
@@ -266,7 +266,7 @@ void CTunerControl::on_tune_start (threadmgr::CThreadMgrIf *p_if)
 			mp_reg_ts_receive_handlers,
 			&m_is_req_stop
 		};
-		request_async (static_cast<uint8_t>(module::module_id::tune_thread) + getGroupId(),
+		request_async (static_cast<uint8_t>(modules::module_id::tune_thread) + getGroupId(),
 						static_cast<int>(CTuneThread::sequence::tune), (uint8_t*)&_param, sizeof(_param));
 
 		section_id = SECTID_WAIT_TUNE_THREAD_TUNE;
@@ -294,8 +294,8 @@ void CTunerControl::on_tune_start (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			uint8_t _id = static_cast<uint8_t>(module::module_id::tune_thread) + getGroupId();
-			CTuneThread *p_tuneThread = (CTuneThread*)(module::get_module(static_cast<module::module_id>(_id)));
+			uint8_t _id = static_cast<uint8_t>(modules::module_id::tune_thread) + getGroupId();
+			CTuneThread *p_tuneThread = (CTuneThread*)(modules::get_module(static_cast<modules::module_id>(_id)));
 			if (p_tuneThread->get_state() != CTuneThread::state::tuned) {
 					++ m_chkcnt ;
 				p_if->set_timeout (200);
@@ -365,8 +365,8 @@ void CTunerControl::on_tune_stop (threadmgr::CThreadMgrIf *p_if)
 
 	int chkcnt = 0;
 
-	uint8_t _id = static_cast<uint8_t>(module::module_id::tune_thread) + getGroupId();
-	CTuneThread *p_tuneThread = (CTuneThread*)(module::get_module(static_cast<module::module_id>(_id)));
+	uint8_t _id = static_cast<uint8_t>(modules::module_id::tune_thread) + getGroupId();
+	CTuneThread *p_tuneThread = (CTuneThread*)(modules::get_module(static_cast<modules::module_id>(_id)));
 	if (p_tuneThread->get_state() == CTuneThread::state::tuned ||
 			p_tuneThread->get_state() == CTuneThread::state::tune_begined) {
 		m_is_req_stop = true;
@@ -386,7 +386,7 @@ void CTunerControl::on_tune_stop (threadmgr::CThreadMgrIf *p_if)
 				opt |= REQUEST_OPTION__WITHOUT_REPLY;
 				set_request_option (opt);
 
-				request_async (static_cast<uint8_t>(module::module_id::tune_thread) + getGroupId(),
+				request_async (static_cast<uint8_t>(modules::module_id::tune_thread) + getGroupId(),
 								static_cast<int>(CTuneThread::sequence::force_kill));
 				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 				set_request_option (opt);

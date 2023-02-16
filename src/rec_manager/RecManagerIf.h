@@ -129,7 +129,7 @@ public:
 public:
 	explicit CRecManagerIf (CThreadMgrExternalIf *p_if)
 		: CThreadMgrExternalIf (p_if)
-		, m_module_id (static_cast<uint8_t>(module::module_id::rec_manager))
+		, m_module_id (static_cast<uint8_t>(modules::module_id::rec_manager))
 	{
 	};
 

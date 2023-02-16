@@ -125,7 +125,7 @@ public:
 
 			notice_t _notice = {m_progress, m_group_id};
 			mp_ext_if->request_async (
-				static_cast<uint8_t>(module::module_id::viewing_manager),
+				static_cast<uint8_t>(modules::module_id::viewing_manager),
 				static_cast<uint8_t>(CViewingManagerIf::sequence::notice_by_stream_handler),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
@@ -155,7 +155,7 @@ public:
 
 			notice_t _notice = {m_progress, m_group_id};
 			mp_ext_if->request_async (
-				static_cast<uint8_t>(module::module_id::viewing_manager),
+				static_cast<uint8_t>(modules::module_id::viewing_manager),
 				static_cast<uint8_t>(CViewingManagerIf::sequence::notice_by_stream_handler),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
@@ -172,7 +172,7 @@ public:
 
 			notice_t _notice = {m_progress, m_group_id};
 			mp_ext_if->request_async (
-				static_cast<uint8_t>(module::module_id::viewing_manager),
+				static_cast<uint8_t>(modules::module_id::viewing_manager),
 				static_cast<uint8_t>(CViewingManagerIf::sequence::notice_by_stream_handler),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
@@ -195,7 +195,7 @@ public:
 
 			notice_t _notice = {m_progress, m_group_id};
 			mp_ext_if->request_async (
-				static_cast<uint8_t>(module::module_id::viewing_manager),
+				static_cast<uint8_t>(modules::module_id::viewing_manager),
 				static_cast<uint8_t>(CViewingManagerIf::sequence::notice_by_stream_handler),
 				(uint8_t*)&_notice,
 				sizeof(_notice)
@@ -217,7 +217,7 @@ public:
 
 			notice_t _notice = {m_progress, m_group_id};
 			mp_ext_if->request_async (
-				static_cast<uint8_t>(module::module_id::viewing_manager),
+				static_cast<uint8_t>(modules::module_id::viewing_manager),
 				static_cast<uint8_t>(CViewingManagerIf::sequence::notice_by_stream_handler),
 				(uint8_t*)&_notice,
 				sizeof(_notice)

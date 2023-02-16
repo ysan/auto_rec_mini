@@ -52,7 +52,7 @@ public:
 	explicit CTunerControlIf (threadmgr::CThreadMgrExternalIf *pIf, uint8_t groupId=0)
 		:threadmgr::CThreadMgrExternalIf (pIf)
 		,CGroup (groupId)
-		,m_module_id (static_cast<uint8_t>(module::module_id::tuner_control))
+		,m_module_id (static_cast<uint8_t>(modules::module_id::tuner_control))
 	{
 	};
 

@@ -27,7 +27,7 @@ public:
 
 	explicit CEventSearchIf (CThreadMgrExternalIf *p_if)
 		: CThreadMgrExternalIf (p_if)
-		, m_module_id (static_cast<uint8_t>(module::module_id::event_search))
+		, m_module_id (static_cast<uint8_t>(modules::module_id::event_search))
 	{
 	};
 

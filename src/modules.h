@@ -4,7 +4,7 @@
 
 #include "ThreadMgrBase.h"
 
-namespace module {
+namespace modules {
 
 enum class module_id : uint8_t {
 	tune_thread = 0,	// group0
@@ -38,6 +38,6 @@ extern threadmgr::CThreadMgrBase **get_modules (void);
 extern threadmgr::CThreadMgrBase *get_module (module_id id);
 
 
-}; // namespace module
+}; // namespace modules
 
 #endif

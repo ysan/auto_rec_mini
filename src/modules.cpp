@@ -19,7 +19,7 @@
 #include "viewing_manager/ViewingManager.h"
 
 
-namespace module {
+namespace modules {
 
 static CTuneThread           s_tuneThread_gr0    ((char*)"TuneTh_0"            , 10, 0);
 static CTuneThread           s_tuneThread_gr1    ((char*)"TuneTh_1"            , 10, 1);
@@ -87,4 +87,4 @@ threadmgr::CThreadMgrBase *get_module (module_id id)
 	}
 }
 
-} // namespace module
+} // namespace modules
