@@ -1,17 +1,21 @@
 #!/bin/sh
 
+REPO_URL=https://github.com/USCiLab/cereal.git
+REPO_NAME=cereal
+VERSION=v1.3.0
+TARGET=include/cereal
+
 set -e
 
-rm -rf ./cereal
-rm -rf /tmp/cereal
+rm -rf "./${TARGET}"
+rm -rf "/tmp/${REPO_NAME}"
 
-#git clone https://github.com/USCiLab/cereal.git /tmp/cereal
-git clone https://github.com/USCiLab/cereal.git -b v1.3.0 --single-branch --depth 1 /tmp/cereal
+git clone ${REPO_URL} -b ${VERSION} --single-branch --depth 1 "/tmp/${REPO_NAME}"
 (
-	cd /tmp/cereal
-	git checkout -b v1.3.0 refs/tags/v1.3.0
+	cd "/tmp/${REPO_NAME}"
+	git checkout -b ${VERSION} "refs/tags/${VERSION}"
 	git branch
 )
-cp -pr /tmp/cereal/include/cereal .
+cp -pr "/tmp/${REPO_NAME}/${TARGET}" .
 
-rm -rf /tmp/cereal
+rm -rf "/tmp/${REPO_NAME}"
