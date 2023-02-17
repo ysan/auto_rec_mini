@@ -299,7 +299,8 @@ Component diagram
 Others
 ------------
 内部のHTTPサーバーには [`cpp-httplib`](https://github.com/yhirose/cpp-httplib) を使用しています.  
-設定値や保持するデータの読み込み/書き込みは [`cereal`](https://github.com/USCiLab/cereal) のjsonシリアライザを使用しています。(現状DBは使用していません。)  
+[`nlohmann/json`](https://github.com/nlohmann/json) のjsonシリアライザ/デシリアライザを使用しています。  
+設定値や保持するデータの読み込み/書き込みは [`cereal`](https://github.com/USCiLab/cereal) のjsonシリアライザ/デシリアライザを使用しています。(現状DBは使用していません。)  
 [`thread_manger`](https://github.com/ysan/thread_manager) を使用した実験的実装。  
   
 以下のレポジトリ様に影響を受けたり参考にさせていただいています。

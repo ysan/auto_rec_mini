@@ -301,7 +301,8 @@ Component diagram
 Others
 ------------
 Using [`cpp-httplib`](https://github.com/yhirose/cpp-httplib) for the internal HTTP server.  
-Setting value etc. Have static data by using [`cereal`](https://github.com/USCiLab/cereal) json serializer. (no use DB.)  
+Using [`nlohmann/json`](https://github.com/nlohmann/json) for json SerDes.  
+Setting value etc. Have static data by using [`cereal`](https://github.com/USCiLab/cereal) json SerDes. (no use DB.)  
 Experimental implementation using [`thread_manger`](https://github.com/ysan/thread_manager).  
   
 I have been influenced and referred to by the following repositories.
