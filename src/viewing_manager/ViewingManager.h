@@ -135,10 +135,11 @@ public:
 	void on_module_up_by_group_id (threadmgr::CThreadMgrIf *p_if);
 	void on_check_loop (threadmgr::CThreadMgrIf *p_if);
 	void on_notice_by_stream_handler (threadmgr::CThreadMgrIf *p_if);
-	void on_start_viewing_by_physical_channel (threadmgr::CThreadMgrIf *p_if);
-	void on_start_viewing_by_service_id (threadmgr::CThreadMgrIf *p_if);
+	void on_start_viewing (threadmgr::CThreadMgrIf *p_if);
 	void on_stop_viewing (threadmgr::CThreadMgrIf *p_if);
+	void on_get_viewing (threadmgr::CThreadMgrIf *p_if);
 	void on_dump_viewing (threadmgr::CThreadMgrIf *p_if);
+	void on_event_changed (threadmgr::CThreadMgrIf *p_if);
 
 	void on_receive_notify (threadmgr::CThreadMgrIf *p_if) override;
 
@@ -146,6 +147,7 @@ public:
 private:
 	void dump_viewing (void) const;
 	bool set_nonblocking_io (int fd) const;
+	void clean_dir (const char* path) const;
 
 	CSettings *mp_settings;
 	

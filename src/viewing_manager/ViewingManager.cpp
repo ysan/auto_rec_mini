@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #include "ChannelManagerIf.h"
 #include "Group.h"
@@ -45,10 +47,12 @@ CViewingManager::CViewingManager (std::string name, uint8_t que_max)
 		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_module_down(p_if);}, std::move("on_module_down")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_check_loop(p_if);}, std::move("on_check_loop")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_notice_by_stream_handler(p_if);}, std::move("on_notice_by_stream_handler")},
-		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_start_viewing_by_physical_channel(p_if);}, std::move("on_start_viewing_by_physical_channel")},
-		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_start_viewing_by_service_id(p_if);}, std::move("on_start_viewing_by_service_id")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_start_viewing(p_if);}, std::move("on_start_viewing_by_physical_channel")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_start_viewing(p_if);}, std::move("on_start_viewing_by_service_id")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_stop_viewing(p_if);}, std::move("on_stop_viewing")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_get_viewing(p_if);}, std::move("on_get_viewing")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_dump_viewing(p_if);}, std::move("on_dump_viewing")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_event_changed(p_if);}, std::move("on_event_changed")},
 	};
 	set_sequences (seqs, _max);
 
@@ -469,6 +473,13 @@ void CViewingManager::on_notice_by_stream_handler (threadmgr::CThreadMgrIf *p_if
 //TODO この位置でclearはどうなのか  tuner notifyで終了したらclearの方がいいかも
 		m_viewings[_notice.group_id].clear ();
 
+		{
+			std::string *stream_path = CSettings::getInstance()->getParams()->getViewingStreamDataPath();
+			std::string path = *stream_path + "/";
+			path += std::to_string(_notice.group_id);
+			clean_dir(path.c_str());
+		}
+
 		_UTL_LOG_I ("viewing end...");
 
 
@@ -502,18 +513,20 @@ void CViewingManager::on_notice_by_stream_handler (threadmgr::CThreadMgrIf *p_if
 	p_if->set_section_id (section_id, act);
 }
 
-void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMgrIf *p_if)
+void CViewingManager::on_start_viewing (threadmgr::CThreadMgrIf *p_if)
 {
 	threadmgr::section_id::type section_id;
 	threadmgr::action act;
 	enum {
 		SECTID_ENTRY = threadmgr::section_id::init,
+		SECTID_REQ_GET_SERVICE_ID_BY_PHYSICAL_CH,
+		SECTID_WAIT_GET_SERVICE_ID_BY_PHYSICAL_CH,
+		SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID,
+		SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID,
 		SECTID_REQ_OPEN,
 		SECTID_WAIT_OPEN,
 		SECTID_REQ_TUNE,
 		SECTID_WAIT_TUNE,
-		SECTID_REQ_GET_SERVICE_ID_BY_PHY_CH,
-		SECTID_WAIT_GET_SERVICE_ID_BY_PHY_CH,
 		SECTID_REQ_GET_PRESENT_EVENT_INFO,
 		SECTID_WAIT_GET_PRESENT_EVENT_INFO,
 		SECTID_START_VIEWING,
@@ -527,23 +540,109 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 	threadmgr::result rslt = threadmgr::result::success;
 
 	static CViewingManagerIf::physical_channel_param_t s_physical_channel_param;
-	static CChannelManagerIf::service_id_param_t s_service_id_param;
+	static CViewingManagerIf::service_id_param_t s_service_id_param;
+	static psisi_structs::service_info_t s_service_info;
 	static psisi_structs::event_info_t s_present_event_info;
 	static int s_retry_get_event_info;
 	static uint8_t s_group_id = 0xff;
+	static uint16_t s_ch = 0;
 
 
 	switch (section_id) {
 	case SECTID_ENTRY:
+		p_if->lock();
 
 		_UTL_LOG_I ("(%s) entry", p_if->get_sequence_name());
 
-		s_physical_channel_param = *(reinterpret_cast<CViewingManagerIf::physical_channel_param_t*>(p_if->get_source().get_message().data()));
-		_UTL_LOG_I("phy_ch: %d", s_physical_channel_param.physical_channel);
-		_UTL_LOG_I("svc_idx: %d", s_physical_channel_param.service_idx);
+		if (p_if->get_sequence_idx() == static_cast<uint8_t>(CViewingManagerIf::sequence::start_viewing_by_physical_channel)) {
+			s_physical_channel_param = *(reinterpret_cast<CViewingManagerIf::physical_channel_param_t*>(p_if->get_source().get_message().data()));
+			_UTL_LOG_I("phy_ch: %d", s_physical_channel_param.physical_channel);
+			_UTL_LOG_I("svc_idx: %d", s_physical_channel_param.service_idx);
 
-		section_id = SECTID_REQ_OPEN;
-		act = threadmgr::action::continue_;
+			s_ch = s_physical_channel_param.physical_channel;
+
+			section_id = SECTID_REQ_GET_SERVICE_ID_BY_PHYSICAL_CH;
+			act = threadmgr::action::continue_;
+			
+		} else if (p_if->get_sequence_idx() == static_cast<uint8_t>(CViewingManagerIf::sequence::start_viewing_by_service_id)) {
+			s_service_id_param = *(reinterpret_cast<CViewingManagerIf::service_id_param_t*>(p_if->get_source().get_message().data()));
+			_UTL_LOG_I("ts_id: %d", s_service_id_param.transport_stream_id);
+			_UTL_LOG_I("org_nid: %d", s_service_id_param.original_network_id);
+			_UTL_LOG_I("svc_id: %d", s_service_id_param.service_id);
+
+			s_service_info.transport_stream_id = s_service_id_param.transport_stream_id;
+			s_service_info.original_network_id = s_service_id_param.original_network_id;
+			s_service_info.service_id = s_service_id_param.service_id;
+
+			section_id = SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID;
+			act = threadmgr::action::continue_;
+
+		} else {
+			_UTL_LOG_E ("unexpected seq idx [%d]", p_if->get_sequence_idx());
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
+			break;
+		}
+
+		break;
+
+	case SECTID_REQ_GET_SERVICE_ID_BY_PHYSICAL_CH: {
+		CChannelManagerIf::request_service_id_param_t param = {
+			s_physical_channel_param.physical_channel,
+			s_physical_channel_param.service_idx,
+		};
+		CChannelManagerIf _if (get_external_if());
+		_if.request_get_service_id_by_pysical_channel(&param);
+
+		section_id = SECTID_WAIT_GET_SERVICE_ID_BY_PHYSICAL_CH;
+		act = threadmgr::action::wait;
+		}
+		break;
+
+	case SECTID_WAIT_GET_SERVICE_ID_BY_PHYSICAL_CH:
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			CChannelManagerIf::service_id_param_t *param = reinterpret_cast<CChannelManagerIf::service_id_param_t*>(p_if->get_source().get_message().data());
+			s_service_info.transport_stream_id = param->transport_stream_id;
+			s_service_info.original_network_id = param->original_network_id;
+			s_service_info.service_id = param->service_id;
+
+			section_id = SECTID_REQ_OPEN;
+			act = threadmgr::action::continue_;
+
+		} else {
+			_UTL_LOG_E ("request_get_service_id_by_pysical_channel is failure.");
+
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
+		}
+		break;
+
+	case SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID: {
+		CChannelManagerIf::service_id_param_t param = {
+		};
+		CChannelManagerIf _if (get_external_if());
+		_if.request_get_pysical_channel_by_service_id(&param);
+
+		section_id = SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID;
+		act = threadmgr::action::wait;
+		}
+		break;
+
+	case SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID:
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			s_ch = *(reinterpret_cast<uint16_t*>(p_if->get_source().get_message().data()));
+
+			section_id = SECTID_REQ_OPEN;
+			act = threadmgr::action::continue_;
+
+		} else {
+			_UTL_LOG_E ("request_get_service_id_by_pysical_channel is failure.");
+
+			section_id = SECTID_END_ERROR;
+			act = threadmgr::action::continue_;
+		}
 		break;
 
 	case SECTID_REQ_OPEN: {
@@ -577,7 +676,7 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 
 	case SECTID_REQ_TUNE: {
 		CTunerServiceIf::tune_param_t param = {
-			s_physical_channel_param.physical_channel,
+			s_ch,
 			s_group_id,
 		};
 
@@ -592,37 +691,6 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 	case SECTID_WAIT_TUNE:
 		rslt = p_if->get_source().get_result();
 		if (rslt == threadmgr::result::success) {
-			section_id = SECTID_REQ_GET_SERVICE_ID_BY_PHY_CH;
-			act = threadmgr::action::continue_;
-
-		} else {
-			_UTL_LOG_E ("request_tune is failure.");
-			_UTL_LOG_E ("tune is failure  -> not start viewing");
-
-			section_id = SECTID_END_ERROR;
-			act = threadmgr::action::continue_;
-		}
-		break;
-
-	case SECTID_REQ_GET_SERVICE_ID_BY_PHY_CH: {
-		CChannelManagerIf::request_service_id_param_t param = {
-			s_physical_channel_param.physical_channel,
-			s_physical_channel_param.service_idx,
-		};
-		CChannelManagerIf _if (get_external_if());
-		_if.request_get_service_id_by_pysical_channel(&param);
-
-		section_id = SECTID_WAIT_GET_SERVICE_ID_BY_PHY_CH;
-		act = threadmgr::action::wait;
-		}
-		break;
-
-	case SECTID_WAIT_GET_SERVICE_ID_BY_PHY_CH:
-		rslt = p_if->get_source().get_result();
-		if (rslt == threadmgr::result::success) {
-			s_service_id_param = *(reinterpret_cast<CChannelManagerIf::service_id_param_t*>(p_if->get_source().get_message().data()));
-
-			// イベント開始時間を確認します
 			section_id = SECTID_REQ_GET_PRESENT_EVENT_INFO;
 			act = threadmgr::action::continue_;
 
@@ -636,14 +704,8 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 		break;
 
 	case SECTID_REQ_GET_PRESENT_EVENT_INFO: {
-		psisi_structs::service_info_t _svc_info ;
-		// 以下３つの要素が入っていればOK
-		_svc_info.transport_stream_id = s_service_id_param.transport_stream_id;
-		_svc_info.original_network_id = s_service_id_param.original_network_id;
-		_svc_info.service_id = s_service_id_param.service_id;
-
 		CPsisiManagerIf _if (get_external_if(), s_group_id);
-		_if.request_get_present_event_info (&_svc_info, &s_present_event_info);
+		_if.request_get_present_event_info (&s_service_info, &s_present_event_info);
 
 		section_id = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
 		act = threadmgr::action::wait;
@@ -653,32 +715,6 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 	case SECTID_WAIT_GET_PRESENT_EVENT_INFO:
 		rslt = p_if->get_source().get_result();
 		if (rslt == threadmgr::result::success) {
-			char *svc_name = nullptr;
-			CChannelManagerIf::service_id_param_t param = {
-				s_present_event_info.transport_stream_id,
-				s_present_event_info.original_network_id,
-				s_present_event_info.service_id
-			};
-			CChannelManagerIf _if (get_external_if());
-			_if.request_get_service_name_sync (&param); // sync wait
-			rslt = get_if()->get_source().get_result();
-			if (rslt == threadmgr::result::success) {
-				// この後のm_viewings[s_group_id].set内で実態コピーすること前提です
-				svc_name = reinterpret_cast<char*>(get_if()->get_source().get_message().data());
-			}
-
-			m_viewings[s_group_id].set (
-				s_service_id_param.transport_stream_id,
-				s_service_id_param.original_network_id,
-				s_service_id_param.service_id,
-				s_present_event_info.event_id,
-				&s_present_event_info.start_time,
-				&s_present_event_info.end_time,
-				s_present_event_info.event_name_char,
-				svc_name,
-				s_group_id
-			);
-
 			section_id = SECTID_START_VIEWING;
 			act = threadmgr::action::continue_;
 
@@ -704,7 +740,31 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 		}
 		break;
 
-	case SECTID_START_VIEWING:
+	case SECTID_START_VIEWING: {
+		char *svc_name = nullptr;
+		CChannelManagerIf::service_id_param_t param = {
+			s_present_event_info.transport_stream_id,
+			s_present_event_info.original_network_id,
+			s_present_event_info.service_id
+		};
+		CChannelManagerIf _if (get_external_if());
+		_if.request_get_service_name_sync (&param); // sync wait
+		rslt = get_if()->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			// この後のm_viewings[s_group_id].set内で実態コピーすること前提です
+			svc_name = reinterpret_cast<char*>(get_if()->get_source().get_message().data());
+		}
+		m_viewings[s_group_id].set (
+			s_service_info.transport_stream_id,
+			s_service_info.original_network_id,
+			s_service_info.service_id,
+			s_present_event_info.event_id,
+			&s_present_event_info.start_time,
+			&s_present_event_info.end_time,
+			s_present_event_info.event_name_char,
+			svc_name,
+			s_group_id
+		);
 
 		// 視聴開始
 		// ここはstremahandler::progressで判断いれとく
@@ -719,11 +779,11 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 				break;
 			}
 
-			std::string *path = CSettings::getInstance()->getParams()->getViewingStreamDataPath();
+			std::string *stream_path = CSettings::getInstance()->getParams()->getViewingStreamDataPath();
 			std::string *fmt = CSettings::getInstance()->getParams()->getViewingStreamCommandFormat();
 			char command[1024] = {0};
 			std::string gr = std::to_string(s_group_id);
-			snprintf(command, sizeof(command), fmt->c_str(), path->c_str(), gr.c_str(), path->c_str(), gr.c_str());
+			snprintf(command, sizeof(command), fmt->c_str(), stream_path->c_str(), gr.c_str(), stream_path->c_str(), gr.c_str());
 			std::string _c = command;
 			if (!m_forker[s_group_id].do_fork(std::move(_c))) {
 				_UTL_LOG_E("do_fork failure.");
@@ -774,17 +834,23 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 			act = threadmgr::action::continue_;
 		}
 
+		}
 		break;
 
 	case SECTID_END_SUCCESS:
 
+		p_if->reply (threadmgr::result::success, reinterpret_cast<uint8_t*>(&s_group_id), sizeof(s_group_id));
+
 		memset (&s_physical_channel_param, 0x00, sizeof(s_physical_channel_param));
 		memset (&s_service_id_param, 0x00, sizeof(s_service_id_param));
+		memset (&s_service_info, 0x00, sizeof(s_service_info));
 		s_present_event_info.clear();
 		s_retry_get_event_info = 0;
 		s_group_id = 0xff;
+		s_ch = 0;
 
-		p_if->reply (threadmgr::result::success, reinterpret_cast<uint8_t*>(&s_group_id), sizeof(s_group_id));
+		p_if->unlock();
+
 		section_id = threadmgr::section_id::init;
 		act = threadmgr::action::done;
 		break;
@@ -810,13 +876,18 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 		}
 		//-----------------------------//
 
+		p_if->reply (threadmgr::result::error);
+
 		memset (&s_physical_channel_param, 0x00, sizeof(s_physical_channel_param));
 		memset (&s_service_id_param, 0x00, sizeof(s_service_id_param));
+		memset (&s_service_info, 0x00, sizeof(s_service_info));
 		s_present_event_info.clear();
 		s_retry_get_event_info = 0;
 		s_group_id = 0xff;
+		s_ch = 0;
 
-		p_if->reply (threadmgr::result::error);
+		p_if->unlock();
+
 		section_id = threadmgr::section_id::init;
 		act = threadmgr::action::done;
 		break;
@@ -826,11 +897,6 @@ void CViewingManager::on_start_viewing_by_physical_channel (threadmgr::CThreadMg
 	}
 
 	p_if->set_section_id (section_id, act);
-}
-
-void CViewingManager::on_start_viewing_by_service_id (threadmgr::CThreadMgrIf *p_if)
-{
-
 }
 
 void CViewingManager::on_stop_viewing (threadmgr::CThreadMgrIf *p_if)
@@ -874,6 +940,28 @@ void CViewingManager::on_stop_viewing (threadmgr::CThreadMgrIf *p_if)
 	p_if->set_section_id (section_id, act);
 }
 
+void CViewingManager::on_get_viewing (threadmgr::CThreadMgrIf *p_if)
+{
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
+	enum {
+		SECTID_ENTRY = threadmgr::section_id::init,
+		SECTID_END,
+	};
+
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
+
+
+
+
+	p_if->reply (threadmgr::result::success);
+
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
+}
+
 void CViewingManager::on_dump_viewing (threadmgr::CThreadMgrIf *p_if)
 {
 	threadmgr::section_id::type section_id;
@@ -894,6 +982,89 @@ void CViewingManager::on_dump_viewing (threadmgr::CThreadMgrIf *p_if)
 
 	section_id = threadmgr::section_id::init;
 	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
+}
+
+void CViewingManager::on_event_changed (threadmgr::CThreadMgrIf *p_if)
+{
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
+	enum {
+		SECTID_ENTRY = threadmgr::section_id::init,
+		SECTID_REQ_GET_PRESENT_EVENT_INFO,
+		SECTID_WAIT_GET_PRESENT_EVENT_INFO,
+		SECTID_END,
+	};
+
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
+
+	threadmgr::result rslt = threadmgr::result::success;
+
+	static psisi_structs::event_info_t s_present_event_info;
+	static uint8_t s_group_id = 0xff;
+
+
+	switch (section_id) {
+	case SECTID_ENTRY:
+		p_if->lock();
+
+		_UTL_LOG_I ("(%s) entry", p_if->get_sequence_name());
+
+		s_group_id = *(reinterpret_cast<uint8_t*>(p_if->get_source().get_message().data()));
+
+		if (m_viewings[s_group_id].is_used) {
+			section_id = SECTID_REQ_GET_PRESENT_EVENT_INFO;
+			act = threadmgr::action::continue_;
+
+		} else {
+			section_id = SECTID_END;
+			act = threadmgr::action::continue_;
+		}
+		break;
+
+	case SECTID_REQ_GET_PRESENT_EVENT_INFO: {
+		psisi_structs::service_info_t info;
+		info.transport_stream_id = m_viewings->transport_stream_id;
+		info.original_network_id = m_viewings->original_network_id;
+		info.service_id = m_viewings->service_id;
+
+		CPsisiManagerIf _if (get_external_if(), s_group_id);
+		_if.request_get_present_event_info (&info, &s_present_event_info);
+
+		section_id = SECTID_WAIT_GET_PRESENT_EVENT_INFO;
+		act = threadmgr::action::wait;
+		}
+		break;
+
+	case SECTID_WAIT_GET_PRESENT_EVENT_INFO:
+		rslt = p_if->get_source().get_result();
+		if (rslt == threadmgr::result::success) {
+			if (m_viewings[s_group_id].is_used) {
+				m_viewings[s_group_id].event_id = s_present_event_info.event_id;
+				m_viewings[s_group_id].start_time = s_present_event_info.start_time;
+				m_viewings[s_group_id].end_time = s_present_event_info.end_time;
+				m_viewings[s_group_id].title_name = s_present_event_info.event_name_char;
+				m_viewings[s_group_id].dump();
+			}
+		}
+
+		section_id = SECTID_END;
+		act = threadmgr::action::continue_;
+		break;
+		
+	case SECTID_END:
+		s_present_event_info.clear();
+		s_group_id = 0xff;
+
+		section_id = threadmgr::section_id::init;
+		act = threadmgr::action::done;
+		break;
+
+	default:
+		break;
+	}
+
 	p_if->set_section_id (section_id, act);
 }
 
@@ -963,6 +1134,19 @@ void CViewingManager::on_receive_notify (threadmgr::CThreadMgrIf *p_if)
 			_UTL_LOG_I ("!!! event changed !!! group_id:[%d]", _gr);
 			_info.dump ();
 
+			uint32_t opt = get_request_option ();
+			opt |= REQUEST_OPTION__WITHOUT_REPLY;
+			set_request_option (opt);
+
+			request_async(
+				static_cast<uint8_t>(modules::module_id::viewing_manager),
+				static_cast<uint8_t>(CViewingManagerIf::sequence::event_changed),
+				reinterpret_cast<uint8_t*>(&_gr),
+				sizeof(_gr)
+			);
+
+			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+			set_request_option (opt);
 		}
 	}
 }
@@ -974,6 +1158,10 @@ void CViewingManager::dump_viewing (void) const
 	for (int i = 0; i < CGroup::GROUP_MAX; ++ i) {
 		if (m_viewings[i].is_used) {
 			m_viewings[i].dump();
+		}
+		if (m_forker[i].has_child()) {
+			_UTL_LOG_I("ffmpeg:[%s]", m_forker[i].get_child_commandline().c_str());
+			_UTL_LOG_I("pid:[%d]", m_forker[i].get_child_pid());
 		}
 	}
 }
@@ -994,4 +1182,31 @@ bool CViewingManager::set_nonblocking_io (int fd) const
 	}
 
 	return true;
+}
+
+void CViewingManager::clean_dir (const char* path) const
+{
+	DIR *dp = opendir (path);
+	if (dp == NULL) {
+		return ;
+	}
+
+	dirent* entry = readdir(dp);
+	while (entry != NULL){
+		if (strlen(entry->d_name) == 1 && entry->d_name[0] == '.') {
+			;;
+		} else if (strlen(entry->d_name) == 2 && strncmp (entry->d_name, "..", strlen(entry->d_name)) == 0) {
+			;;
+		} else {
+			std::string s = path ;
+			s += "/";
+			s += entry->d_name;
+			if (remove (s.c_str()) == 0) {
+				_UTL_LOG_I("%s removed", s.c_str());
+			} else {
+				_UTL_LOG_E("%s remove failed", s.c_str());
+			}
+		}
+		entry = readdir(dp);
+	}
 }

@@ -1,15 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <thread>
 #include <unistd.h>
 #include <errno.h>
 
 #include <regex>
 
+#include "ThreadMgrIf.h"
 #include "ViewingManagerIf.h"
 #include "CommandTables.h"
 #include "CommandServerLog.h"
 #include "Utils.h"
+#include "modules.h"
 
 
 static void start_by_phy_ch (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
@@ -35,15 +38,20 @@ static void start_by_phy_ch (int argc, char* argv[], threadmgr::CThreadMgrBase *
 	int svc_idx = atoi(argv[1]);
 	CViewingManagerIf::physical_channel_param_t param = {ch, svc_idx};
 
-	uint32_t opt = base->get_external_if()->get_request_option ();
-	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	base->get_external_if()->set_request_option (opt);
+//	uint32_t opt = base->get_external_if()->get_request_option ();
+//	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+//	base->get_external_if()->set_request_option (opt);
 
 	CViewingManagerIf _if (base->get_external_if());
-	_if.request_start_viewing_by_physical_channel (&param);
+	_if.request_start_viewing_by_physical_channel (&param, false);
+	threadmgr::result r = base->get_if()->get_source().get_result();
+	if (r == threadmgr::result::success) {
+		uint8_t _gr = *(reinterpret_cast<uint8_t*>(base->get_if()->get_source().get_message().data()));
+		_COM_SVR_PRINT ("success -> group %d\n", _gr);
+	}
 
-	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	base->get_external_if()->set_request_option (opt);
+//	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+//	base->get_external_if()->set_request_option (opt);
 }
 
 static void stop (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
@@ -81,8 +89,10 @@ static void dump (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	base->get_external_if()->set_request_option (opt);
 
-	CViewingManagerIf _if (base->get_external_if());
-	_if.request_dump_viewing ();
+	base->get_external_if()->request_async(
+		static_cast<uint8_t>(modules::module_id::viewing_manager),
+		static_cast<uint8_t>(CViewingManagerIf::sequence::dump_viewing)
+	);
 
 	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 	base->get_external_if()->set_request_option (opt);

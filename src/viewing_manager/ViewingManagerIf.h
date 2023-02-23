@@ -26,7 +26,9 @@ public:
 		start_viewing_by_physical_channel,
 		start_viewing_by_service_id,
 		stop_viewing,
-		dump_viewing,
+		get_viewing,
+		dump_viewing,					// from command server
+		event_changed,					// inner
 		max,
 	};
 
@@ -62,27 +64,32 @@ public:
 		return request_async (m_module_id, sequence);
 	};
 
-	bool request_start_viewing_by_physical_channel (const physical_channel_param_t *param) {
+	bool request_start_viewing_by_physical_channel (const physical_channel_param_t *param, bool async=true) {
 		uint8_t sequence = static_cast<uint8_t>(sequence::start_viewing_by_physical_channel);
-		return request_async (m_module_id, sequence, (uint8_t*)param, sizeof(physical_channel_param_t));
+		if (async) {
+			return request_async (m_module_id, sequence, (uint8_t*)param, sizeof(physical_channel_param_t));
+		} else {
+			return request_sync (m_module_id, sequence, (uint8_t*)param, sizeof(physical_channel_param_t));
+		}
 	};
 
-	bool request_start_viewing_by_service_id (const service_id_param_t *param) {
+	bool request_start_viewing_by_service_id (const service_id_param_t *param, bool async=true) {
 		uint8_t sequence = static_cast<uint8_t>(sequence::start_viewing_by_service_id);
-		return request_async (m_module_id, sequence, (uint8_t*)param, sizeof(service_id_param_t));
+		if (async) {
+			return request_async (m_module_id, sequence, (uint8_t*)param, sizeof(service_id_param_t));
+		} else {
+			return request_sync (m_module_id, sequence, (uint8_t*)param, sizeof(service_id_param_t));
+		}
 	};
 
-	bool request_stop_viewing (uint8_t group_id) {
+	bool request_stop_viewing (uint8_t group_id, bool async=true) {
 		uint8_t sequence = static_cast<uint8_t>(sequence::stop_viewing);
-		return request_async (m_module_id, sequence, (uint8_t*)&group_id, sizeof(group_id));
+		if (async) {
+			return request_async (m_module_id, sequence, (uint8_t*)&group_id, sizeof(group_id));
+		} else {
+			return request_sync (m_module_id, sequence, (uint8_t*)&group_id, sizeof(group_id));
+		}
 	};
-
-	bool request_dump_viewing (void) {
-		uint8_t sequence = static_cast<uint8_t>(sequence::dump_viewing);
-		return request_async (m_module_id, sequence);
-	};
-
-
 
 private:
 	uint8_t m_module_id;
