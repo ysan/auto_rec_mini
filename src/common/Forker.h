@@ -228,6 +228,10 @@ public:
 		return true;
 	}
 
+	pid_t get_child_pid (void) const {
+		return m_child_pid;
+	}
+
 	int get_child_stdin_fd (void) const {
 		return m_pipe_p2c_stdin.get_writer_fd();
 	}
