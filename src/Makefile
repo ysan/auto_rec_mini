@@ -4,7 +4,7 @@
 BASEDIR		:=	../
 ROOTDIR		:=	$(BASEDIR)/src/
 
-CFLAGS		:=	-std=c++11
+CFLAGS		:=	-std=c++11 -Wno-psabi
 
 INCLUDES	:= \
 	-I$(ROOTDIR)/ \

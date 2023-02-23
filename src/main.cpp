@@ -361,7 +361,7 @@ int main (int argc, char *argv[])
 	_UTL_LOG_I ("stream handlers setup_instance done.");
 
 	uint16_t port = CSettings::getInstance()->getParams()->getHttpServerPort();
-	http_server http{port};
+	http_server http{port, mgr->get_external_if()};
 	std::thread t([&http]{
 		http.up();
 	});

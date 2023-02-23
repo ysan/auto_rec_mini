@@ -1,0 +1,2 @@
+curl -v -X POST -H "Content-Type: application/json" -d '{"physical_channel": 27, "service_idx": 0}' http://localhost/api/ctrl/viewing/start_by_physical_channel
+curl -v -X POST -H "Content-Type: application/json" -d '{"group_id":0}' http://localhost/api/ctrl/viewing/stop

@@ -1,33 +1,94 @@
 #include <iostream>
 #include <string>
 
+#include "ThreadMgrIf.h"
 #include "httplib.h"
+#include "nlohmann/json.hpp"
 
 #include "Utils.h"
 #include "Settings.h"
+#include "ViewingManagerIf.h"
 
 
 class http_server {
 public:
-	http_server (int port=80) : m_port(port) {
+	http_server (int port, threadmgr::CThreadMgrExternalIf *ext_if) : m_port(port), mp_ext_if(ext_if) {
 	}
 	virtual ~http_server (void) = default;
 
 	void up (void) {
+
 		{
-			m_server.Post("/api/ctrl", [&](const httplib::Request &req, httplib::Response &res) {
-std::cout << "reqbody[" << req.body << "]" << std::endl;
+			m_server.Post("/api/ctrl/viewing/start_by_physical_channel", [&](const httplib::Request &req, httplib::Response &res) {
+				if (req.get_header_value("Content-Type") != "application/json") {
+					res.status = 400;
+					return ;
+				}
+				if (req.body.empty()) {
+					res.status = 400;
+					return ;
+				}
+				const auto r = nlohmann::json::parse(req.body);
+				if (!r.contains("physical_channel")) {
+					res.status = 400;
+					return ;
+				}
+				if (!r.contains("service_idx")) {
+					res.status = 400;
+					return ;
+				}
+				uint16_t phy_ch = r["physical_channel"].get<uint16_t>();
+				int svc_idx = r["service_idx"].get<int>();
 
-				res.set_header("Access-Control-Allow-Origin", req.get_header_value("Origin").c_str());
+				mp_ext_if->create_external_cp();
+				CViewingManagerIf::physical_channel_param_t param = {phy_ch, svc_idx};
+				CViewingManagerIf _if (mp_ext_if);
+				_if.request_start_viewing_by_physical_channel(&param, false);
+				threadmgr::CSource &src = mp_ext_if->receive_external();
+				threadmgr::result rslt = src.get_result();
+				if (rslt == threadmgr::result::success) {
+					uint8_t gr = *(reinterpret_cast<uint8_t*>(src.get_message().data()));
+					nlohmann::json j;
+					j["group_id"] = static_cast<int>(gr);
+					res.set_content(j.dump(), "application/json");
+					res.set_header("Access-Control-Allow-Origin", req.get_header_value("Origin").c_str());
+				} else {
+					res.status = 500;
+				}
+				mp_ext_if->destroy_external_cp();
+			});
+			m_server.Post("/api/ctrl/viewing/stop", [&](const httplib::Request &req, httplib::Response &res) {
+				if (req.get_header_value("Content-Type") != "application/json") {
+					res.status = 400;
+					return ;
+				}
+				if (req.body.empty()) {
+					res.status = 400;
+					return ;
+				}
+				const auto r = nlohmann::json::parse(req.body);
+				if (!r.contains("group_id")) {
+					res.status = 400;
+					return ;
+				}
+				uint8_t gr = r["group_id"].get<uint8_t>();
 
-				std::string body = "test";
-				res.set_content(body, "application/json");
-std::cout << "resbody[" << body << "]" << std::endl;
+				mp_ext_if->create_external_cp();
+				CViewingManagerIf _if (mp_ext_if);
+				_if.request_stop_viewing(gr, false);
+				threadmgr::CSource &src = mp_ext_if->receive_external();
+				threadmgr::result rslt = src.get_result();
+				if (rslt == threadmgr::result::success) {
+					res.set_header("Access-Control-Allow-Origin", req.get_header_value("Origin").c_str());
+				} else {
+					res.status = 500;
+				}
+				mp_ext_if->destroy_external_cp();
 			});
 		}
 		{
 			// for CORS (preflight request)
-			m_server.Options("/api/ctrl", [](const httplib::Request &req, httplib::Response &res) {
+			m_server.Options("/api/.+", [](const httplib::Request &req, httplib::Response &res) {
 				res.set_header("Access-Control-Allow-Origin", req.get_header_value("Origin").c_str());
 				res.set_header("Allow", "GET, POST, HEAD, OPTIONS");
 				res.set_header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Accept, Origin, Authorization");
@@ -60,4 +121,5 @@ std::cout << "resbody[" << body << "]" << std::endl;
 private:
 	httplib::Server m_server;
 	int m_port;
+	threadmgr::CThreadMgrExternalIf *mp_ext_if;
 };
