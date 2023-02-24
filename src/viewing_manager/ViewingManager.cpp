@@ -620,6 +620,9 @@ void CViewingManager::on_start_viewing (threadmgr::CThreadMgrIf *p_if)
 
 	case SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID: {
 		CChannelManagerIf::service_id_param_t param = {
+			s_service_info.transport_stream_id,
+			s_service_info.original_network_id,
+			s_service_info.service_id
 		};
 		CChannelManagerIf _if (get_external_if());
 		_if.request_get_physical_channel_by_service_id(&param);
@@ -857,24 +860,26 @@ void CViewingManager::on_start_viewing (threadmgr::CThreadMgrIf *p_if)
 
 	case SECTID_END_ERROR:
 
-		m_viewings[s_group_id].clear();
+		if (s_group_id < CGroup::GROUP_MAX) {
+			m_viewings[s_group_id].clear();
 
-		//-----------------------------//
-		{
-			uint32_t opt = get_request_option ();
-			opt |= REQUEST_OPTION__WITHOUT_REPLY;
-			set_request_option (opt);
+			//-----------------------------//
+			{
+				uint32_t opt = get_request_option ();
+				opt |= REQUEST_OPTION__WITHOUT_REPLY;
+				set_request_option (opt);
 
-			// 選局を停止しときます tune stop
-			// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
-			CTunerServiceIf _if (get_external_if());
-			_if.request_tune_stop (s_group_id);
-			_if.request_close (s_group_id);
+				// 選局を停止しときます tune stop
+				// とりあえず投げっぱなし (REQUEST_OPTION__WITHOUT_REPLY)
+				CTunerServiceIf _if (get_external_if());
+				_if.request_tune_stop (s_group_id);
+				_if.request_close (s_group_id);
 
-			opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-			set_request_option (opt);
+				opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+				set_request_option (opt);
+			}
+			//-----------------------------//
 		}
-		//-----------------------------//
 
 		p_if->reply (threadmgr::result::error);
 
