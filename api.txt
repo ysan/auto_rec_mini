@@ -1,2 +1,7 @@
 curl -v -X POST -H "Content-Type: application/json" -d '{"physical_channel": 27, "service_idx": 0}' http://localhost/api/ctrl/viewing/start_by_physical_channel
+curl -v -X POST -H "Content-Type: application/json" -d '{"transport_stream_id": 32736,"original_network_id": 32736, "service_id": 1024}' http://localhost/api/ctrl/viewing/start_by_service_id
 curl -v -X POST -H "Content-Type: application/json" -d '{"group_id":0}' http://localhost/api/ctrl/viewing/stop
+curl -v -X GET http://localhost/api/ctrl/channel/channels
+curl -v -X GET http://localhost/api/ctrl/channel/original_network_name/32736
+curl -v -X GET http://localhost/api/ctrl/channel/trasport_stream_name/32736/32736
+curl -v -X GET http://localhost/api/ctrl/channel/service_name/32736/32736/1024
