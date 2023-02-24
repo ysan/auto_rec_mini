@@ -203,6 +203,7 @@ public:
 	void on_get_physical_channel_by_remote_control_key_id (threadmgr::CThreadMgrIf *p_if);
 	void on_get_service_id_by_physical_channel (threadmgr::CThreadMgrIf *p_if);
 	void on_get_channels (threadmgr::CThreadMgrIf *p_if);
+	void on_get_original_network_name (threadmgr::CThreadMgrIf *p_if);
 	void on_get_transport_stream_name (threadmgr::CThreadMgrIf *p_if);
 	void on_get_service_name (threadmgr::CThreadMgrIf *p_if);
 	void on_dump_channels (threadmgr::CThreadMgrIf *p_if);
@@ -232,6 +233,7 @@ private:
 	const CChannel* find_channel (uint16_t pych) const;
 
 	int get_channels (CChannelManagerIf::channel_t *p_out_channels, int array_max_num) const;
+	const char* get_original_network_name (uint16_t _original_network_id) const;
 	const char* get_transport_stream_name (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id

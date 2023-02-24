@@ -24,6 +24,7 @@ CChannelManager::CChannelManager (std::string name, uint8_t que_max)
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_physical_channel_by_remote_control_key_id(p_if);}, std::string("on_get_physical_channel_by_remote_control_key_id")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_service_id_by_physical_channel(p_if);}, std::string("on_get_service_id_by_physical_channel")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_channels(p_if);}, std::string("on_get_channels")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_original_network_name(p_if);}, std::string("on_get_original_network_name")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_transport_stream_name(p_if);}, std::string("on_get_transport_stream_name")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_service_name(p_if);}, std::string("on_get_service_name")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_dump_channels(p_if);}, std::string("on_dump_channels")},
@@ -527,6 +528,37 @@ void CChannelManager::on_get_channels (threadmgr::CThreadMgrIf *p_if)
 	p_if->set_section_id (section_id, act);
 }
 
+void CChannelManager::on_get_original_network_name (threadmgr::CThreadMgrIf *p_if)
+{
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
+	enum {
+		SECTID_ENTRY = threadmgr::section_id::init,
+		SECTID_END,
+	};
+
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
+
+
+	CChannelManagerIf::service_id_param_t _param =
+				*(CChannelManagerIf::service_id_param_t*)(p_if->get_source().get_message().data());
+
+	const char *pname = get_original_network_name (_param.original_network_id);
+
+	if (pname && strlen(pname) > 0) {
+		// reply msgで nameを渡します
+		p_if->reply (threadmgr::result::success, (uint8_t*)pname, strlen(pname));
+	} else {
+		p_if->reply (threadmgr::result::error);
+	}
+
+
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
+}
+
 void CChannelManager::on_get_transport_stream_name (threadmgr::CThreadMgrIf *p_if)
 {
 	threadmgr::section_id::type section_id;
@@ -778,6 +810,23 @@ int CChannelManager::get_channels (CChannelManagerIf::channel_t *p_out_channels,
 	}
 
 	return n;
+}
+
+const char* CChannelManager::get_original_network_name (
+	uint16_t _original_network_id
+) const
+{
+	std::map <uint16_t, CChannel>::const_iterator iter = m_channels.begin();
+	for (; iter != m_channels.end(); ++ iter) {
+		CChannel const *p_ch = &(iter->second);
+		if (p_ch) {
+			if (p_ch->original_network_id == _original_network_id) {
+				return p_ch->network_name.c_str();
+			}
+		}
+	}
+
+	return NULL;
 }
 
 const char* CChannelManager::get_transport_stream_name (

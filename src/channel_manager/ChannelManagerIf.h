@@ -22,6 +22,7 @@ public:
 		get_physical_channel_by_remote_control_key_id,
 		get_service_id_by_physical_channel,
 		get_channels,
+		get_original_network_name,
 		get_transport_stream_name,
 		get_service_name,
 		dump_scan_results,
@@ -149,6 +150,34 @@ public:
 					sequence,
 					(uint8_t*)p_param,
 					sizeof (request_channels_param_t)
+				);
+	};
+
+	bool request_get_original_network_name (const service_id_param_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		int sequence = static_cast<int>(sequence::get_original_network_name);
+		return request_async (
+					m_module_id,
+					sequence,
+					(uint8_t*)p_param,
+					sizeof (service_id_param_t)
+				);
+	};
+
+	bool request_get_original_network_name_sync (const service_id_param_t *p_param) {
+		if (!p_param) {
+			return false;
+		}
+
+		int sequence = static_cast<int>(sequence::get_original_network_name);
+		return request_sync (
+					m_module_id,
+					sequence,
+					(uint8_t*)p_param,
+					sizeof (service_id_param_t)
 				);
 	};
 
