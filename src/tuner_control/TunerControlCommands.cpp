@@ -81,7 +81,7 @@ static void ch_tune (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 	uint8_t id = atoi (argv[1]);
 	_COM_SVR_PRINT ("ch=[%d] id=[%d]\n", ch, id);
 
-	uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (ch);
+	uint32_t freq = CTsAribCommon::physicalCh2freqKHz (ch);
 	_COM_SVR_PRINT ("freq=[%d]kHz\n", freq);
 
 	CTunerControlIf ctl(base->get_external_if(), id);

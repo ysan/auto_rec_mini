@@ -136,7 +136,7 @@ void CTuneThread::on_tune (threadmgr::CThreadMgrIf *p_if)
 	}
 	std::string com_form = (*p_tuner_hal_allocates) [getGroupId()];
 	char com_str [128] = {0};
-	snprintf (com_str, sizeof(com_str), com_form.c_str(), CTsAribCommon::freqKHz2pysicalCh(param.freq));
+	snprintf (com_str, sizeof(com_str), com_form.c_str(), CTsAribCommon::freqKHz2physicalCh(param.freq));
 	std::string command = com_str;
 
 	if (!m_forker.create_pipes()) {

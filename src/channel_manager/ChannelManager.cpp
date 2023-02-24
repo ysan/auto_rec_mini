@@ -20,9 +20,9 @@ CChannelManager::CChannelManager (std::string name, uint8_t que_max)
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_module_up(p_if);}, std::string("on_module_up")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_module_down(p_if);}, std::string("on_module_down")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_channel_scan(p_if);}, std::string("on_channel_scan")},
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_pysical_channel_by_service_id(p_if);}, std::string("on_get_pysical_channel_by_service_id")},
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_pysical_channel_by_remote_control_key_id(p_if);}, std::string("on_get_pysical_channel_by_remote_control_key_id")},
-		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_service_id_by_pysical_channel(p_if);}, std::string("on_get_service_id_by_pysical_channel")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_physical_channel_by_service_id(p_if);}, std::string("on_get_physical_channel_by_service_id")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_physical_channel_by_remote_control_key_id(p_if);}, std::string("on_get_physical_channel_by_remote_control_key_id")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_service_id_by_physical_channel(p_if);}, std::string("on_get_service_id_by_physical_channel")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_channels(p_if);}, std::string("on_get_channels")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_transport_stream_name(p_if);}, std::string("on_get_transport_stream_name")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CChannelManager::on_get_service_name(p_if);}, std::string("on_get_service_name")},
@@ -191,8 +191,8 @@ void CChannelManager::on_channel_scan (threadmgr::CThreadMgrIf *p_if)
 
 	case SECTID_REQ_TUNE: {
 
-		uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (s_ch);
-		_UTL_LOG_I ("(%s) ------  pysical channel:[%d] -> freq:[%d]k_hz", p_if->get_sequence_name(), s_ch, freq);
+		uint32_t freq = CTsAribCommon::physicalCh2freqKHz (s_ch);
+		_UTL_LOG_I ("(%s) ------  physical channel:[%d] -> freq:[%d]k_hz", p_if->get_sequence_name(), s_ch, freq);
 
 		CTunerServiceIf::tune_param_t param = {
 			s_ch,
@@ -322,7 +322,7 @@ void CChannelManager::on_channel_scan (threadmgr::CThreadMgrIf *p_if)
 
 	case SECTID_NEXT:
 
-		// inc pysical ch
+		// inc physical ch
 		++ s_ch;
 
 		memset (&s_network_info, 0x00, sizeof (s_network_info));
@@ -335,7 +335,7 @@ void CChannelManager::on_channel_scan (threadmgr::CThreadMgrIf *p_if)
 	case SECTID_END:
 		p_if->unlock();
 
-		// reset pysical ch
+		// reset physical ch
 		s_ch = UHF_PHYSICAL_CHANNEL_MIN;
 
 		memset (&s_network_info, 0x00, sizeof (s_network_info));
@@ -378,7 +378,7 @@ void CChannelManager::on_channel_scan (threadmgr::CThreadMgrIf *p_if)
 	p_if->set_section_id (section_id, act);
 }
 
-void CChannelManager::on_get_pysical_channel_by_service_id (threadmgr::CThreadMgrIf *p_if)
+void CChannelManager::on_get_physical_channel_by_service_id (threadmgr::CThreadMgrIf *p_if)
 {
 	threadmgr::section_id::type section_id;
 	threadmgr::action act;
@@ -394,14 +394,14 @@ void CChannelManager::on_get_pysical_channel_by_service_id (threadmgr::CThreadMg
 	CChannelManagerIf::service_id_param_t param =
 			*(CChannelManagerIf::service_id_param_t*)(p_if->get_source().get_message().data());
 
-	uint16_t _ch = get_pysical_channel_by_service_id (
+	uint16_t _ch = get_physical_channel_by_service_id (
 						param.transport_stream_id,
 						param.original_network_id,
 						param.service_id
 					);
 	if (_ch == 0xffff) {
 
-		_UTL_LOG_E ("get_pysical_channel_by_service_id is failure.");
+		_UTL_LOG_E ("get_physical_channel_by_service_id is failure.");
 		p_if->reply (threadmgr::result::error);
 
 	} else {
@@ -417,7 +417,7 @@ void CChannelManager::on_get_pysical_channel_by_service_id (threadmgr::CThreadMg
 	p_if->set_section_id (section_id, act);
 }
 
-void CChannelManager::on_get_pysical_channel_by_remote_control_key_id (threadmgr::CThreadMgrIf *p_if)
+void CChannelManager::on_get_physical_channel_by_remote_control_key_id (threadmgr::CThreadMgrIf *p_if)
 {
 	threadmgr::section_id::type section_id;
 	threadmgr::action act;
@@ -433,14 +433,14 @@ void CChannelManager::on_get_pysical_channel_by_remote_control_key_id (threadmgr
 	CChannelManagerIf::remote_control_id_param_t param =
 			*(CChannelManagerIf::remote_control_id_param_t*)(p_if->get_source().get_message().data());
 
-	uint16_t _ch = get_pysical_channel_by_remote_control_key_id (
+	uint16_t _ch = get_physical_channel_by_remote_control_key_id (
 						param.transport_stream_id,
 						param.original_network_id,
 						param.remote_control_key_id
 					);
 	if (_ch == 0xffff) {
 
-		_UTL_LOG_E ("get_pysical_channel_by_remote_control_key_id is failure.");
+		_UTL_LOG_E ("get_physical_channel_by_remote_control_key_id is failure.");
 		p_if->reply (threadmgr::result::error);
 
 	} else {
@@ -456,7 +456,7 @@ void CChannelManager::on_get_pysical_channel_by_remote_control_key_id (threadmgr
 	p_if->set_section_id (section_id, act);
 }
 
-void CChannelManager::on_get_service_id_by_pysical_channel (threadmgr::CThreadMgrIf *p_if)
+void CChannelManager::on_get_service_id_by_physical_channel (threadmgr::CThreadMgrIf *p_if)
 {
 	threadmgr::section_id::type section_id;
 	threadmgr::action act;
@@ -473,14 +473,14 @@ void CChannelManager::on_get_service_id_by_pysical_channel (threadmgr::CThreadMg
 			*(reinterpret_cast<CChannelManagerIf::request_service_id_param_t*>(p_if->get_source().get_message().data()));
 
 	CChannelManagerIf::service_id_param_t _out;
-	bool r = get_service_id_by_pysical_channel (
-						param.pysical_channel,
+	bool r = get_service_id_by_physical_channel (
+						param.physical_channel,
 						param.service_idx,
 						&_out
 					);
 	if (!r) {
 
-		_UTL_LOG_E ("get_service_id_by_pysical_channel is failure.");
+		_UTL_LOG_E ("get_service_id_by_physical_channel is failure.");
 		p_if->reply (threadmgr::result::error);
 
 	} else {
@@ -619,7 +619,7 @@ void CChannelManager::on_dump_channels (threadmgr::CThreadMgrIf *p_if)
 	p_if->set_section_id (section_id, act);
 }
 
-uint16_t CChannelManager::get_pysical_channel_by_service_id (
+uint16_t CChannelManager::get_physical_channel_by_service_id (
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
 	uint16_t _service_id
@@ -648,7 +648,7 @@ uint16_t CChannelManager::get_pysical_channel_by_service_id (
 	return 0xffff;
 }
 
-uint16_t CChannelManager::get_pysical_channel_by_remote_control_key_id (
+uint16_t CChannelManager::get_physical_channel_by_remote_control_key_id (
 	uint16_t _transport_stream_id,
 	uint16_t _original_network_id,
 	uint8_t _remote_control_key_id
@@ -665,7 +665,7 @@ uint16_t CChannelManager::get_pysical_channel_by_remote_control_key_id (
 //   m_channels に同じremote_control_key_idのCChannel がある場合は
 //   検索順で先のものが得られるので あまりよくないやりかたです
 //   --> 引数 transport_stream_id, original_network_idで切り分けすれば問題ないはず
-//   --> get_pysical_channel_by_service_id を使うべき
+//   --> get_physical_channel_by_service_id を使うべき
 //				(p_ch->transport_stream_id == _transport_stream_id) &&
 //				(p_ch->original_network_id == _original_network_id) &&
 				(p_ch->remote_control_key_id == _remote_control_key_id)
@@ -679,8 +679,8 @@ uint16_t CChannelManager::get_pysical_channel_by_remote_control_key_id (
 	return 0xffff;
 }
 
-bool CChannelManager::get_service_id_by_pysical_channel (
-	uint16_t _pysical_channel,
+bool CChannelManager::get_service_id_by_physical_channel (
+	uint16_t _physical_channel,
 	int _service_idx,
 	CChannelManagerIf::service_id_param_t *_out_service_id
 ) const
@@ -689,18 +689,18 @@ bool CChannelManager::get_service_id_by_pysical_channel (
 		return false;
 	}
 
-	if (_pysical_channel < UHF_PHYSICAL_CHANNEL_MIN || _pysical_channel > UHF_PHYSICAL_CHANNEL_MAX) {
-		_UTL_LOG_E ("get_service_id_by_pysical_channel pysical_channel[%d] is not UHF_PHYSICAL_CHANNEL...", _pysical_channel);
+	if (_physical_channel < UHF_PHYSICAL_CHANNEL_MIN || _physical_channel > UHF_PHYSICAL_CHANNEL_MAX) {
+		_UTL_LOG_E ("get_service_id_by_physical_channel physical_channel[%d] is not UHF_PHYSICAL_CHANNEL...", _physical_channel);
 		return false;
 	}
 
-	const CChannel* ch = find_channel(_pysical_channel);
+	const CChannel* ch = find_channel(_physical_channel);
 	if (!ch) {
 		return false;
 	}
 
 	if ((int)(ch->services.size() -1) < _service_idx) {
-		_UTL_LOG_E ("get_service_id_by_pysical_channel service_idx[%d] is overflow. services.size[%d]", _service_idx, ch->services.size());
+		_UTL_LOG_E ("get_service_id_by_physical_channel service_idx[%d] is overflow. services.size[%d]", _service_idx, ch->services.size());
 		return false;
 	}
 
@@ -754,7 +754,7 @@ int CChannelManager::get_channels (CChannelManagerIf::channel_t *p_out_channels,
 	for (; iter != m_channels.end(); ++ iter) {
 		CChannel const *p_ch = &(iter->second);
 		if (p_ch) {
-			p_out_channels->pysical_channel = p_ch->pysical_channel;
+			p_out_channels->physical_channel = p_ch->physical_channel;
 			p_out_channels->transport_stream_id = p_ch->transport_stream_id;
 			p_out_channels->original_network_id = p_ch->original_network_id;
 			p_out_channels->remote_control_key_id = p_ch->remote_control_key_id;
@@ -866,7 +866,7 @@ template <class Archive>
 void serialize (Archive &archive, CChannel &r)
 {
 	archive (
-		cereal::make_nvp("pysical_channel", r.pysical_channel),
+		cereal::make_nvp("physical_channel", r.physical_channel),
 		cereal::make_nvp("transport_stream_id", r.transport_stream_id),
 		cereal::make_nvp("original_network_id", r.original_network_id),
 		cereal::make_nvp("network_name", r.network_name),

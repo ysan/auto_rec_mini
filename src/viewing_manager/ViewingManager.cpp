@@ -592,7 +592,7 @@ void CViewingManager::on_start_viewing (threadmgr::CThreadMgrIf *p_if)
 			s_physical_channel_param.service_idx,
 		};
 		CChannelManagerIf _if (get_external_if());
-		_if.request_get_service_id_by_pysical_channel(&param);
+		_if.request_get_service_id_by_physical_channel(&param);
 
 		section_id = SECTID_WAIT_GET_SERVICE_ID_BY_PHYSICAL_CH;
 		act = threadmgr::action::wait;
@@ -611,7 +611,7 @@ void CViewingManager::on_start_viewing (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("request_get_service_id_by_pysical_channel is failure.");
+			_UTL_LOG_E ("request_get_service_id_by_physical_channel is failure.");
 
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
@@ -622,7 +622,7 @@ void CViewingManager::on_start_viewing (threadmgr::CThreadMgrIf *p_if)
 		CChannelManagerIf::service_id_param_t param = {
 		};
 		CChannelManagerIf _if (get_external_if());
-		_if.request_get_pysical_channel_by_service_id(&param);
+		_if.request_get_physical_channel_by_service_id(&param);
 
 		section_id = SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID;
 		act = threadmgr::action::wait;
@@ -638,7 +638,7 @@ void CViewingManager::on_start_viewing (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("request_get_service_id_by_pysical_channel is failure.");
+			_UTL_LOG_E ("request_get_service_id_by_physical_channel is failure.");
 
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;

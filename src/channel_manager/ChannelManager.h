@@ -60,7 +60,7 @@ public:
 		}
 	}
 
-	uint16_t pysical_channel;
+	uint16_t physical_channel;
 
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
@@ -85,7 +85,7 @@ public:
 	std::vector <service> services;
 
 	void set (
-		uint16_t _pysical_channel,
+		uint16_t _physical_channel,
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		const char *psz_network_name,
@@ -95,7 +95,7 @@ public:
 		struct service _services[],
 		int _services_num
 	) {
-		this->pysical_channel = _pysical_channel;
+		this->physical_channel = _physical_channel;
 		this->transport_stream_id = _transport_stream_id;
 		this->original_network_id = _original_network_id;
 		if (psz_network_name) {
@@ -114,7 +114,7 @@ public:
 	}
 
 	void clear (void) {
-		pysical_channel = 0;
+		physical_channel = 0;
 		transport_stream_id = 0;
 		original_network_id = 0;
 		network_name.clear();
@@ -133,11 +133,11 @@ public:
 	}
 
 	void dump (void) const {
-		uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (pysical_channel);
-		_UTL_LOG_I ("-------------  pysical channel:[%d] ([%d]k_hz) -------------", pysical_channel, freq);
+		uint32_t freq = CTsAribCommon::physicalCh2freqKHz (physical_channel);
+		_UTL_LOG_I ("-------------  physical channel:[%d] ([%d]k_hz) -------------", physical_channel, freq);
 		_UTL_LOG_I (
 			"pych:[%d] tsid:[0x%04x] org_nid:[0x%04x]",
-			pysical_channel,
+			physical_channel,
 			transport_stream_id,
 			original_network_id
 		);
@@ -177,7 +177,7 @@ public:
 		_UTL_LOG_I (
 //			"pych:[%d] tsid:[0x%04x] org_nid:[0x%04x] ts_name:[%s] remote_control_key_id:[0x%02x] svc_id:[%s]",
 			"pych:[%d] tsid:[0x%04x] org_nid:[0x%04x] ts_name:[%s] remote_control_key_id:[0x%02x]",
-			pysical_channel,
+			physical_channel,
 			transport_stream_id,
 			original_network_id,
 			ts_name.c_str(),
@@ -199,9 +199,9 @@ public:
 	void on_module_up (threadmgr::CThreadMgrIf *p_if);
 	void on_module_down (threadmgr::CThreadMgrIf *p_if);
 	void on_channel_scan (threadmgr::CThreadMgrIf *p_if);
-	void on_get_pysical_channel_by_service_id (threadmgr::CThreadMgrIf *p_if);
-	void on_get_pysical_channel_by_remote_control_key_id (threadmgr::CThreadMgrIf *p_if);
-	void on_get_service_id_by_pysical_channel (threadmgr::CThreadMgrIf *p_if);
+	void on_get_physical_channel_by_service_id (threadmgr::CThreadMgrIf *p_if);
+	void on_get_physical_channel_by_remote_control_key_id (threadmgr::CThreadMgrIf *p_if);
+	void on_get_service_id_by_physical_channel (threadmgr::CThreadMgrIf *p_if);
 	void on_get_channels (threadmgr::CThreadMgrIf *p_if);
 	void on_get_transport_stream_name (threadmgr::CThreadMgrIf *p_if);
 	void on_get_service_name (threadmgr::CThreadMgrIf *p_if);
@@ -209,20 +209,20 @@ public:
 
 
 private:
-	uint16_t get_pysical_channel_by_service_id (
+	uint16_t get_physical_channel_by_service_id (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint16_t _service_id
 	) const ;
 
-	uint16_t get_pysical_channel_by_remote_control_key_id (
+	uint16_t get_physical_channel_by_remote_control_key_id (
 		uint16_t _transport_stream_id,
 		uint16_t _original_network_id,
 		uint8_t _remote_control_key_id
 	) const;
 
-	bool get_service_id_by_pysical_channel (
-		uint16_t _pysical_channel,
+	bool get_service_id_by_physical_channel (
+		uint16_t _physical_channel,
 		int _service_idx,
 		CChannelManagerIf::service_id_param_t *_out_service_id
 	) const;
@@ -249,7 +249,7 @@ private:
 	void load_channels (void);
 
 
-	std::map <uint16_t, CChannel> m_channels; // <pysical_channel, CChannel>
+	std::map <uint16_t, CChannel> m_channels; // <physical_channel, CChannel>
 
 };
 

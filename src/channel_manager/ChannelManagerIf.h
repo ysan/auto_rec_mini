@@ -18,9 +18,9 @@ public:
 		module_up = 0,
 		module_down,
 		channel_scan,
-		get_pysical_channel_by_service_id,
-		get_pysical_channel_by_remote_control_key_id,
-		get_service_id_by_pysical_channel,
+		get_physical_channel_by_service_id,
+		get_physical_channel_by_remote_control_key_id,
+		get_service_id_by_physical_channel,
 		get_channels,
 		get_transport_stream_name,
 		get_service_name,
@@ -41,12 +41,12 @@ public:
 	} remote_control_id_param_t;
 
 	typedef struct _request_service_id_param {
-		uint16_t pysical_channel;
+		uint16_t physical_channel;
 		int service_idx;
 	} request_service_id_param_t;
 
 	typedef struct _channel {
-		uint16_t pysical_channel;
+		uint16_t physical_channel;
 		uint16_t transport_stream_id;
 		uint16_t original_network_id;
 		uint8_t remote_control_key_id;
@@ -86,12 +86,12 @@ public:
 		return request_async (m_module_id, sequence);
 	};
 
-	bool request_get_pysical_channel_by_service_id (const service_id_param_t *p_param) {
+	bool request_get_physical_channel_by_service_id (const service_id_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		int sequence = static_cast<int>(sequence::get_pysical_channel_by_service_id);
+		int sequence = static_cast<int>(sequence::get_physical_channel_by_service_id);
 		return request_async (
 					m_module_id,
 					sequence,
@@ -100,12 +100,12 @@ public:
 				);
 	};
 
-	bool request_get_pysical_channel_by_remote_control_key_id (const remote_control_id_param_t *p_param) {
+	bool request_get_physical_channel_by_remote_control_key_id (const remote_control_id_param_t *p_param) {
 		if (!p_param) {
 			return false;
 		}
 
-		int sequence = static_cast<int>(sequence::get_pysical_channel_by_remote_control_key_id);
+		int sequence = static_cast<int>(sequence::get_physical_channel_by_remote_control_key_id);
 		return request_async (
 					m_module_id,
 					sequence,
@@ -114,8 +114,8 @@ public:
 				);
 	};
 
-	bool request_get_service_id_by_pysical_channel (const request_service_id_param_t *param) {
-		int sequence = static_cast<int>(sequence::get_service_id_by_pysical_channel);
+	bool request_get_service_id_by_physical_channel (const request_service_id_param_t *param) {
+		int sequence = static_cast<int>(sequence::get_service_id_by_physical_channel);
 		return request_async (
 					m_module_id,
 					sequence,

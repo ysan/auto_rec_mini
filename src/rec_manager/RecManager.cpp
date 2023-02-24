@@ -1007,8 +1007,8 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 		SECTID_CHECK_DISK_FREE_SPACE,
 //		SECTID_REQ_STOP_CACHE_SCHED,
 //		SECTID_WAIT_STOP_CACHE_SCHED,
-		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
-		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
+		SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID,
+		SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID,
 		SECTID_REQ_TUNE,
 		SECTID_WAIT_TUNE,
 		SECTID_REQ_GET_PRESENT_EVENT_INFO,
@@ -1071,7 +1071,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 		} else {
 //TODO
 //			section_id = SECTID_REQ_STOP_CACHE_SCHED;
-			section_id = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+			section_id = SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID;
 			act = threadmgr::action::continue_;
 		}
 
@@ -1092,12 +1092,12 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 
 	case SECTID_WAIT_STOP_CACHE_SCHED:
 		// successのみ
-		section_id = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+		section_id = SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID;
 		act = threadmgr::action::continue_;
 		break;
 ***/
 
-	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
+	case SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID: {
 
 		CChannelManagerIf::service_id_param_t param = {
 			m_recordings[s_group_id].transport_stream_id,
@@ -1106,14 +1106,14 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 		};
 
 		CChannelManagerIf _if (get_external_if());
-		_if.request_get_pysical_channel_by_service_id (&param);
+		_if.request_get_physical_channel_by_service_id (&param);
 
-		section_id = SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID;
+		section_id = SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID;
 		act = threadmgr::action::wait;
 		}
 		break;
 
-	case SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID:
+	case SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID:
 		rslt = p_if->get_source().get_result();
 		if (rslt == threadmgr::result::success) {
 
@@ -1123,7 +1123,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("request_get_pysical_channel_by_service_id is failure.");
+			_UTL_LOG_E ("request_get_physical_channel_by_service_id is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}
@@ -1944,8 +1944,8 @@ void CRecManager::on_add_reserve_manual (threadmgr::CThreadMgrIf *p_if)
 	threadmgr::action act;
 	enum {
 		SECTID_ENTRY = threadmgr::section_id::init,
-		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
-		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
+		SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID,
+		SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID,
 		SECTID_ADD_RESERVE,
 		SECTID_END_SUCCESS,
 		SECTID_END_ERROR,
@@ -1969,7 +1969,7 @@ void CRecManager::on_add_reserve_manual (threadmgr::CThreadMgrIf *p_if)
 			s_param.repeatablity >= CRecManagerIf::reserve_repeatability::none &&
 			s_param.repeatablity <= CRecManagerIf::reserve_repeatability::weekly
 		) {
-			section_id = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+			section_id = SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID;
 			act = threadmgr::action::continue_;
 		} else {
 			section_id = SECTID_END_ERROR;
@@ -1978,7 +1978,7 @@ void CRecManager::on_add_reserve_manual (threadmgr::CThreadMgrIf *p_if)
 
 		break;
 
-	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
+	case SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID: {
 		// サービスの存在チェックします
 
 		CChannelManagerIf::service_id_param_t param = {
@@ -1988,21 +1988,21 @@ void CRecManager::on_add_reserve_manual (threadmgr::CThreadMgrIf *p_if)
 		};
 
 		CChannelManagerIf _if (get_external_if());
-		_if.request_get_pysical_channel_by_service_id (&param);
+		_if.request_get_physical_channel_by_service_id (&param);
 
-		section_id = SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID;
+		section_id = SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID;
 		act = threadmgr::action::wait;
 		}
 		break;
 
-	case SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID:
+	case SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID:
 		rslt = p_if->get_source().get_result();
 		if (rslt == threadmgr::result::success) {
 			section_id = SECTID_ADD_RESERVE;
 			act = threadmgr::action::continue_;
 
 		} else {
-			_UTL_LOG_E ("request_get_pysical_channel_by_service_id is failure.");
+			_UTL_LOG_E ("request_get_physical_channel_by_service_id is failure.");
 			section_id = SECTID_END_ERROR;
 			act = threadmgr::action::continue_;
 		}

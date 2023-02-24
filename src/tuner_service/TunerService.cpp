@@ -213,7 +213,7 @@ void CTunerService::on_tune (threadmgr::CThreadMgrIf *p_if)
 
 	case SECTID_REQ_TUNE: {
 
-		uint32_t freq = CTsAribCommon::pysicalCh2freqKHz (s_param.physical_channel);
+		uint32_t freq = CTsAribCommon::physicalCh2freqKHz (s_param.physical_channel);
 		_UTL_LOG_I ("freq=[%d]kHz\n", freq);
 
 		CTunerControlIf _if (get_external_if(), s_param.tuner_id);
@@ -440,8 +440,8 @@ void CTunerService::on_tune_advance (threadmgr::CThreadMgrIf *p_if)
 	threadmgr::action act;
 	enum {
 		SECTID_ENTRY = threadmgr::section_id::init,
-		SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID,
-		SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID,
+		SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID,
+		SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID,
 		SECTID_REQ_TUNE,
 		SECTID_WAIT_TUNE,
 		SECTID_END_SUCCESS,
@@ -484,7 +484,7 @@ void CTunerService::on_tune_advance (threadmgr::CThreadMgrIf *p_if)
 		}
 
 		if (pre_check (s_adv_param.tuner_id, s_adv_param.caller_module_id, true)) {
-			section_id = SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID;
+			section_id = SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID;
 			act = threadmgr::action::continue_;
 		} else {
 			section_id = SECTID_END_ERROR;
@@ -494,7 +494,7 @@ void CTunerService::on_tune_advance (threadmgr::CThreadMgrIf *p_if)
 		}
 		break;
 
-	case SECTID_REQ_GET_PYSICAL_CH_BY_SERVICE_ID: {
+	case SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID: {
 
 		CChannelManagerIf::service_id_param_t param = {
 			s_adv_param.transport_stream_id,
@@ -503,14 +503,14 @@ void CTunerService::on_tune_advance (threadmgr::CThreadMgrIf *p_if)
 		};
 
 		CChannelManagerIf _if (get_external_if());
-		_if.request_get_pysical_channel_by_service_id (&param);
+		_if.request_get_physical_channel_by_service_id (&param);
 
-		section_id = SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID;
+		section_id = SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID;
 		act = threadmgr::action::wait;
 		}
 		break;
 
-	case SECTID_WAIT_GET_PYSICAL_CH_BY_SERVICE_ID:
+	case SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID:
 		rslt = p_if->get_source().get_result();
 		if (rslt == threadmgr::result::success) {
 

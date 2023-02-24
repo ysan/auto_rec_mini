@@ -177,7 +177,7 @@ static void _tune_interactive (int argc, char* argv[], threadmgr::CThreadMgrBase
 
 
 	CTunerServiceIf::tune_param_t tune_param = {
-		channels[sel_ch_num].pysical_channel,
+		channels[sel_ch_num].physical_channel,
 		group_id,
 	};
 
