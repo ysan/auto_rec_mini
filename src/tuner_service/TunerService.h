@@ -44,9 +44,6 @@ public:
 			,module_id (modules::module_id::max)
 			,priority (client_priority::OTHER)
 			,is_now_tuned (false)
-			,transport_stream_id (0)
-			,original_network_id (0)
-			,service_id (0)
 		{
 			clear ();
 		}
@@ -59,59 +56,29 @@ public:
 			module_id = modules::module_id::max;
 			priority = client_priority::OTHER;
 			is_now_tuned = false;
-
-			transport_stream_id = 0;
-			original_network_id = 0;
-			service_id = 0;
 		}
 
 		void dump (void) const {
-			if (transport_stream_id != 0 || original_network_id != 0 || service_id != 0) {
-				_UTL_LOG_I (
-					"tuner_id:[0x%02x] module:[%d:%.10s] priority:[%d] [%s] -> tsid:[0x%04x] org_nid:[0x%04x] svcid:[0x%04x]",
-					tuner_id,
-					module_id,
-					module_id != modules::module_id::max ? get_module(module_id)->get_name() : "----------",
-					static_cast<int>(priority),
-					is_now_tuned ? "now_tuned" : "---",
-					transport_stream_id,
-					original_network_id,
-					service_id
-				);
-
-			} else {
-				_UTL_LOG_I (
-					"tuner_id:[0x%02x] module:[%d:%.10s] priority:[%d] [%s]",
-					tuner_id,
-					module_id,
-					module_id != modules::module_id::max ? get_module(module_id)->get_name() : "----------",
-					static_cast<int>(priority),
-					is_now_tuned ? "now_tuned" : "---"
-				);
-			}
+			_UTL_LOG_I (
+				"tuner_id:[0x%02x] module:[%d:%.10s] priority:[%d] [%s]",
+				tuner_id,
+				module_id,
+				module_id != modules::module_id::max ? get_module(module_id)->get_name() : "----------",
+				static_cast<int>(priority),
+				is_now_tuned ? "now_tuned" : "---"
+			);
 		}
 
 		uint8_t tuner_id;
 		modules::module_id module_id;
 		client_priority priority;
 		bool is_now_tuned;
-
-		//-- advance parameters --//
-		uint16_t transport_stream_id;
-		uint16_t original_network_id;
-		uint16_t service_id;
-
 	} resource_t;
 
 	// tune_withRetryの時に呼び元モジュールを取っておきたいため
 	struct _tune_param : public CTunerServiceIf::tune_param_t {
 		modules::module_id caller_module_id;
 	};
-	// tuneAdvance_withRetryの時に呼び元モジュールを取っておきたいため
-	struct _tune_advance_param : public CTunerServiceIf::tune_advance_param_t {
-		modules::module_id caller_module_id;
-	};
-
 
 public:
 	CTunerService (std::string name, uint8_t que_max);
@@ -124,7 +91,6 @@ public:
 	void on_close (threadmgr::CThreadMgrIf *p_if);
 	void on_tune (threadmgr::CThreadMgrIf *p_if);
 	void on_tune_with_retry (threadmgr::CThreadMgrIf *p_if);
-	void on_tune_advance (threadmgr::CThreadMgrIf *p_if);
 	void on_tune_stop (threadmgr::CThreadMgrIf *p_if);
 	void on_dump_allocates (threadmgr::CThreadMgrIf *p_if);
 

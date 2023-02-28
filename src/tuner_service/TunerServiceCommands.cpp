@@ -90,75 +90,6 @@ static void _tune (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 	base->get_external_if()->set_request_option (opt);
 }
 
-static void _tune_advance (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
-{
-	if (argc != 4) {
-		_COM_SVR_PRINT ("invalid arguments. (usage: ta {tsid} {org_nid} {svcid} {tuner id})\n");
-		return;
-	}
-
-	uint16_t _tsid = 0;
-	std::regex regex_tsid ("^[0-9]+$");
-	if (!std::regex_match (argv[0], regex_tsid)) {
-		std::regex regex_tsid ("^0x([0-9]|[a-f]|[A-F])+$");
-		if (!std::regex_match (argv[0], regex_tsid)) {
-			_COM_SVR_PRINT ("invalid arguments. (tsid)\n");
-			return;
-		} else {
-			_tsid = strtol (argv[0], NULL, 16);
-		}
-	} else {
-		_tsid = atoi (argv[0]);
-	}
-
-	uint16_t _org_nid = 0;
-	std::regex regex_org_nid ("^[0-9]+$");
-	if (!std::regex_match (argv[1], regex_org_nid)) {
-		std::regex regex_org_nid ("^0x([0-9]|[a-f]|[A-F])+$");
-		if (!std::regex_match (argv[1], regex_org_nid)) {
-			_COM_SVR_PRINT ("invalid arguments. (org_nid)\n");
-			return;
-		} else {
-			_org_nid = strtol (argv[1], NULL, 16);
-		}
-	} else {
-		_org_nid = atoi (argv[1]);
-	}
-
-	uint16_t _svcid = 0;
-	std::regex regex_svcid("^[0-9]+$");
-	if (!std::regex_match (argv[2], regex_svcid)) {
-		std::regex regex_svcid ("^0x([0-9]|[a-f]|[A-F])+$");
-		if (!std::regex_match (argv[2], regex_svcid)) {
-			_COM_SVR_PRINT ("invalid arguments. (svcid)\n");
-			return;
-		} else {
-			_svcid = strtol (argv[2], NULL, 16);
-		}
-	} else {
-		_svcid = atoi (argv[2]);
-	}
-
-	std::regex regex_id ("^[0-9]+$");
-	if (!std::regex_match (argv[3], regex_id)) {
-		_COM_SVR_PRINT ("invalid arguments. (tuner id)\n");
-		return;
-	}
-	uint8_t id = atoi(argv[3]);
-
-	CTunerServiceIf::tune_advance_param_t param = {_tsid, _org_nid, _svcid, id, true}; // need retry
-
-	uint32_t opt = base->get_external_if()->get_request_option ();
-	opt |= REQUEST_OPTION__WITHOUT_REPLY;
-	base->get_external_if()->set_request_option (opt);
-
-	CTunerServiceIf _if(base->get_external_if());
-	_if.request_tune_advance (&param);
-
-	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
-	base->get_external_if()->set_request_option (opt);
-}
-
 static void _tune_stop (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 1) {
@@ -218,12 +149,6 @@ command_info_t g_tuner_service_commands [] = { // extern
 		"t",
 		"tune by physical channel (usage: t {physical channel} {tuner id})",
 		_tune,
-		NULL,
-	},
-	{
-		"ta",
-		"tune advance (usage: ta {tsid} {org_nid} {svcid} {tuner id})",
-		_tune_advance,
 		NULL,
 	},
 	{

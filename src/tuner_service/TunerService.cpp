@@ -26,7 +26,6 @@ CTunerService::CTunerService (std::string name, uint8_t que_max)
 		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_close(p_if);}, std::move("on_close")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune(p_if);}, std::move("on_tune")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune_with_retry(p_if);}, std::move("on_tune_with_retry")},
-		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune_advance(p_if);}, std::move("on_tune_advance")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_tune_stop(p_if);}, std::move("on_tune_stop")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CTunerService::on_dump_allocates(p_if);}, std::move("on_dump_allocates")},
 	};
@@ -434,153 +433,6 @@ void CTunerService::on_tune_with_retry (threadmgr::CThreadMgrIf *p_if)
 	p_if->set_section_id (section_id, act);
 }
 
-void CTunerService::on_tune_advance (threadmgr::CThreadMgrIf *p_if)
-{
-	threadmgr::section_id::type section_id;
-	threadmgr::action act;
-	enum {
-		SECTID_ENTRY = threadmgr::section_id::init,
-		SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID,
-		SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID,
-		SECTID_REQ_TUNE,
-		SECTID_WAIT_TUNE,
-		SECTID_END_SUCCESS,
-		SECTID_END_ERROR,
-	};
-
-	section_id = p_if->get_section_id();
-	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
-
-	static struct _tune_param s_param;
-	static struct _tune_advance_param s_adv_param; 
-	threadmgr::result rslt = threadmgr::result::success;
-
-	switch (section_id) {
-	case SECTID_ENTRY: {
-
-		memset (&s_param, 0x00, sizeof(s_param));
-		memset (&s_adv_param, 0x00, sizeof(s_adv_param));
-
-		modules::module_id caller_module_id = static_cast<modules::module_id>(p_if->get_source().get_thread_idx());
-		if (caller_module_id == modules::module_id::tuner_service) {
-			// 内部モジュールから呼ばれました
-			// 今のとこ ここには入らない
-			_tune_advance_param *p = (_tune_advance_param*)(p_if->get_source().get_message().data());
-			s_adv_param.transport_stream_id = p->transport_stream_id;
-			s_adv_param.original_network_id = p->original_network_id;
-			s_adv_param.service_id = p->service_id;
-			s_adv_param.tuner_id = p->tuner_id;
-			s_adv_param.is_need_retry = p->is_need_retry;
-			s_adv_param.caller_module_id = p->caller_module_id; // 引き継ぎます
-		} else {
-			// 外部モジュールから呼ばれました
-			CTunerServiceIf::tune_advance_param_t *p = (CTunerServiceIf::tune_advance_param_t*)(p_if->get_source().get_message().data());
-			s_adv_param.transport_stream_id = p->transport_stream_id;
-			s_adv_param.original_network_id = p->original_network_id;
-			s_adv_param.service_id = p->service_id;
-			s_adv_param.tuner_id = p->tuner_id;
-			s_adv_param.is_need_retry = p->is_need_retry;
-			s_adv_param.caller_module_id = static_cast<modules::module_id>(p_if->get_source().get_thread_idx());
-		}
-
-		if (pre_check (s_adv_param.tuner_id, s_adv_param.caller_module_id, true)) {
-			section_id = SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID;
-			act = threadmgr::action::continue_;
-		} else {
-			section_id = SECTID_END_ERROR;
-			act = threadmgr::action::continue_;
-		}
-
-		}
-		break;
-
-	case SECTID_REQ_GET_PHYSICAL_CH_BY_SERVICE_ID: {
-
-		CChannelManagerIf::service_id_param_t param = {
-			s_adv_param.transport_stream_id,
-			s_adv_param.original_network_id,
-			s_adv_param.service_id
-		};
-
-		CChannelManagerIf _if (get_external_if());
-		_if.request_get_physical_channel_by_service_id (&param);
-
-		section_id = SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID;
-		act = threadmgr::action::wait;
-		}
-		break;
-
-	case SECTID_WAIT_GET_PHYSICAL_CH_BY_SERVICE_ID:
-		rslt = p_if->get_source().get_result();
-		if (rslt == threadmgr::result::success) {
-
-			s_param.physical_channel = *(uint16_t*)(p_if->get_source().get_message().data());
-			s_param.tuner_id = s_adv_param.tuner_id;
-			s_param.caller_module_id = s_adv_param.caller_module_id;
-
-			section_id = SECTID_REQ_TUNE;
-			act = threadmgr::action::continue_;
-
-		} else {
-			_UTL_LOG_E ("reqGetPysicalChannelByServiceId is failure.");
-			section_id = SECTID_END_ERROR;
-			act = threadmgr::action::continue_;
-		}
-		break;
-
-	case SECTID_REQ_TUNE:
-
-		request_async (
-			static_cast<uint8_t>(modules::module_id::tuner_service),
-			s_adv_param.is_need_retry ?
-				static_cast<int>(CTunerServiceIf::sequence::tune_with_retry) :
-				static_cast<int>(CTunerServiceIf::sequence::tune),
-			(uint8_t*)&s_param,
-			sizeof (s_param)
-		);
-
-		section_id = SECTID_WAIT_TUNE;
-		act = threadmgr::action::wait;
-		break;
-
-	case SECTID_WAIT_TUNE:
-		rslt = p_if->get_source().get_result();
-		if (rslt == threadmgr::result::success) {
-			section_id = SECTID_END_SUCCESS;
-			act = threadmgr::action::continue_;
-
-		} else {
-			section_id = SECTID_END_ERROR;
-			act = threadmgr::action::continue_;
-		}
-		break;
-
-	case SECTID_END_SUCCESS:
-
-		m_resource_allcates[s_param.tuner_id]->transport_stream_id = s_adv_param.transport_stream_id;
-		m_resource_allcates[s_param.tuner_id]->original_network_id = s_adv_param.original_network_id;
-		m_resource_allcates[s_param.tuner_id]->service_id = s_adv_param.service_id;
-		dump_allocates ();
-
-		p_if->reply (threadmgr::result::success);
-		section_id = threadmgr::section_id::init;
-		act = threadmgr::action::done;
-		break;
-
-	case SECTID_END_ERROR:
-
-		p_if->reply (threadmgr::result::error);
-		section_id = threadmgr::section_id::init;
-		act = threadmgr::action::done;
-		break;
-
-	default:
-		break;
-	}
-
-	p_if->set_section_id (section_id, act);
-}
-
 void CTunerService::on_tune_stop (threadmgr::CThreadMgrIf *p_if)
 {
 	threadmgr::section_id::type section_id;
@@ -642,9 +494,6 @@ void CTunerService::on_tune_stop (threadmgr::CThreadMgrIf *p_if)
 		p_if->unlock();
 
 		m_resource_allcates[s_tuner_id]->is_now_tuned = false;
-		m_resource_allcates[s_tuner_id]->transport_stream_id = 0;
-		m_resource_allcates[s_tuner_id]->original_network_id = 0;
-		m_resource_allcates[s_tuner_id]->service_id = 0;
 		dump_allocates ();
 
 		p_if->reply (threadmgr::result::success);
