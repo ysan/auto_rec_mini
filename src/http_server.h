@@ -191,7 +191,7 @@ public:
 				mp_ext_if->destroy_external_cp();
 			});
 
-			m_server.Get(R"(/api/ctrl/channel/trasport_stream_name/(\d+)/(\d+))", [&](const httplib::Request &req, httplib::Response &res) {
+			m_server.Get(R"(/api/ctrl/channel/transport_stream_name/(\d+)/(\d+))", [&](const httplib::Request &req, httplib::Response &res) {
 				auto _m_org_nid = req.matches[1];
 				auto _m_ts_id = req.matches[2];
 
