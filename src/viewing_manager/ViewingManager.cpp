@@ -1012,8 +1012,6 @@ void CViewingManager::on_event_changed (threadmgr::CThreadMgrIf *p_if)
 
 	switch (section_id) {
 	case SECTID_ENTRY:
-		p_if->lock();
-
 		_UTL_LOG_I ("(%s) entry", p_if->get_sequence_name());
 
 		s_group_id = *(reinterpret_cast<uint8_t*>(p_if->get_source().get_message().data()));
