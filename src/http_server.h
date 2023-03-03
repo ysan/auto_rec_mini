@@ -250,27 +250,37 @@ public:
 			});
 		}
 
-		{
-			// for CORS (preflight request)
-			m_server.Options("/api/.+", [](const httplib::Request &req, httplib::Response &res) {
-				res.set_header("Access-Control-Allow-Origin", req.get_header_value("Origin").c_str());
-				res.set_header("Allow", "GET, POST, HEAD, OPTIONS");
-				res.set_header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Accept, Origin, Authorization");
-				res.set_header("Access-Control-Allow-Methods", "OPTIONS, GET, POST, HEAD");
-			});
-		}
+//		{
+//			m_server.set_file_request_handler([](const httplib::Request &req, httplib::Response &res) {
+//				res.set_header("Access-Control-Allow-Origin", "*");
+//			});
+//		}
 
 		{
 			std::string *static_path = CSettings::getInstance()->getParams()->getHttpServerStaticContentsPath();
-			if (!m_server.set_mount_point("/", static_path->c_str())) {
+			httplib::Headers headers;
+			headers.emplace("Access-Control-Allow-Origin", "*");
+			if (!m_server.set_mount_point("/", static_path->c_str(), headers)) {
 				_UTL_LOG_E("set_mount_point [%s] failure.", static_path->c_str());
 			}
 		}
 		{
 			std::string *stream_path = CSettings::getInstance()->getParams()->getViewingStreamDataPath();
-			if (!m_server.set_mount_point("/stream/", stream_path->c_str())) {
+			httplib::Headers headers;
+			headers.emplace("Access-Control-Allow-Origin", "*");
+			if (!m_server.set_mount_point("/stream/", stream_path->c_str(), headers)) {
 				_UTL_LOG_E("set_mount_point [%s] failure.", stream_path->c_str());
 			}
+		}
+
+		{
+			// for CORS (preflight request)
+			m_server.Options("/.+", [](const httplib::Request &req, httplib::Response &res) {
+				res.set_header("Access-Control-Allow-Origin", req.get_header_value("Origin").c_str());
+				res.set_header("Allow", "GET, POST, HEAD, OPTIONS");
+				res.set_header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Accept, Origin, Authorization");
+				res.set_header("Access-Control-Allow-Methods", "OPTIONS, GET, POST, HEAD");
+			});
 		}
 
 		if (!m_server.listen("0.0.0.0", m_port)) {
