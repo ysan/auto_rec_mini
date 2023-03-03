@@ -394,12 +394,7 @@ void CViewingManager::on_check_loop (threadmgr::CThreadMgrIf *p_if)
 			if (cs.get_status() == 0) {
 				// alive
 				if (m_viewings[i].is_used) {
-					//TODO ffmpegのログ出力
-					char buff [1024*4] = {0};
-					size_t r = read (m_forker[i].get_child_stderr_fd(), buff, sizeof(buff));
-					if (r > 0) {
-						_UTL_LOG_I(buff);
-					}
+					logging_stream_command(i);
 				}
 
 			} else if (cs.get_status() == 1 || cs.get_status() == 2) {
@@ -460,7 +455,7 @@ void CViewingManager::on_notice_by_stream_handler (threadmgr::CThreadMgrIf *p_if
 		break;
 
 	case CStreamHandler::progress::process_end_error:
-		_UTL_LOG_I ("CStreamHandler::progress::process_end_success");
+		_UTL_LOG_I ("CStreamHandler::progress::process_end_error");
 		break;
 
 	case CStreamHandler::progress::post_process:
@@ -1212,4 +1207,29 @@ void CViewingManager::clean_dir (const char* path) const
 		}
 		entry = readdir(dp);
 	}
+}
+
+//TODO ffmpegのログ出力
+void CViewingManager::logging_stream_command (uint8_t group_id) const
+{
+					fd_set _fds;
+					struct timeval _timeout;
+					FD_ZERO (&_fds);
+					FD_SET (m_forker[group_id].get_child_stderr_fd(), &_fds);
+					_timeout.tv_sec = 1;
+					_timeout.tv_usec = 0;
+					int sr = select (m_forker[group_id].get_child_stderr_fd() +1, &_fds, NULL, NULL, &_timeout);
+					if (sr < 0) {
+						;;
+					} else if (sr == 0) {
+						// timeout
+						;;
+					} else {
+						char buff [1024*4] = {0};
+						size_t r = read (m_forker[group_id].get_child_stderr_fd(), buff, sizeof(buff));
+						if (r > 0) {
+							_UTL_LOG_I(buff);
+						}
+					}
+
 }

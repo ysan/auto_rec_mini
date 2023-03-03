@@ -148,6 +148,7 @@ private:
 	void dump_viewing (void) const;
 	bool set_nonblocking_io (int fd) const;
 	void clean_dir (const char* path) const;
+	void logging_stream_command (uint8_t group_id) const;
 
 	CSettings *mp_settings;
 	
