@@ -13,6 +13,7 @@
 #include <string>
 #include <memory>
 
+#include "Etime.h"
 #include "Group.h"
 #include "ThreadMgrpp.h"
 
@@ -51,6 +52,9 @@ public:
 
 	std::string title_name;
 	std::string service_name;
+
+	bool auto_stop;
+	CEtime auto_stop_time;
 
 	uint8_t group_id;
 
@@ -100,6 +104,8 @@ public:
 		title_name.shrink_to_fit();
 		service_name.clear();
 		service_name.shrink_to_fit();
+		auto_stop = false;
+		auto_stop_time.clear();
 		group_id = 0xff;
 		is_used = false;
 	}
@@ -119,6 +125,9 @@ public:
 		);
 		_UTL_LOG_I ("title:[%s]", title_name.c_str());
 		_UTL_LOG_I ("service_name:[%s]", service_name.c_str());
+		if (auto_stop) {
+			_UTL_LOG_I ("auto_stop_time:[%s]", auto_stop_time.toString());
+		}
 		_UTL_LOG_I ("group_id:[0x%02x]", group_id);
 	}
 };
@@ -138,6 +147,7 @@ public:
 	void on_start_viewing (threadmgr::CThreadMgrIf *p_if);
 	void on_stop_viewing (threadmgr::CThreadMgrIf *p_if);
 	void on_get_viewing (threadmgr::CThreadMgrIf *p_if);
+	void on_set_option (threadmgr::CThreadMgrIf *p_if);
 	void on_dump_viewing (threadmgr::CThreadMgrIf *p_if);
 	void on_event_changed (threadmgr::CThreadMgrIf *p_if);
 

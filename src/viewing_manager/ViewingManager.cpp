@@ -9,6 +9,7 @@
 #include <dirent.h>
 
 #include "ChannelManagerIf.h"
+#include "Etime.h"
 #include "Group.h"
 #include "PsisiManagerIf.h"
 #include "StreamHandler.h"
@@ -51,6 +52,7 @@ CViewingManager::CViewingManager (std::string name, uint8_t que_max)
 		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_start_viewing(p_if);}, std::move("on_start_viewing_by_service_id")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_stop_viewing(p_if);}, std::move("on_stop_viewing")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_get_viewing(p_if);}, std::move("on_get_viewing")},
+		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_set_option(p_if);}, std::move("on_set_option")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_dump_viewing(p_if);}, std::move("on_dump_viewing")},
 		{[&](threadmgr::CThreadMgrIf *p_if){CViewingManager::on_event_changed(p_if);}, std::move("on_event_changed")},
 	};
@@ -385,6 +387,32 @@ void CViewingManager::on_check_loop (threadmgr::CThreadMgrIf *p_if)
 
 	case SECTID_CHECK_WAIT: {
 
+		// check auto stop
+		for (int i = 0; i < CGroup::GROUP_MAX; ++ i) {
+			if (m_viewings[i].is_used && m_viewings[i].auto_stop) {
+				CEtime current_time ;
+				current_time.setCurrentTime();
+				if (m_viewings[i].auto_stop_time <= current_time) {
+					// auto stopの時刻を過ぎたので 視聴を止めます
+					_UTL_LOG_I("### auto stop - group:[%d] ###", m_viewings[i].group_id);
+					m_viewings[i].dump();
+
+					uint32_t opt = get_request_option ();
+					opt |= REQUEST_OPTION__WITHOUT_REPLY;
+					set_request_option (opt);
+					request_async (
+						static_cast<uint8_t>(modules::module_id::viewing_manager),
+						static_cast<uint8_t>(CViewingManagerIf::sequence::stop_viewing),
+						(uint8_t*)&m_viewings[i].group_id,
+						sizeof(uint8_t)
+					);
+					opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+					set_request_option (opt);
+				}
+			}
+		}
+
+		// check child
 		for (int i = 0; i < CGroup::GROUP_MAX; ++ i) {
 			if (!m_forker[i].has_child()) {
 				continue;
@@ -962,6 +990,44 @@ void CViewingManager::on_get_viewing (threadmgr::CThreadMgrIf *p_if)
 	p_if->set_section_id (section_id, act);
 }
 
+void CViewingManager::on_set_option (threadmgr::CThreadMgrIf *p_if)
+{
+	threadmgr::section_id::type section_id;
+	threadmgr::action act;
+	enum {
+		SECTID_ENTRY = threadmgr::section_id::init,
+		SECTID_END,
+	};
+
+	section_id = p_if->get_section_id();
+	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
+
+	CViewingManagerIf::option_t opt = *(reinterpret_cast<CViewingManagerIf::option_t*>(p_if->get_source().get_message().data()));
+	if (opt.group_id >= m_tuner_resource_max) {
+		_UTL_LOG_E ("invalid group_id:[0x%02x]", opt.group_id);
+		p_if->reply (threadmgr::result::error);
+
+	} else {
+		if (m_viewings[opt.group_id].is_used) {
+			if (opt.auto_stop_grace_period_sec > 0) {
+				CEtime auto_stop_target_time;
+				auto_stop_target_time.setCurrentTime();
+				auto_stop_target_time.addSec(opt.auto_stop_grace_period_sec);
+
+				m_viewings[opt.group_id].auto_stop = true;
+				m_viewings[opt.group_id].auto_stop_time = auto_stop_target_time;
+				_UTL_LOG_I("set auto_stop_time:[%s] group:[%d]", m_viewings[opt.group_id].auto_stop_time.toString(), m_viewings[opt.group_id].group_id);
+			}
+		}
+
+		p_if->reply (threadmgr::result::success);
+	}
+
+	section_id = threadmgr::section_id::init;
+	act = threadmgr::action::done;
+	p_if->set_section_id (section_id, act);
+}
+
 void CViewingManager::on_dump_viewing (threadmgr::CThreadMgrIf *p_if)
 {
 	threadmgr::section_id::type section_id;
@@ -1212,24 +1278,23 @@ void CViewingManager::clean_dir (const char* path) const
 //TODO ffmpegのログ出力
 void CViewingManager::logging_stream_command (uint8_t group_id) const
 {
-					fd_set _fds;
-					struct timeval _timeout;
-					FD_ZERO (&_fds);
-					FD_SET (m_forker[group_id].get_child_stderr_fd(), &_fds);
-					_timeout.tv_sec = 1;
-					_timeout.tv_usec = 0;
-					int sr = select (m_forker[group_id].get_child_stderr_fd() +1, &_fds, NULL, NULL, &_timeout);
-					if (sr < 0) {
-						;;
-					} else if (sr == 0) {
-						// timeout
-						;;
-					} else {
-						char buff [1024*4] = {0};
-						size_t r = read (m_forker[group_id].get_child_stderr_fd(), buff, sizeof(buff));
-						if (r > 0) {
-							_UTL_LOG_I(buff);
-						}
-					}
-
+	fd_set _fds;
+	struct timeval _timeout;
+	FD_ZERO (&_fds);
+	FD_SET (m_forker[group_id].get_child_stderr_fd(), &_fds);
+	_timeout.tv_sec = 1;
+	_timeout.tv_usec = 0;
+	int sr = select (m_forker[group_id].get_child_stderr_fd() +1, &_fds, NULL, NULL, &_timeout);
+	if (sr < 0) {
+		;;
+	} else if (sr == 0) {
+		// timeout
+		;;
+	} else {
+		char buff [1024*4] = {0};
+		size_t r = read (m_forker[group_id].get_child_stderr_fd(), buff, sizeof(buff));
+		if (r > 0) {
+			_UTL_LOG_I(buff);
+		}
+	}
 }

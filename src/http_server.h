@@ -131,6 +131,44 @@ public:
 				mp_ext_if->destroy_external_cp();
 			});
 
+			m_server.Post("/api/ctrl/viewing/auto_stop_grace_period", [&](const httplib::Request &req, httplib::Response &res) {
+				if (req.get_header_value("Content-Type") != "application/json") {
+					res.status = 400;
+					return ;
+				}
+				if (req.body.empty()) {
+					res.status = 400;
+					return ;
+				}
+				const auto r = nlohmann::json::parse(req.body);
+				if (!r.contains("group_id")) {
+					res.status = 400;
+					return ;
+				}
+				if (!r.contains("period_sec")) {
+					res.status = 400;
+					return ;
+				}
+				uint8_t gr = r["group_id"].get<uint8_t>();
+				int period = r["period_sec"].get<int>();
+
+				mp_ext_if->create_external_cp();
+				CViewingManagerIf _if (mp_ext_if);
+				CViewingManagerIf::option_t opt = {
+					.group_id = gr,
+					.auto_stop_grace_period_sec = period,
+				};
+				_if.request_set_option(&opt, false);
+				threadmgr::CSource &src = mp_ext_if->receive_external();
+				threadmgr::result rslt = src.get_result();
+				if (rslt == threadmgr::result::success) {
+					res.set_header("Access-Control-Allow-Origin", req.get_header_value("Origin").c_str());
+				} else {
+					res.status = 500;
+				}
+				mp_ext_if->destroy_external_cp();
+			});
+
 			m_server.Get("/api/ctrl/channel/channels", [&](const httplib::Request &req, httplib::Response &res) {
 				mp_ext_if->create_external_cp();
 				CChannelManagerIf::channel_t channels[20] = {0};

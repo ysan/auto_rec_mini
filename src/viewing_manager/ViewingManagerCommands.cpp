@@ -150,6 +150,42 @@ static void stop (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 	base->get_external_if()->set_request_option (opt);
 }
 
+static void option (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
+{
+	if (argc != 2) {
+		_COM_SVR_PRINT ("invalid arguments. (usage: opt {group_id} {auto_stop_grace_period_sec})\n");
+		return ;
+	}
+
+	std::regex regex_gr ("^[0-9]+$");
+	if (!std::regex_match (argv[0], regex_gr)) {
+		_COM_SVR_PRINT ("invalid arguments. (group_id)\n");
+		return;
+	}
+	uint8_t group_id = atoi(argv[0]);
+
+	std::regex regex_period ("^[0-9]+$");
+	if (!std::regex_match (argv[1], regex_period)) {
+		_COM_SVR_PRINT ("invalid arguments. (auto_stop_grace_period_sec)\n");
+		return;
+	}
+	int period = atoi(argv[1]);
+
+	uint32_t opt = base->get_external_if()->get_request_option ();
+	opt |= REQUEST_OPTION__WITHOUT_REPLY;
+	base->get_external_if()->set_request_option (opt);
+
+	CViewingManagerIf _if (base->get_external_if());
+	CViewingManagerIf::option_t _opt = {
+		.group_id = group_id,
+		.auto_stop_grace_period_sec = period,
+	};
+	_if.request_set_option (&_opt);
+
+	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
+	base->get_external_if()->set_request_option (opt);
+}
+
 static void dump (int argc, char* argv[], threadmgr::CThreadMgrBase *base)
 {
 	if (argc != 0) {
@@ -188,6 +224,12 @@ command_info_t g_viewing_manager_commands [] = { // extern
 		"stop",
 		"force stop viewing (usage: stop {group_id})",
 		stop,
+		NULL,
+	},
+	{
+		"opt",
+		"set option (usage: opt {group_id} {auto_stop_grace_period_sec})",
+		option,
 		NULL,
 	},
 	{

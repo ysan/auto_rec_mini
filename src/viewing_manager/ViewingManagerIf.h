@@ -27,6 +27,7 @@ public:
 		start_viewing_by_service_id,
 		stop_viewing,
 		get_viewing,
+		set_option,
 		dump_viewing,					// from command server
 		event_changed,					// inner
 		max,
@@ -42,6 +43,11 @@ public:
 		uint16_t original_network_id;
 		uint16_t service_id;
 	} service_id_param_t;
+
+	typedef struct _option {
+		uint8_t group_id; // target group_id
+		int auto_stop_grace_period_sec; // 0 is disable auto stop
+	} option_t;
 
 public:
 	explicit CViewingManagerIf (CThreadMgrExternalIf *p_if)
@@ -88,6 +94,15 @@ public:
 			return request_async (m_module_id, sequence, (uint8_t*)&group_id, sizeof(group_id));
 		} else {
 			return request_sync (m_module_id, sequence, (uint8_t*)&group_id, sizeof(group_id));
+		}
+	};
+
+	bool request_set_option (const option_t *opt, bool async=true) {
+		uint8_t sequence = static_cast<uint8_t>(sequence::set_option);
+		if (async) {
+			return request_async (m_module_id, sequence, (uint8_t*)opt, sizeof(option_t));
+		} else {
+			return request_sync (m_module_id, sequence, (uint8_t*)opt, sizeof(option_t));
 		}
 	};
 
