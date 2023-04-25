@@ -240,6 +240,21 @@ public:
 				);
 	};
 
+	bool request_get_present_event_info_sync (psisi_structs::service_info_t *p_key, psisi_structs::event_info_t *p_out_event_info) {
+		if (!p_key || !p_out_event_info) {
+			return false;
+		}
+
+		psisi_structs::request_event_info_param_t param = {*p_key, p_out_event_info};
+		int sequence = static_cast<int>(sequence::get_present_event_info);
+		return request_sync (
+					m_module_id + getGroupId(),
+					sequence,
+					(uint8_t*)&param,
+					sizeof(param)
+				);
+	};
+
 	bool request_get_follow_event_info (psisi_structs::service_info_t *p_key, psisi_structs::event_info_t *p_out_event_info) {
 		if (!p_key || !p_out_event_info) {
 			return false;
@@ -248,6 +263,21 @@ public:
 		psisi_structs::request_event_info_param_t param = {*p_key, p_out_event_info};
 		int sequence = static_cast<int>(sequence::get_follow_event_info);
 		return request_async (
+					m_module_id + getGroupId(),
+					sequence,
+					(uint8_t*)&param,
+					sizeof(param)
+				);
+	};
+
+	bool request_get_follow_event_info_sync (psisi_structs::service_info_t *p_key, psisi_structs::event_info_t *p_out_event_info) {
+		if (!p_key || !p_out_event_info) {
+			return false;
+		}
+
+		psisi_structs::request_event_info_param_t param = {*p_key, p_out_event_info};
+		int sequence = static_cast<int>(sequence::get_follow_event_info);
+		return request_sync (
 					m_module_id + getGroupId(),
 					sequence,
 					(uint8_t*)&param,

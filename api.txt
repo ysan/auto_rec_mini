@@ -1,7 +1,10 @@
 curl -v -X POST -H "Content-Type: application/json" -d '{"physical_channel": 27, "service_idx": 0}' http://localhost:8080/api/ctrl/viewing/start_by_physical_channel
 curl -v -X POST -H "Content-Type: application/json" -d '{"transport_stream_id": 32736,"original_network_id": 32736, "service_id": 1024}' http://localhost:8080/api/ctrl/viewing/start_by_service_id
 curl -v -X POST -H "Content-Type: application/json" -d '{"group_id":0}' http://localhost:8080/api/ctrl/viewing/stop
+curl -v -X POST -H "Content-Type: application/json" -d '{"group_id":0, "period_sec":10}' http://localhost:8080/api/ctrl/viewing/auto_stop_grace_period
 curl -v -X GET http://localhost:8080/api/ctrl/channel/channels
 curl -v -X GET http://localhost:8080/api/ctrl/channel/original_network_name/32736
 curl -v -X GET http://localhost:8080/api/ctrl/channel/transport_stream_name/32736/32736
 curl -v -X GET http://localhost:8080/api/ctrl/channel/service_name/32736/32736/1024
+curl -v -X GET http://localhost:8080/api/ctrl/psisi/0/present_event/32736/32736/1024
+curl -v -X GET http://localhost:8080/api/ctrl/psisi/0/follow_event/32736/32736/1024

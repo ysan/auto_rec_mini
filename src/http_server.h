@@ -1,3 +1,6 @@
+#ifndef _HTTP_SERVER_H_
+#define _HTTP_SERVER_H_
+
 #include <iostream>
 #include <string>
 
@@ -9,6 +12,7 @@
 #include "Settings.h"
 #include "ViewingManagerIf.h"
 #include "ChannelManagerIf.h"
+#include "PsisiManagerIf.h"
 
 
 class http_server {
@@ -40,8 +44,21 @@ public:
 				uint16_t phy_ch = r["physical_channel"].get<uint16_t>();
 				int svc_idx = r["service_idx"].get<int>();
 
+				bool has_option = false;
+				int _auto_stop_grace_period_sec = 0;
+				if (r.contains("option") && r["option"].is_object()) {
+					has_option = true;
+					const auto &opt = r["option"];
+					if (opt.contains("auto_stop_grace_period_sec")) {
+						_auto_stop_grace_period_sec = opt["auto_stop_grace_period_sec"].get<int>();
+					}
+				}
+
 				mp_ext_if->create_external_cp();
-				CViewingManagerIf::physical_channel_param_t param = {phy_ch, svc_idx};
+				CViewingManagerIf::physical_channel_param_t param = {
+					.physical_channel = phy_ch,
+					.service_idx = svc_idx
+				};
 				CViewingManagerIf _if (mp_ext_if);
 				_if.request_start_viewing_by_physical_channel(&param, false);
 				threadmgr::CSource &src = mp_ext_if->receive_external();
@@ -52,6 +69,21 @@ public:
 					j["group_id"] = static_cast<int>(gr);
 					res.set_content(j.dump(), "application/json");
 					res.set_header("Access-Control-Allow-Origin", req.get_header_value("Origin").c_str());
+
+					if (has_option) {
+						CViewingManagerIf::option_t opt = {
+							.group_id = gr,
+							.auto_stop_grace_period_sec = _auto_stop_grace_period_sec,
+						};
+						_if.request_set_option(&opt, false);
+						threadmgr::CSource &src = mp_ext_if->receive_external();
+//TODO
+//						threadmgr::result rslt = src.get_result();
+//						if (rslt == threadmgr::result::success) {
+//						} else {
+//						}
+					}
+
 				} else {
 					res.status = 500;
 				}
@@ -84,8 +116,22 @@ public:
 				uint16_t org_nid = r["original_network_id"].get<uint16_t>();
 				uint16_t svc_id = r["service_id"].get<uint16_t>();
 
+				bool has_option = false;
+				int _auto_stop_grace_period_sec = 0;
+				if (r.contains("option") && r["option"].is_object()) {
+					has_option = true;
+					const auto &opt = r["option"];
+					if (opt.contains("auto_stop_grace_period_sec")) {
+						_auto_stop_grace_period_sec = opt["auto_stop_grace_period_sec"].get<int>();
+					}
+				}
+
 				mp_ext_if->create_external_cp();
-				CViewingManagerIf::service_id_param_t param = {ts_id, org_nid, svc_id};
+				CViewingManagerIf::service_id_param_t param = {
+					.transport_stream_id = ts_id,
+					.original_network_id = org_nid,
+					.service_id = svc_id
+				};
 				CViewingManagerIf _if (mp_ext_if);
 				_if.request_start_viewing_by_service_id(&param, false);
 				threadmgr::CSource &src = mp_ext_if->receive_external();
@@ -96,6 +142,21 @@ public:
 					j["group_id"] = static_cast<int>(gr);
 					res.set_content(j.dump(), "application/json");
 					res.set_header("Access-Control-Allow-Origin", req.get_header_value("Origin").c_str());
+
+					if (has_option) {
+						CViewingManagerIf::option_t opt = {
+							.group_id = gr,
+							.auto_stop_grace_period_sec = _auto_stop_grace_period_sec,
+						};
+						_if.request_set_option(&opt, false);
+						threadmgr::CSource &src = mp_ext_if->receive_external();
+//TODO
+//						threadmgr::result rslt = src.get_result();
+//						if (rslt == threadmgr::result::success) {
+//						} else {
+//						}
+					}
+
 				} else {
 					res.status = 500;
 				}
@@ -172,7 +233,10 @@ public:
 			m_server.Get("/api/ctrl/channel/channels", [&](const httplib::Request &req, httplib::Response &res) {
 				mp_ext_if->create_external_cp();
 				CChannelManagerIf::channel_t channels[20] = {0};
-				CChannelManagerIf::request_channels_param_t param = {channels, 20};
+				CChannelManagerIf::request_channels_param_t param = {
+					.p_out_channels = channels,
+					.array_max_num = 20,
+				};
 				CChannelManagerIf _if (mp_ext_if);
 				_if.request_get_channels_sync(&param);
 				threadmgr::CSource &src = mp_ext_if->receive_external();
@@ -209,7 +273,11 @@ public:
 				uint16_t org_nid = std::atoi(_m_org_nid.str().c_str());
 
 				mp_ext_if->create_external_cp();
-				CChannelManagerIf::service_id_param_t param = {0, org_nid, 0};
+				CChannelManagerIf::service_id_param_t param = {
+					.transport_stream_id = 0,
+					.original_network_id = org_nid,
+					.service_id = 0
+				};
 				CChannelManagerIf _if (mp_ext_if);
 				_if.request_get_original_network_name(&param);
 				threadmgr::CSource &src = mp_ext_if->receive_external();
@@ -237,7 +305,11 @@ public:
 				uint16_t ts_id = std::atoi(_m_ts_id.str().c_str());
 
 				mp_ext_if->create_external_cp();
-				CChannelManagerIf::service_id_param_t param = {ts_id, org_nid, 0};
+				CChannelManagerIf::service_id_param_t param = {
+					.transport_stream_id = ts_id,
+					.original_network_id = org_nid,
+					.service_id = 0
+				};
 				CChannelManagerIf _if (mp_ext_if);
 				_if.request_get_transport_stream_name_sync(&param);
 				threadmgr::CSource &src = mp_ext_if->receive_external();
@@ -267,7 +339,11 @@ public:
 				uint16_t svc_id = std::atoi(_m_svc_id.str().c_str());
 
 				mp_ext_if->create_external_cp();
-				CChannelManagerIf::service_id_param_t param = {ts_id, org_nid, svc_id};
+				CChannelManagerIf::service_id_param_t param = {
+					.transport_stream_id = ts_id,
+					.original_network_id = org_nid,
+					.service_id = svc_id
+				};
 				CChannelManagerIf _if (mp_ext_if);
 				_if.request_get_service_name_sync(&param);
 				threadmgr::CSource &src = mp_ext_if->receive_external();
@@ -281,6 +357,86 @@ public:
 					} else {
 						res.status = 500;
 					}
+				} else {
+					res.status = 500;
+				}
+				mp_ext_if->destroy_external_cp();
+			});
+
+			m_server.Get(R"(/api/ctrl/psisi/(\d+)/present_event/(\d+)/(\d+)/(\d+))", [&](const httplib::Request &req, httplib::Response &res) {
+				auto _m_gr = req.matches[1];
+				auto _m_org_nid = req.matches[2];
+				auto _m_ts_id = req.matches[3];
+				auto _m_svc_id = req.matches[4];
+
+				uint8_t _gr = std::atoi(_m_gr.str().c_str());
+				uint16_t ts_id = std::atoi(_m_org_nid.str().c_str());
+				uint16_t org_nid = std::atoi(_m_ts_id.str().c_str());
+				uint16_t svc_id = std::atoi(_m_svc_id.str().c_str());
+
+				mp_ext_if->create_external_cp();
+				CPsisiManagerIf _if (mp_ext_if, _gr);
+				psisi_structs::service_info_t _svc_info = {
+					.transport_stream_id = ts_id,
+					.original_network_id = org_nid,
+					.service_id = svc_id,
+				};
+				psisi_structs::event_info_t _event_info ;
+				_event_info.clear();
+				_if.request_get_present_event_info_sync (&_svc_info, &_event_info);
+				threadmgr::CSource &src = mp_ext_if->receive_external();
+				threadmgr::result rslt = src.get_result();
+				if (rslt == threadmgr::result::success) {
+					nlohmann::json j;
+					j["transport_stream_id"] = _event_info.transport_stream_id;
+					j["original_network_id"] = _event_info.original_network_id;
+					j["service_id"] = _event_info.service_id;
+					j["event_id"] = _event_info.event_id;
+					j["start_time"] = _event_info.start_time.m_time.tv_sec;
+					j["end_time"] = _event_info.end_time.m_time.tv_sec;
+					j["event_name_char"] = _event_info.event_name_char;
+					res.set_content(j.dump(), "application/json");
+					res.set_header("Access-Control-Allow-Origin", req.get_header_value("Origin").c_str());
+				} else {
+					res.status = 500;
+				}
+				mp_ext_if->destroy_external_cp();
+			});
+
+			m_server.Get(R"(/api/ctrl/psisi/(\d+)/follow_event/(\d+)/(\d+)/(\d+))", [&](const httplib::Request &req, httplib::Response &res) {
+				auto _m_gr = req.matches[1];
+				auto _m_org_nid = req.matches[2];
+				auto _m_ts_id = req.matches[3];
+				auto _m_svc_id = req.matches[4];
+
+				uint8_t _gr = std::atoi(_m_gr.str().c_str());
+				uint16_t ts_id = std::atoi(_m_org_nid.str().c_str());
+				uint16_t org_nid = std::atoi(_m_ts_id.str().c_str());
+				uint16_t svc_id = std::atoi(_m_svc_id.str().c_str());
+
+				mp_ext_if->create_external_cp();
+				CPsisiManagerIf _if (mp_ext_if, _gr);
+				psisi_structs::service_info_t _svc_info = {
+					.transport_stream_id = ts_id,
+					.original_network_id = org_nid,
+					.service_id = svc_id,
+				};
+				psisi_structs::event_info_t _event_info ;
+				_event_info.clear();
+				_if.request_get_follow_event_info_sync (&_svc_info, &_event_info);
+				threadmgr::CSource &src = mp_ext_if->receive_external();
+				threadmgr::result rslt = src.get_result();
+				if (rslt == threadmgr::result::success) {
+					nlohmann::json j;
+					j["transport_stream_id"] = _event_info.transport_stream_id;
+					j["original_network_id"] = _event_info.original_network_id;
+					j["service_id"] = _event_info.service_id;
+					j["event_id"] = _event_info.event_id;
+					j["start_time"] = _event_info.start_time.m_time.tv_sec;
+					j["end_time"] = _event_info.end_time.m_time.tv_sec;
+					j["event_name_char"] = _event_info.event_name_char;
+					res.set_content(j.dump(), "application/json");
+					res.set_header("Access-Control-Allow-Origin", req.get_header_value("Origin").c_str());
 				} else {
 					res.status = 500;
 				}
@@ -324,6 +480,7 @@ public:
 		if (!m_server.listen("0.0.0.0", m_port)) {
 			_UTL_LOG_E("HTTP bind failure.");
 		}
+		_UTL_LOG_I ("HTTP started");
 	}
 
 	void down (void) {
@@ -337,3 +494,5 @@ private:
 	int m_port;
 	threadmgr::CThreadMgrExternalIf *mp_ext_if;
 };
+
+#endif
