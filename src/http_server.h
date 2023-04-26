@@ -377,9 +377,12 @@ public:
 				mp_ext_if->create_external_cp();
 				CPsisiManagerIf _if (mp_ext_if, _gr);
 				psisi_structs::service_info_t _svc_info = {
+					.table_id = 0,
 					.transport_stream_id = ts_id,
 					.original_network_id = org_nid,
 					.service_id = svc_id,
+					.service_type = 0,
+					.p_service_name_char = nullptr,
 				};
 				psisi_structs::event_info_t _event_info ;
 				_event_info.clear();
@@ -417,9 +420,12 @@ public:
 				mp_ext_if->create_external_cp();
 				CPsisiManagerIf _if (mp_ext_if, _gr);
 				psisi_structs::service_info_t _svc_info = {
+					.table_id = 0,
 					.transport_stream_id = ts_id,
 					.original_network_id = org_nid,
 					.service_id = svc_id,
+					.service_type = 0,
+					.p_service_name_char = nullptr,
 				};
 				psisi_structs::event_info_t _event_info ;
 				_event_info.clear();
