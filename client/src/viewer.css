@@ -1,0 +1,71 @@
+.video-outer {
+  position: fixed;
+  height: 100vh;
+  width: 100vw;
+  top: 0;
+}
+
+.video-container {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+  background-color: black;
+}
+
+.video-area-outer {
+  /*position: absolute;*/
+  margin: auto;
+  left: 0;
+  right: 0;
+  top: 0;
+  /*bottom: 0;*/
+}
+@media (aspect-ratio: 16/9), (min-aspect-ratio: 16/9) {
+  /* ratio =< 16/9 */
+  .video-area-outer {
+    height: 100%;
+    width: calc(100vh * 16 / 9);
+  }
+}
+@media (max-aspect-ratio: 16/9) {
+  /* ratio > 16/9 */
+  .video-area-outer {
+    height: calc(100vw / 16 * 9);
+    width: 100%;
+
+    max-height: 65vh;
+    max-width: calc(65vh * 16 / 9);
+  }
+}
+
+.video-area-inner {
+  height: 100%;
+  width: 100%;
+}
+
+.video-area-inner video {
+  /* for 16:9 stretch */
+  /*object-fit: fill;  TODO move to js for iOS */
+
+  height: 100%;
+  width: 100%;
+}
+
+.video-desc {
+  flex-grow: 1;
+  padding: 15px;
+  color: white;
+  height: 100%;
+  width: 100%;
+}
+
+.video-desc span {
+  padding: 10px;
+  font-size: small;
+}
+
+.video-desc-title {
+  padding: 10px;
+  width: 100%;
+  font-size: large;
+}
