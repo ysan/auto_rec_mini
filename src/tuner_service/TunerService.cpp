@@ -56,7 +56,7 @@ void CTunerService::on_module_up (threadmgr::CThreadMgrIf *p_if)
 
 
 	// settingsを使って初期化する場合はmodule upで
-	m_tuner_resource_max = CSettings::getInstance()->getParams()->getTunerHalAllocates()->size();
+	m_tuner_resource_max = CSettings::get_instance()->get_params().get_tuner_hal_allocates().size();
 	_UTL_LOG_I ("m_tuner_resource_max:[%d]", m_tuner_resource_max);
 	m_resource_allcates.clear();
 	m_resource_allcates.resize(m_tuner_resource_max);

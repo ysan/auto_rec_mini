@@ -114,7 +114,7 @@ CRecManager::CRecManager (std::string name, uint8_t que_max)
 	set_sequences (seqs, _max);
 
 
-	mp_settings = CSettings::getInstance();
+	mp_settings = CSettings::get_instance();
 
 	clear_reserves ();
 	clear_results ();
@@ -189,16 +189,16 @@ void CRecManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 	case SECTID_ENTRY: {
 
 		// settingsを使って初期化する場合はmodule upで
-		m_tuner_resource_max = CSettings::getInstance()->getParams()->getTunerHalAllocates()->size(); 
+		m_tuner_resource_max = CSettings::get_instance()->get_params().get_tuner_hal_allocates().size(); 
 
-		std::string *ts_path = mp_settings->getParams()->getRecTsPath();
-		CUtils::makedir(ts_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+		std::string ts_path = mp_settings->get_params().get_rec_ts_path();
+		CUtils::makedir(ts_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
 
-		std::string *reserve_path = mp_settings->getParams()->getRecReservesJsonPath();
-		CUtils::makedir(reserve_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+		std::string reserve_path = mp_settings->get_params().get_rec_reserves_json_path();
+		CUtils::makedir(reserve_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
-		std::string *result_path = mp_settings->getParams()->getRecReservesJsonPath();
-		CUtils::makedir(result_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+		std::string result_path = mp_settings->get_params().get_rec_results_json_path();
+		CUtils::makedir(result_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
 		load_reserves ();
 		load_results ();
@@ -940,7 +940,7 @@ void CRecManager::on_recording_notice (threadmgr::CThreadMgrIf *p_if)
 
 
 		// rename
-		std::string *p_path = mp_settings->getParams()->getRecTsPath();
+		std::string path = mp_settings->get_params().get_rec_ts_path();
 
 		char newfile [PATH_MAX] = {0};
 		char *p_name = (char*)"rec";
@@ -953,7 +953,7 @@ void CRecManager::on_recording_notice (threadmgr::CThreadMgrIf *p_if)
 			newfile,
 			sizeof(newfile),
 			"%s/%s_0x%08x_%d_%s.m2ts",
-			p_path->c_str(),
+			path.c_str(),
 			p_name,
 			m_recordings[_notice.group_id].state,
 			_notice.group_id,
@@ -1055,9 +1055,9 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 
 	case SECTID_CHECK_DISK_FREE_SPACE: {
 
-		std::string *p_path = mp_settings->getParams()->getRecTsPath();
-		int limit = mp_settings->getParams()->getRecDiskSpaceLowLimitMB();
-		int df = CUtils::getDiskFreeMB(p_path->c_str());
+		std::string path = mp_settings->get_params().get_rec_ts_path();
+		int limit = mp_settings->get_params().get_rec_disk_space_low_limit_MB();
+		int df = CUtils::getDiskFreeMB(path.c_str());
 		_UTL_LOG_I ("(%s) disk free space [%d] Mbytes.", p_if->get_sequence_name(), df);
 		if (df < limit) {
 			// HDD残量たりないので 録画実行しません
@@ -1316,12 +1316,12 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 			_UTL_LOG_I ("start recording (on tune thread)");
 
 			memset (m_recording_tmpfiles[s_group_id], 0x00, PATH_MAX);
-			std::string *p_path = mp_settings->getParams()->getRecTsPath();
+			std::string path = mp_settings->get_params().get_rec_ts_path();
 			snprintf (
 				m_recording_tmpfiles[s_group_id],
 				PATH_MAX,
 				"%s/tmp.m2ts.%lu.%d",
-				p_path->c_str(),
+				path.c_str(),
 				pthread_self(),
 				s_group_id
 			);
@@ -1332,7 +1332,7 @@ void CRecManager::on_start_recording (threadmgr::CThreadMgrIf *p_if)
 			std::string s = m_recording_tmpfiles[s_group_id];
 			msp_rec_instances[s_group_id]->set_rec_filename(s);
 			msp_rec_instances[s_group_id]->set_service_id(m_recordings[s_group_id].service_id);
-			msp_rec_instances[s_group_id]->set_use_splitter(CSettings::getInstance()->getParams()->isRecUseSplitter());
+			msp_rec_instances[s_group_id]->set_use_splitter(CSettings::get_instance()->get_params().is_rec_use_splitter());
 			msp_rec_instances[s_group_id]->set_next_progress(CRecInstance::progress::PRE_PROCESS);
 			// ######################################### //
 
@@ -2839,9 +2839,9 @@ void CRecManager::check_disk_free (void)
 
 		if (m_recordings[_gr].state & RESERVE_STATE__NOW_RECORDING) {
 
-			std::string *p_path = mp_settings->getParams()->getRecTsPath();
-			int limit = mp_settings->getParams()->getRecDiskSpaceLowLimitMB();
-			int df = CUtils::getDiskFreeMB(p_path->c_str());
+			std::string path = mp_settings->get_params().get_rec_ts_path();
+			int limit = mp_settings->get_params().get_rec_disk_space_low_limit_MB();
+			int df = CUtils::getDiskFreeMB(path.c_str());
 			if (df < limit) {
 				_UTL_LOG_E ("(check_recording_disk_free) disk free space [%d] Mbytes !!", df);
 				// HDD残量たりない場合は 録画を止めます
@@ -3182,8 +3182,8 @@ void CRecManager::save_reserves (void)
 		out_archive (CEREAL_NVP(m_reserves), sizeof(CRecReserve) * RESERVE_NUM_MAX);
 	}
 
-	std::string *p_path = mp_settings->getParams()->getRecReservesJsonPath();
-	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	std::string path = mp_settings->get_params().get_rec_reserves_json_path();
+	std::ofstream ofs (path.c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -3192,8 +3192,8 @@ void CRecManager::save_reserves (void)
 
 void CRecManager::load_reserves (void)
 {
-	std::string *p_path = mp_settings->getParams()->getRecReservesJsonPath();
-	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	std::string path = mp_settings->get_params().get_rec_reserves_json_path();
+	std::ifstream ifs (path.c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I("rec_reserves.json is not found.");
 		return;
@@ -3226,8 +3226,8 @@ void CRecManager::save_results (void)
 		out_archive (CEREAL_NVP(m_results), sizeof(CRecReserve) * RESULT_NUM_MAX);
 	}
 
-	std::string *p_path = mp_settings->getParams()->getRecResultsJsonPath();
-	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	std::string path = mp_settings->get_params().get_rec_results_json_path();
+	std::ofstream ofs (path.c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -3236,8 +3236,8 @@ void CRecManager::save_results (void)
 
 void CRecManager::load_results (void)
 {
-	std::string *p_path = mp_settings->getParams()->getRecResultsJsonPath();
-	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	std::string path = mp_settings->get_params().get_rec_results_json_path();
+	std::ifstream ifs (path.c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I("rec_results.json is not found.");
 		return;

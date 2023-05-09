@@ -208,7 +208,7 @@ int main (int argc, char *argv[])
 
 
 	// ----- load settings.json -----
-	CSettings *s = CSettings::getInstance ();
+	CSettings *s = CSettings::get_instance ();
 	if (!s->load (settings_json_path)) {
 		printf ("Invalid settings.json.\n");
 		exit (EXIT_FAILURE);
@@ -223,7 +223,7 @@ int main (int argc, char *argv[])
 	setAlternativeLog (threadmgr_log);
 	setAlternativeLogLW (threadmgr_log_lw);
 
-	if (s->getParams()->isSyslogOutput()) {
+	if (s->get_params().is_syslog_output()) {
 		auto syslog = std::make_shared<CSyslog> ("/dev/log", LOG_USER, "auto_rec_mini");
 		s_logger.set_syslog(syslog);
 	}
@@ -232,7 +232,7 @@ int main (int argc, char *argv[])
 
 
 	CUtils::set_shared(&s_shared);
-	s->getParams()->dump ();
+	s->get_params().dump ();
 
 
 	// ----- setup thread manager -----
@@ -360,7 +360,7 @@ int main (int argc, char *argv[])
 	}
 	_UTL_LOG_I ("stream handlers setup_instance done.");
 
-	uint16_t port = CSettings::getInstance()->getParams()->getHttpServerPort();
+	uint16_t port = CSettings::get_instance()->get_params().get_http_server_port();
 	http_server http{port, mgr->get_external_if()};
 	std::thread t([&http]{
 		http.up();

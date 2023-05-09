@@ -25,96 +25,96 @@
 class CSettings
 {
 public:
-	class CParams {
+	class CParameters {
 	public:
 		friend class cereal::access;
-		CParams (void) {}
-		virtual ~CParams (void) {}
+		CParameters (void) = default;
+		virtual ~CParameters (void) = default;
 
 
-		bool isSyslogOutput (void) {
+		bool is_syslog_output (void) {
 			return m_is_syslog_output;
 		}
-		uint16_t getCommandServerPort (void) {
+		uint16_t get_command_server_port (void) {
 			return m_command_server_port;
 		}
-		std::vector<std::string> *getTunerHalAllocates (void) {
-			return &m_tuner_hal_allocates;
+		const std::vector<std::string> &get_tuner_hal_allocates (void) {
+			return m_tuner_hal_allocates;
 		}
-		std::string *getChannelsJsonPath (void) {
-			return &m_channels_json_path;
+		const std::string &get_channels_json_path (void) {
+			return m_channels_json_path;
 		}
-		std::string *getRecReservesJsonPath (void) {
-			return &m_rec_reserves_json_path;
+		const std::string &get_rec_reserves_json_path (void) {
+			return m_rec_reserves_json_path;
 		}
-		std::string *getRecResultsJsonPath (void) {
-			return &m_rec_results_json_path;
+		const std::string &get_rec_results_json_path (void) {
+			return m_rec_results_json_path;
 		}
-		std::string *getRecTsPath (void) {
-			return &m_rec_ts_path;
+		const std::string &get_rec_ts_path (void) {
+			return m_rec_ts_path;
 		}
-		int getRecDiskSpaceLowLimitMB (void) {
+		int get_rec_disk_space_low_limit_MB (void) {
 			return m_rec_disk_space_low_limit_MB;
 		}
-		bool isRecUseSplitter (void) {
+		bool is_rec_use_splitter (void) {
 			return m_rec_use_splitter;
 		}
-		std::string *getDummyTunerTsPath (void) {
-			return &m_dummy_tuner_ts_path;
+		const std::string &get_dummy_tuner_ts_path (void) {
+			return m_dummy_tuner_ts_path;
 		}
-		int isEnableEventScheduleCache (void) {
+		int is_enable_event_schedule_cache (void) {
 			return m_event_schedule_cache_is_enable;
 		}
-		int getEventScheduleCacheStartIntervalDay (void) {
+		int get_event_schedule_cache_start_interval_day (void) {
 			return m_event_schedule_cache_start_interval_day;
 		}
-		int getEventScheduleCacheStartHour (void) {
+		int get_event_schedule_cache_start_hour (void) {
 			return m_event_schedule_cache_start_hour;
 		}
-		int getEventScheduleCacheStartMin (void) {
+		int get_event_schedule_cache_start_min (void) {
 			return m_event_schedule_cache_start_min;
 		}
-		int getEventScheduleCacheTimeoutMin (void) {
+		int get_event_schedule_cache_timeout_min (void) {
 			return m_event_schedule_cache_timeout_min;
 		}
-		int getEventScheduleCacheRetryIntervalMin (void) {
+		int get_event_schedule_cache_retry_interval_min (void) {
 			return m_event_schedule_cache_retry_interval_min;
 		}
-		std::string *getEventScheduleCacheDataJsonPath (void) {
-			return &m_event_schedule_cache_data_json_path;
+		const std::string &get_event_schedule_cache_data_json_path (void) {
+			return m_event_schedule_cache_data_json_path;
 		}
-		std::string *getEventScheduleCacheHistoriesJsonPath (void) {
-			return &m_event_schedule_cache_histories_json_path;
+		const std::string &get_event_schedule_cache_histories_json_path (void) {
+			return m_event_schedule_cache_histories_json_path;
 		}
-		std::string *getEventNameKeywordsJsonPath (void) {
-			return &m_event_name_keywords_json_path;
+		const std::string &get_event_name_keywords_json_path (void) {
+			return m_event_name_keywords_json_path;
 		}
-		std::string *getExtendedEventKeywordsJsonPath (void) {
-			return &m_extended_event_keywords_json_path;
+		const std::string &get_extended_event_keywords_json_path (void) {
+			return m_extended_event_keywords_json_path;
 		}
-		std::string *getEventNameSearchHistoriesJsonPath (void) {
-			return &m_event_name_search_histories_json_path;
+		const std::string &get_event_name_search_histories_json_path (void) {
+			return m_event_name_search_histories_json_path;
 		}
-		std::string *getExtendedEventSearchHistoriesJsonPath (void) {
-			return &m_extended_event_search_histories_json_path;
+		const std::string &get_extended_event_search_histories_json_path (void) {
+			return m_extended_event_search_histories_json_path;
 		}
-		std::string *getViewingStreamDataPath (void) {
-			return &m_viewing_stream_data_path;
+		const std::string &get_viewing_stream_data_path (void) {
+			return m_viewing_stream_data_path;
 		}
-		std::string *getViewingStreamCommandFormat (void) {
-			return &m_viewing_stream_command_format;
+		const std::string &get_viewing_stream_command_format (void) {
+			return m_viewing_stream_command_format;
 		}
-		bool isViewingUseSplitter (void) {
+		bool is_viewing_use_splitter (void) {
 			return m_viewing_use_splitter;
 		}
-		uint16_t getHttpServerPort (void) {
+		uint16_t get_http_server_port (void) {
 			return m_http_server_port;
 		}
-		std::string *getHttpServerStaticContentsPath (void) {
-			return &m_http_server_static_contents_path;
+		const std::string &get_http_server_static_contents_path (void) {
+			return m_http_server_static_contents_path;
 		}
-		std::string *getLogoPath (void) {
-			return &m_logo_path;
+		const std::string &get_logo_path (void) {
+			return m_logo_path;
 		}
 
 		void dump (void) {
@@ -155,7 +155,7 @@ public:
 		}
 
 
-		bool isValidEventScheduleCacheStartTime (void) {
+		bool is_valid_event_schedule_cache_start_time (void) {
 			std::regex regex("[0-9]{2}:[0-9]{2}");
 			if (!std::regex_match (m_event_schedule_cache_start_time.c_str(), regex)) {
 				return false;
@@ -180,7 +180,7 @@ public:
 			return true;
 		}
 
-		void resizeTunerHalAllocates (void) {
+		void resize_tuner_hal_allocates (void) {
 			if (m_tuner_hal_allocates.size() > CGroup::GROUP_MAX) {
 				m_tuner_hal_allocates.resize (CGroup::GROUP_MAX);
 				_UTL_LOG_W ("resize tuner hal allocates...");
@@ -255,20 +255,19 @@ public:
 	};
 
 public:
-	CSettings (void) {}
-	virtual ~CSettings (void) {}
+	virtual ~CSettings (void) = default;
 
-	static CSettings *getInstance (void) {
+	static CSettings *get_instance (void) {
 		static CSettings instance;
 		return &instance;
 	}
 
-	CParams *getParams (void) {
-		return &m_params;
+	CParameters &get_params (void) {
+		return m_params;
 	}
 
 	void save (void) {
-		if (!m_path.c_str()) {
+		if (m_path.length() == 0) {
 			return ;
 		}
 
@@ -286,7 +285,7 @@ public:
 	}
 
 	bool load (const std::string& path) {
-		if (!path.c_str()) {
+		if (path.length() == 0) {
 			return false;
 		}
 
@@ -303,20 +302,21 @@ public:
 		ss.clear();
 
 
-		if (!m_params.isValidEventScheduleCacheStartTime()) {
+		if (!m_params.is_valid_event_schedule_cache_start_time()) {
 			return false;
 		}
 
-		m_params.resizeTunerHalAllocates();
+		m_params.resize_tuner_hal_allocates();
 
 		return true;
 	}
 
 
 private:
+	CSettings (void) = default;
 
 	std::string m_path;
-	CParams m_params;
+	CParameters m_params;
 
 };
 

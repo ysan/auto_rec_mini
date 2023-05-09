@@ -178,7 +178,7 @@ void CCommandServer::server_loop (void)
 	memset (&st_addr_sv, 0x00, sizeof(struct sockaddr_in));
 	memset (&st_addr_cl, 0x00, sizeof(struct sockaddr_in));
 
-	port = CSettings::getInstance()->getParams()->getCommandServerPort();
+	port = CSettings::get_instance()->get_params().get_command_server_port();
 	st_addr_sv.sin_family = AF_INET;
 	st_addr_sv.sin_addr.s_addr = htonl (INADDR_ANY);
 	st_addr_sv.sin_port = htons (port);

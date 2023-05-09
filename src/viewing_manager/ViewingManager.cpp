@@ -58,7 +58,7 @@ CViewingManager::CViewingManager (std::string name, uint8_t que_max)
 	};
 	set_sequences (seqs, _max);
 
-	mp_settings = CSettings::getInstance();
+	mp_settings = CSettings::get_instance();
 
 	for (int _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
 		m_viewings[_gr].clear();
@@ -119,11 +119,11 @@ void CViewingManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 	case SECTID_ENTRY: {
 
 		// settingsを使って初期化する場合はmodule upで
-		m_tuner_resource_max = CSettings::getInstance()->getParams()->getTunerHalAllocates()->size();
+		m_tuner_resource_max = CSettings::get_instance()->get_params().get_tuner_hal_allocates().size();
 
-		std::string *stream_path = CSettings::getInstance()->getParams()->getViewingStreamDataPath();
+		std::string stream_path = CSettings::get_instance()->get_params().get_viewing_stream_data_path();
 		for (int i = 0; i < m_tuner_resource_max; ++ i) {
-			std::string path = *stream_path + "/";
+			std::string path = stream_path + "/";
 			path += std::to_string(i);
 			CUtils::makedir(path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
 		}
@@ -497,8 +497,8 @@ void CViewingManager::on_notice_by_stream_handler (threadmgr::CThreadMgrIf *p_if
 		m_viewings[_notice.group_id].clear ();
 
 		{
-			std::string *stream_path = CSettings::getInstance()->getParams()->getViewingStreamDataPath();
-			std::string path = *stream_path + "/";
+			std::string stream_path = CSettings::get_instance()->get_params().get_viewing_stream_data_path();
+			std::string path = stream_path + "/";
 			path += std::to_string(_notice.group_id);
 			clean_dir(path.c_str());
 		}
@@ -805,11 +805,11 @@ void CViewingManager::on_start_viewing (threadmgr::CThreadMgrIf *p_if)
 				break;
 			}
 
-			std::string *stream_path = CSettings::getInstance()->getParams()->getViewingStreamDataPath();
-			std::string *fmt = CSettings::getInstance()->getParams()->getViewingStreamCommandFormat();
+			std::string stream_path = CSettings::get_instance()->get_params().get_viewing_stream_data_path();
+			std::string fmt = CSettings::get_instance()->get_params().get_viewing_stream_command_format();
 			char command[1024] = {0};
 			std::string gr = std::to_string(s_group_id);
-			snprintf(command, sizeof(command), fmt->c_str(), stream_path->c_str(), gr.c_str(), stream_path->c_str(), gr.c_str());
+			snprintf(command, sizeof(command), fmt.c_str(), stream_path.c_str(), gr.c_str(), stream_path.c_str(), gr.c_str());
 			std::string _c = command;
 			if (!m_forker[s_group_id].do_fork(std::move(_c))) {
 				_UTL_LOG_E("do_fork failure.");
@@ -844,7 +844,7 @@ void CViewingManager::on_start_viewing (threadmgr::CThreadMgrIf *p_if)
 
 			// ######################################### //
 			stream_handler_funcs::get_instance(s_group_id)->set_service_id(m_viewings[s_group_id].service_id);
-			stream_handler_funcs::get_instance(s_group_id)->set_use_splitter(CSettings::getInstance()->getParams()->isViewingUseSplitter());
+			stream_handler_funcs::get_instance(s_group_id)->set_use_splitter(CSettings::get_instance()->get_params().is_viewing_use_splitter());
 			stream_handler_funcs::get_instance(s_group_id)->set_process_handler(std::move(handler));
 			stream_handler_funcs::get_instance(s_group_id)->set_next_progress(CStreamHandler::progress::pre_process);
 			// ######################################### //

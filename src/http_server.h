@@ -457,19 +457,19 @@ public:
 //		}
 
 		{
-			std::string *static_path = CSettings::getInstance()->getParams()->getHttpServerStaticContentsPath();
+			std::string static_path = CSettings::get_instance()->get_params().get_http_server_static_contents_path();
 			httplib::Headers headers;
 			headers.emplace("Access-Control-Allow-Origin", "*");
-			if (!m_server.set_mount_point("/", static_path->c_str(), headers)) {
-				_UTL_LOG_E("set_mount_point [%s] failure.", static_path->c_str());
+			if (!m_server.set_mount_point("/", static_path.c_str(), headers)) {
+				_UTL_LOG_E("set_mount_point [%s] failure.", static_path.c_str());
 			}
 		}
 		{
-			std::string *stream_path = CSettings::getInstance()->getParams()->getViewingStreamDataPath();
+			std::string stream_path = CSettings::get_instance()->get_params().get_viewing_stream_data_path();
 			httplib::Headers headers;
 			headers.emplace("Access-Control-Allow-Origin", "*");
-			if (!m_server.set_mount_point("/stream/", stream_path->c_str(), headers)) {
-				_UTL_LOG_E("set_mount_point [%s] failure.", stream_path->c_str());
+			if (!m_server.set_mount_point("/stream/", stream_path.c_str(), headers)) {
+				_UTL_LOG_E("set_mount_point [%s] failure.", stream_path.c_str());
 			}
 		}
 

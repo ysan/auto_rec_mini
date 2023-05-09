@@ -79,7 +79,7 @@ CPsisiManager::CPsisiManager (std::string name, uint8_t que_max, uint8_t group_i
 	set_sequences(seqs, _max);
 
 
-	mp_settings = CSettings::getInstance();
+	mp_settings = CSettings::get_instance();
 
 	// references
 //	mPAT_ref = mPAT.reference();
@@ -2247,16 +2247,16 @@ void CPsisiManager::store_logo (void)
 		return;
 	}
 
-	std::string *p_path = mp_settings->getParams()->getLogoPath();
-	if (p_path->length() > 0) {
+	std::string path = mp_settings->get_params().get_logo_path();
+	if (path.length() > 0) {
 		struct stat _s;
-		if (stat(p_path->c_str(), &_s) != 0) {
-			_UTL_LOG_I ("mkdir [%s]\n", p_path->c_str());
-			int r = CUtils::makedir (p_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+		if (stat(path.c_str(), &_s) != 0) {
+			_UTL_LOG_I ("mkdir [%s]\n", path.c_str());
+			int r = CUtils::makedir (path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
 			if (r == 0) {
-				printf ("mkdir success [%s]\n", p_path->c_str());
+				printf ("mkdir success [%s]\n", path.c_str());
 			} else {
-				printf ("mkdir failure [%s]\n", p_path->c_str());
+				printf ("mkdir failure [%s]\n", path.c_str());
 				exit (EXIT_FAILURE);
 			}
 		}
@@ -2344,7 +2344,7 @@ void CPsisiManager::store_logo (void)
 			_name,
 			sizeof(_name),
 			"%s/logo_%s_0x%04x_0x%04x_0x%04x_0x%02x%04x%04x.png",
-			p_path->length() > 0 ? p_path->c_str() : ".",
+			path.length() > 0 ? path.c_str() : ".",
 			m_network_info.ts_name_char,
 			m_network_info.transport_stream_id,
 			m_network_info.original_network_id,

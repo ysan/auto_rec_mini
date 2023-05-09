@@ -60,8 +60,8 @@ void CChannelManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 	switch (section_id) {
 	case SECTID_ENTRY: {
 
-		std::string *path = CSettings::getInstance()->getParams()->getChannelsJsonPath();
-		CUtils::makedir(path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+		std::string path = CSettings::get_instance()->get_params().get_channels_json_path();
+		CUtils::makedir(path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
 		load_channels ();
 		dump_channels_simple ();
@@ -934,8 +934,8 @@ void CChannelManager::save_channels (void)
 		out_archive (CEREAL_NVP(m_channels));
 	}
 
-	std::string *p_path = CSettings::getInstance()->getParams()->getChannelsJsonPath();
-	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	std::string path = CSettings::get_instance()->get_params().get_channels_json_path();
+	std::ofstream ofs (path.c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -944,8 +944,8 @@ void CChannelManager::save_channels (void)
 
 void CChannelManager::load_channels (void)
 {
-	std::string *p_path = CSettings::getInstance()->getParams()->getChannelsJsonPath();
-	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	std::string path = CSettings::get_instance()->get_params().get_channels_json_path();
+	std::ifstream ifs (path.c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I ("channels.json is not found.");
 		return;

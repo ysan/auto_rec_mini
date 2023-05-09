@@ -48,7 +48,7 @@ CTuneThread::CTuneThread (std::string name, uint8_t que_max, uint8_t group_id)
 	};
 	set_sequences (seqs, _max);
 
-	mp_settings = CSettings::getInstance();
+	mp_settings = CSettings::get_instance();
 	m_forker.set_log_cb (forker_log_print);
 }
 
@@ -125,8 +125,8 @@ void CTuneThread::on_tune (threadmgr::CThreadMgrIf *p_if)
 	}
 
 	// child process command
-	std::vector<std::string> *p_tuner_hal_allocates = mp_settings->getParams()->getTunerHalAllocates();
-	if (p_tuner_hal_allocates->size() <= getGroupId()) {
+	std::vector<std::string> tuner_hal_allocates = mp_settings->get_params().get_tuner_hal_allocates();
+	if (tuner_hal_allocates.size() <= getGroupId()) {
 		_UTL_LOG_E ("not allocated tuner hal command... (settings.json ->tuner_hal_allocates)");
 		p_if->reply (threadmgr::result::error);
 		section_id = threadmgr::section_id::init;
@@ -134,7 +134,7 @@ void CTuneThread::on_tune (threadmgr::CThreadMgrIf *p_if)
 		p_if->set_section_id (section_id, act);
 		return;
 	}
-	std::string com_form = (*p_tuner_hal_allocates) [getGroupId()];
+	std::string com_form = tuner_hal_allocates [getGroupId()];
 	char com_str [128] = {0};
 	snprintf (com_str, sizeof(com_str), com_form.c_str(), CTsAribCommon::freqKHz2physicalCh(param.freq));
 	std::string command = com_str;

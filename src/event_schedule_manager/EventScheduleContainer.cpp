@@ -8,7 +8,7 @@
 CEventScheduleContainer::CEventScheduleContainer (void)
 	:mp_settings (NULL)
 {
-	mp_settings = CSettings::getInstance();
+	mp_settings = CSettings::get_instance();
 	m_sched_map_json_path.clear();
 	m_sched_map.clear ();
 }

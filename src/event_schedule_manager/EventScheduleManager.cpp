@@ -79,7 +79,7 @@ CEventScheduleManager::CEventScheduleManager (std::string name, uint8_t que_max)
 	set_sequences (seqs, _max);
 
 
-	mp_settings = CSettings::getInstance();
+	mp_settings = CSettings::get_instance();
 
 	m_last_update_EIT_sched.clear();
 	m_start_time_EIT_sched.clear();
@@ -149,19 +149,19 @@ void CEventScheduleManager::on_module_up (threadmgr::CThreadMgrIf *p_if)
 	case SECTID_ENTRY: {
 
 		// settingsを使って初期化する場合はmodule upで
-		m_tuner_resource_max = CSettings::getInstance()->getParams()->getTunerHalAllocates()->size();
+		m_tuner_resource_max = CSettings::get_instance()->get_params().get_tuner_hal_allocates().size();
 
-		std::string *cache_data_path = CSettings::getInstance()->getParams()->getEventScheduleCacheDataJsonPath();
-		CUtils::makedir(cache_data_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+		std::string cache_data_path = CSettings::get_instance()->get_params().get_event_schedule_cache_data_json_path();
+		CUtils::makedir(cache_data_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
-		std::string *cache_history_path = CSettings::getInstance()->getParams()->getEventScheduleCacheHistoriesJsonPath();
-		CUtils::makedir(cache_history_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+		std::string cache_history_path = CSettings::get_instance()->get_params().get_event_schedule_cache_histories_json_path();
+		CUtils::makedir(cache_history_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
 		m_schedule_cache_next_day.setCurrentDay();
 
 		load_histories ();
 
-		m_container.set_schedule_map_json_path(*mp_settings->getParams()->getEventScheduleCacheDataJsonPath());
+		m_container.set_schedule_map_json_path(mp_settings->get_params().get_event_schedule_cache_data_json_path());
 		m_container.load_schedule_map();
 
 //		section_id = SECTID_REQ_REG_TUNER_NOTIFY;
@@ -408,8 +408,8 @@ void CEventScheduleManager::on_check_loop (threadmgr::CThreadMgrIf *p_if)
 			// 実行予定日なので予約を入れます
 			_UTL_LOG_I ("add reserves base_time => [%s]", m_schedule_cache_next_day.toString());
 
-			int start_hour = mp_settings->getParams()->getEventScheduleCacheStartHour();
-			int start_min = mp_settings->getParams()->getEventScheduleCacheStartMin();
+			int start_hour = mp_settings->get_params().get_event_schedule_cache_start_hour();
+			int start_min = mp_settings->get_params().get_event_schedule_cache_start_min();
 			CEtime _base_time = m_schedule_cache_next_day;
 			_base_time.addHour (start_hour);
 			_base_time.addMin (start_min);
@@ -431,7 +431,7 @@ void CEventScheduleManager::on_check_loop (threadmgr::CThreadMgrIf *p_if)
 
 
 			// 次回の予定日セットしておきます
-			int interval_day = mp_settings->getParams()->getEventScheduleCacheStartIntervalDay();
+			int interval_day = mp_settings->get_params().get_event_schedule_cache_start_interval_day();
 			if (interval_day <= 1) {
 				// interval_dayは最低でも１日にします
 				interval_day = 1;
@@ -440,7 +440,7 @@ void CEventScheduleManager::on_check_loop (threadmgr::CThreadMgrIf *p_if)
 		}
 
 
-		if (mp_settings->getParams()->isEnableEventScheduleCache()) {
+		if (mp_settings->get_params().is_enable_event_schedule_cache()) {
 			// 予約をチェックします
 			check2execute_reserves ();
 		}
@@ -796,7 +796,7 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 
 		} else {
 			ttmp = m_start_time_EIT_sched;
-			ttmp.addMin (mp_settings->getParams()->getEventScheduleCacheTimeoutMin());
+			ttmp.addMin (mp_settings->get_params().get_event_schedule_cache_timeout_min());
 			if (tcur > ttmp) {
 				// get_event_schedule_cache_timeout_min 分経過していたらタイムアウトします
 				_UTL_LOG_W ("parser EIT schedule : timeout");
@@ -946,7 +946,7 @@ void CEventScheduleManager::on_exec_cache_schedule (threadmgr::CThreadMgrIf *p_i
 
 			CEtime start_time;
 			start_time.setCurrentTime();
-			int interval = mp_settings->getParams()->getEventScheduleCacheRetryIntervalMin();
+			int interval = mp_settings->get_params().get_event_schedule_cache_retry_interval_min();
 			start_time.addMin(interval);
 
 			retry.transport_stream_id = s_service_key.transport_stream_id;
@@ -2341,8 +2341,8 @@ void CEventScheduleManager::save_histories (void)
 		out_archive (CEREAL_NVP(m_histories));
 	}
 
-	std::string *p_path = CSettings::getInstance()->getParams()->getEventScheduleCacheHistoriesJsonPath();
-	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	std::string path = CSettings::get_instance()->get_params().get_event_schedule_cache_histories_json_path();
+	std::ofstream ofs (path.c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -2351,8 +2351,8 @@ void CEventScheduleManager::save_histories (void)
 
 void CEventScheduleManager::load_histories (void)
 {
-	std::string *p_path = CSettings::getInstance()->getParams()->getEventScheduleCacheHistoriesJsonPath();
-	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	std::string path = CSettings::get_instance()->get_params().get_event_schedule_cache_histories_json_path();
+	std::ifstream ifs (path.c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I ("event_schedule_cache_histories.json is not found.");
 		return;

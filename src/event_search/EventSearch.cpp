@@ -74,17 +74,17 @@ void CEventSearch::on_module_up (threadmgr::CThreadMgrIf *p_if)
 	switch (section_id) {
 	case SECTID_ENTRY: {
 
-		std::string *keywords_path = CSettings::getInstance()->getParams()->getEventNameKeywordsJsonPath();
-		CUtils::makedir(keywords_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+		std::string keywords_path = CSettings::get_instance()->get_params().get_event_name_keywords_json_path();
+		CUtils::makedir(keywords_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
-		std::string *exkeywords_path = CSettings::getInstance()->getParams()->getExtendedEventKeywordsJsonPath();
-		CUtils::makedir(exkeywords_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+		std::string exkeywords_path = CSettings::get_instance()->get_params().get_extended_event_keywords_json_path();
+		CUtils::makedir(exkeywords_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
-		std::string *history_path = CSettings::getInstance()->getParams()->getEventNameSearchHistoriesJsonPath();
-		CUtils::makedir(history_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+		std::string history_path = CSettings::get_instance()->get_params().get_event_name_search_histories_json_path();
+		CUtils::makedir(history_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
-		std::string *exhistory_path = CSettings::getInstance()->getParams()->getExtendedEventSearchHistoriesJsonPath();
-		CUtils::makedir(exhistory_path->c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
+		std::string exhistory_path = CSettings::get_instance()->get_params().get_extended_event_search_histories_json_path();
+		CUtils::makedir(exhistory_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH, true);
 
 		load_event_name_search_histories ();
 		load_extended_event_search_histories ();
@@ -546,8 +546,8 @@ void CEventSearch::save_event_name_keywords (void)
 		out_archive (CEREAL_NVP(m_event_name_keywords));
 	}
 
-	std::string *p_path = CSettings::getInstance()->getParams()->getEventNameKeywordsJsonPath();
-	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	std::string path = CSettings::get_instance()->get_params().get_event_name_keywords_json_path();
+	std::ofstream ofs (path.c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -556,8 +556,8 @@ void CEventSearch::save_event_name_keywords (void)
 
 void CEventSearch::load_event_name_keywords (void)
 {
-	std::string *p_path = CSettings::getInstance()->getParams()->getEventNameKeywordsJsonPath();
-	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	std::string path = CSettings::get_instance()->get_params().get_event_name_keywords_json_path();
+	std::ifstream ifs (path.c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I ("event_name_keywords.json is not found.");
 		return;
@@ -581,8 +581,8 @@ void CEventSearch::save_extended_event_keywords (void)
 		out_archive (CEREAL_NVP(m_extended_event_keywords));
 	}
 
-	std::string *p_path = CSettings::getInstance()->getParams()->getExtendedEventKeywordsJsonPath();
-	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	std::string path = CSettings::get_instance()->get_params().get_extended_event_keywords_json_path();
+	std::ofstream ofs (path.c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -591,8 +591,8 @@ void CEventSearch::save_extended_event_keywords (void)
 
 void CEventSearch::load_extended_event_keywords (void)
 {
-	std::string *p_path = CSettings::getInstance()->getParams()->getExtendedEventKeywordsJsonPath();
-	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	std::string path = CSettings::get_instance()->get_params().get_extended_event_keywords_json_path();
+	std::ifstream ifs (path.c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I ("extended_event_keywords.json is not found.");
 		return;
@@ -616,8 +616,8 @@ void CEventSearch::save_event_name_search_histories (void)
 		out_archive (CEREAL_NVP(m_event_name_search_histories));
 	}
 
-	std::string *p_path = CSettings::getInstance()->getParams()->getEventNameSearchHistoriesJsonPath();
-	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	std::string path = CSettings::get_instance()->get_params().get_event_name_search_histories_json_path();
+	std::ofstream ofs (path.c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -626,8 +626,8 @@ void CEventSearch::save_event_name_search_histories (void)
 
 void CEventSearch::load_event_name_search_histories (void)
 {
-	std::string *p_path = CSettings::getInstance()->getParams()->getEventNameSearchHistoriesJsonPath();
-	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	std::string path = CSettings::get_instance()->get_params().get_event_name_search_histories_json_path();
+	std::ifstream ifs (path.c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I ("event_name_search_histories.json is not found.");
 		return;
@@ -663,8 +663,8 @@ void CEventSearch::save_extended_event_search_histories (void)
 		out_archive (CEREAL_NVP(m_extended_event_search_histories));
 	}
 
-	std::string *p_path = CSettings::getInstance()->getParams()->getExtendedEventSearchHistoriesJsonPath();
-	std::ofstream ofs (p_path->c_str(), std::ios::out);
+	std::string path = CSettings::get_instance()->get_params().get_extended_event_search_histories_json_path();
+	std::ofstream ofs (path.c_str(), std::ios::out);
 	ofs << ss.str();
 
 	ofs.close();
@@ -673,8 +673,8 @@ void CEventSearch::save_extended_event_search_histories (void)
 
 void CEventSearch::load_extended_event_search_histories (void)
 {
-	std::string *p_path = CSettings::getInstance()->getParams()->getExtendedEventSearchHistoriesJsonPath();
-	std::ifstream ifs (p_path->c_str(), std::ios::in);
+	std::string path = CSettings::get_instance()->get_params().get_extended_event_search_histories_json_path();
+	std::ifstream ifs (path.c_str(), std::ios::in);
 	if (!ifs.is_open()) {
 		_UTL_LOG_I ("extended_event_search_histories.json is not found.");
 		return;
