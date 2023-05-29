@@ -71,7 +71,7 @@ export namespace Utils {
   };
 
   // YYYY-MM-DD HH:MM:SS
-  export function getDateString(sinceEpochTimeSec: number): string {
+  export function getDateTimeString(sinceEpochTimeSec: number): string {
     const _date = new Date(sinceEpochTimeSec * 1000);
     const r =
       _date.getFullYear() +
@@ -82,6 +82,21 @@ export namespace Utils {
       (_date.getDate() < 10 ? '0' : '') +
       _date.getDate() +
       ' ' +
+      (_date.getHours() < 10 ? '0' : '') +
+      _date.getHours() +
+      ':' +
+      (_date.getMinutes() < 10 ? '0' : '') +
+      _date.getMinutes() +
+      ':' +
+      (_date.getSeconds() < 10 ? '0' : '') +
+      _date.getSeconds();
+    return r;
+  }
+
+  // HH:MM:SS
+  export function getTimeString(sinceEpochTimeSec: number): string {
+    const _date = new Date(sinceEpochTimeSec * 1000);
+    const r =
       (_date.getHours() < 10 ? '0' : '') +
       _date.getHours() +
       ':' +

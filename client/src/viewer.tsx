@@ -9,12 +9,12 @@ import './viewer.css';
 const _dest = process.env.REACT_APP_DESTINATION;
 
 const _state = {
-  init: 0,
-  tuning: 1,
-  tune_failure: 2,
-  stream_waiting: 3,
-  stream_failure: 4,
-  stream_ready: 5
+  INIT: 0,
+  TUNING: 1,
+  TUNE_FAILURE: 2,
+  STREAM_WAITING: 3,
+  STREAM_FAILURE: 4,
+  STREAM_READY: 5
 };
 
 interface Props {
@@ -48,13 +48,14 @@ export const Viewer: React.FC = () => {
   const refUnmountCount = useRef(0);
   const refGroup = useRef(-1);
   const refKeep = useRef<NodeJS.Timer>();
+  const refGetEvent = useRef<NodeJS.Timer>();
   const refAbort = useRef<AbortController>();
   const refHls = useRef<Hls>();
-  const refPresentEvent = useRef<Event>();
-  const refFollowEvent = useRef<Event>();
 
-  const [state, setState] = useState<number>(_state.init);
+  const [state, setState] = useState<number>(_state.INIT);
   const [stateMessage, setStateMessage] = useState<string>('');
+  const [presentEvent, setPresentEvent] = useState<Event>();
+  const [followEvent, setFollowEvent] = useState<Event>();
 
   useEffect(() => {
     if (refIsMounted.current) {
@@ -91,7 +92,7 @@ export const Viewer: React.FC = () => {
 
     refAbort.current?.abort('userabortSafe');
 
-    setState(_state.tuning);
+    setState(_state.TUNING);
     setStateMessage('Now tuning...');
     console.log('state', state);
 
@@ -101,21 +102,16 @@ export const Viewer: React.FC = () => {
       refGroup.current = groupId;
       refKeep.current = startKeepAliveInterval(groupId, 20, 10);
 
-      const pevent = await getPresentEvent(groupId);
-      console.log('present event', pevent);
-      refPresentEvent.current = JSON.parse(pevent);
+      await setEvent(groupId);
+      refGetEvent.current = startCheckEventInterval(groupId, 10);
 
-      const fevent = await getFollowEvent(groupId);
-      console.log('follow event', fevent);
-      refFollowEvent.current = JSON.parse(fevent);
-
-      setState(_state.stream_waiting);
+      setState(_state.STREAM_WAITING);
       setStateMessage('Waiting for stream...');
 
       console.log('waiting for stream...');
       const r = await waitForStream(groupId, 3 * 1000, 30);
       if (r === 0) {
-        setState(_state.stream_ready);
+        setState(_state.STREAM_READY);
         setStateMessage('Stream is ready');
 
         refHls.current = new Hls();
@@ -125,10 +121,9 @@ export const Viewer: React.FC = () => {
         await stopViewing(refGroup.current);
         // reset
         refGroup.current = -1;
-        refPresentEvent.current = undefined;
-        refFollowEvent.current = undefined;
         stopKeepAliveInterval(refKeep.current);
-        setState(_state.stream_failure);
+        stopCheckEventInterval(refGetEvent.current);
+        setState(_state.STREAM_FAILURE);
         setStateMessage('Failed to prepare stream');
 
         if (r === -1) {
@@ -138,7 +133,7 @@ export const Viewer: React.FC = () => {
       }
     } else {
       console.log('failed to start viewing');
-      setState(_state.tune_failure);
+      setState(_state.TUNE_FAILURE);
       setStateMessage('Failed to start viewing');
 
       console.log('abort reason', refAbort.current?.signal.reason);
@@ -162,10 +157,9 @@ export const Viewer: React.FC = () => {
 
     // reset
     refGroup.current = -1;
-    refPresentEvent.current = undefined;
-    refFollowEvent.current = undefined;
     stopKeepAliveInterval(refKeep.current);
-    setState(_state.init);
+    stopCheckEventInterval(refGetEvent.current);
+    setState(_state.INIT);
 
     refAbort.current?.abort('userabort');
     refHls.current?.destroy();
@@ -187,7 +181,7 @@ export const Viewer: React.FC = () => {
       url: _dest + '/api/ctrl/viewing/start_by_service_id',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      timeoutMsec: 10 * 1000,
+      timeoutMsec: 20 * 1000,
       abortController: abortController
     });
     if (response !== null && response.ok) {
@@ -341,9 +335,34 @@ export const Viewer: React.FC = () => {
     }
   };
 
+  const setEvent = async (groupId: number) => {
+    const pevent = await getPresentEvent(groupId);
+    console.log('present event', pevent);
+    setPresentEvent(JSON.parse(pevent));
+
+    const fevent = await getFollowEvent(groupId);
+    console.log('follow event', fevent);
+    setFollowEvent(JSON.parse(fevent));
+  };
+
+  const startCheckEventInterval = (
+    groupId: number,
+    intervalSec: number
+  ): NodeJS.Timer => {
+    return setInterval(async () => {
+      await setEvent(groupId);
+    }, intervalSec * 1000);
+  };
+
+  const stopCheckEventInterval = (id: NodeJS.Timer | null | undefined) => {
+    if (id !== null && id !== undefined) {
+      clearInterval(id);
+    }
+  };
+
   return (
     <>
-      {state !== _state.stream_ready && (
+      {state !== _state.STREAM_READY && (
         <LinearWaiting message={stateMessage} />
       )}
       <div className="video-outer">
@@ -354,39 +373,58 @@ export const Viewer: React.FC = () => {
                 id="video"
                 autoPlay
                 controls
-                controlsList="nodownload"
+                controlsList="nodownload noremoteplayback"
                 disablePictureInPicture
                 playsInline
                 muted
-              ></video>
+              />
             </div>
           </div>
           <div className="video-desc">
             <div>
               <span>{props.original_network_name}</span>
               <span>{props.service_name}</span>
-              {refGroup.current !== -1 && <span>tuner{refGroup.current}</span>}
+              {refGroup.current !== -1 && <span>Tuner:{refGroup.current}</span>}
             </div>
 
-            {refPresentEvent.current && (
-              <div>
+            {presentEvent && (
+              <div className="video-desc-present">
                 <span>
-                  {Utils.getDateString(
-                    refPresentEvent.current?.start_time as number
-                  )}
+                  {Utils.getDateTimeString(presentEvent.start_time as number)}
                 </span>
                 -
                 <span>
-                  {Utils.getDateString(
-                    refPresentEvent.current?.end_time as number
-                  )}
+                  {Utils.getTimeString(presentEvent.end_time as number)}
                 </span>
+                <span>
+                  {(presentEvent.end_time - presentEvent.start_time) / 60}
+                  min
+                </span>
+                <div className="video-desc-title-present">
+                  {presentEvent.event_name_char}
+                </div>
               </div>
             )}
 
-            <div className="video-desc-title">
-              {refPresentEvent.current?.event_name_char}
-            </div>
+            {followEvent && (
+              <div className="video-desc-follow">
+                <span>NEXT:</span>
+                <span>
+                  {Utils.getDateTimeString(followEvent.start_time as number)}
+                </span>
+                -
+                <span>
+                  {Utils.getTimeString(followEvent.end_time as number)}
+                </span>
+                <span>
+                  {(followEvent.end_time - followEvent.start_time) / 60}
+                  min
+                </span>
+                <div className="video-desc-title-follow">
+                  {followEvent.event_name_char}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

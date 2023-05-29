@@ -44,6 +44,7 @@ export const LinearWaiting: React.FC<Props> = (props: Props) => {
           <div
             style={{
               height: '20px',
+              fontWeight: 'bold',
               opacity: 100,
               animation: `anim_op 0.5s ease 0s infinite alternate`
             }}
