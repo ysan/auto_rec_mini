@@ -91,7 +91,7 @@ typedef enum {
 
 typedef enum {
 	EN_MONI_TYPE_INIT = 0,
-	EN_MONI_TYPE_DEBUG,
+	EN_MONI_TYPE_DEUnexpected,
 	EN_MONI_TYPE_DESTROY,
 
 } EN_MONI_TYPE;
@@ -1589,23 +1589,31 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 						 * 見送り
 						 */
 						THM_INNER_LOG_I (
-							"enAct is EN_THM_ACT_WAIT @REQUEST_QUE (from[%s:%s] to[%s:%s] reqId[0x%x]) ---> through\n",
+							"enAct is EN_THM_ACT_WAIT @REQUEST_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] reqId[0x%x]) ---> through\n",
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
+							pstQueWorker->nSrcThreadIdx,
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
+							pstQueWorker->nSrcSeqIdx,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+							pstQueWorker->nDestThreadIdx,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+							pstQueWorker->nDestSeqIdx,
 							pstQueWorker->nReqId
 						);
 
 					} else {
 						/* ありえない */
 						THM_INNER_LOG_E (
-							"BUG: enAct is [%d] @REQUEST_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])\n",
+							"Unexpected: enAct is [%d] @REQUEST_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] reqId[0x%x])\n",
 							getSeqInfo(nThreadIdx, nSeqIdx)->enAct,
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
+							pstQueWorker->nSrcThreadIdx,
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
+							pstQueWorker->nSrcSeqIdx,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+							pstQueWorker->nDestThreadIdx,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+							pstQueWorker->nDestSeqIdx,
 							pstQueWorker->nReqId
 						);
 					}
@@ -1621,11 +1629,15 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 					/* シーケンスによってはありえる */
 					/* リプライ待たずに進むようなシーケンスとか... */
 					THM_INNER_FORCE_LOG_I (
-						"enAct is EN_THM_ACT_INIT @REPLY_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
+						"enAct is EN_THM_ACT_INIT @REPLY_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] reqId[0x%x])  ---> drop\n",
 						gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
+						pstQueWorker->nSrcThreadIdx,
 						gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
+						pstQueWorker->nSrcSeqIdx,
 						gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+						pstQueWorker->nDestThreadIdx,
 						gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+						pstQueWorker->nDestSeqIdx,
 						pstQueWorker->nReqId
 					);
 
@@ -1664,22 +1676,30 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 						/* リプライ待たずに進むようなシーケンスとか... */
 #ifndef _MULTI_REQUESTING
 						THM_INNER_LOG_I (
-							"enAct is EN_THM_ACT_WAIT  reqId unmatch:[%d:%d] @REPLY_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
+							"enAct is EN_THM_ACT_WAIT  reqId unmatch:[%d:%d] @REPLY_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] reqId[0x%x])  ---> drop\n",
 							pstQueWorker->nReqId,
 							getSeqInfo (nThreadIdx, nSeqIdx)->nReqId,
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
+							pstQueWorker->nSrcThreadIdx,
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
+							pstQueWorker->nSrcSeqIdx,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+							pstQueWorker->nDestThreadIdx,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+							pstQueWorker->nDestSeqIdx,
 							pstQueWorker->nReqId
 						);
 #else
 						THM_INNER_LOG_I (
-							"enAct is EN_THM_ACT_WAIT  reqId unmatch @REPLY_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
+							"enAct is EN_THM_ACT_WAIT  reqId unmatch @REPLY_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] reqId[0x%x])  ---> drop\n",
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
+							pstQueWorker->nSrcThreadIdx,
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
+							pstQueWorker->nSrcSeqIdx,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+							pstQueWorker->nDestThreadIdx,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+							pstQueWorker->nDestSeqIdx,
 							pstQueWorker->nReqId
 						);
 #endif
@@ -1691,12 +1711,16 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 				} else {
 					/* ありえない */
 					THM_INNER_LOG_E (
-						"BUG: enAct is [%d] @REPLY_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])\n",
+						"Unexpected: enAct is [%d] @REPLY_QUE (from[%s(%d):%s](%d) to[%s(%d):%s(%d)] reqId[0x%x])\n",
 						getSeqInfo (nThreadIdx, nSeqIdx)->enAct,
 						gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
+						pstQueWorker->nSrcThreadIdx,
 						gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
+						pstQueWorker->nSrcSeqIdx,
 						gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+						pstQueWorker->nDestThreadIdx,
 						gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+						pstQueWorker->nDestSeqIdx,
 						pstQueWorker->nReqId
 					);
 				}
@@ -1751,22 +1775,30 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 							/* リプライ待たずに進むようなシーケンスとか... */
 #ifndef _MULTI_REQUESTING
 							THM_INNER_LOG_I (
-								"enAct is EN_THM_ACT_WAIT  reqId unmatch:[%d:%d] @REQ_TIMEOUT_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
+								"enAct is EN_THM_ACT_WAIT  reqId unmatch:[%d:%d] @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] reqId[0x%x])  ---> drop\n",
 								pstQueWorker->nReqId,
 								getSeqInfo (nThreadIdx, nSeqIdx)->nReqId
 								gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
+								pstQueWorker->nSrcThreadIdx,
 								gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
+								pstQueWorker->nSrcSeqIdx,
 								gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+								pstQueWorker->nDestThreadIdx,
 								gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+								pstQueWorker->nDestSeqIdx,
 								pstQueWorker->nReqId
 							);
 #else
 							THM_INNER_LOG_I (
-								"enAct is EN_THM_ACT_WAIT  reqId unmatch:[%d:%d] @REQ_TIMEOUT_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
+								"enAct is EN_THM_ACT_WAIT  reqId notfound @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] reqId[0x%x])  ---> drop\n",
 								gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
+								pstQueWorker->nSrcThreadIdx,
 								gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
+								pstQueWorker->nSrcSeqIdx,
 								gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+								pstQueWorker->nDestThreadIdx,
 								gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+								pstQueWorker->nDestSeqIdx,
 								pstQueWorker->nReqId
 							);
 #endif
@@ -1780,11 +1812,15 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 						/* シーケンスによってはありえる */
 						/* リプライ待たずに進むようなシーケンスとか... */
 						THM_INNER_FORCE_LOG_I (
-							"enAct is not EN_THM_ACT_WAIT  @REQ_TIMEOUT_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])  ---> drop\n",
+							"enAct is not EN_THM_ACT_WAIT  @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] reqId[0x%x])  ---> drop\n",
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
+							pstQueWorker->nSrcThreadIdx,
 							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
+							pstQueWorker->nSrcSeqIdx,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+							pstQueWorker->nDestThreadIdx,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+							pstQueWorker->nDestSeqIdx,
 							pstQueWorker->nReqId
 						);
 
@@ -1796,12 +1832,16 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 				} else {
 					/* ありえないはず */
 					THM_INNER_LOG_E (
-						"BUG: reqIdInfo.timeout.enState is unexpected [%d] @REQ_TIMEOUT_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])\n",
+						"Unexpected: reqIdInfo.timeout.enState is unexpected [%d] @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] reqId[0x%x])\n",
 						enTimeoutState,
 						gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
+						pstQueWorker->nSrcThreadIdx,
 						gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
+						pstQueWorker->nSrcSeqIdx,
 						gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+						pstQueWorker->nDestThreadIdx,
 						gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+						pstQueWorker->nDestSeqIdx,
 						pstQueWorker->nReqId
 					);
 				}
@@ -1828,12 +1868,12 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 					} else {
 						/* ありえるのか? ありえないはず... */
 						THM_INNER_LOG_E (
-							"BUG: enAct is EN_THM_ACT_WAIT  unexpect timeout.enState:[%d]  @SEQ_TIMEOUT_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])\n",
+							"Unexpected: enAct is EN_THM_ACT_WAIT  unexpect timeout.enState:[%d]  @SEQ_TIMEOUT_QUE (to[%s(%d):%s(%d)] reqId[0x%x])\n",
 							getSeqInfo(nThreadIdx, nSeqIdx)->timeout.enState,
-							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
-							gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+							pstQueWorker->nDestThreadIdx,
 							gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+							pstQueWorker->nDestSeqIdx,
 							pstQueWorker->nReqId
 						);
 					}
@@ -1841,12 +1881,12 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 				} else {
 					/* ありえないはず */
 					THM_INNER_LOG_E (
-						"BUG: enAct is [%d] @SEQ_TIMEOUT_QUE (from[%s:%s] to[%s:%s] reqId[0x%x])\n",
+						"Unexpected: enAct is [%d] @SEQ_TIMEOUT_QUE (to[%s(%d):%s(%d)] reqId[0x%x])\n",
 						getSeqInfo (nThreadIdx, nSeqIdx)->enAct,
-						gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pszName,
-						gpstThmRegTbl [pstQueWorker->nSrcThreadIdx]->pstSeqArray[pstQueWorker->nSrcSeqIdx].pszName,
 						gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pszName,
+						pstQueWorker->nDestThreadIdx,
 						gpstThmRegTbl [pstQueWorker->nDestThreadIdx]->pstSeqArray[pstQueWorker->nDestSeqIdx].pszName,
+						pstQueWorker->nDestSeqIdx,
 						pstQueWorker->nReqId
 					);
 				}
@@ -1863,7 +1903,7 @@ static ST_QUE_WORKER check2deQueWorker (uint8_t nThreadIdx, bool isGetOut)
 
 
 			} else {
-				THM_INNER_LOG_E ("BUG: unexpected queType.\n");
+				THM_INNER_LOG_E ("Unexpected: unexpected queType.\n");
 			}
 		} else {
 //THM_INNER_LOG_E( "not use\n" );
@@ -2032,7 +2072,7 @@ static void *baseThread (void *pArg)
 				break;
 
 			default:
-				THM_INNER_LOG_E ("BUG: pthread_cond_timedwait() => unexpected return value [%d]\n", nRtn);
+				THM_INNER_LOG_E ("Unexpected: pthread_cond_timedwait() => unexpected return value [%d]\n", nRtn);
 				break;
 			}
 
@@ -2048,7 +2088,7 @@ static void *baseThread (void *pArg)
 		stRtnQue = deQueBase (true);
 		if (stRtnQue.isUsed) {
 			switch (stRtnQue.enMoniType) {
-			case EN_MONI_TYPE_DEBUG:
+			case EN_MONI_TYPE_DEUnexpected:
 				dumpInnerInfo ();
 				dumpRequestIdInfo ();
 				dumpExtInfoList ();
@@ -2129,7 +2169,7 @@ static void *sigwaitThread (void *pArg)
 			switch (nSig) {
 			case SIGQUIT:
 				THM_INNER_FORCE_LOG_I ("catch SIGQUIT\n");
-				requestBaseThread (EN_MONI_TYPE_DEBUG);
+				requestBaseThread (EN_MONI_TYPE_DEUnexpected);
 				break;
 			case SIGINT:
 			case SIGTERM:
@@ -2139,7 +2179,7 @@ static void *sigwaitThread (void *pArg)
 				isDestroy = true;
 				break;
 			default:
-				THM_INNER_LOG_E ("BUG: unexpected signal.\n");
+				THM_INNER_LOG_E ("Unexpected: unexpected signal.\n");
 				break;
 			}
 		} else {
@@ -2210,7 +2250,7 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 				THM_INNER_LOG_D ("timeout cond wait (reqTimeout)\n");
 
 				if (!pstReqIdInfo) {
-					THM_INNER_LOG_E ("BUG: pstReqIdInfo is null !!!\n");
+					THM_INNER_LOG_E ("Unexpected: pstReqIdInfo is null !!!\n");
 					goto _F_END;
 				}
 				pstReqIdInfo->timeout.enState = EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT;
@@ -2220,7 +2260,7 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 				THM_INNER_LOG_D ("timeout cond wait (seqTimeout)\n");
 
 				if (!pstSeqInfo) {
-					THM_INNER_LOG_E ("BUG: pstSeqInfo is null !!!\n");
+					THM_INNER_LOG_E ("Unexpected: pstSeqInfo is null !!!\n");
 					goto _F_END;
 				}
 				pstSeqInfo->timeout.enState = EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT;
@@ -2243,14 +2283,14 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 					isNeedWait = false;
 					if (enTimeout == EN_NEAREST_TIMEOUT_REQ) {
 						if (!pstReqIdInfo) {
-							THM_INNER_LOG_E ("BUG: pstReqIdInfo is null !!!\n");
+							THM_INNER_LOG_E ("Unexpected: pstReqIdInfo is null !!!\n");
 							goto _F_END;
 						}
 						pstReqIdInfo->timeout.enState = EN_TIMEOUT_STATE_MEAS;
 	
 					} else {
 						if (!pstSeqInfo) {
-							THM_INNER_LOG_E ("BUG: pstSeqInfo is null !!!\n");
+							THM_INNER_LOG_E ("Unexpected: pstSeqInfo is null !!!\n");
 							goto _F_END;
 						}
 						pstSeqInfo->timeout.enState = EN_TIMEOUT_STATE_MEAS;
@@ -2265,7 +2305,7 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 					isNeedWait = false;
 					if (enTimeout == EN_NEAREST_TIMEOUT_REQ) {
 						if (!pstReqIdInfo) {
-							THM_INNER_LOG_E ("BUG: pstReqIdInfo is null !!!\n");
+							THM_INNER_LOG_E ("Unexpected: pstReqIdInfo is null !!!\n");
 							goto _F_END;
 						}
 						pstReqIdInfo->timeout.enState = EN_TIMEOUT_STATE_PASSED;
@@ -2273,7 +2313,7 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 	
 					} else {
 						if (!pstSeqInfo) {
-							THM_INNER_LOG_E ("BUG: pstSeqInfo is null !!!\n");
+							THM_INNER_LOG_E ("Unexpected: pstSeqInfo is null !!!\n");
 							goto _F_END;
 						}
 						pstSeqInfo->timeout.enState = EN_TIMEOUT_STATE_PASSED;
@@ -2287,7 +2327,7 @@ static void checkWaitWorkerThread (ST_INNER_INFO *pstInnerInfo)
 	
 				default:
 					isNeedWait = false;
-					THM_INNER_LOG_E ("BUG: pthread_cond_timedwait() => unexpected return value [%d]\n", nRtn);
+					THM_INNER_LOG_E ("Unexpected: pthread_cond_timedwait() => unexpected return value [%d]\n", nRtn);
 					break;
 				}
 			}
@@ -2651,7 +2691,7 @@ static void *workerThread (void *pArg)
 				break;
 
 			default:
-				THM_INNER_LOG_E ("BUG: unexpected queType.\n");
+				THM_INNER_LOG_E ("Unexpected: unexpected queType.\n");
 				break;
 			}
 
@@ -3078,7 +3118,7 @@ bool requestSync (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msg
 //		break;
 
 	default:
-		THM_INNER_LOG_E ("BUG: pthread_cond_timedwait() => unexpected return value [%d]\n", nRtn);
+		THM_INNER_LOG_E ("Unexpected: pthread_cond_timedwait() => unexpected return value [%d]\n", nRtn);
 		break;
 	}
 
@@ -3754,7 +3794,7 @@ static void enableReqTimeout (uint8_t nThreadIdx, uint32_t nReqId, uint32_t nTim
 	pthread_mutex_lock (&gMutexOpeRequestId [nThreadIdx]);
 
 	if (gstRequestIdInfo [nThreadIdx][nReqId].timeout.enState != EN_TIMEOUT_STATE_INIT) {
-		THM_INNER_LOG_E ("BUG: timeout.enState != EN_TIMEOUT_STATE_INIT\n");
+		THM_INNER_LOG_E ("Unexpected: timeout.enState != EN_TIMEOUT_STATE_INIT\n");
 
 		/* unlock */
 		pthread_mutex_unlock (&gMutexOpeRequestId [nThreadIdx]);
@@ -3862,7 +3902,7 @@ static bool isReqTimeoutFromRequestId (uint8_t nThreadIdx, uint32_t nReqId)
 
 		} else {
 			/* ありえない */
-			THM_INNER_LOG_E ("BUG: diff_nsec is minus value.\n");
+			THM_INNER_LOG_E ("Unexpected: diff_nsec is minus value.\n");
 		}
 
 	} else {
@@ -4674,7 +4714,7 @@ static bool isSeqTimeoutFromSeqIdx (uint8_t nThreadIdx, uint8_t nSeqIdx)
 
 		} else {
 			/* ありえない */
-			THM_INNER_LOG_E ("BUG: diff_nsec is minus value.\n");
+			THM_INNER_LOG_E ("Unexpected: diff_nsec is minus value.\n");
 		}
 
 	} else {
@@ -4777,7 +4817,7 @@ static void checkSeqTimeoutFromCondTimedwait (uint8_t nThreadIdx)
 
 	if (n != 1) {
 		/* 	複数存在した... バグ */
-		THM_INNER_LOG_E ("BUG: state(EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT) is multiple. n=[%d]\n", n);
+		THM_INNER_LOG_E ("Unexpected: state(EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT) is multiple. n=[%d]\n", n);
 		return;
 	}
 
@@ -4804,7 +4844,7 @@ static void checkSeqTimeoutFromNotCondTimedwait (uint8_t nThreadIdx)
 
 	if (n != 1) {
 		/* 	複数存在した... バグ */
-		THM_INNER_LOG_E ("BUG: state(EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT) is multiple. n=[%d]\n", n);
+		THM_INNER_LOG_E ("Unexpected: state(EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT) is multiple. n=[%d]\n", n);
 		return;
 	}
 }
@@ -4929,7 +4969,7 @@ static bool isLock (uint8_t nThreadIdx)
 	}
 
 	if (n >= 2) {
-		THM_INNER_LOG_E ("BUG: Multiple seq locked.\n");
+		THM_INNER_LOG_E ("Unexpected: Multiple seq locked.\n");
 	}
 
 	return r;
