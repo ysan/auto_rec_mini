@@ -813,6 +813,7 @@ static void setupSignalPerThread (void)
 
 	sa.sa_handler = (void *) _signalHandler;
 	sigemptyset (&sa.sa_mask);
+	sa.sa_flags = 0;
 
 	void *stack_mem = malloc (2 * SIGSTKSZ);
 	stack_t ss;
