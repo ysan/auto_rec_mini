@@ -35,7 +35,7 @@ CThreadMgrBase::~CThreadMgrBase (void)
 }
 
 
-void CThreadMgrBase:: exec (EN_THM_DISPATCH_TYPE type, uint8_t sequence_idx, ST_THM_IF *p_if)
+void CThreadMgrBase:: exec (EN_THM_DISPATCH_TYPE type, uint8_t sequence_idx, threadmgr_if_t *p_if)
 {
 	switch (type) {
 	case EN_THM_DISPATCH_TYPE_CREATE:

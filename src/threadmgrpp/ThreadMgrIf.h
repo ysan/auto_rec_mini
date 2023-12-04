@@ -46,7 +46,7 @@ enum class action : int {
 	max       = EN_THM_ACT_MAX,
 };
 
-// ST_THM_SRC_INFO wrap
+// threadmgr_src_info_t wrap
 class CSource {
 public:
 	struct message {
@@ -67,38 +67,38 @@ public:
 	};
 
 	CSource (void) {}
-	explicit CSource (ST_THM_SRC_INFO *p_info)
+	explicit CSource (threadmgr_src_info_t *p_info)
 		: mp_info(p_info)
 	{
-		m_message.m_data = p_info->msg.pMsg;
+		m_message.m_data = p_info->msg.msg;
 		m_message.m_length = p_info->msg.size;
 	}
 	virtual ~CSource (void) {}
 
-	void set (ST_THM_SRC_INFO *p_info) {
+	void set (threadmgr_src_info_t *p_info) {
 		mp_info = p_info;
-		m_message.m_data = p_info->msg.pMsg;
+		m_message.m_data = p_info->msg.msg;
 		m_message.m_length = p_info->msg.size;
 	}
 
 	uint8_t get_thread_idx (void) const {
-		return mp_info->nThreadIdx;
+		return mp_info->thread_idx;
 	}
 
 	uint8_t get_sequence_idx (void) const {
-		return mp_info->nSeqIdx;
+		return mp_info->seq_idx;
 	}
 
 	uint32_t get_request_id (void) const {
-		return mp_info->nReqId;
+		return mp_info->req_id;
 	}
 
 	result get_result (void) const {
-		return static_cast<result>(mp_info->enRslt);
+		return static_cast<result>(mp_info->en_rslt);
 	}
 
 	uint8_t get_client_id (void) const {
-		return mp_info->nClientId;
+		return mp_info->client_id;
 	}
 
 	message& get_message (void) {
@@ -106,17 +106,17 @@ public:
 	}
 
 private:
-	ST_THM_SRC_INFO *mp_info;
+	threadmgr_src_info_t *mp_info;
 	message m_message;
 };
 
-// ST_THM_IF wrap
+// threadmgr_if_t wrap
 class CThreadMgrIf 
 {
 public:
-	explicit CThreadMgrIf (ST_THM_IF *p_if)
+	explicit CThreadMgrIf (threadmgr_if_t *p_if)
 		: m_if (*p_if)
-		, m_source (p_if->pstSrcInfo) {
+		, m_source (p_if->src_info) {
 	}
 
 	virtual ~CThreadMgrIf (void) {
@@ -124,77 +124,77 @@ public:
 
 
 	CSource &get_source (void) {
-		m_source.set(m_if.pstSrcInfo); // for sync reply
+		m_source.set(m_if.src_info); // for sync reply
 		return m_source;
 	}
 
 	bool reply (result rslt) {
-		return m_if.pfnReply (static_cast<EN_THM_RSLT>(rslt), NULL, 0);
+		return m_if.pfn_reply (static_cast<EN_THM_RSLT>(rslt), NULL, 0);
 	}
 
 	bool reply (result rslt, uint8_t *msg, size_t msglen) {
-		return m_if.pfnReply (static_cast<EN_THM_RSLT>(rslt), msg, msglen);
+		return m_if.pfn_reply (static_cast<EN_THM_RSLT>(rslt), msg, msglen);
 	}
 
 	bool reg_notify (uint8_t category, uint8_t *pclient_id) {
-		return m_if.pfnRegNotify (category, pclient_id);
+		return m_if.pfn_reg_notify (category, pclient_id);
 	}
 
 	bool unreg_notify (uint8_t category, uint8_t client_id) {
-		return m_if.pfnUnRegNotify (category, client_id);
+		return m_if.pfn_unreg_notify (category, client_id);
 	}
 
 	bool notify (uint8_t category) {
-		return m_if.pfnNotify (category, NULL, 0);
+		return m_if.pfn_notify (category, NULL, 0);
 	}
 
 	bool notify (uint8_t category, uint8_t *msg, size_t size) {
-		return m_if.pfnNotify (category, msg, size);
+		return m_if.pfn_notify (category, msg, size);
 	}
 
 	void set_section_id (section_id::type sect_id, action act) {
-		m_if.pfnSetSectId (sect_id, static_cast<EN_THM_ACT>(act));
+		m_if.pfn_set_sectid (sect_id, static_cast<EN_THM_ACT>(act));
 	}
 
 	section_id::type get_section_id (void) const {
-		return m_if.pfnGetSectId ();
+		return m_if.pfn_get_sectid ();
 	}
 
 	void set_timeout (uint32_t timeout_msec) {
-		m_if.pfnSetTimeout (timeout_msec);
+		m_if.pfn_set_timeout (timeout_msec);
 	}
 
 	void clear_timeout (void) {
-		m_if.pfnClearTimeout ();
+		m_if.pfn_clear_timeout ();
 	}
 
 	void enable_overwrite (void) {
-		m_if.pfnEnableOverwrite ();
+		m_if.pfn_enable_overwrite ();
 	}
 
 	void disable_overwrite (void) {
-		m_if.pfnDisableOverwrite ();
+		m_if.pfn_disable_overwrite ();
 	}
 
 	void lock (void) {
-		m_if.pfnLock ();
+		m_if.pfn_lock ();
 	}
 
 	void unlock (void) {
-		m_if.pfnUnlock ();
+		m_if.pfn_unlock ();
 	}
 
 	uint8_t get_sequence_idx (void) const {
-		return m_if.pfnGetSeqIdx ();
+		return m_if.pfn_get_seq_idx ();
 	}
 
 	const char* get_sequence_name (void) const {
-		return m_if.pfnGetSeqName ();
+		return m_if.pfn_get_seq_name ();
 	}
 	
 
 private:
-	ST_THM_IF &m_if;
+	threadmgr_if_t &m_if;
 	CSource m_source;
 };
 

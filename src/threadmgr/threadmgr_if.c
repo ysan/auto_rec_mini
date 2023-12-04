@@ -28,59 +28,59 @@
 /*
  * Prototypes
  */
-ST_THM_EXTERNAL_IF *setupThreadMgr (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax); // extern
-void waitThreadMgr (void); // extern
-void teardownThreadMgr (void); // extern
+threadmgr_external_if_t *setup_threadmgr (const threadmgr_reg_tbl_t *p_tbl, uint8_t nr_tbl_max); // extern
+void wait_threadmgr (void); // extern
+void teardown_threadmgr (void); // extern
 
 
-/* threadMgr external object */
-static ST_THM_EXTERNAL_IF s_stThmExternalIf = {
-	requestSync,
-	requestAsync,
-	setRequestOption,
-	getRequestOption,
-	createExternalCp,
-	destroyExternalCp,
-	receiveExternal,
+/* threadmgr external object */
+static threadmgr_external_if_t s_thm_external_if = {
+	request_sync,
+	request_async,
+	set_request_option,
+	get_request_option,
+	create_external_cp,
+	destroy_external_cp,
+	receive_external,
 };
 
 
 /**
- * setupThreadMgr
+ * setup_threadmgr
  */
-ST_THM_EXTERNAL_IF *setupThreadMgr (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax)
+threadmgr_external_if_t *setup_threadmgr (const threadmgr_reg_tbl_t *p_tbl, uint8_t nr_tbl_max)
 {
-	if (!setup (pTbl, nTblMax)) {
+	if (!setup (p_tbl, nr_tbl_max)) {
 		return NULL;
 	}
 
-	return &s_stThmExternalIf;
+	return &s_thm_external_if;
 }
 
 /**
- * waitThreadMgr
+ * wait_threadmgr
  */
-void waitThreadMgr (void)
+void wait_threadmgr (void)
 {
-	waitAll ();
+	wait_all ();
 }
 
 /**
- * teardownThreadMgr
+ * teardown_threadmgr
  */
-void teardownThreadMgr (void)
+void teardown_threadmgr (void)
 {
 	finaliz ();
 }
 
 
 /**
- * setDisaptcher
+ * set_disaptcher
  * for c++ wrapper extention
  */
-void setupDispatcher (const PFN_DISPATCHER pfnDispatcher)
+void setup_dispatcher (const PFN_DISPATCHER pfn_dispatcher)
 {
-	if (pfnDispatcher) {
-		setDispatcher (pfnDispatcher);
+	if (pfn_dispatcher) {
+		set_dispatcher (pfn_dispatcher);
 	}
 }

@@ -42,7 +42,7 @@ public:
 	virtual ~CThreadMgrBase (void);
 
 
-	void exec (EN_THM_DISPATCH_TYPE type, uint8_t sequence_idx, ST_THM_IF *p_if);
+	void exec (EN_THM_DISPATCH_TYPE type, uint8_t sequence_idx, threadmgr_if_t *p_if);
 
 	CThreadMgrExternalIf *get_external_if (void) const;
 	CThreadMgrIf *get_if (void) const;

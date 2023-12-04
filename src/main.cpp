@@ -220,8 +220,8 @@ int main (int argc, char *argv[])
 	s_logger.append_handler(stdout);
 	CUtils::set_logger(&s_logger);
 
-	setAlternativeLog (threadmgr_log);
-	setAlternativeLogLW (threadmgr_log_lw);
+	set_alternative_log (threadmgr_log);
+	set_alternative_log_LW (threadmgr_log_lw);
 
 	if (s->get_params().is_syslog_output()) {
 		auto syslog = std::make_shared<CSyslog> ("/dev/log", LOG_USER, "auto_rec_mini");

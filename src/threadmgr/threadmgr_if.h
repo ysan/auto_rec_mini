@@ -1,6 +1,7 @@
 #ifndef _THREADMGR_IF_H_
 #define _THREADMGR_IF_H_
 
+#include <stdio.h>
 #include <stdbool.h>
 
 /*
@@ -81,108 +82,79 @@ typedef enum {
 
 
 typedef struct threadmgr_src_info {
-	uint8_t nThreadIdx;
-	uint8_t nSeqIdx;
-	uint32_t nReqId;
-	EN_THM_RSLT enRslt;
-	uint8_t nClientId;
+	uint8_t thread_idx;
+	uint8_t seq_idx;
+	uint32_t req_id;
+	EN_THM_RSLT en_rslt;
+	uint8_t client_id;
 	struct {
-		uint8_t *pMsg;
+		uint8_t *msg;
 		size_t size;
 	} msg;
-} ST_THM_SRC_INFO;
+} threadmgr_src_info_t;
 
 
 /*--- threadmgr_external_if ---*/
-typedef bool (*PFN_REQUEST_SYNC) (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize);
-typedef bool (*PFN_REQUEST_ASYNC) (uint8_t nThreadIdx, uint8_t nSeqIdx, uint8_t *pMsg, size_t msgSize, uint32_t *pOutReqId);
-typedef void (*PFN_SET_REQUEST_OPTION) (uint32_t option);
-typedef uint32_t (*PFN_GET_REQUEST_OPTION) (void);
-typedef bool (*PFN_CREATE_EXTERNAL_CP) (void);
-typedef void (*PFN_DESTROY_EXTERNAL_CP) (void);
-typedef ST_THM_SRC_INFO* (*PFN_RECEIVE_EXTERNAL) (void);
-
 typedef struct threadmgr_external_if {
-	PFN_REQUEST_SYNC pfnRequestSync;
-	PFN_REQUEST_ASYNC pfnRequestAsync;
-	PFN_SET_REQUEST_OPTION pfnSetRequestOption;
-	PFN_GET_REQUEST_OPTION pfnGetRequestOption;
-	PFN_CREATE_EXTERNAL_CP pfnCreateExternalCp;
-	PFN_DESTROY_EXTERNAL_CP pfnDestroyExternalCp;
-	PFN_RECEIVE_EXTERNAL pfnReceiveExternal;
-} ST_THM_EXTERNAL_IF;
+	bool (*pfn_request_sync) (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg_size);
+	bool (*pfn_request_async) (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg_size, uint32_t *p_out_req_id);
+	void (*pfn_set_request_option) (uint32_t option);
+	uint32_t (*pfn_get_request_option) (void);
+	bool (*pfn_create_external_cp) (void);
+	void (*pfn_destroy_external_cp) (void);
+	threadmgr_src_info_t* (*pfn_receive_external) (void);
+} threadmgr_external_if_t;
 
 
 
 /*--- threadmgr_if ---*/
-typedef bool (*PFN_REPLY) (EN_THM_RSLT enRslt, uint8_t *pMsg, size_t msgSize);
-typedef bool (*PFN_REG_NOTIFY) (uint8_t nCategory, uint8_t *pnClientId);
-typedef bool (*PFN_UNREG_NOTIFY) (uint8_t nCategory, uint8_t nClientId);
-typedef bool (*PFN_NOTIFY) (uint8_t nCategory, uint8_t *pMsg, size_t msgSize);
-typedef void (*PFN_SET_SECTID) (uint8_t nSectId, EN_THM_ACT enAct);
-typedef uint8_t (*PFN_GET_SECTID) (void);
-typedef void (*PFN_SET_TIMEOUT) (uint32_t nTimeoutMsec);
-typedef void (*PFN_CLEAR_TIMEOUT) (void);
-typedef void (*PFN_ENABLE_OVERWRITE) (void);
-typedef void (*PFN_DISABLE_OVERWRITE) (void);
-typedef void (*PFN_LOCK) (void);
-typedef void (*PFN_UNLOCK) (void);
-typedef uint8_t (*PFN_GET_SEQ_IDX) (void);
-typedef const char* (*PFN_GET_SEQ_NAME) (void);
-
 typedef struct threadmgr_if {
-	ST_THM_SRC_INFO *pstSrcInfo;
+	threadmgr_src_info_t *src_info;
 
-	PFN_REPLY pfnReply;
+	bool (*pfn_reply) (EN_THM_RSLT en_rslt, uint8_t *msg, size_t msg_size);
 
-	PFN_REG_NOTIFY pfnRegNotify;
-	PFN_UNREG_NOTIFY pfnUnRegNotify;
-	PFN_NOTIFY pfnNotify;
+	bool (*pfn_reg_notify) (uint8_t category, uint8_t *pclient_id);
+	bool (*pfn_unreg_notify) (uint8_t category, uint8_t client_id);
 
-	PFN_SET_SECTID pfnSetSectId;
-	PFN_GET_SECTID pfnGetSectId;
+	bool (*pfn_notify) (uint8_t category, uint8_t *msg, size_t msg_size);
 
-	PFN_SET_TIMEOUT pfnSetTimeout;
-	PFN_CLEAR_TIMEOUT pfnClearTimeout;
+	void (*pfn_set_sectid) (uint8_t sect_id, EN_THM_ACT en_act);
+	uint8_t (*pfn_get_sectid) (void);
 
-	PFN_ENABLE_OVERWRITE pfnEnableOverwrite;
-	PFN_DISABLE_OVERWRITE pfnDisableOverwrite;
+	void (*pfn_set_timeout) (uint32_t timeout_msec);
+	void (*pfn_clear_timeout) (void);
 
-	PFN_LOCK pfnLock;
-	PFN_UNLOCK pfnUnlock;
+	void (*pfn_enable_overwrite) (void);
+	void (*pfn_disable_overwrite) (void);
 
-	PFN_GET_SEQ_IDX pfnGetSeqIdx;
-	PFN_GET_SEQ_NAME pfnGetSeqName;
+	void (*pfn_lock) (void);
+	void (*pfn_unlock) (void);
 
-} ST_THM_IF;
+	uint8_t (*pfn_get_seq_idx) (void);
+	const char* (*pfn_get_seq_name) (void);
+} threadmgr_if_t;
 
 
 /*--- threadmgr_reg_tbl ---*/
-typedef void (*PCB_CREATE) (void);
-typedef void (*PCB_DESTROY) (void);
-typedef void (*PCB_THM_SEQ) (ST_THM_IF *pIf);
-typedef void (*PCB_RECV_ASYNC_REPLY) (ST_THM_IF *pIf);
-typedef void (*PCB_RECV_NOTIFY) (ST_THM_IF *pIf);
-
 typedef struct threadmgr_seq {
-	const PCB_THM_SEQ pcbSeq;
-	const char *pszName; // must be non-null
-} ST_THM_SEQ;
+	void (*pcb_seq) (threadmgr_if_t *p_if);
+	const char *name; // must be non-null
+} threadmgr_seq_t;
 
 
 typedef struct threadmgr_reg_tbl {
-	const char *pszName;  // must be non-null
-	const PCB_CREATE pcbCreate;
-	const PCB_DESTROY pcbDestroy;
-	uint8_t nQueNum;
-	const ST_THM_SEQ *pstSeqArray;
-	uint8_t nSeqNum;
-	const PCB_RECV_NOTIFY pcbRecvNotify;
-} ST_THM_REG_TBL;
+	const char *name;  // must be non-null
+	void (*pcb_create) (void);
+	void (*pcb_destroy) (void);
+	uint8_t nr_que;
+	const threadmgr_seq_t *seq_array;
+	uint8_t nr_seq;
+	void (*pcb_recv_notify) (threadmgr_if_t *p_if);
+} threadmgr_reg_tbl_t;
 
 
 /* for c++ wrapper extension */
-typedef void (*PFN_DISPATCHER) (EN_THM_DISPATCH_TYPE enType, uint8_t nThreadIdx, uint8_t nSeqIdx, ST_THM_IF *pIf);
+typedef void (*PFN_DISPATCHER) (EN_THM_DISPATCH_TYPE en_type, uint8_t thread_idx, uint8_t seq_idx, threadmgr_if_t *p_if);
 
 
 #ifdef __cplusplus
@@ -192,11 +164,11 @@ extern "C" {
 /*
  * External
  */
-extern ST_THM_EXTERNAL_IF *setupThreadMgr (const ST_THM_REG_TBL *pTbl, uint8_t nTblMax);
-extern void waitThreadMgr (void);
-extern void teardownThreadMgr (void);
+extern threadmgr_external_if_t *setup_threadmgr (const threadmgr_reg_tbl_t *p_tbl, uint8_t n_tbl_max);
+extern void wait_threadmgr (void);
+extern void teardown_threadmgr (void);
 
-extern void setupDispatcher (const PFN_DISPATCHER pfnDispatcher); /* for c++ wrapper extension */
+extern void setup_dispatcher (const PFN_DISPATCHER pfn_dispatcher); /* for c++ wrapper extension */
 
 #ifdef __cplusplus
 };

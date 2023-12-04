@@ -57,20 +57,20 @@ typedef enum {
 /*
  * Variables
  */
-extern FILE *g_fpLog;
-extern void (*__putsLog) (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine,
-	const char *pszFormat,
+extern FILE *g_fp_log;
+extern void (*__puts_log) (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_file,
+	const char *psz_func,
+	int n_line,
+	const char *psz_format,
 	...
 );
-extern void (*__putsLogLW) (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFormat,
+extern void (*__puts_log_LW) (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_format,
 	...
 );
 
@@ -81,55 +81,55 @@ extern void (*__putsLogLW) (
 /* --- Debug --- */
 #ifdef _LOG_SIMPLE
 #define THM_LOG_D(fmt, ...) do {\
-	__putsLogLW (g_fpLog, EN_LOG_TYPE_D, fmt, ##__VA_ARGS__);\
+	__puts_log_LW (g_fp_log, EN_LOG_TYPE_D, fmt, ##__VA_ARGS__);\
 } while (0)
 #else
 #define THM_LOG_D(fmt, ...) do {\
-	__putsLog (g_fpLog, EN_LOG_TYPE_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	__puts_log (g_fp_log, EN_LOG_TYPE_D, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
 
 /* --- Information --- */
 #ifdef _LOG_SIMPLE
 #define THM_LOG_I(fmt, ...) do {\
-	__putsLogLW (g_fpLog, EN_LOG_TYPE_I, fmt, ##__VA_ARGS__);\
+	__puts_log_LW (g_fp_log, EN_LOG_TYPE_I, fmt, ##__VA_ARGS__);\
 } while (0)
 #else
 #define THM_LOG_I(fmt, ...) do {\
-	__putsLog (g_fpLog, EN_LOG_TYPE_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	__puts_log (g_fp_log, EN_LOG_TYPE_I, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
 
 /* --- Warning --- */
 #ifdef _LOG_SIMPLE
 #define THM_LOG_W(fmt, ...) do {\
-	__putsLogLW (g_fpLog, EN_LOG_TYPE_W, fmt, ##__VA_ARGS__);\
+	__puts_log_LW (g_fp_log, EN_LOG_TYPE_W, fmt, ##__VA_ARGS__);\
 } while (0)
 #else
 #define THM_LOG_W(fmt, ...) do {\
-	__putsLog (g_fpLog, EN_LOG_TYPE_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	__puts_log (g_fp_log, EN_LOG_TYPE_W, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
 
 /* --- Error --- */
 #ifdef _LOG_SIMPLE
 #define THM_LOG_E(fmt, ...) do {\
-	__putsLogLW (g_fpLog, EN_LOG_TYPE_E, fmt, ##__VA_ARGS__);\
+	__puts_log_LW (g_fp_log, EN_LOG_TYPE_E, fmt, ##__VA_ARGS__);\
 } while (0)
 #else
 #define THM_LOG_E(fmt, ...) do {\
-	__putsLog (g_fpLog, EN_LOG_TYPE_E, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	__puts_log (g_fp_log, EN_LOG_TYPE_E, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
 
 /* --- perror --- */
 #ifdef _LOG_SIMPLE
 #define THM_PERROR(fmt, ...) do {\
-	__putsLogLW (g_fpLog, EN_LOG_TYPE_PE, fmt, ##__VA_ARGS__);\
+	__puts_log_LW (g_fp_log, EN_LOG_TYPE_PE, fmt, ##__VA_ARGS__);\
 } while (0)
 #else
 #define THM_PERROR(fmt, ...) do {\
-	__putsLog (g_fpLog, EN_LOG_TYPE_PE, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
+	__puts_log (g_fp_log, EN_LOG_TYPE_PE, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__);\
 } while (0)
 #endif
 
@@ -141,46 +141,46 @@ extern "C" {
 /*
  * External
  */
-extern void putsSysTime (void);
-extern void putsThreadName (void);
-extern void getThreadName (char *pszOut, size_t nSize);
-extern void getTimeOfDay (struct timeval *p);
-extern void setLogFileptr (FILE *p);
-extern FILE* getLogFileptr (void);
-extern void setAlternativeLog (void (*_fn)(
-		FILE *pFp,
-		EN_LOG_TYPE enLogType,
-		const char *pszFile,
-		const char *pszFunc,
-		int nLine,
-		const char *pszFormat,
+extern void puts_sys_time (void);
+extern void puts_thread_name (void);
+extern void get_thread_name (char *psz_out, size_t n_size);
+extern void get_time_of_day (struct timeval *p);
+extern void set_log_fileptr (FILE *p);
+extern FILE* get_log_fileptr (void);
+extern void set_alternative_log (void (*_fn)(
+		FILE *p_fp,
+		EN_LOG_TYPE en_log_type,
+		const char *psz_file,
+		const char *psz_func,
+		int n_line,
+		const char *psz_format,
 		...
 	)
 );
-extern void putsLog (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine,
-	const char *pszFormat,
+extern void puts_log (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_file,
+	const char *psz_func,
+	int n_line,
+	const char *psz_format,
 	...
 );
-extern void setAlternativeLogLW (void (*_fn)(
-		FILE *pFp,
-		EN_LOG_TYPE enLogType,
-		const char *pszFormat,
+extern void set_alternative_log_LW (void (*_fn)(
+		FILE *p_fp,
+		EN_LOG_TYPE en_log_type,
+		const char *psz_format,
 		...
 	)
 );
-extern void putsLogLW (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFormat,
+extern void puts_log_LW (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_format,
 	...
 );
-extern void deleteLF (char *p);
-extern void putsBackTrace (void);
+extern void delete_LF (char *p);
+extern void puts_backtrace (void);
 
 #ifdef __cplusplus
 };

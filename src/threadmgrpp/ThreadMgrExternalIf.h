@@ -17,7 +17,7 @@ namespace threadmgr {
 class CThreadMgrExternalIf
 {
 public:
-	CThreadMgrExternalIf (ST_THM_EXTERNAL_IF *p_ext_if)
+	CThreadMgrExternalIf (threadmgr_external_if_t *p_ext_if)
 		: m_ext_if (*p_ext_if) {
 	}
 
@@ -30,54 +30,54 @@ public:
 
 
 	bool request_sync (uint8_t thread_idx, uint8_t sequence_idx) {
-		return m_ext_if.pfnRequestSync (thread_idx, sequence_idx, NULL, 0);
+		return m_ext_if.pfn_request_sync (thread_idx, sequence_idx, NULL, 0);
 	}
 
 	bool request_sync (uint8_t thread_idx, uint8_t sequence_idx, uint8_t *msg, size_t msglen) {
-		return m_ext_if.pfnRequestSync (thread_idx, sequence_idx, msg, msglen);
+		return m_ext_if.pfn_request_sync (thread_idx, sequence_idx, msg, msglen);
 	}
 
 	bool request_async (uint8_t thread_idx, uint8_t sequence_idx) {
-		return m_ext_if.pfnRequestAsync (thread_idx, sequence_idx, NULL, 0, NULL);
+		return m_ext_if.pfn_request_async (thread_idx, sequence_idx, NULL, 0, NULL);
 	}
 
 	bool request_async (uint8_t thread_idx, uint8_t sequence_idx, uint32_t *p_out_req_id) {
-		return m_ext_if.pfnRequestAsync (thread_idx, sequence_idx, NULL, 0, p_out_req_id);
+		return m_ext_if.pfn_request_async (thread_idx, sequence_idx, NULL, 0, p_out_req_id);
 	}
 
 	bool request_async (uint8_t thread_idx, uint8_t sequence_idx, uint8_t *msg, size_t msglen) {
-		return m_ext_if.pfnRequestAsync (thread_idx, sequence_idx, msg, msglen, NULL);
+		return m_ext_if.pfn_request_async (thread_idx, sequence_idx, msg, msglen, NULL);
 	}
 
 	bool request_async (uint8_t thread_idx, uint8_t sequence_idx, uint8_t *msg, size_t msglen, uint32_t *p_out_req_id) {
-		return m_ext_if.pfnRequestAsync (thread_idx, sequence_idx, msg, msglen, p_out_req_id);
+		return m_ext_if.pfn_request_async (thread_idx, sequence_idx, msg, msglen, p_out_req_id);
 	}
 
 	void set_request_option (request_option::type option) {
-		m_ext_if.pfnSetRequestOption (option);
+		m_ext_if.pfn_set_request_option (option);
 	}
 
 	request_option::type get_request_option (void) const {
-		return m_ext_if.pfnGetRequestOption ();
+		return m_ext_if.pfn_get_request_option ();
 	}
 
 	bool create_external_cp (void) {
-		return m_ext_if.pfnCreateExternalCp ();
+		return m_ext_if.pfn_create_external_cp ();
 	}
 
 	void destroy_external_cp (void) {
-		return m_ext_if.pfnDestroyExternalCp ();
+		return m_ext_if.pfn_destroy_external_cp ();
 	}
 
 	CSource& receive_external (void) {
-		ST_THM_SRC_INFO *info = m_ext_if.pfnReceiveExternal ();
+		threadmgr_src_info_t *info = m_ext_if.pfn_receive_external ();
 		m_source.set(info);
 		return m_source;
 	}
 
 
 private:
-	ST_THM_EXTERNAL_IF &m_ext_if;
+	threadmgr_external_if_t &m_ext_if;
 	CSource m_source;
 
 };

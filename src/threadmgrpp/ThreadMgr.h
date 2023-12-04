@@ -48,7 +48,7 @@ private:
 	std::vector <CThreadMgrBase*> m_threads;
 	int m_thread_max;
 
-	ST_THM_REG_TBL *mp_reg_table;
+	threadmgr_reg_tbl_t *mp_reg_table;
 	CThreadMgrExternalIf *mp_ext_if;
 };
 

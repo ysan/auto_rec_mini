@@ -24,105 +24,105 @@
 /*
  * Variables
  */
-FILE *g_fpLog = NULL;
-void (*__putsLog) (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine,
-	const char *pszFormat,
+FILE *g_fp_log = NULL;
+void (*__puts_log) (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_file,
+	const char *psz_func,
+	int n_line,
+	const char *psz_format,
 	...
-) = putsLog;
-void (*__putsLogLW) (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFormat,
+) = puts_log;
+void (*__puts_log_LW) (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_format,
 	...
-) = putsLogLW;
+) = puts_log_LW;
 
 /*
  * Prototypes
  */
 static char * strtok_r_impl (char *str, const char *delim, char **saveptr);
-void putsSysTime (void); // extern
-static void getSysTime (char *pszOut, size_t nSize);
-static void getSysTimeMs (char *pszOut, size_t nSize);
-void putsThreadName (void); // extern
-void getThreadName (char *pszOut, size_t nSize); // extern
-void getTimeOfDay (struct timeval *p); //extern
-bool initLog (void); // extern
-void initLogStdout (void); // extern
-void finalizLog (void); // extern
-void setLogFileptr (FILE *p); // extern
-FILE* getLogFileptr (void);
-void setAlternativeLog (void (*_fn)( // extern
-		FILE *pFp,
-		EN_LOG_TYPE enLogType,
-		const char *pszFile,
-		const char *pszFunc,
-		int nLine,
-		const char *pszFormat,
+void puts_sys_time (void); // extern
+static void get_sys_time (char *psz_out, size_t n_size);
+static void get_sys_time_ms (char *psz_out, size_t n_size);
+void puts_thread_name (void); // extern
+void get_thread_name (char *psz_out, size_t n_size); // extern
+void get_time_of_day (struct timeval *p); //extern
+bool init_log (void); // extern
+void init_log_stdout (void); // extern
+void finaliz_log (void); // extern
+void set_log_fileptr (FILE *p); // extern
+FILE* get_log_fileptr (void);
+void set_alternative_log (void (*_fn)( // extern
+		FILE *p_fp,
+		EN_LOG_TYPE en_log_type,
+		const char *psz_file,
+		const char *psz_func,
+		int n_line,
+		const char *psz_format,
 		...
 	)
 );
-void putsLog ( // extern
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine,
-	const char *pszFormat,
+void puts_log ( // extern
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_file,
+	const char *psz_func,
+	int n_line,
+	const char *psz_format,
 	...
 );
-static void putsLogInner (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine,
-	const char *pszFormat,
+static void puts_log_inner (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_file,
+	const char *psz_func,
+	int n_line,
+	const char *psz_format,
 	va_list va
 );
-static void putsLogFprintf (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszThreadName,
+static void puts_log_fprintf (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_thread_name,
 	char type,
-	const char *pszTime,
-	const char *pszBuf,
-	const char *pszPerror,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine
+	const char *psz_time,
+	const char *psz_buf,
+	const char *psz_perror,
+	const char *psz_file,
+	const char *psz_func,
+	int n_line
 );
-void setAlternativeLogLW (void (*_fn)( // extern
-		FILE *pFp,
-		EN_LOG_TYPE enLogType,
-		const char *pszFormat,
+void set_alternative_log_LW (void (*_fn)( // extern
+		FILE *p_fp,
+		EN_LOG_TYPE en_log_type,
+		const char *psz_format,
 		...
 	)
 );
-void putsLogLW ( // extern
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFormat,
+void puts_log_LW ( // extern
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_format,
 	...
 );
-static void putsLogInnerLW (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFormat,
+static void puts_log_inner_LW (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_format,
 	va_list va
 );
-static void putsLogFprintfLW (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszThreadName,
+static void puts_log_fprintf_LW (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_thread_name,
 	char type,
-	const char *pszTime,
-	const char *pszBuf,
-	const char *pszPerror
+	const char *psz_time,
+	const char *psz_buf,
+	const char *psz_perror
 );
 
 
@@ -182,36 +182,36 @@ char * strtok_r_impl (char *str, const char *delim, char **saveptr)
  * システム現在時刻を出力
  * ログマクロ用
  */
-void putsSysTime (void)
+void puts_sys_time (void)
 {
-	char szTime [SYSTIME_STRING_SIZE];
-	memset (szTime, 0x00, SYSTIME_STRING_SIZE);
-	getSysTime (szTime, sizeof (szTime));
-	fprintf (stdout, "%s", szTime);
+	char sz_time [SYSTIME_STRING_SIZE];
+	memset (sz_time, 0x00, SYSTIME_STRING_SIZE);
+	get_sys_time (sz_time, sizeof (sz_time));
+	fprintf (stdout, "%s", sz_time);
 }
 
 /**
  * システム現在時刻を取得
  * MM/dd HH:mm:ss形式
  */
-static void getSysTime (char *pszOut, size_t nSize)
+static void get_sys_time (char *psz_out, size_t n_size)
 {
 	time_t timer;
-	struct tm *pstTmLocal = NULL;
-	struct tm stTmLocalTmp;
+	struct tm *pst_tm_local = NULL;
+	struct tm st_tm_local_tmp;
 
 	timer = time (NULL);
-	pstTmLocal = localtime_r (&timer, &stTmLocalTmp); /* スレッドセーフ */
+	pst_tm_local = localtime_r (&timer, &st_tm_local_tmp); /* スレッドセーフ */
 
 	snprintf (
-		pszOut,
-		nSize,
+		psz_out,
+		n_size,
 		"%02d/%02d %02d:%02d:%02d",
-		pstTmLocal->tm_mon+1,
-		pstTmLocal->tm_mday,
-		pstTmLocal->tm_hour,
-		pstTmLocal->tm_min,
-		pstTmLocal->tm_sec
+		pst_tm_local->tm_mon+1,
+		pst_tm_local->tm_mday,
+		pst_tm_local->tm_hour,
+		pst_tm_local->tm_min,
+		pst_tm_local->tm_sec
 	);
 }
 
@@ -219,24 +219,24 @@ static void getSysTime (char *pszOut, size_t nSize)
  * システム現在時刻を取得
  * MM/dd HH:mm:ss.sss形式
  */
-static void getSysTimeMs (char *pszOut, size_t nSize)
+static void get_sys_time_ms (char *psz_out, size_t n_size)
 {
-	struct tm *pstTmLocal = NULL;
-	struct tm stTmLocalTmp;
+	struct tm *pst_tm_local = NULL;
+	struct tm st_tm_local_tmp;
 	struct timespec ts;
 
 	clock_gettime (CLOCK_REALTIME, &ts);
-	pstTmLocal = localtime_r (&ts.tv_sec, &stTmLocalTmp); /* スレッドセーフ */
+	pst_tm_local = localtime_r (&ts.tv_sec, &st_tm_local_tmp); /* スレッドセーフ */
 
 	snprintf (
-		pszOut,
-		nSize,
+		psz_out,
+		n_size,
 		"%02d/%02d %02d:%02d:%02d.%03ld",
-		pstTmLocal->tm_mon+1,
-		pstTmLocal->tm_mday,
-		pstTmLocal->tm_hour,
-		pstTmLocal->tm_min,
-		pstTmLocal->tm_sec,
+		pst_tm_local->tm_mon+1,
+		pst_tm_local->tm_mday,
+		pst_tm_local->tm_hour,
+		pst_tm_local->tm_min,
+		pst_tm_local->tm_sec,
 		ts.tv_nsec/1000000
 	);
 }
@@ -245,38 +245,38 @@ static void getSysTimeMs (char *pszOut, size_t nSize)
  * pthread名称を出力
  * ログマクロ用
  */
-void putsThreadName (void)
+void puts_thread_name (void)
 {
-	char szPutName [THREAD_NAME_STRING_SIZE];
-	memset (szPutName, 0x00, THREAD_NAME_STRING_SIZE);
-	getThreadName (szPutName, THREAD_NAME_STRING_SIZE);
-	fprintf (stdout, "%s", szPutName);
+	char sz_put_name [THREAD_NAME_STRING_SIZE];
+	memset (sz_put_name, 0x00, THREAD_NAME_STRING_SIZE);
+	get_thread_name (sz_put_name, THREAD_NAME_STRING_SIZE);
+	fprintf (stdout, "%s", sz_put_name);
 }
 
 /**
  * pthread名称を取得
  */
-void getThreadName (char *pszOut, size_t nSize)
+void get_thread_name (char *psz_out, size_t n_size)
 {
-	char szName[16];
-	memset (szName, 0x00, sizeof(szName));
-	pthread_getname_np (pthread_self(), szName, sizeof(szName));
+	char sz_name[16];
+	memset (sz_name, 0x00, sizeof(sz_name));
+	pthread_getname_np (pthread_self(), sz_name, sizeof(sz_name));
 
-	strncpy (pszOut, szName, nSize -1);
-	uint32_t len = (uint32_t)strlen(pszOut);
+	strncpy (psz_out, sz_name, n_size -1);
+	uint32_t len = (uint32_t)strlen(psz_out);
 	if (len < THREAD_NAME_STRING_SIZE -1) {
 		int i = 0;
 		for (i = 0; i < (THREAD_NAME_STRING_SIZE -1 -len); i ++) {
-			*(pszOut + len + i) = ' ';
+			*(psz_out + len + i) = ' ';
 		}
 	}
 }
 
 /**
- * getTimeOfDay wrapper
+ * get_time_of_day wrapper
  * gettimeofdayはスレッドセーフ
  */
-void getTimeOfDay (struct timeval *p)
+void get_time_of_day (struct timeval *p)
 {
 	if (!p) {
 		return ;
@@ -288,90 +288,90 @@ void getTimeOfDay (struct timeval *p)
 /**
  * ログ出力用 FP切り替え
  */
-void setLogFileptr (FILE *p)
+void set_log_fileptr (FILE *p)
 {
 	if (p) {
-		g_fpLog = p;
+		g_fp_log = p;
 	}
 }
 
 /**
  * ログ出力用 FP取得
  */
-FILE* getLogFileptr (void)
+FILE* get_log_fileptr (void)
 {
-	return g_fpLog;
+	return g_fp_log;
 }
 
-void setAlternativeLog (void (*_fn)(
-		FILE *pFp,
-		EN_LOG_TYPE enLogType,
-		const char *pszFile,
-		const char *pszFunc,
-		int nLine,
-		const char *pszFormat,
+void set_alternative_log (void (*_fn)(
+		FILE *p_fp,
+		EN_LOG_TYPE en_log_type,
+		const char *psz_file,
+		const char *psz_func,
+		int n_line,
+		const char *psz_format,
 		...
 	)
 )
 {
-	__putsLog = _fn;
+	__puts_log = _fn;
 }
 
 /**
- * putsLog インターフェース
+ * puts_log インターフェース
  * ログ出力
  */
-void putsLog (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine,
-	const char *pszFormat,
+void puts_log (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_file,
+	const char *psz_func,
+	int n_line,
+	const char *psz_format,
 	...
 )
 {
-	if (!pFp) {
+	if (!p_fp) {
 		return;
 	}
 
 	va_list va;
-	va_start (va, pszFormat); 
-	putsLogInner (pFp, enLogType, pszFile, pszFunc, nLine, pszFormat, va);
+	va_start (va, psz_format); 
+	puts_log_inner (p_fp, en_log_type, psz_file, psz_func, n_line, psz_format, va);
 	va_end (va);
 }
 
 /**
- * putsLogInner
+ * puts_log_inner
  * ログ出力
  */
-void putsLogInner (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine,
-	const char *pszFormat,
+void puts_log_inner (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_file,
+	const char *psz_func,
+	int n_line,
+	const char *psz_format,
 	va_list va
 )
 {
-	if (!pFp || !pszFile || !pszFunc || !pszFormat) {
+	if (!p_fp || !psz_file || !psz_func || !psz_format) {
 		return ;
 	}
 
-	char szBufVa [LOG_STRING_SIZE];
-	char szTime [SYSTIME_MS_STRING_SIZE];
-    char szThreadName [THREAD_NAME_STRING_SIZE];
+	char sz_buf_va [LOG_STRING_SIZE];
+	char sz_time [SYSTIME_MS_STRING_SIZE];
+    char sz_thread_name [THREAD_NAME_STRING_SIZE];
 	char type;
-	char szPerror[32];
-	char *pszPerror = NULL;
+	char sz_perror[32];
+	char *psz_perror = NULL;
 
-	memset (szBufVa, 0x00, sizeof (szBufVa));
-	memset (szTime, 0x00, sizeof (szTime));
-    memset (szThreadName, 0x00, sizeof (szThreadName));
-	memset (szPerror, 0x00, sizeof (szPerror));
+	memset (sz_buf_va, 0x00, sizeof (sz_buf_va));
+	memset (sz_time, 0x00, sizeof (sz_time));
+    memset (sz_thread_name, 0x00, sizeof (sz_thread_name));
+	memset (sz_perror, 0x00, sizeof (sz_perror));
 
-	switch (enLogType) {
+	switch (en_log_type) {
 	case EN_LOG_TYPE_D:
 		type = 'D';
 		break;
@@ -383,28 +383,28 @@ void putsLogInner (
 	case EN_LOG_TYPE_W:
 		type = 'W';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, THM_TEXT_BOLD_TYPE);
-		fprintf (pFp, THM_TEXT_YELLOW);
+		fprintf (p_fp, THM_TEXT_BOLD_TYPE);
+		fprintf (p_fp, THM_TEXT_YELLOW);
 #endif
 		break;
 
 	case EN_LOG_TYPE_E:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, THM_TEXT_UNDER_LINE);
-		fprintf (pFp, THM_TEXT_BOLD_TYPE);
-		fprintf (pFp, THM_TEXT_RED);
+		fprintf (p_fp, THM_TEXT_UNDER_LINE);
+		fprintf (p_fp, THM_TEXT_BOLD_TYPE);
+		fprintf (p_fp, THM_TEXT_RED);
 #endif
 		break;
 
 	case EN_LOG_TYPE_PE:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, THM_TEXT_REVERSE);
-		fprintf (pFp, THM_TEXT_BOLD_TYPE);
-		fprintf (pFp, THM_TEXT_MAGENTA);
+		fprintf (p_fp, THM_TEXT_REVERSE);
+		fprintf (p_fp, THM_TEXT_BOLD_TYPE);
+		fprintf (p_fp, THM_TEXT_MAGENTA);
 #endif
-		pszPerror = strerror_r(errno, szPerror, sizeof (szPerror));
+		psz_perror = strerror_r(errno, sz_perror, sizeof (sz_perror));
 		break;
 
 	default:
@@ -412,26 +412,26 @@ void putsLogInner (
 		break;
 	}
 
-	vsnprintf (szBufVa, sizeof(szBufVa), pszFormat, va);
+	vsnprintf (sz_buf_va, sizeof(sz_buf_va), psz_format, va);
 
-	getSysTimeMs (szTime, SYSTIME_MS_STRING_SIZE);
-	getThreadName (szThreadName, THREAD_NAME_STRING_SIZE);
+	get_sys_time_ms (sz_time, SYSTIME_MS_STRING_SIZE);
+	get_thread_name (sz_thread_name, THREAD_NAME_STRING_SIZE);
 
 #if 0
-	deleteLF (szBufVa);
-	switch (enLogType) {
+	delete_lF (sz_buf_va);
+	switch (en_log_type) {
 	case EN_LOG_TYPE_PE:
 		fprintf (
-			pFp,
+			p_fp,
 			"[%s] %c %s  %s: %s   src=[%s %s()] line=[%d]\n",
-			szThreadName,
+			sz_thread_name,
 			type,
-			szTime,
-			szBufVa,
-			pszPerror,
-			pszFile,
-			pszFunc,
-			nLine
+			sz_time,
+			sz_buf_va,
+			psz_perror,
+			psz_file,
+			psz_func,
+			n_line
 		);
 		break;
 
@@ -440,56 +440,56 @@ void putsLogInner (
 	case EN_LOG_TYPE_E:
 	default:
 		fprintf (
-			pFp,
+			p_fp,
 			"[%s] %c %s  %s   src=[%s %s()] line=[%d]\n",
-			szThreadName,
+			sz_thread_name,
 			type,
-			szTime,
-			szBufVa,
-			pszFile,
-			pszFunc,
-			nLine
+			sz_time,
+			sz_buf_va,
+			psz_file,
+			psz_func,
+			n_line
 		);
 		break;
 	}
-	fflush (pFp);
+	fflush (p_fp);
 
 #else
 	char *token = NULL;
 	char *saveptr = NULL;
-	char *s = szBufVa;
+	char *s = sz_buf_va;
 	int n = 0;
 	while (1) {
 		token = strtok_r_impl (s, "\n", &saveptr);
 		if (token == NULL) {
-			if (n == 0 && (int)strlen(szBufVa) > 0) {
-				putsLogFprintf (
-					pFp,
-					enLogType,
-					szThreadName,
+			if (n == 0 && (int)strlen(sz_buf_va) > 0) {
+				puts_log_fprintf (
+					p_fp,
+					en_log_type,
+					sz_thread_name,
 					type,
-					szTime,
-					szBufVa,
-					pszPerror,
-					pszFile,
-					pszFunc,
-					nLine
+					sz_time,
+					sz_buf_va,
+					psz_perror,
+					psz_file,
+					psz_func,
+					n_line
 				);
 			}
 			break;
 		}
 
-		putsLogFprintf (
-			pFp,
-			enLogType,
-			szThreadName,
+		puts_log_fprintf (
+			p_fp,
+			en_log_type,
+			sz_thread_name,
 			type,
-			szTime,
+			sz_time,
 			token,
-			pszPerror,
-			pszFile,
-			pszFunc,
-			nLine
+			psz_perror,
+			psz_file,
+			psz_func,
+			n_line
 		);
 
 		s = NULL;
@@ -498,45 +498,45 @@ void putsLogInner (
 #endif
 
 #ifndef _LOG_COLOR_OFF
-	fprintf (pFp, THM_TEXT_ATTR_RESET);
+	fprintf (p_fp, THM_TEXT_ATTR_RESET);
 #endif
-	fflush (pFp);
+	fflush (p_fp);
 }
 
 /**
- * putsLogFprintf
+ * puts_log_fprintf
  * 根っこのfpritfするところ
  */
-void putsLogFprintf (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszThreadName,
+void puts_log_fprintf (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_thread_name,
 	char type,
-	const char *pszTime,
-	const char *pszBuf,
-	const char *pszPerror,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine
+	const char *psz_time,
+	const char *psz_buf,
+	const char *psz_perror,
+	const char *psz_file,
+	const char *psz_func,
+	int n_line
 )
 {
-	if (!pFp || !pszTime || !pszBuf || !pszFile || !pszFunc) {
+	if (!p_fp || !psz_time || !psz_buf || !psz_file || !psz_func) {
 		return ;
 	}
 
-	switch (enLogType) {
+	switch (en_log_type) {
 	case EN_LOG_TYPE_PE:
 		fprintf (
-			pFp,
+			p_fp,
 			"[%s] %c %s  %s: %s   src=[%s %s()] line=[%d]\n",
-			pszThreadName,
+			psz_thread_name,
 			type,
-			pszTime,
-			pszBuf,
-			pszPerror,
-			pszFile,
-			pszFunc,
-			nLine
+			psz_time,
+			psz_buf,
+			psz_perror,
+			psz_file,
+			psz_func,
+			n_line
 		);
 		break;
 
@@ -546,83 +546,83 @@ void putsLogFprintf (
 	case EN_LOG_TYPE_E:
 	default:
 		fprintf (
-			pFp,
+			p_fp,
 			"[%s] %c %s  %s   src=[%s %s()] line=[%d]\n",
-			pszThreadName,
+			psz_thread_name,
 			type,
-			pszTime,
-			pszBuf,
-			pszFile,
-			pszFunc,
-			nLine
+			psz_time,
+			psz_buf,
+			psz_file,
+			psz_func,
+			n_line
 		);
 		break;
 	}
 
-	fflush (pFp);
+	fflush (p_fp);
 }
 
-void setAlternativeLogLW (void (*_fn)(
-		FILE *pFp,
-		EN_LOG_TYPE enLogType,
-		const char *pszFormat,
+void set_alternative_log_LW (void (*_fn)(
+		FILE *p_fp,
+		EN_LOG_TYPE en_log_type,
+		const char *psz_format,
 		...
 	)
 )
 {
-	__putsLogLW = _fn;
+	__puts_log_LW = _fn;
 }
 
 /**
- * putsLogLW インターフェース
+ * puts_log_LW インターフェース
  * ログ出力
  * (src,lineなし)
  */
-void putsLogLW (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFormat,
+void puts_log_LW (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_format,
 	...
 )
 {
-	if (!pFp) {
+	if (!p_fp) {
 		return;
 	}
 
 	va_list va;
-	va_start (va, pszFormat);
-	putsLogInnerLW (pFp, enLogType, pszFormat, va);
+	va_start (va, psz_format);
+	puts_log_inner_LW (p_fp, en_log_type, psz_format, va);
 	va_end (va);
 }
 
 /**
- * putsLogInnerLW
+ * puts_log_inner_LW
  * ログ出力 src lineなし
  */
-void putsLogInnerLW (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFormat,
+void puts_log_inner_LW (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_format,
 	va_list va
 )
 {
-	if (!pFp || !pszFormat) {
+	if (!p_fp || !psz_format) {
 		return ;
 	}
 
-	char szBufVa [LOG_STRING_SIZE];
-	char szTime [SYSTIME_MS_STRING_SIZE];
-    char szThreadName [THREAD_NAME_STRING_SIZE];
+	char sz_buf_va [LOG_STRING_SIZE];
+	char sz_time [SYSTIME_MS_STRING_SIZE];
+    char sz_thread_name [THREAD_NAME_STRING_SIZE];
 	char type;
-	char szPerror[32];
-	char *pszPerror = NULL;
+	char sz_perror[32];
+	char *psz_perror = NULL;
 
-	memset (szBufVa, 0x00, sizeof (szBufVa));
-	memset (szTime, 0x00, sizeof (szTime));
-    memset (szThreadName, 0x00, sizeof (szThreadName));
-	memset (szPerror, 0x00, sizeof (szPerror));
+	memset (sz_buf_va, 0x00, sizeof (sz_buf_va));
+	memset (sz_time, 0x00, sizeof (sz_time));
+    memset (sz_thread_name, 0x00, sizeof (sz_thread_name));
+	memset (sz_perror, 0x00, sizeof (sz_perror));
 
-	switch (enLogType) {
+	switch (en_log_type) {
 	case EN_LOG_TYPE_D:
 		type = 'D';
 		break;
@@ -634,28 +634,28 @@ void putsLogInnerLW (
 	case EN_LOG_TYPE_W:
 		type = 'W';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, THM_TEXT_BOLD_TYPE);
-		fprintf (pFp, THM_TEXT_YELLOW);
+		fprintf (p_fp, THM_TEXT_BOLD_TYPE);
+		fprintf (p_fp, THM_TEXT_YELLOW);
 #endif
 		break;
 
 	case EN_LOG_TYPE_E:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, THM_TEXT_UNDER_LINE);
-		fprintf (pFp, THM_TEXT_BOLD_TYPE);
-		fprintf (pFp, THM_TEXT_RED);
+		fprintf (p_fp, THM_TEXT_UNDER_LINE);
+		fprintf (p_fp, THM_TEXT_BOLD_TYPE);
+		fprintf (p_fp, THM_TEXT_RED);
 #endif
 		break;
 
 	case EN_LOG_TYPE_PE:
 		type = 'E';
 #ifndef _LOG_COLOR_OFF
-		fprintf (pFp, THM_TEXT_REVERSE);
-		fprintf (pFp, THM_TEXT_BOLD_TYPE);
-		fprintf (pFp, THM_TEXT_MAGENTA);
+		fprintf (p_fp, THM_TEXT_REVERSE);
+		fprintf (p_fp, THM_TEXT_BOLD_TYPE);
+		fprintf (p_fp, THM_TEXT_MAGENTA);
 #endif
-		pszPerror = strerror_r(errno, szPerror, sizeof (szPerror));
+		psz_perror = strerror_r(errno, sz_perror, sizeof (sz_perror));
 		break;
 
 	default:
@@ -663,23 +663,23 @@ void putsLogInnerLW (
 		break;
 	}
 
-	vsnprintf (szBufVa, sizeof(szBufVa), pszFormat, va);
+	vsnprintf (sz_buf_va, sizeof(sz_buf_va), psz_format, va);
 
-	getSysTimeMs (szTime, SYSTIME_MS_STRING_SIZE);
-	getThreadName (szThreadName, THREAD_NAME_STRING_SIZE);
+	get_sys_time_ms (sz_time, SYSTIME_MS_STRING_SIZE);
+	get_thread_name (sz_thread_name, THREAD_NAME_STRING_SIZE);
 
 #if 0
-	deleteLF (szBufVa);
-	switch (enLogType) {
+	delete_lF (sz_buf_va);
+	switch (en_log_type) {
 	case EN_LOG_TYPE_PE:
 		fprintf (
-			pFp,
+			p_fp,
 			"[%s] %c %s  %s: %s\n",
-			szThreadName,
+			sz_thread_name,
 			type,
-			szTime,
-			szBufVa,
-			pszPerror
+			sz_time,
+			sz_buf_va,
+			psz_perror
 		);
 		break;
 
@@ -688,47 +688,47 @@ void putsLogInnerLW (
 	case EN_LOG_TYPE_E:
 	default:
 		fprintf (
-			pFp,
+			p_fp,
 			"[%s] %c %s  %s\n",
-			szThreadName,
+			sz_thread_name,
 			type,
-			szTime,
-			szBufVa
+			sz_time,
+			sz_buf_va
 		);
 		break;
 	}
-	fflush (pFp);
+	fflush (p_fp);
 
 #else
 	char *token = NULL;
 	char *saveptr = NULL;
-	char *s = szBufVa;
+	char *s = sz_buf_va;
 	int n = 0;
 	while (1) {
 		token = strtok_r_impl (s, "\n", &saveptr);
 		if (token == NULL) {
-			if (n == 0 && (int)strlen(szBufVa) > 0) {
-				putsLogFprintfLW (
-					pFp,
-					enLogType,
-					szThreadName,
+			if (n == 0 && (int)strlen(sz_buf_va) > 0) {
+				puts_log_fprintf_LW (
+					p_fp,
+					en_log_type,
+					sz_thread_name,
 					type,
-					szTime,
-					szBufVa,
-					pszPerror
+					sz_time,
+					sz_buf_va,
+					psz_perror
 				);
 			}
 			break;
 		}
 
-		putsLogFprintfLW (
-			pFp,
-			enLogType,
-			szThreadName,
+		puts_log_fprintf_LW (
+			p_fp,
+			en_log_type,
+			sz_thread_name,
 			type,
-			szTime,
+			sz_time,
 			token,
-			pszPerror
+			psz_perror
 		);
 
 		s = NULL;
@@ -737,40 +737,40 @@ void putsLogInnerLW (
 #endif
 
 #ifndef _LOG_COLOR_OFF
-	fprintf (pFp, THM_TEXT_ATTR_RESET);
+	fprintf (p_fp, THM_TEXT_ATTR_RESET);
 #endif
-	fflush (pFp);
+	fflush (p_fp);
 }
 
 /**
- * putsLogFprintfLW
+ * puts_log_fprintf_LW
  * 根っこのfpritfするところ
  * (src,lineなし)
  */
-void putsLogFprintfLW (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszThreadName,
+void puts_log_fprintf_LW (
+	FILE *p_fp,
+	EN_LOG_TYPE en_log_type,
+	const char *psz_thread_name,
 	char type,
-	const char *pszTime,
-	const char *pszBuf,
-	const char *pszPerror
+	const char *psz_time,
+	const char *psz_buf,
+	const char *psz_perror
 )
 {
-	if (!pFp || !pszTime || !pszBuf) {
+	if (!p_fp || !psz_time || !psz_buf) {
 		return ;
 	}
 
-	switch (enLogType) {
+	switch (en_log_type) {
 	case EN_LOG_TYPE_PE:
 		fprintf (
-			pFp,
+			p_fp,
 			"[%s] %c %s  %s: %s\n",
-			pszThreadName,
+			psz_thread_name,
 			type,
-			pszTime,
-			pszBuf,
-			pszPerror
+			psz_time,
+			psz_buf,
+			psz_perror
 		);
 		break;
 
@@ -780,25 +780,25 @@ void putsLogFprintfLW (
 	case EN_LOG_TYPE_E:
 	default:
 		fprintf (
-			pFp,
+			p_fp,
 			"[%s] %c %s  %s\n",
-			pszThreadName,
+			psz_thread_name,
 			type,
-			pszTime,
-			pszBuf
+			psz_time,
+			psz_buf
 		);
 		break;
 	}
 
-	fflush (pFp);
+	fflush (p_fp);
 }
 
 /**
- * deleteLF
+ * delete_lF
  * 改行コードLFを削除  (文字列末尾についてるものだけです)
  * CRLFの場合 CRも削除する
  */
-void deleteLF (char *p)
+void delete_LF (char *p)
 {
 	if ((!p) || ((int)strlen(p) == 0)) {
 		return;
@@ -818,23 +818,23 @@ void deleteLF (char *p)
 }
 
 /**
- * putsBackTrace
+ * puts_backtrace
  *
  * libc のbacktrace
  */
 extern int backtrace(void **array, int size) __attribute__ ((weak));
 extern char **backtrace_symbols(void *const *array, int size) __attribute__ ((weak));
-void putsBackTrace (void)
+void puts_backtrace (void)
 {
 	int i;
 	int n;
-	void *pBuff [BACKTRACE_BUFF_SIZE];
-	char **pRtn;
+	void *p_buff [BACKTRACE_BUFF_SIZE];
+	char **p_rtn;
 
 	if (backtrace) {
-		n = backtrace (pBuff, BACKTRACE_BUFF_SIZE);
-		pRtn = backtrace_symbols (pBuff, n);
-		if (!pRtn) {
+		n = backtrace (p_buff, BACKTRACE_BUFF_SIZE);
+		p_rtn = backtrace_symbols (p_buff, n);
+		if (!p_rtn) {
 			THM_PERROR ("backtrace_symbols()");
 			return;
 		}
@@ -842,10 +842,10 @@ void putsBackTrace (void)
 		THM_LOG_W ("============================================================\n");
 		THM_LOG_W ("----- pid=%d tid=%ld -----\n", getpid(), syscall(SYS_gettid));
 		for (i = 0; i < n; i ++) {
-			THM_LOG_W ("%s\n", pRtn[i]);
+			THM_LOG_W ("%s\n", p_rtn[i]);
 		}
 		THM_LOG_W ("============================================================\n");
-		free (pRtn);
+		free (p_rtn);
 
 	} else {
 		THM_LOG_W ("============================================================\n");
