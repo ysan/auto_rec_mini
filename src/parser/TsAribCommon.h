@@ -14,7 +14,7 @@
 
 
 #define TS_PACKET_LEN					(188)
-#define SYNC_BYTE						(0x47)
+#define TS_SYNC_BYTE					(0x47)
 #define TS_HEADER_LEN					(4)
 #define SECTION_HEADER_LEN				(8)
 #define SECTION_HEADER_FIX_LEN			(5) // after section_length

@@ -8,8 +8,6 @@
 #include "Utils.h"
 
 
-const uint32_t CTsParser::INNER_BUFF_SIZE = 65535*5;
-
 CTsParser::CTsParser (void)
 	:mp_top (NULL)
 	,mp_current (NULL)
@@ -18,7 +16,6 @@ CTsParser::CTsParser (void)
 	,m_parse_remain_len (0)
 	,mp_listener (NULL)
 {
-//	memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
 	std::unique_ptr<uint8_t[]> up (new uint8_t[INNER_BUFF_SIZE]);
 	m_inner_buff.swap(up);
 }
@@ -35,7 +32,6 @@ CTsParser::CTsParser (IParserListener *p_listener)
 		mp_listener = p_listener;
 	}
 
-//	memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
 	std::unique_ptr<uint8_t[]> up (new uint8_t[INNER_BUFF_SIZE]);
 	m_inner_buff.swap(up);
 }
@@ -50,103 +46,34 @@ void CTsParser::run (uint8_t *p_buff, size_t size)
 		return ;
 	}
 
-
-#if 0
-	allocInnerBuffer (p_buff, size);
-	parse ();
-
-#else
-//	mp_top = &m_inner_buff[0];
 	mp_top = m_inner_buff.get();
-	if (copyInnerBuffer (p_buff, size) == buff_state::FULL) {
+	if (copy_to_inner_buffer (p_buff, size) == buff_state::FULL) {
 
 		mp_current = mp_top;
 		parse ();
 
 		if (m_parse_remain_len > 0) {
-//			memcpy (m_inner_buff, mp_bottom - m_parse_remain_len, m_parse_remain_len);
-//			mp_bottom = &m_inner_buff[0] + m_parse_remain_len;
 			memcpy (mp_top, mp_bottom - m_parse_remain_len, m_parse_remain_len);
 			mp_bottom = mp_top + m_parse_remain_len;
 		} else {
-//			mp_bottom = &m_inner_buff[0];
 			mp_bottom = mp_top;
 		}
 
-		if (copyInnerBuffer (p_buff, size) != buff_state::CACHING) {
-			_UTL_LOG_E ("unexpected copyInnerBuffer");
+		if (copy_to_inner_buffer (p_buff, size) != buff_state::CACHING) {
+			_UTL_LOG_E ("unexpected copy_to_inner_buffer");
 			return;
 		}
 	}
-#endif
-
 }
 
-//TODO 足らなくなったら拡張 全部貯めるかたち
-bool CTsParser::allocInnerBuffer (uint8_t *p_buff, size_t size)
-{
-	if ((!p_buff) || (size == 0)) {
-		return false;
-	}
-
-	size_t total_data_size = (mp_bottom - mp_top) + size;
-
-	if (m_buff_size >= total_data_size) {
-		// 	実コピー
-		memcpy (mp_bottom, p_buff, size);
-		mp_current = mp_bottom - m_parse_remain_len;  // current update
-		mp_bottom += size;
-		_UTL_LOG_D ("allocInnerBuffer size=%lu remain=%lu\n", m_buff_size, m_buff_size - total_data_size);
-		return true;
-	}
-
-	// 残りサイズ足りないので確保 初回もここに
-
-	size_t n = 512;
-	while (n < (size + m_buff_size)) {
-		n += n;
-	}
-
-	uint8_t *p = (uint8_t*) malloc (n);
-	if (!p) {
-		return false;
-	}
-	memset (p, 0x00, n);
-
-
-	int m = 0;
-	if (mp_top != NULL) {
-		// 既にデータ入っている場合はそれをコピーして 元は捨てます
-		m = mp_bottom - mp_top;
-		if (m > 0) {
-			memcpy(p, mp_top, m);
-		}
-		free (mp_top);
-		mp_top = NULL;
-    }
-	mp_top = p;
-	mp_bottom = p + m;
-    m_buff_size = n;
-
-
-	// 	実コピー
-	memcpy (mp_bottom, p_buff, size);
-	mp_current = mp_bottom - m_parse_remain_len;  // current update
-	mp_bottom += size;
-
-	_UTL_LOG_D ("allocInnerBuffer(malloc) top=%p bottom=%p size=%lu remain=%lu\n", mp_top, mp_bottom, m_buff_size, m_buff_size - total_data_size);
-	return true;
-}
-
-// 静的領域にコピー
-CTsParser::buff_state CTsParser::copyInnerBuffer (uint8_t *p_buff, size_t size)
+CTsParser::buff_state CTsParser::copy_to_inner_buffer (uint8_t *p_buff, size_t size)
 {
 	if ((!p_buff) || (size == 0)) {
 		return buff_state::CACHING;
 	}
 
 	if (size > INNER_BUFF_SIZE) {
-		_UTL_LOG_E ("copyInnerBuffer: size > INNER_BUFF_SIZE\n");
+		_UTL_LOG_E ("copy_to_inner_buffer: size > INNER_BUFF_SIZE\n");
 		return buff_state::CACHING;
 	}
 
@@ -173,143 +100,117 @@ CTsParser::buff_state CTsParser::copyInnerBuffer (uint8_t *p_buff, size_t size)
 	}
 }
 
-int CTsParser::getUnitSize (void) const
+int CTsParser::get_unit_size (void) const
 {
-	int i = 0;
-	int m = 0;
-	int n = 0;
-//	int w = 0;
-	int count [320-188] = {0};
-
-
+	int unit_size = 0;
 	uint8_t *p_cur = mp_current;
-	memset (count, 0x00, sizeof(count));
 
-	while ((p_cur + 188) < mp_bottom) {
-		if (*p_cur != SYNC_BYTE) {
+	while ((p_cur + 204*3) < mp_bottom) {
+		if((*p_cur == TS_SYNC_BYTE) && (*(p_cur+188) == TS_SYNC_BYTE) && (*(p_cur+188*2) == TS_SYNC_BYTE)) {
+			unit_size = 188;
+			p_cur += 188*2;
+
+		} else if((*p_cur == TS_SYNC_BYTE) && (*(p_cur+192) == TS_SYNC_BYTE) && (*(p_cur+192*2) == TS_SYNC_BYTE)) {
+			// TTS(Timestamped TS)
+			unit_size = 192;
+			p_cur += 192*2;
+
+		} else if((*p_cur == TS_SYNC_BYTE) && (*(p_cur+204) == TS_SYNC_BYTE) && (*(p_cur+204*2) == TS_SYNC_BYTE)) {
+			// added FEC(Forward Error Correction)
+			unit_size = 204;
+			p_cur += 204*2;
+
+		} else {
 			++ p_cur;
-			continue;
-		}
-
-		m = 320;
-		if ((p_cur+m) > mp_bottom) {
-			// mを 320満たないのでまでにbottomに切り詰め
-			m = mp_bottom - p_cur;
-		}
-//printf("%p m=%d ", p_cur, m);
-
-		for (i = 188; i < m; i ++) {
-			if(*(p_cur+i) == SYNC_BYTE){
-				// 今見つかったSYNC_BYTEから以降の(320-188)byte間に
-				// SYNC_BYTEがあったら カウント
-				count [i-188] += 1;
-			}
-		}
-
-		++ p_cur;
-
-//for (int iii=0; iii < 320-188; iii++) {
-// printf ("%d", count[iii]);
-//}
-//printf ("\n");
-	}
-
-	// 最大回数m をみてSYNC_BYTE出現間隔nを決める
-	m = 0;
-	n = 0;
-	for (i = 188; i < 320; i ++) {
-		if (m < count [i-188]) {
-			m = count [i-188];
-			n = i;
 		}
 	}
-	_UTL_LOG_D ("max_interval count m=%d  max_interval n=%d\n", m, n);
 
-	//TODO
-//	w = m*n;
-//	if ((m < 8) || ((w+3*n) < (mp_bottom-mp_current))) {
-//		return false;
-//	}
-
-	return n;
+	return unit_size;
 }
 
-uint8_t * CTsParser::getSyncTopAddr (uint8_t *p_top, uint8_t *p_btm, size_t unit_size) const
+uint8_t * CTsParser::get_sync_top_addr (uint8_t *p_start, uint8_t *p_end, size_t unit_size) const
 {
-	if ((!p_top) || (!p_btm) || (unit_size == 0)) {
+	if ((!p_start) || (!p_end) || (unit_size == 0)) {
 		return NULL;
 	}
 
-	if ((uint32_t)(p_btm - p_top) >= (unit_size * 8)) {
+	if ((uint32_t)(p_end - p_start) >= (unit_size * 8)) {
 		// unit_size 8コ分のデータがあること
-		p_btm -= unit_size * 8;
+		p_end -= unit_size * 8;
 	} else {
 		return NULL;
 	}
 
 	int i = 0;
-	while (p_top <= p_btm) {
-		if (*p_top == SYNC_BYTE) {
+	while (p_start <= p_end) {
+		if (*p_start == TS_SYNC_BYTE) {
 			for (i = 0; i < 8; ++ i) {
-				if (*(p_top + (unit_size * (i + 1))) != SYNC_BYTE) {
+				if (*(p_start + (unit_size * (i + 1))) != TS_SYNC_BYTE) {
 					break;
 				}
 			}
-			// 以降 8回全てSYNC_BYTEで一致したら p_topは先頭です
+			// 以降 8回全てTS_SYNC_BYTEで一致したら startは先頭です
 			if (i == 8) {
-				return p_top;
+				return p_start;
 			}
 		}
-		++ p_top ;
+		++ p_start ;
 	}
 
 	return NULL;
 }
 
-bool CTsParser::parse (void)
+int CTsParser::check_unit_size (void)
 {
-	// check unit size
 	size_t unit_size = 0;
 	size_t skip_bytes = 512;
 	int err_cnt = 0;
 	while (1) {
-		unit_size = getUnitSize();
-		if (unit_size >= 0 && unit_size < TS_PACKET_LEN) {
+		unit_size = get_unit_size();
+		if (unit_size == 0) {
 			if (err_cnt < 20) {
 				_UTL_LOG_W ("invalid unit_size=[%d]", unit_size);
 			}
 
 			if ((mp_current + skip_bytes) < mp_bottom) {
-				// とりあえず　skip_bytes 分すすめてみます
+				// とりあえず skip_bytes 分すすめてみます
 				mp_current += skip_bytes;
 				++ err_cnt;
 				continue;
 
 			} else {
 				m_parse_remain_len = 0;
-				return false;
+				return 0;
 			}
 
 		} else {
 			break;
 		}
 	}
-	err_cnt = 0;
+	return unit_size;
+}
 
-
+bool CTsParser::parse (void)
+{
+	int unit_size = 0;
+	int err_cnt = 0;
 	TS_HEADER ts_header = {0};
-	uint8_t *p = NULL; //work
 	uint8_t *p_payload = NULL;
 	uint8_t *p_cur = mp_current;
 	uint8_t *p_btm = mp_bottom;
 	size_t payload_size = 0;
 
+	unit_size = check_unit_size();
+	if (unit_size == 0) {
+		return false;
+	}
+
 	while ((p_cur + unit_size) < p_btm) {
-		if ((*p_cur != SYNC_BYTE) && (*(p_cur + unit_size) != SYNC_BYTE)) {
-			p = getSyncTopAddr (p_cur, p_btm, unit_size);
-			if (!p) {
+		if ((*p_cur != TS_SYNC_BYTE) && (*(p_cur + unit_size) != TS_SYNC_BYTE)) {
+			uint8_t *top = get_sync_top_addr (p_cur, p_btm, unit_size);
+			if (!top) {
 				if (err_cnt < 20) {
-					_UTL_LOG_W ("invalid getSyncTopAddr (%p-%p) unit_size=[%d]", p_cur, p_btm, unit_size);
+					_UTL_LOG_W ("invalid get_sync_top_addr (%p-%p) unit_size=[%d]", p_cur, p_btm, unit_size);
 				}
 				p_cur += unit_size;
 				++ err_cnt;
@@ -317,7 +218,7 @@ bool CTsParser::parse (void)
 			}
 
 			// sync update
-			p_cur = p;
+			p_cur = top;
 		}
 
 		ts_header.parse (p_cur);
@@ -342,7 +243,7 @@ bool CTsParser::parse (void)
 
 
 		if (mp_listener) {
-			mp_listener->onTsPacketAvailable (&ts_header, p_payload, payload_size);
+			mp_listener->on_ts_packet_available (&ts_header, p_payload, payload_size);
 		}
 
 		p_cur += unit_size;

@@ -577,7 +577,7 @@ private:
 	bool on_ts_received (void *p_ts_data, int length) override;
 
 	// CTsParser::IParserListener
-	bool onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size) override;
+	bool on_ts_packet_available (TS_HEADER *p_header, uint8_t *p_payload, size_t payload_size) override;
 
 	// CEventInformationTable_sched::IEventSchedleHandler
 	void onScheduleUpdate (void) override;

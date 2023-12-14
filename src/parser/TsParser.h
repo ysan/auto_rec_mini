@@ -13,8 +13,6 @@
 
 #include "TsAribCommon.h"
 
-//#define INNER_BUFF_SIZE		(65535*5)
-
 
 class CTsParser
 {
@@ -22,11 +20,11 @@ public:
 	class IParserListener {
 	public:
 		virtual ~IParserListener (void) {};
-		virtual bool onTsPacketAvailable (TS_HEADER *p_hdr, uint8_t *p_payload, size_t payload_size) = 0;
+		virtual bool on_ts_packet_available (TS_HEADER *p_header, uint8_t *p_payload, size_t payload_size) = 0;
 	};
 
 public:
-	static const uint32_t INNER_BUFF_SIZE;
+	static constexpr uint32_t INNER_BUFF_SIZE = 65535*5;
 
 	enum class buff_state : int {
 		CACHING = 0,
@@ -37,13 +35,14 @@ public:
 	explicit CTsParser (IParserListener *p_listener);
 	virtual ~CTsParser (void);
 
-	void run (uint8_t *p_buff, size_t size);
+	void run (uint8_t *buff, size_t size);
 
 private:
-	bool allocInnerBuffer (uint8_t *p_buff, size_t size);
-	buff_state copyInnerBuffer (uint8_t *p_buff, size_t size);
-	int getUnitSize (void) const;
-	uint8_t *getSyncTopAddr (uint8_t *p_top, uint8_t *p_bottom, size_t unit_size) const;
+	bool allocate_to_inner_buffer (uint8_t *p_buff, size_t size);
+	buff_state copy_to_inner_buffer (uint8_t *p_buff, size_t size);
+	int get_unit_size (void) const;
+	uint8_t *get_sync_top_addr (uint8_t *p_top, uint8_t *p_bottom, size_t unit_size) const;
+	int check_unit_size (void);
 	bool parse (void);
 
 
@@ -55,7 +54,6 @@ private:
 
 	IParserListener *mp_listener;
 
-//	uint8_t m_inner_buff [INNER_BUFF_SIZE];
 	std::unique_ptr<uint8_t[]> m_inner_buff;
 };
 

@@ -2402,19 +2402,19 @@ bool CPsisiManager::on_ts_received (void *p_ts_data, int length)
 
 //////////  CTsParser::IParserListener  //////////
 
-bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payload, size_t payload_size)
+bool CPsisiManager::on_ts_packet_available (TS_HEADER *p_header, uint8_t *p_payload, size_t payload_size)
 {
-	if (!p_ts_header || !p_payload || payload_size == 0) {
+	if (!p_header || !p_payload || payload_size == 0) {
 		// through
 		return true;
 	}
 
 	bool r = true;
 
-	switch (p_ts_header->pid) {
+	switch (p_header->pid) {
 	case PID_PAT: {
 
-		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::PAT, p_ts_header, p_payload, payload_size);
+		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::PAT, p_header, p_payload, payload_size);
 		r = request_async (
 			static_cast<uint8_t>(modules::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
@@ -2427,7 +2427,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 	case PID_EIT_H: {
 
-		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::EIT_H_PF, p_ts_header, p_payload, payload_size);
+		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::EIT_H_PF, p_header, p_payload, payload_size);
 		r = request_async (
 			static_cast<uint8_t>(modules::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
@@ -2440,7 +2440,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 	case PID_NIT: {
 
-		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::NIT, p_ts_header, p_payload, payload_size);
+		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::NIT, p_header, p_payload, payload_size);
 		r = request_async (
 			static_cast<uint8_t>(modules::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
@@ -2453,7 +2453,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 	case PID_SDT: {
 
-		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::SDT, p_ts_header, p_payload, payload_size);
+		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::SDT, p_header, p_payload, payload_size);
 		r = request_async (
 			static_cast<uint8_t>(modules::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
@@ -2466,7 +2466,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 	case PID_CAT: {
 
-		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::CAT, p_ts_header, p_payload, payload_size);
+		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::CAT, p_header, p_payload, payload_size);
 		r = request_async (
 			static_cast<uint8_t>(modules::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
@@ -2479,7 +2479,7 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 
 	case PID_CDT: {
 
-		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::CDT, p_ts_header, p_payload, payload_size);
+		_parser_notice_t _notice (CPsisiManagerIf::psisi_type::CDT, p_header, p_payload, payload_size);
 		r = request_async (
 			static_cast<uint8_t>(modules::module_id::psisi_manager) + getGroupId(),
 			static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
@@ -2491,17 +2491,17 @@ bool CPsisiManager::onTsPacketAvailable (TS_HEADER *p_ts_header, uint8_t *p_payl
 		break;
 
 //	case PID_RST:
-//		r = mRST.checkSection (p_ts_header, p_payload, payload_size);
+//		r = mRST.checkSection (p_header, p_payload, payload_size);
 //		break;
 
 //	case PID_BIT:
-//		r = mBIT.checkSection (p_ts_header, p_payload, payload_size);
+//		r = mBIT.checkSection (p_header, p_payload, payload_size);
 //		break;
 
 	default:
 		// parse PMT
-		if (m_program_map.has(p_ts_header->pid)) {
-			_parser_notice_t _notice (CPsisiManagerIf::psisi_type::PMT, p_ts_header, p_payload, payload_size);
+		if (m_program_map.has(p_header->pid)) {
+			_parser_notice_t _notice (CPsisiManagerIf::psisi_type::PMT, p_header, p_payload, payload_size);
 			r = request_async (
 				static_cast<uint8_t>(modules::module_id::psisi_manager) + getGroupId(),
 				static_cast<int>(CPsisiManagerIf::sequence::parser_notice),
