@@ -60,17 +60,17 @@ typedef enum {
 extern FILE *g_fp_log;
 extern void (*__puts_log) (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_file,
-	const char *psz_func,
-	int n_line,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *file,
+	const char *func,
+	int line,
+	const char *format,
 	...
 );
 extern void (*__puts_log_LW) (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *format,
 	...
 );
 
@@ -143,40 +143,40 @@ extern "C" {
  */
 extern void puts_sys_time (void);
 extern void puts_thread_name (void);
-extern void get_thread_name (char *psz_out, size_t n_size);
+extern void get_thread_name (char *out, size_t size);
 extern void get_time_of_day (struct timeval *p);
 extern void set_log_fileptr (FILE *p);
 extern FILE* get_log_fileptr (void);
 extern void set_alternative_log (void (*_fn)(
 		FILE *p_fp,
-		EN_LOG_TYPE en_log_type,
-		const char *psz_file,
-		const char *psz_func,
-		int n_line,
-		const char *psz_format,
+		EN_LOG_TYPE log_type,
+		const char *file,
+		const char *func,
+		int line,
+		const char *format,
 		...
 	)
 );
 extern void puts_log (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_file,
-	const char *psz_func,
-	int n_line,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *file,
+	const char *func,
+	int line,
+	const char *format,
 	...
 );
 extern void set_alternative_log_LW (void (*_fn)(
 		FILE *p_fp,
-		EN_LOG_TYPE en_log_type,
-		const char *psz_format,
+		EN_LOG_TYPE log_type,
+		const char *format,
 		...
 	)
 );
 extern void puts_log_LW (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *format,
 	...
 );
 extern void delete_LF (char *p);

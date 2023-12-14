@@ -91,7 +91,7 @@ typedef enum {
 
 typedef enum {
 	EN_MONI_TYPE_INIT = 0,
-	EN_MONI_TYPE_DEUnexpected,
+	EN_MONI_TYPE_DEBUG,
 	EN_MONI_TYPE_DESTROY,
 
 } EN_MONI_TYPE;
@@ -125,7 +125,7 @@ typedef enum {
 
 
 typedef struct que_base {
-	EN_MONI_TYPE en_moni_type;
+	EN_MONI_TYPE moni_type;
 	bool is_used;
 } que_base_t;
 
@@ -138,13 +138,13 @@ typedef struct que_worker {
 	uint8_t src_thread_idx;
 	uint8_t src_seq_idx;
 
-	EN_QUE_TYPE en_que_type;
+	EN_QUE_TYPE que_type;
 
 	/* for Request */
 	uint32_t req_id;
 
 	/* for Reply */
-	EN_THM_RSLT en_rslt;
+	EN_THM_RSLT result;
 
 	/* for Notify */
 	uint8_t client_id;
@@ -173,8 +173,8 @@ typedef struct seq_info {
 
 	/* 以下可変情報 */
 
-	uint8_t sect_id;
-	EN_THM_ACT en_act;
+	uint8_t section_id;
+	EN_THM_ACT action;
 #ifndef _MULTI_REQUESTING
 	uint32_t req_id; // シーケンス中にrequestしたときのreq_id  replyが返ってきたとき照合する
 #endif
@@ -184,12 +184,12 @@ typedef struct seq_info {
 
 	/* Seqタイムアウト情報 */
 	struct {
-		EN_TIMEOUT_STATE en_state;
+		EN_TIMEOUT_STATE state;
 		uint32_t val; // unit:m_s
 		struct timespec time;
 	} timeout;
 
-	uint8_t running_sect_id; // 現在実行中のセクションid dump用
+	uint8_t running_section_id; // 現在実行中のセクションid dump用
 
 } seq_info_t;
 
@@ -199,14 +199,14 @@ typedef struct inner_info {
 	char *name;
 	pthread_t pthread_id;
 	pid_t tid;
-	uint8_t nr_que_worker;
+	uint8_t nr_que_worker_max;
 	que_worker_t *que_worker; // nr_que_worker数分の配列をさします
-	uint8_t nr_seq;
+	uint8_t nr_seq_max;
 	seq_info_t *seq_info; // nr_seq数分の配列をさします
 
 	/* 以下可変情報 */
 
-	EN_STATE en_state;
+	EN_STATE state;
 	que_worker_t now_exec_que_worker;
 
 	uint32_t request_option;
@@ -216,7 +216,7 @@ typedef struct inner_info {
 
 typedef struct sync_reply_info {
 	uint32_t req_id;
-	EN_THM_RSLT en_rslt;
+	EN_THM_RSLT result;
 
 	/* message */
 	struct {
@@ -239,7 +239,7 @@ typedef struct request_id_info {
 
 	/* Reqタイムアウト情報 */
 	struct {
-		EN_TIMEOUT_STATE en_state;
+		EN_TIMEOUT_STATE state;
 		struct timespec time;
 	} timeout;
 
@@ -319,7 +319,7 @@ static pid_t g_tid_sig_wait_thread = 0;
 
 static bool g_is_enable_log = false;
 
-static const char *gpsz_state [EN_STATE_MAX] = {
+static const char *g_state_strings [EN_STATE_MAX] = {
 	// for debug log
 	"STATE_INIT",
 	"STATE_READY",
@@ -327,7 +327,7 @@ static const char *gpsz_state [EN_STATE_MAX] = {
 	"STATE_WAIT_REPLY",
 	"STATE_DESTROY",
 };
-static const char *gpsz_que_type [EN_QUE_TYPE_MAX] = {
+static const char *g_que_type_strings [EN_QUE_TYPE_MAX] = {
 	// for debug log
 	"TYPE_INIT",
 	"TYPE_REQ",
@@ -337,7 +337,7 @@ static const char *gpsz_que_type [EN_QUE_TYPE_MAX] = {
 	"TYPE_REQ_TIMEOUT",
 	"TYPE_DESTROY",
 };
-static const char *gpsz_rslt [EN_THM_RSLT_MAX] = {
+static const char *g_result_strings [EN_THM_RSLT_MAX] = {
 	// for debug log
 	"RSLT_IGNORE",
 	"RSLT_SUCCESS",
@@ -345,14 +345,14 @@ static const char *gpsz_rslt [EN_THM_RSLT_MAX] = {
 	"RSLT_REQ_TIMEOUT",
 	"RSLT_SEQ_TIMEOUT",
 };
-static const char *gpsz_act [EN_THM_ACT_MAX] = {
+static const char *g_action_strings [EN_THM_ACT_MAX] = {
 	// for debug log
 	"ACT_INIT",
 	"ACT_CONTINUE",
 	"ACT_WAIT",
 	"ACT_DONE",
 };
-static const char *gpsz_timeout_state [EN_TIMEOUT_STATE_MAX] = {
+static const char *g_timeout_state_strings [EN_TIMEOUT_STATE_MAX] = {
 	// for debug log
 	"TIMEOUT_STATE_INIT",
 	"TIMEOUT_STATE_MEAS",
@@ -367,7 +367,7 @@ static PFN_DISPATCHER gpfn_dispatcher = NULL; /* for c++ wrapper extension */
 /*
  * Prototypes
  */
-bool setup (const threadmgr_reg_tbl_t *p_tbl, uint8_t n_tbl_max); // extern
+bool setup (const threadmgr_reg_tbl_t *tbl, uint8_t nr_tbl_max); // extern
 static void init (void);
 static void init_que (void);
 static void init_cond_mutex (void);
@@ -379,13 +379,13 @@ static void setup_sem (void);
 static void finaliz_sem (void);
 static void post_sem (void);
 static void wait_sem (void);
-static uint8_t get_total_worker_thread_num (void);
-static void set_total_worker_thread_num (uint8_t n);
-static bool register_threadmgr_tbl (const threadmgr_reg_tbl_t *p_tbl, uint8_t nr_tbl_max);
+static uint8_t get_nr_total_worker_thread (void);
+static void set_nr_total_worker_thread (uint8_t n);
+static bool register_threadmgr_tbl (const threadmgr_reg_tbl_t *tbl, uint8_t nr_tbl_max);
 static void dump_inner_info (void);
 static void clear_inner_info (inner_info_t *p);
 static EN_STATE get_state (uint8_t thread_idx);
-static void set_state (uint8_t thread_idx, EN_STATE en_state);
+static void set_state (uint8_t thread_idx, EN_STATE state);
 static void set_thread_name (char *p);
 static pid_t get_task_id (void);
 static bool is_exist_thread (pid_t tid);
@@ -393,21 +393,21 @@ static void check_worker_thread (void);
 static bool create_base_thread (void);
 static bool create_worker_thread (uint8_t thread_idx);
 static bool create_all_thread (void);
-static bool enque_base (EN_MONI_TYPE en_type);
+static bool enque_base (EN_MONI_TYPE type);
 static que_base_t deque_base (bool is_get_out);
 static void clear_que_base (que_base_t *p);
 static bool enque_worker (
 	uint8_t thread_idx,
 	uint8_t seq_idx,
-	EN_QUE_TYPE en_que_type,
+	EN_QUE_TYPE que_type,
 	context_t *context,
 	uint32_t req_id,
-	EN_THM_RSLT en_rslt,
+	EN_THM_RSLT result,
 	uint8_t client_id,
 	uint8_t *msg,
 	size_t msg_size
 );
-static void dump_que_worker (uint8_t thread_idx);
+static void dumque_worker (uint8_t thread_idx);
 static void dump_que_all_thread (void);
 //static que_worker_t deque_worker (uint8_t thread_idx, bool is_get_out);
 static que_worker_t check2deque_worker (uint8_t thread_idx, bool is_get_out);
@@ -418,7 +418,7 @@ static void check_wait_worker_thread (inner_info_t *inner_info);
 static void *worker_thread (void *arg);
 static void clear_thm_if (threadmgr_if_t *p_if);
 static void clear_thm_src_info (threadmgr_src_info_t *p);
-static bool request_base_thread (EN_MONI_TYPE en_type);
+static bool request_base_thread (EN_MONI_TYPE type);
 static bool request_inner (
 	uint8_t thread_idx,
 	uint8_t seq_idx,
@@ -437,7 +437,7 @@ static bool reply_inner (
 	uint8_t seq_idx,
 	uint32_t req_id,
 	context_t *context,
-	EN_THM_RSLT en_rslt,
+	EN_THM_RSLT result,
 	uint8_t *msg,
 	size_t msg_size,
 	bool is_sync
@@ -445,11 +445,11 @@ static bool reply_inner (
 static bool reply_outer (
 	uint32_t req_id,
 	context_t *context,
-	EN_THM_RSLT en_rslt,
+	EN_THM_RSLT result,
 	uint8_t *msg,
 	size_t msg_size
 );
-static bool reply (EN_THM_RSLT en_rslt, uint8_t *msg, size_t msg_size);
+static bool reply (EN_THM_RSLT result, uint8_t *msg, size_t msg_size);
 static context_t get_context (void);
 static void clear_context (context_t *p);
 static uint32_t get_request_id (uint8_t thread_idx, uint8_t seq_idx);
@@ -467,7 +467,7 @@ static void clear_request_id_info (request_id_info_t *p);
 static bool is_sync_reply_from_request_id (uint8_t thread_idx, uint32_t req_id);
 static bool set_request_id_sync_reply (uint8_t thread_idx, uint32_t req_id);
 static sync_reply_info_t *get_sync_reply_info (uint8_t thread_idx);
-static bool cache_sync_reply_info (uint8_t thread_idx, EN_THM_RSLT en_rslt, uint8_t *msg, size_t msg_size);
+static bool cache_sync_reply_info (uint8_t thread_idx, EN_THM_RSLT result, uint8_t *msg, size_t msg_size);
 static void set_reply_already_sync_reply_info (uint8_t thread_idx);
 static void clear_sync_reply_info (sync_reply_info_t *p);
 static bool register_notify (uint8_t category, uint8_t *pclient_id);
@@ -484,10 +484,10 @@ static bool notify_inner (
 static bool notify (uint8_t category, uint8_t *msg, size_t msg_size);
 static void dump_notify_client_info (void);
 static void clear_notify_client_info (notify_client_info_t *p);
-static void set_sect_id (uint8_t n_sect_id, EN_THM_ACT en_act);
-static void set_sect_id_inner (uint8_t thread_idx, uint8_t seq_idx, uint8_t n_sect_id, EN_THM_ACT en_act);
-static void clear_sect_id (uint8_t thread_idx, uint8_t seq_idx);
-static uint8_t get_sect_id (void);
+static void set_section_id (uint8_t section_id, EN_THM_ACT action);
+static void set_section_id_inner (uint8_t thread_idx, uint8_t seq_idx, uint8_t section_id, EN_THM_ACT action);
+static void clear_section_id (uint8_t thread_idx, uint8_t seq_idx);
+static uint8_t get_section_id (void);
 static uint8_t get_seq_idx (void);
 static const char* get_seq_name (void);
 static void set_timeout (uint32_t timeout_msec);
@@ -513,8 +513,8 @@ static void unlock (void);
 static void set_lock (uint8_t thread_idx, uint8_t seq_idx, bool is_lock);
 static EN_NEAREST_TIMEOUT search_nearetimeout (
 	uint8_t thread_idx,
-	request_id_info_t **p_request_id_info,	// out
-	seq_info_t **p_seq_info				// out
+	request_id_info_t **out_request_id_info,	// out
+	seq_info_t **out_seq_info				// out
 );
 static void add_ext_info_list (external_control_info_t *ext_info);
 static external_control_info_t *search_ext_info_list (pthread_t key);
@@ -624,9 +624,9 @@ static void _signal_handler (int signal)
  * threadmgrの初期化とセットアップ
  * 最初にこれを呼びます
  */
-bool setup (const threadmgr_reg_tbl_t *p_tbl, uint8_t n_tbl_max)
+bool setup (const threadmgr_reg_tbl_t *tbl, uint8_t nr_tbl_max)
 {
-	if ((!p_tbl) || (n_tbl_max == 0)) {
+	if ((!tbl) || (nr_tbl_max == 0)) {
 		THM_INNER_LOG_E ("invalid argument.\n");
 		return false;
 	}
@@ -638,12 +638,12 @@ bool setup (const threadmgr_reg_tbl_t *p_tbl, uint8_t n_tbl_max)
 	/* 以降の生成されたスレッドはこのシグナルマスクを継承する */
 	setup_signal();
 
-	if (!register_threadmgr_tbl (p_tbl, n_tbl_max)) {
+	if (!register_threadmgr_tbl (tbl, nr_tbl_max)) {
 		THM_INNER_LOG_E ("register_threadmgr_tbl() is failure.\n");
 		return false;
 	}
 
-	if (get_total_worker_thread_num() == 0) {
+	if (get_nr_total_worker_thread() == 0) {
 		THM_INNER_LOG_E ("total thread is 0.\n");
 		return false;
 	}
@@ -681,7 +681,7 @@ static void init (void)
 		clear_inner_info (&g_inner_info[i]);
 	}
 
-	set_total_worker_thread_num (0);
+	set_nr_total_worker_thread (0);
 
 
 	/* init request_id_info */
@@ -878,7 +878,7 @@ static void wait_sem (void)
 {
 	uint8_t i = 0;
 
-	for (i = 0; i < get_total_worker_thread_num(); ++ i) {
+	for (i = 0; i < get_nr_total_worker_thread(); ++ i) {
 		sem_wait (&g_sem);
 		THM_INNER_LOG_I ("sem_wait return\n");
 	}
@@ -891,17 +891,17 @@ static void wait_sem (void)
 }
 
 /**
- * get_total_worker_thread_num
+ * get_nr_total_worker_thread
  */
-static uint8_t get_total_worker_thread_num (void)
+static uint8_t get_nr_total_worker_thread (void)
 {
 	return g_nr_total_worker_thread;
 }
 
 /**
- * set_total_worker_thread_num
+ * set_nr_total_worker_thread
  */
-static void set_total_worker_thread_num (uint8_t n)
+static void set_nr_total_worker_thread (uint8_t n)
 {
 	g_nr_total_worker_thread = n;
 }
@@ -910,9 +910,9 @@ static void set_total_worker_thread_num (uint8_t n)
  * register_threadmgr_tbl
  * スレッドテーブルを登録する
  */
-static bool register_threadmgr_tbl (const threadmgr_reg_tbl_t *p_tbl, uint8_t nr_tbl_max)
+static bool register_threadmgr_tbl (const threadmgr_reg_tbl_t *tbl, uint8_t nr_tbl_max)
 {
-	if ((!p_tbl) || (nr_tbl_max == 0)) {
+	if ((!tbl) || (nr_tbl_max == 0)) {
 		THM_INNER_LOG_E ("invalid argument.\n");
 		return false;
 	}
@@ -926,24 +926,24 @@ static bool register_threadmgr_tbl (const threadmgr_reg_tbl_t *p_tbl, uint8_t nr
 			return false;
 		}
 
-		if ((((threadmgr_reg_tbl_t*)p_tbl)->nr_que < QUE_WORKER_MIN) && (((threadmgr_reg_tbl_t*)p_tbl)->nr_que > QUE_WORKER_MAX)) {
+		if ((((threadmgr_reg_tbl_t*)tbl)->nr_que_max < QUE_WORKER_MIN) && (((threadmgr_reg_tbl_t*)tbl)->nr_que_max > QUE_WORKER_MAX)) {
 			THM_INNER_LOG_E ("que num is invalid. (inner thread table)\n");
 			return false;
 		}
 
-		if ((((threadmgr_reg_tbl_t*)p_tbl)->nr_seq <= 0) && (((threadmgr_reg_tbl_t*)p_tbl)->nr_seq > SEQ_IDX_MAX)) {
+		if ((((threadmgr_reg_tbl_t*)tbl)->nr_seq_max <= 0) && (((threadmgr_reg_tbl_t*)tbl)->nr_seq_max > SEQ_IDX_MAX)) {
 			THM_INNER_LOG_E ("func idx is invalid. (inner thread table)\n");
 			return false;
 		}
 
-		gp_thm_reg_tbl [i] = (threadmgr_reg_tbl_t*)p_tbl;
-		p_tbl ++;
+		gp_thm_reg_tbl [i] = (threadmgr_reg_tbl_t*)tbl;
+		tbl ++;
 		++ i;
 	}
 
 	// set inner total
-	set_total_worker_thread_num (i);
-	THM_INNER_FORCE_LOG_I ("g_nr_total_worker_thread=[%d]\n", get_total_worker_thread_num());
+	set_nr_total_worker_thread (i);
+	THM_INNER_FORCE_LOG_I ("g_nr_total_worker_thread=[%d]\n", get_nr_total_worker_thread());
 
 	return true;
 }
@@ -959,16 +959,16 @@ static void dump_inner_info (void)
 //TODO 参照だけ ログだけだからmutexしない
 
 	THM_LOG_I ("####  dump_inner_info  ####\n");
-	THM_LOG_I (" thread-idx  thread-name  pthread_id  que-max  seq-num  req-opt  req-opt-timeout[ms]\n");
+	THM_LOG_I (" thread-idx  thread-name  pthread_id  que-max  seq-max  req-opt  req-opt-timeout[ms]\n");
 
-	for (i = 0; i < get_total_worker_thread_num(); ++ i) {
+	for (i = 0; i < get_nr_total_worker_thread(); ++ i) {
 		THM_LOG_I (
 			" 0x%02x       [%-15s] %lu %d      %d       0x%08x %d\n",
 			g_inner_info [i].thread_idx,
 			g_inner_info [i].name,
 			g_inner_info [i].pthread_id,
-			g_inner_info [i].nr_que_worker,
-			g_inner_info [i].nr_seq,
+			g_inner_info [i].nr_que_worker_max,
+			g_inner_info [i].nr_seq_max,
 			g_inner_info [i].request_option,
 			g_inner_info [i].requetimeout_msec
 		);
@@ -976,27 +976,27 @@ static void dump_inner_info (void)
 
 	THM_LOG_I ("####  dump_seq_info  ####\n");
 	THM_LOG_I (" seq-idx  seq-name  sect-id  action  is_overwrite  is_lock  timeout-state  timeout[ms]\n");
-	for (i = 0; i < get_total_worker_thread_num(); ++ i) {
+	for (i = 0; i < get_nr_total_worker_thread(); ++ i) {
 		THM_LOG_I (" --- thread:[0x%02x][%s]\n", g_inner_info [i].thread_idx, g_inner_info [i].name);
-		int n = g_inner_info [i].nr_seq;
-		seq_info_t *p_seq_info = g_inner_info [i].seq_info;
+		int n = g_inner_info [i].nr_seq_max;
+		seq_info_t *seq_info = g_inner_info [i].seq_info;
 		for (j = 0; j < n; ++ j) {
 			const threadmgr_seq_t *p = gp_thm_reg_tbl [g_inner_info [i].thread_idx]->seq_array;
-			const char *p_name = (p + p_seq_info->seq_idx)->name;
+			const char *name = (p + seq_info->seq_idx)->name;
 
 			THM_LOG_I (
 				"   0x%02x [%-15.15s] %2d%s %s %s %s %s %d\n",
-				p_seq_info->seq_idx,
-				p_name,
-				p_seq_info->sect_id,
-				p_seq_info->sect_id == p_seq_info->running_sect_id ? "<-" : "  ",
-				gpsz_act [p_seq_info->en_act],
-				p_seq_info->is_overwrite ? "OW" : "--",
-				p_seq_info->is_lock ? "lock" : "----",
-				gpsz_timeout_state [p_seq_info->timeout.en_state],
-				p_seq_info->timeout.val
+				seq_info->seq_idx,
+				name,
+				seq_info->section_id,
+				seq_info->section_id == seq_info->running_section_id ? "<-" : "  ",
+				g_action_strings [seq_info->action],
+				seq_info->is_overwrite ? "OW" : "--",
+				seq_info->is_lock ? "lock" : "----",
+				g_timeout_state_strings [seq_info->timeout.state],
+				seq_info->timeout.val
 			);
-			++ p_seq_info;
+			++ seq_info;
 		}
 	}
 }
@@ -1011,12 +1011,12 @@ static void clear_inner_info (inner_info_t *p)
 		p->name = NULL;
 		p->pthread_id = 0L;
 		p->tid = 0;
-		p->nr_que_worker = 0;
+		p->nr_que_worker_max = 0;
 		p->que_worker = NULL;
-		p->nr_seq = 0;
+		p->nr_seq_max = 0;
 		p->seq_info = NULL;
 
-		p->en_state = EN_STATE_INIT;
+		p->state = EN_STATE_INIT;
 		clear_que_worker (&(p->now_exec_que_worker));
 
 		p->request_option = 0;
@@ -1029,15 +1029,15 @@ static void clear_inner_info (inner_info_t *p)
  */
 static EN_STATE get_state (uint8_t thread_idx)
 {
-	return g_inner_info [thread_idx].en_state;
+	return g_inner_info [thread_idx].state;
 }
 
 /**
  * set_state
  */
-static void set_state (uint8_t thread_idx, EN_STATE en_state)
+static void set_state (uint8_t thread_idx, EN_STATE state)
 {
-	g_inner_info [thread_idx].en_state = en_state;
+	g_inner_info [thread_idx].state = state;
 }
 
 /**
@@ -1089,9 +1089,9 @@ static bool is_exist_thread (pid_t tid)
 static void check_worker_thread (void)
 {
 	uint8_t i = 0;
-//	int n_rtn = 0;
+//	int rtn = 0;
 
-	for (i = 0; i < get_total_worker_thread_num(); ++ i) {
+	for (i = 0; i < get_nr_total_worker_thread(); ++ i) {
 
 		/* フラグ値を確認 */
 		if ((get_state (i) != EN_STATE_READY) && (get_state (i) != EN_STATE_BUSY) && (get_state (i) != EN_STATE_WAIT_REPLY)) {
@@ -1100,8 +1100,8 @@ static void check_worker_thread (void)
 			THM_INNER_LOG_E ("[%s] EN_STATE flag is abnromal !!!\n", g_inner_info [i].name);
 		}
 
-//		n_rtn = pthread_kill (g_inner_info [i].n_pthread_id, 0);
-//		if (n_rtn != SYS_RETURN_NORMAL) {
+//		rtn = pthread_kill (g_inner_info [i].pthread_id, 0);
+//		if (rtn != SYS_RETURN_NORMAL) {
 //			/* 異常 */
 //			//TODO とりあえずログをだす
 //			THM_INNER_LOG_E ("[%s] pthread_kill(0) abnromal !!!\n", g_inner_info [i].name);
@@ -1120,7 +1120,7 @@ static void check_worker_thread (void)
  */
 static bool create_base_thread (void)
 {
-	pthread_t n_pthread_id;
+	pthread_t pthread_id;
 	pthread_attr_t attr;
 
 	if (pthread_attr_init (&attr) != 0) {
@@ -1145,13 +1145,13 @@ static bool create_base_thread (void)
 		return false;
 	}
 
-	if (pthread_create (&n_pthread_id, &attr, base_thread, (void*)NULL) != 0) {
+	if (pthread_create (&pthread_id, &attr, base_thread, (void*)NULL) != 0) {
 		THM_PERROR ("pthread_create()");
 		return false;
 	}
 
 //TODO 暫定位置
-	if (pthread_create (&n_pthread_id, &attr, sigwait_thread, (void*)NULL) != 0) {
+	if (pthread_create (&pthread_id, &attr, sigwait_thread, (void*)NULL) != 0) {
 		THM_PERROR ("pthread_create()");
 		return false;
 	}
@@ -1165,7 +1165,7 @@ static bool create_base_thread (void)
  */
 static bool create_worker_thread (uint8_t thread_idx)
 {
-	pthread_t n_pthread_id;
+	pthread_t pthread_id;
 	pthread_attr_t attr;
 
 
@@ -1195,7 +1195,7 @@ static bool create_worker_thread (uint8_t thread_idx)
 		return false;
 	}
 
-	if (pthread_create (&n_pthread_id, &attr, worker_thread, (void*)&g_inner_info [thread_idx]) != 0) {
+	if (pthread_create (&pthread_id, &attr, worker_thread, (void*)&g_inner_info [thread_idx]) != 0) {
 		THM_PERROR ("pthread_create()");
 		return false;
 	}
@@ -1215,7 +1215,7 @@ static bool create_all_thread (void)
 		return false;
 	}
 
-	for (i = 0; i < get_total_worker_thread_num(); ++ i) {
+	for (i = 0; i < get_nr_total_worker_thread(); ++ i) {
 		if (!create_worker_thread (i)) {
 			return false;
 		}
@@ -1228,7 +1228,7 @@ static bool create_all_thread (void)
 /**
  * enqueue (base)
  */
-static bool enque_base (EN_MONI_TYPE en_type)
+static bool enque_base (EN_MONI_TYPE type)
 {
 	int i = 0;
 
@@ -1238,7 +1238,7 @@ static bool enque_base (EN_MONI_TYPE en_type)
 
 		/* 空きを探す */
 		if (g_que_base [i].is_used == false) {
-			g_que_base [i].en_moni_type = en_type;
+			g_que_base [i].moni_type = type;
 			g_que_base [i].is_used = true;
 			break;
 		}
@@ -1275,7 +1275,7 @@ static que_base_t deque_base (bool is_get_out)
 
 			} else {
 				/* 末尾 */
-				g_que_base [i].en_moni_type = EN_MONI_TYPE_INIT;
+				g_que_base [i].moni_type = EN_MONI_TYPE_INIT;
 				g_que_base [i].is_used = false;
 			}
 		}
@@ -1295,7 +1295,7 @@ static void clear_que_base (que_base_t *p)
 		return;
 	}
 
-	p->en_moni_type = EN_MONI_TYPE_INIT;
+	p->moni_type = EN_MONI_TYPE_INIT;
 	p->is_used = false;
 }
 
@@ -1306,18 +1306,18 @@ static void clear_que_base (que_base_t *p)
 static bool enque_worker (
 	uint8_t thread_idx,
 	uint8_t seq_idx,
-	EN_QUE_TYPE en_que_type,
+	EN_QUE_TYPE que_type,
 	context_t *context,
 	uint32_t req_id,
-	EN_THM_RSLT en_rslt,
+	EN_THM_RSLT result,
 	uint8_t client_id,
 	uint8_t *msg,
 	size_t msg_size
 )
 {
 	uint8_t i = 0;
-	uint8_t nr_que_worker = g_inner_info [thread_idx].nr_que_worker;
-	que_worker_t *p_que_worker = g_inner_info [thread_idx].que_worker;
+	uint8_t nr_que_worker = g_inner_info [thread_idx].nr_que_worker_max;
+	que_worker_t *que_worker = g_inner_info [thread_idx].que_worker;
 
 	/* 複数の人が同じthread_idxのキューを操作するのをガード */
 	pthread_mutex_lock (&g_mutex_ope_que_worker [thread_idx]);
@@ -1325,79 +1325,79 @@ static bool enque_worker (
 	for (i = 0; i < nr_que_worker; ++ i) {
 
 		/* 空きを探す */
-		if (p_que_worker->is_used == false) {
+		if (que_worker->is_used == false) {
 
 			/* set */
-			p_que_worker->dest_thread_idx = thread_idx;
-			p_que_worker->dest_seq_idx = seq_idx;
+			que_worker->dest_thread_idx = thread_idx;
+			que_worker->dest_seq_idx = seq_idx;
 			if (context) {
-				p_que_worker->is_valid_src_info = context->is_valid;
-				p_que_worker->src_thread_idx = context->thread_idx;
-				p_que_worker->src_seq_idx = context->seq_idx;
+				que_worker->is_valid_src_info = context->is_valid;
+				que_worker->src_thread_idx = context->thread_idx;
+				que_worker->src_seq_idx = context->seq_idx;
 			}
-			p_que_worker->en_que_type = en_que_type;
-			p_que_worker->req_id = req_id;
-			p_que_worker->en_rslt = en_rslt;
-			p_que_worker->client_id = client_id;
+			que_worker->que_type = que_type;
+			que_worker->req_id = req_id;
+			que_worker->result = result;
+			que_worker->client_id = client_id;
 			if (msg && msg_size > 0) {
 				if (msg_size > MSG_SIZE) {
 					THM_INNER_FORCE_LOG_W ("truncate request message. size:[%lu]->[%d] th_idx:[%d]\n", msg_size, MSG_SIZE, thread_idx);
 				}
-				memset (p_que_worker->msg.msg, 0x00, MSG_SIZE);
-				memcpy (p_que_worker->msg.msg, msg, msg_size < MSG_SIZE ? msg_size : MSG_SIZE);
-				p_que_worker->msg.size = msg_size < MSG_SIZE ? msg_size : MSG_SIZE;
-				p_que_worker->msg.is_used = true;
+				memset (que_worker->msg.msg, 0x00, MSG_SIZE);
+				memcpy (que_worker->msg.msg, msg, msg_size < MSG_SIZE ? msg_size : MSG_SIZE);
+				que_worker->msg.size = msg_size < MSG_SIZE ? msg_size : MSG_SIZE;
+				que_worker->msg.is_used = true;
 			}
-			p_que_worker->is_used = true;
+			que_worker->is_used = true;
 			break;
 		}
 
-		p_que_worker ++;
+		que_worker ++;
 	}
 
 #if 1
 	if (i < nr_que_worker) {
-		p_que_worker = g_inner_info [thread_idx].que_worker;
+		que_worker = g_inner_info [thread_idx].que_worker;
 		uint8_t j = 0;
 		for (j = 0; j <= i; ++ j) {
 			THM_INNER_LOG_I (
 				" %d: %s (%s %d-%d) -> %d-%d 0x%x %s 0x%x %s\n",
 				j,
-				gpsz_que_type [p_que_worker->en_que_type],
-				p_que_worker->is_valid_src_info ? "T" : "F",
-				p_que_worker->n_src_thread_idx,
-				p_que_worker->n_src_seq_idx,
-				p_que_worker->n_dest_thread_idx,
-				p_que_worker->n_dest_seq_idx,
-				p_que_worker->req_id,
-				gpsz_rslt [p_que_worker->en_rslt],
-				p_que_worker->client_id,
-				p_que_worker->is_used ? "T" : "F"
+				g_que_type_strings [que_worker->que_type],
+				que_worker->is_valid_src_info ? "T" : "F",
+				que_worker->src_thread_idx,
+				que_worker->src_seq_idx,
+				que_worker->dest_thread_idx,
+				que_worker->dest_seq_idx,
+				que_worker->req_id,
+				g_result_strings [que_worker->result],
+				que_worker->client_id,
+				que_worker->is_used ? "T" : "F"
 			);
-			p_que_worker ++;
+			que_worker ++;
 		}
 	}
 #else
 	/* dump */
-	p_que_worker = g_inner_info [thread_idx].p_que_worker;
-	THM_INNER_LOG_I( "####  en_que dest[%s]  ####\n", g_inner_info [thread_idx].name );
+	que_worker = g_inner_info [thread_idx].que_worker;
+	THM_INNER_LOG_I( "####  que dest[%s]  ####\n", g_inner_info [thread_idx].name );
 	uint8_t j = 0;
 	for (j = 0; j < nr_que_worker; ++ j) {
 		THM_INNER_LOG_I (
 			" %d: %s (%s %d-%d) -> %d-%d 0x%x %s 0x%x %s\n",
 			j,
-			gpsz_que_type [p_que_worker->en_que_type],
-			p_que_worker->is_valid_src_info ? "T" : "F",
-			p_que_worker->n_src_thread_idx,
-			p_que_worker->n_src_seq_idx,
-			p_que_worker->n_dest_thread_idx,
-			p_que_worker->n_dest_seq_idx,
-			p_que_worker->req_id,
-			gpsz_rslt [p_que_worker->en_rslt],
-			p_que_worker->client_id,
-			p_que_worker->is_used ? "T" : "F"
+			g_que_type_strings [que_worker->que_type],
+			que_worker->is_valid_src_info ? "T" : "F",
+			que_worker->src_thread_idx,
+			que_worker->src_seq_idx,
+			que_worker->dest_thread_idx,
+			que_worker->dest_seq_idx,
+			que_worker->req_id,
+			g_result_strings [que_worker->result],
+			que_worker->client_id,
+			que_worker->is_used ? "T" : "F"
 		);
-		p_que_worker ++;
+		que_worker ++;
 	}
 #endif
 
@@ -1406,7 +1406,7 @@ static bool enque_worker (
 	if (i == nr_que_worker) {
 		/* 全部埋まってる */
 		THM_INNER_LOG_E ("que is full. (worker) th_idx:[%d]\n", thread_idx);
-		dump_que_worker (thread_idx);
+		dumque_worker (thread_idx);
 		return false;
 	}
 
@@ -1414,38 +1414,38 @@ static bool enque_worker (
 }
 
 /**
- * dump_que_worker
+ * dumque_worker
  */
-static void dump_que_worker (uint8_t thread_idx)
+static void dumque_worker (uint8_t thread_idx)
 {
 	uint8_t i = 0;
-	uint8_t nr_que_worker = g_inner_info [thread_idx].nr_que_worker;
-	que_worker_t *p_que_worker = g_inner_info [thread_idx].que_worker;
+	uint8_t nr_que_worker = g_inner_info [thread_idx].nr_que_worker_max;
+	que_worker_t *que_worker = g_inner_info [thread_idx].que_worker;
 
 	/* lock */
 	pthread_mutex_lock (&g_mutex_ope_que_worker [thread_idx]);
 
 	THM_LOG_I ("####  dump_que [%s]  ####\n", g_inner_info [thread_idx].name);
 	for (i = 0; i < nr_que_worker; ++ i) {
-		if (!p_que_worker->is_used) {
+		if (!que_worker->is_used) {
 			continue;
 		}
 
 		THM_LOG_I (
 			" %d: %s (%s %d-%d) -> %d-%d 0x%x %s 0x%x %s\n",
 			i,
-			gpsz_que_type [p_que_worker->en_que_type],
-			p_que_worker->is_valid_src_info ? "vaild  " : "invalid",
-			p_que_worker->src_thread_idx,
-			p_que_worker->src_seq_idx,
-			p_que_worker->dest_thread_idx,
-			p_que_worker->dest_seq_idx,
-			p_que_worker->req_id,
-			gpsz_rslt [p_que_worker->en_rslt],
-			p_que_worker->client_id,
-			p_que_worker->is_used ? "used  " : "unused"
+			g_que_type_strings [que_worker->que_type],
+			que_worker->is_valid_src_info ? "vaild  " : "invalid",
+			que_worker->src_thread_idx,
+			que_worker->src_seq_idx,
+			que_worker->dest_thread_idx,
+			que_worker->dest_seq_idx,
+			que_worker->req_id,
+			g_result_strings [que_worker->result],
+			que_worker->client_id,
+			que_worker->is_used ? "used  " : "unused"
 		);
-		p_que_worker ++;
+		que_worker ++;
 	}
 
 	/* unlock */
@@ -1458,8 +1458,8 @@ static void dump_que_worker (uint8_t thread_idx)
 static void dump_que_all_thread (void)
 {
 	uint8_t i = 0;
-	for (i = 0; i < get_total_worker_thread_num(); ++ i) {
-		dump_que_worker (i);
+	for (i = 0; i < get_nr_total_worker_thread(); ++ i) {
+		dumque_worker (i);
 	}
 }
 
@@ -1471,7 +1471,7 @@ static que_worker_t deque_worker (uint8_t thread_idx, bool is_get_out)
 {
 	uint8_t i = 0;
 	uint8_t nr_que_worker = g_inner_info [thread_idx].nr_que_worker;
-	que_worker_t *p_que_worker = g_inner_info [thread_idx].p_que_worker;
+	que_worker_t *que_worker = g_inner_info [thread_idx].que_worker;
 	que_worker_t rtn;
 
 	clear_que_worker (&rtn);
@@ -1479,23 +1479,23 @@ static que_worker_t deque_worker (uint8_t thread_idx, bool is_get_out)
 	/* 複数の人が同じthread_idxのキューを操作するのをガード */
 	pthread_mutex_lock (&g_mutex_ope_que_worker [thread_idx]);
 
-	memcpy (&rtn, p_que_worker, sizeof (que_worker_t));
+	memcpy (&rtn, que_worker, sizeof (que_worker_t));
 
 	if (is_get_out) {
 		for (i = 0; i < nr_que_worker; ++ i) {
 			if (i < nr_que_worker-1) {
 				memcpy (
-					p_que_worker,
-					p_que_worker +1,
+					que_worker,
+					que_worker +1,
 					sizeof (que_worker_t)
 				);
 
 			} else {
 				/* 末尾 */
-				clear_que_worker (p_que_worker);
+				clear_que_worker (que_worker);
 			}
 
-			p_que_worker ++;
+			que_worker ++;
 		}
 	}
 
@@ -1516,11 +1516,11 @@ static que_worker_t check2deque_worker (uint8_t thread_idx, bool is_get_out)
 	uint8_t j = 0;
 	uint8_t k = 0;
 	uint8_t l = 0;
-	uint8_t nr_que_worker = g_inner_info [thread_idx].nr_que_worker;
-	que_worker_t *p_que_worker = g_inner_info [thread_idx].que_worker;
+	uint8_t nr_que_worker = g_inner_info [thread_idx].nr_que_worker_max;
+	que_worker_t *que_worker = g_inner_info [thread_idx].que_worker;
 	que_worker_t rtn;
 	uint8_t seq_idx = 0;
-	EN_TIMEOUT_STATE en_timeout_state = EN_TIMEOUT_STATE_INIT;
+	EN_TIMEOUT_STATE timeout_state = EN_TIMEOUT_STATE_INIT;
 
 	clear_que_worker (&rtn);
 
@@ -1531,9 +1531,9 @@ static que_worker_t check2deque_worker (uint8_t thread_idx, bool is_get_out)
 	/* 新しいほうからキューを探す */
 	for (i = 0; i < nr_que_worker; ++ i) {
 
-		if (p_que_worker->is_used) {
+		if (que_worker->is_used) {
 
-			if (p_que_worker->en_que_type != EN_QUE_TYPE_NOTIFY) {
+			if (que_worker->que_type != EN_QUE_TYPE_NOTIFY) {
 				/* lockはNOTIFYは除外します */
 
 				if (is_lock (thread_idx)) {
@@ -1541,32 +1541,32 @@ static que_worker_t check2deque_worker (uint8_t thread_idx, bool is_get_out)
 					 * だれかlockしている
 					 * (当該Threadのseqのどれかでlockしている)
 					 */
-					seq_idx = p_que_worker->dest_seq_idx;
+					seq_idx = que_worker->dest_seq_idx;
 					if (!is_lock_seq (thread_idx, seq_idx)) {
 						/* 対象のseq以外がlockしていたら 見送ります */
-						p_que_worker ++;
+						que_worker ++;
 						continue;
 					}
 				}
 			}
 
 
-			if (p_que_worker->en_que_type == EN_QUE_TYPE_REQUEST) {
+			if (que_worker->que_type == EN_QUE_TYPE_REQUEST) {
 				/* * -------------------- REQUEST_QUE -------------------- * */ 
 
-				seq_idx = p_que_worker->dest_seq_idx;
+				seq_idx = que_worker->dest_seq_idx;
 				if (get_seq_info (thread_idx, seq_idx)->is_overwrite) {
 					/*
 					 * overwrite有効中
 					 * 強制実行します
 					 */
-					memcpy (&rtn, p_que_worker, sizeof(que_worker_t));
+					memcpy (&rtn, que_worker, sizeof(que_worker_t));
 
 //TODO この位置はよくないか
 					/* 取り出す時だけ */
 					if (is_get_out) {
 						/* sectid関係を強制クリア */
-						clear_sect_id (thread_idx, seq_idx);
+						clear_section_id (thread_idx, seq_idx);
 						/* Seqタイムアウトを強制クリア */
 						clear_seq_timeout (thread_idx, seq_idx);
 					}
@@ -1576,99 +1576,99 @@ static que_worker_t check2deque_worker (uint8_t thread_idx, bool is_get_out)
 				} else {
 					/* overwrite無効 */
 
-					if (get_seq_info (thread_idx, seq_idx)->en_act == EN_THM_ACT_INIT) {
+					if (get_seq_info (thread_idx, seq_idx)->action == EN_THM_ACT_INIT) {
 						/*
 						 * 対象のシーケンスがEN_THM_ACT_INIT
 						 * 実行してok
 						 */
-						memcpy (&rtn, p_que_worker, sizeof(que_worker_t));
+						memcpy (&rtn, que_worker, sizeof(que_worker_t));
 						break;
 
-					} else if (get_seq_info (thread_idx, seq_idx)->en_act == EN_THM_ACT_WAIT) {
+					} else if (get_seq_info (thread_idx, seq_idx)->action == EN_THM_ACT_WAIT) {
 						/*
 						 * 対象のシーケンスがEN_THM_ACT_WAIT シーケンスの途中
 						 * 見送り
 						 */
 						THM_INNER_LOG_I (
-							"en_act is EN_THM_ACT_WAIT @REQUEST_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x]) ---> through\n",
-							gp_thm_reg_tbl [p_que_worker->n_src_thread_idx]->name,
-							p_que_worker->n_src_thread_idx,
-							gp_thm_reg_tbl [p_que_worker->n_src_thread_idx]->seq_array[p_que_worker->n_src_seq_idx].name,
-							p_que_worker->n_src_seq_idx,
-							gp_thm_reg_tbl [p_que_worker->n_dest_thread_idx]->name,
-							p_que_worker->n_dest_thread_idx,
-							gp_thm_reg_tbl [p_que_worker->n_dest_thread_idx]->seq_array[p_que_worker->n_dest_seq_idx].name,
-							p_que_worker->n_dest_seq_idx,
-							p_que_worker->req_id
+							"action is EN_THM_ACT_WAIT @REQUEST_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x]) ---> through\n",
+							gp_thm_reg_tbl [que_worker->src_thread_idx]->name,
+							que_worker->src_thread_idx,
+							gp_thm_reg_tbl [que_worker->src_thread_idx]->seq_array[que_worker->src_seq_idx].name,
+							que_worker->src_seq_idx,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+							que_worker->dest_thread_idx,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+							que_worker->dest_seq_idx,
+							que_worker->req_id
 						);
 
 					} else {
 						/* ありえない */
 						THM_INNER_LOG_E (
-							"Unexpected: en_act is [%d] @REQUEST_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])\n",
-							get_seq_info(thread_idx, seq_idx)->en_act,
-							gp_thm_reg_tbl [p_que_worker->src_thread_idx]->name,
-							p_que_worker->src_thread_idx,
-							gp_thm_reg_tbl [p_que_worker->src_thread_idx]->seq_array[p_que_worker->src_seq_idx].name,
-							p_que_worker->src_seq_idx,
-							gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->name,
-							p_que_worker->dest_thread_idx,
-							gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->seq_array[p_que_worker->dest_seq_idx].name,
-							p_que_worker->dest_seq_idx,
-							p_que_worker->req_id
+							"Unexpected: action is [%d] @REQUEST_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])\n",
+							get_seq_info(thread_idx, seq_idx)->action,
+							gp_thm_reg_tbl [que_worker->src_thread_idx]->name,
+							que_worker->src_thread_idx,
+							gp_thm_reg_tbl [que_worker->src_thread_idx]->seq_array[que_worker->src_seq_idx].name,
+							que_worker->src_seq_idx,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+							que_worker->dest_thread_idx,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+							que_worker->dest_seq_idx,
+							que_worker->req_id
 						);
 					}
 				}
 
 
 
-			} else if (p_que_worker->en_que_type == EN_QUE_TYPE_REPLY) {
+			} else if (que_worker->que_type == EN_QUE_TYPE_REPLY) {
 				/* * -------------------- REPLY_QUE -------------------- * */
 
-				seq_idx = p_que_worker->dest_seq_idx;
-				if (get_seq_info (thread_idx, seq_idx)->en_act == EN_THM_ACT_INIT) {
+				seq_idx = que_worker->dest_seq_idx;
+				if (get_seq_info (thread_idx, seq_idx)->action == EN_THM_ACT_INIT) {
 					/* シーケンスによってはありえる */
 					/* リプライ待たずに進むようなシーケンスとか... */
 					THM_INNER_FORCE_LOG_I (
-						"en_act is EN_THM_ACT_INIT @REPLY_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
-						gp_thm_reg_tbl [p_que_worker->src_thread_idx]->name,
-						p_que_worker->src_thread_idx,
-						gp_thm_reg_tbl [p_que_worker->src_thread_idx]->seq_array[p_que_worker->src_seq_idx].name,
-						p_que_worker->src_seq_idx,
-						gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->name,
-						p_que_worker->dest_thread_idx,
-						gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->seq_array[p_que_worker->dest_seq_idx].name,
-						p_que_worker->dest_seq_idx,
-						p_que_worker->req_id
+						"action is EN_THM_ACT_INIT @REPLY_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
+						gp_thm_reg_tbl [que_worker->src_thread_idx]->name,
+						que_worker->src_thread_idx,
+						gp_thm_reg_tbl [que_worker->src_thread_idx]->seq_array[que_worker->src_seq_idx].name,
+						que_worker->src_seq_idx,
+						gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+						que_worker->dest_thread_idx,
+						gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+						que_worker->dest_seq_idx,
+						que_worker->req_id
 					);
 
 					/* この場合キューは引き取る */
-					p_que_worker->is_drop = true;
-					release_request_id (thread_idx, p_que_worker->req_id);
+					que_worker->is_drop = true;
+					release_request_id (thread_idx, que_worker->req_id);
 
-				} else if (get_seq_info (thread_idx, seq_idx)->en_act == EN_THM_ACT_WAIT) {
+				} else if (get_seq_info (thread_idx, seq_idx)->action == EN_THM_ACT_WAIT) {
 					/*
 					 * 対象のシーケンスがEN_THM_ACT_WAIT シーケンスの途中
 					 * request_idを確認する
 					 */
 #ifndef _MULTI_REQUESTING
-					if (p_que_worker->req_id == get_seq_info (thread_idx,seq_idx)->req_id) {
+					if (que_worker->req_id == get_seq_info (thread_idx,seq_idx)->req_id) {
 #else
 					/*
 					 * 複数requestの場合があるので request_id_infoで照合する
 					 * request_id_infoで照合するといことは当スレッドの全リクエストが対象になります
 					 * ただし過去に複数リクエストしている場合があるので 今待ち受けたリプライが本物かどうかはユーザがわでreq_idの判定が必要
 					 */
-					if (p_que_worker->req_id == get_request_id_info (thread_idx, p_que_worker->req_id)->id) {
+					if (que_worker->req_id == get_request_id_info (thread_idx, que_worker->req_id)->id) {
 #endif
 						/*
 						 * request_idが一致
 						 * 実行してok
 						 */
-						memcpy (&rtn, p_que_worker, sizeof(que_worker_t));
+						memcpy (&rtn, que_worker, sizeof(que_worker_t));
 						if (is_get_out) {
 							/* dequeするときにrelease */
-							release_request_id (thread_idx, p_que_worker->req_id);
+							release_request_id (thread_idx, que_worker->req_id);
 						}
 						break;
 
@@ -1677,97 +1677,97 @@ static que_worker_t check2deque_worker (uint8_t thread_idx, bool is_get_out)
 						/* リプライ待たずに進むようなシーケンスとか... */
 #ifndef _MULTI_REQUESTING
 						THM_INNER_LOG_I (
-							"en_act is EN_THM_ACT_WAIT  req_id unmatch:[%d:%d] @REPLY_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
-							p_que_worker->req_id,
+							"action is EN_THM_ACT_WAIT  req_id unmatch:[%d:%d] @REPLY_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
+							que_worker->req_id,
 							get_seq_info (thread_idx, seq_idx)->req_id,
-							gp_thm_reg_tbl [p_que_worker->n_src_thread_idx]->name,
-							p_que_worker->n_src_thread_idx,
-							gp_thm_reg_tbl [p_que_worker->n_src_thread_idx]->seq_array[p_que_worker->n_src_seq_idx].name,
-							p_que_worker->n_src_seq_idx,
-							gp_thm_reg_tbl [p_que_worker->n_dest_thread_idx]->name,
-							p_que_worker->n_dest_thread_idx,
-							gp_thm_reg_tbl [p_que_worker->n_dest_thread_idx]->seq_array[p_que_worker->n_dest_seq_idx].name,
-							p_que_worker->n_dest_seq_idx,
-							p_que_worker->req_id
+							gp_thm_reg_tbl [que_worker->src_thread_idx]->name,
+							que_worker->src_thread_idx,
+							gp_thm_reg_tbl [que_worker->src_thread_idx]->seq_array[que_worker->_src_seq_idx].name,
+							que_worker->src_seq_idx,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+							que_worker->dest_thread_idx,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+							que_worker->dest_seq_idx,
+							que_worker->req_id
 						);
 #else
 						THM_INNER_LOG_I (
-							"en_act is EN_THM_ACT_WAIT  req_id unmatch @REPLY_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
-							gp_thm_reg_tbl [p_que_worker->n_src_thread_idx]->name,
-							p_que_worker->n_src_thread_idx,
-							gp_thm_reg_tbl [p_que_worker->n_src_thread_idx]->seq_array[p_que_worker->n_src_seq_idx].name,
-							p_que_worker->n_src_seq_idx,
-							gp_thm_reg_tbl [p_que_worker->n_dest_thread_idx]->name,
-							p_que_worker->n_dest_thread_idx,
-							gp_thm_reg_tbl [p_que_worker->n_dest_thread_idx]->seq_array[p_que_worker->n_dest_seq_idx].name,
-							p_que_worker->n_dest_seq_idx,
-							p_que_worker->req_id
+							"action is EN_THM_ACT_WAIT  req_id unmatch @REPLY_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
+							gp_thm_reg_tbl [que_worker->src_thread_idx]->name,
+							que_worker->src_thread_idx,
+							gp_thm_reg_tbl [que_worker->src_thread_idx]->seq_array[que_worker->src_seq_idx].name,
+							que_worker->src_seq_idx,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+							que_worker->dest_thread_idx,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+							que_worker->dest_seq_idx,
+							que_worker->req_id
 						);
 #endif
 						/* この場合キューは引き取る */
-						p_que_worker->is_drop = true;
-						release_request_id (thread_idx, p_que_worker->req_id);
+						que_worker->is_drop = true;
+						release_request_id (thread_idx, que_worker->req_id);
 					}
 
 				} else {
 					/* ありえない */
 					THM_INNER_LOG_E (
-						"Unexpected: en_act is [%d] @REPLY_QUE (from[%s(%d):%s](%d) to[%s(%d):%s(%d)] req_id[0x%x])\n",
-						get_seq_info (thread_idx, seq_idx)->en_act,
-						gp_thm_reg_tbl [p_que_worker->src_thread_idx]->name,
-						p_que_worker->src_thread_idx,
-						gp_thm_reg_tbl [p_que_worker->src_thread_idx]->seq_array[p_que_worker->src_seq_idx].name,
-						p_que_worker->src_seq_idx,
-						gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->name,
-						p_que_worker->dest_thread_idx,
-						gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->seq_array[p_que_worker->dest_seq_idx].name,
-						p_que_worker->dest_seq_idx,
-						p_que_worker->req_id
+						"Unexpected: action is [%d] @REPLY_QUE (from[%s(%d):%s](%d) to[%s(%d):%s(%d)] req_id[0x%x])\n",
+						get_seq_info (thread_idx, seq_idx)->action,
+						gp_thm_reg_tbl [que_worker->src_thread_idx]->name,
+						que_worker->src_thread_idx,
+						gp_thm_reg_tbl [que_worker->src_thread_idx]->seq_array[que_worker->src_seq_idx].name,
+						que_worker->src_seq_idx,
+						gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+						que_worker->dest_thread_idx,
+						gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+						que_worker->dest_seq_idx,
+						que_worker->req_id
 					);
 				}
 
 
 
-			} else if (p_que_worker->en_que_type == EN_QUE_TYPE_NOTIFY) {
+			} else if (que_worker->que_type == EN_QUE_TYPE_NOTIFY) {
 				/* * -------------------- NOTIFY_QUE -------------------- * */
 
 				/* そのまま実行してok */
-				memcpy (&rtn, p_que_worker, sizeof(que_worker_t));
+				memcpy (&rtn, que_worker, sizeof(que_worker_t));
 				break;
 
 
 
-			} else if (p_que_worker->en_que_type == EN_QUE_TYPE_REQ_TIMEOUT) {
+			} else if (que_worker->que_type == EN_QUE_TYPE_REQ_TIMEOUT) {
 				/* * -------------------- REQ_TIMEOUT_QUE -------------------- * */
 
 				/* req_idのタイムアウト状態を確認する */
-				en_timeout_state = get_req_timeout_state (thread_idx, p_que_worker->req_id);
-				if (en_timeout_state == EN_TIMEOUT_STATE_PASSED) {
+				timeout_state = get_req_timeout_state (thread_idx, que_worker->req_id);
+				if (timeout_state == EN_TIMEOUT_STATE_PASSED) {
 
-					seq_idx = p_que_worker->dest_seq_idx;
-					if (get_seq_info (thread_idx, seq_idx)->en_act == EN_THM_ACT_WAIT) {
+					seq_idx = que_worker->dest_seq_idx;
+					if (get_seq_info (thread_idx, seq_idx)->action == EN_THM_ACT_WAIT) {
 						/*
 						 * 対象のシーケンスがEN_THM_ACT_WAIT
 						 * req_idの一致を確認する
 						 */
 #ifndef _MULTI_REQUESTING
-						if (p_que_worker->req_id == get_seq_info (thread_idx, seq_idx)->req_id) {
+						if (que_worker->req_id == get_seq_info (thread_idx, seq_idx)->req_id) {
 #else
 						/*
 						 * 複数requestの場合があるので request_id_infoで照合する
 						 * request_id_infoで照合するといことは当スレッドの全リクエストが対象になります
 						 * ただし過去に複数リクエストしている場合があるので 今待ち受けたリプライが本物かどうかはユーザがわでreq_idの判定が必要
 						 */
-						if (p_que_worker->req_id == get_request_id_info (thread_idx, p_que_worker->req_id)->id) {
+						if (que_worker->req_id == get_request_id_info (thread_idx, que_worker->req_id)->id) {
 #endif
 							/*
 							 * req_idが一致した
 							 * 実行してok
 							 */
-							memcpy (&rtn, p_que_worker, sizeof(que_worker_t));
+							memcpy (&rtn, que_worker, sizeof(que_worker_t));
 							if (is_get_out) {
 								/* dequeするときにrelease */
-								release_request_id (thread_idx, p_que_worker->req_id);
+								release_request_id (thread_idx, que_worker->req_id);
 							}
 							break;
 
@@ -1776,129 +1776,129 @@ static que_worker_t check2deque_worker (uint8_t thread_idx, bool is_get_out)
 							/* リプライ待たずに進むようなシーケンスとか... */
 #ifndef _MULTI_REQUESTING
 							THM_INNER_LOG_I (
-								"en_act is EN_THM_ACT_WAIT  req_id unmatch:[%d:%d] @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
-								p_que_worker->req_id,
+								"action is EN_THM_ACT_WAIT  req_id unmatch:[%d:%d] @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
+								que_worker->req_id,
 								get_seq_info (thread_idx, seq_idx)->req_id
-								gp_thm_reg_tbl [p_que_worker->n_src_thread_idx]->name,
-								p_que_worker->n_src_thread_idx,
-								gp_thm_reg_tbl [p_que_worker->n_src_thread_idx]->seq_array[p_que_worker->n_src_seq_idx].name,
-								p_que_worker->n_src_seq_idx,
-								gp_thm_reg_tbl [p_que_worker->n_dest_thread_idx]->name,
-								p_que_worker->n_dest_thread_idx,
-								gp_thm_reg_tbl [p_que_worker->n_dest_thread_idx]->seq_array[p_que_worker->n_dest_seq_idx].name,
-								p_que_worker->n_dest_seq_idx,
-								p_que_worker->req_id
+								gp_thm_reg_tbl [que_worker->src_thread_idx]->name,
+								que_worker->src_thread_idx,
+								gp_thm_reg_tbl [que_worker->src_thread_idx]->seq_array[que_worker->src_seq_idx].name,
+								que_worker->src_seq_idx,
+								gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+								que_worker->dest_thread_idx,
+								gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+								que_worker->dest_seq_idx,
+								que_worker->req_id
 							);
 #else
 							THM_INNER_LOG_I (
-								"en_act is EN_THM_ACT_WAIT  req_id notfound @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
-								gp_thm_reg_tbl [p_que_worker->n_src_thread_idx]->name,
-								p_que_worker->n_src_thread_idx,
-								gp_thm_reg_tbl [p_que_worker->n_src_thread_idx]->seq_array[p_que_worker->n_src_seq_idx].name,
-								p_que_worker->n_src_seq_idx,
-								gp_thm_reg_tbl [p_que_worker->n_dest_thread_idx]->name,
-								p_que_worker->n_dest_thread_idx,
-								gp_thm_reg_tbl [p_que_worker->n_dest_thread_idx]->seq_array[p_que_worker->n_dest_seq_idx].name,
-								p_que_worker->n_dest_seq_idx,
-								p_que_worker->req_id
+								"action is EN_THM_ACT_WAIT  req_id notfound @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
+								gp_thm_reg_tbl [que_worker->src_thread_idx]->name,
+								que_worker->src_thread_idx,
+								gp_thm_reg_tbl [que_worker->src_thread_idx]->seq_array[que_worker->src_seq_idx].name,
+								que_worker->src_seq_idx,
+								gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+								que_worker->dest_thread_idx,
+								gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+								que_worker->dest_seq_idx,
+								que_worker->req_id
 							);
 #endif
 
 							/* この場合キューは引き取る */
-							p_que_worker->is_drop = true;
-							release_request_id (thread_idx, p_que_worker->req_id);
+							que_worker->is_drop = true;
+							release_request_id (thread_idx, que_worker->req_id);
 						}
 
 					} else {
 						/* シーケンスによってはありえる */
 						/* リプライ待たずに進むようなシーケンスとか... */
 						THM_INNER_FORCE_LOG_I (
-							"en_act is not EN_THM_ACT_WAIT  @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
-							gp_thm_reg_tbl [p_que_worker->src_thread_idx]->name,
-							p_que_worker->src_thread_idx,
-							gp_thm_reg_tbl [p_que_worker->src_thread_idx]->seq_array[p_que_worker->src_seq_idx].name,
-							p_que_worker->src_seq_idx,
-							gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->name,
-							p_que_worker->dest_thread_idx,
-							gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->seq_array[p_que_worker->dest_seq_idx].name,
-							p_que_worker->dest_seq_idx,
-							p_que_worker->req_id
+							"action is not EN_THM_ACT_WAIT  @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])  ---> drop\n",
+							gp_thm_reg_tbl [que_worker->src_thread_idx]->name,
+							que_worker->src_thread_idx,
+							gp_thm_reg_tbl [que_worker->src_thread_idx]->seq_array[que_worker->src_seq_idx].name,
+							que_worker->src_seq_idx,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+							que_worker->dest_thread_idx,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+							que_worker->dest_seq_idx,
+							que_worker->req_id
 						);
 
 						/* この場合キューは引き取る */
-						p_que_worker->is_drop = true;
-						release_request_id (thread_idx, p_que_worker->req_id);
+						que_worker->is_drop = true;
+						release_request_id (thread_idx, que_worker->req_id);
 					}
 
 				} else {
 					/* ありえないはず */
 					THM_INNER_LOG_E (
-						"Unexpected: req_id_info.timeout.en_state is unexpected [%d] @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])\n",
-						en_timeout_state,
-						gp_thm_reg_tbl [p_que_worker->src_thread_idx]->name,
-						p_que_worker->src_thread_idx,
-						gp_thm_reg_tbl [p_que_worker->src_thread_idx]->seq_array[p_que_worker->src_seq_idx].name,
-						p_que_worker->src_seq_idx,
-						gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->name,
-						p_que_worker->dest_thread_idx,
-						gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->seq_array[p_que_worker->dest_seq_idx].name,
-						p_que_worker->dest_seq_idx,
-						p_que_worker->req_id
+						"Unexpected: req_id_info.timeout.state is unexpected [%d] @REQ_TIMEOUT_QUE (from[%s(%d):%s(%d)] to[%s(%d):%s(%d)] req_id[0x%x])\n",
+						timeout_state,
+						gp_thm_reg_tbl [que_worker->src_thread_idx]->name,
+						que_worker->src_thread_idx,
+						gp_thm_reg_tbl [que_worker->src_thread_idx]->seq_array[que_worker->src_seq_idx].name,
+						que_worker->src_seq_idx,
+						gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+						que_worker->dest_thread_idx,
+						gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+						que_worker->dest_seq_idx,
+						que_worker->req_id
 					);
 				}
 
 
 
-			} else if (p_que_worker->en_que_type == EN_QUE_TYPE_SEQ_TIMEOUT) {
+			} else if (que_worker->que_type == EN_QUE_TYPE_SEQ_TIMEOUT) {
 				/* * -------------------- SEQ_TIMEOUT_QUE -------------------- * */
 
-				seq_idx = p_que_worker->dest_seq_idx;
-				if (get_seq_info (thread_idx, seq_idx)->en_act == EN_THM_ACT_WAIT) {
+				seq_idx = que_worker->dest_seq_idx;
+				if (get_seq_info (thread_idx, seq_idx)->action == EN_THM_ACT_WAIT) {
 					/*
 					 * 対象のシーケンスがEN_THM_ACT_TIMEOUT
 					 * seq_infoのタイムアウト状態を確認する
 					 */
-					if (get_seq_info (thread_idx, seq_idx)->timeout.en_state == EN_TIMEOUT_STATE_PASSED) {
+					if (get_seq_info (thread_idx, seq_idx)->timeout.state == EN_TIMEOUT_STATE_PASSED) {
 						/*
 						 * 既にタイムアウトしている
 						 * 実行してok
 						 */
-						memcpy (&rtn, p_que_worker, sizeof(que_worker_t));
+						memcpy (&rtn, que_worker, sizeof(que_worker_t));
 						break;
 
 					} else {
 						/* ありえるのか? ありえないはず... */
 						THM_INNER_LOG_E (
-							"Unexpected: en_act is EN_THM_ACT_WAIT  unexpect timeout.en_state:[%d]  @SEQ_TIMEOUT_QUE (to[%s(%d):%s(%d)] req_id[0x%x])\n",
-							get_seq_info(thread_idx, seq_idx)->timeout.en_state,
-							gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->name,
-							p_que_worker->dest_thread_idx,
-							gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->seq_array[p_que_worker->dest_seq_idx].name,
-							p_que_worker->dest_seq_idx,
-							p_que_worker->req_id
+							"Unexpected: action is EN_THM_ACT_WAIT  unexpect timeout.state:[%d]  @SEQ_TIMEOUT_QUE (to[%s(%d):%s(%d)] req_id[0x%x])\n",
+							get_seq_info(thread_idx, seq_idx)->timeout.state,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+							que_worker->dest_thread_idx,
+							gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+							que_worker->dest_seq_idx,
+							que_worker->req_id
 						);
 					}
 
 				} else {
 					/* ありえないはず */
 					THM_INNER_LOG_E (
-						"Unexpected: en_act is [%d] @SEQ_TIMEOUT_QUE (to[%s(%d):%s(%d)] req_id[0x%x])\n",
-						get_seq_info (thread_idx, seq_idx)->en_act,
-						gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->name,
-						p_que_worker->dest_thread_idx,
-						gp_thm_reg_tbl [p_que_worker->dest_thread_idx]->seq_array[p_que_worker->dest_seq_idx].name,
-						p_que_worker->dest_seq_idx,
-						p_que_worker->req_id
+						"Unexpected: action is [%d] @SEQ_TIMEOUT_QUE (to[%s(%d):%s(%d)] req_id[0x%x])\n",
+						get_seq_info (thread_idx, seq_idx)->action,
+						gp_thm_reg_tbl [que_worker->dest_thread_idx]->name,
+						que_worker->dest_thread_idx,
+						gp_thm_reg_tbl [que_worker->dest_thread_idx]->seq_array[que_worker->dest_seq_idx].name,
+						que_worker->dest_seq_idx,
+						que_worker->req_id
 					);
 				}
 
 
 
-			} else if (p_que_worker->en_que_type == EN_QUE_TYPE_DESTROY) {
+			} else if (que_worker->que_type == EN_QUE_TYPE_DESTROY) {
 				/* * -------------------- DESTROY_QUE -------------------- * */
 
 				/* そのまま実行してok */
-				memcpy (&rtn, p_que_worker, sizeof(que_worker_t));
+				memcpy (&rtn, que_worker, sizeof(que_worker_t));
 				break;
 
 
@@ -1910,7 +1910,7 @@ static que_worker_t check2deque_worker (uint8_t thread_idx, bool is_get_out)
 //THM_INNER_LOG_E( "not use\n" );
 		}
 
-		p_que_worker ++;
+		que_worker ++;
 
 	} // for (i = 0; i < nr_que_worker; ++ i) {
 
@@ -1922,19 +1922,19 @@ static que_worker_t check2deque_worker (uint8_t thread_idx, bool is_get_out)
 	} else {
 		if (is_get_out) {
 			/* 見つかったので並び換える */
-			p_que_worker = g_inner_info [thread_idx].que_worker;
+			que_worker = g_inner_info [thread_idx].que_worker;
 			for (j = 0; j < nr_que_worker; ++ j) {
 				if (j >= i) {
 					if (j < nr_que_worker -1) {
 						memcpy (
-							p_que_worker +j,
-							p_que_worker +j +1,
+							que_worker +j,
+							que_worker +j +1,
 							sizeof (que_worker_t)
 						);
 
 					} else {
 						/* 末尾 */
-						clear_que_worker (p_que_worker +j);
+						clear_que_worker (que_worker +j);
 					}
 				}
 			}
@@ -1944,21 +1944,21 @@ static que_worker_t check2deque_worker (uint8_t thread_idx, bool is_get_out)
 
 	/* is_dropフラグ立っているものは消します  逆からみます */
 	/* is_dropの削除はis_get_out関係なく処理する */
-	p_que_worker = g_inner_info [thread_idx].que_worker;
+	que_worker = g_inner_info [thread_idx].que_worker;
 	for (k = nr_que_worker -1; (k >= 0) && (k < nr_que_worker); k --) { // unsigned minus value
-		if ((p_que_worker +k)->is_drop) {
+		if ((que_worker +k)->is_drop) {
 			if (k < nr_que_worker -1) {
 				for (l = k; l < nr_que_worker -1; l ++) {
 					memcpy (
-						p_que_worker +l,
-						p_que_worker +l +1,
+						que_worker +l,
+						que_worker +l +1,
 						sizeof (que_worker_t)
 					);
 				}
 
 			} else {
 				/* 末尾 */
-				clear_que_worker (p_que_worker +k);
+				clear_que_worker (que_worker +k);
 			}
 		}
 	}
@@ -1983,9 +1983,9 @@ static void clear_que_worker (que_worker_t *p)
 	p->is_valid_src_info = false;
 	p->src_thread_idx = THREAD_IDX_BLANK;
 	p->src_seq_idx = SEQ_IDX_BLANK;
-	p->en_que_type = EN_QUE_TYPE_INIT;
+	p->que_type = EN_QUE_TYPE_INIT;
 	p->req_id = REQUEST_ID_BLANK;
-	p->en_rslt = EN_THM_RSLT_IGNORE;
+	p->result = EN_THM_RSLT_IGNORE;
 	p->client_id = NOTIFY_CLIENT_ID_BLANK;
 	memset (p->msg.msg, 0x00, MSG_SIZE);
 	p->msg.size = 0;
@@ -1999,7 +1999,7 @@ static void clear_que_worker (que_worker_t *p)
  */
 static void *base_thread (void *arg)
 {
-	int n_rtn = 0;
+	int rtn = 0;
 	bool is_destroy = false;
 	que_base_t rtn_que;
 	struct timespec timeout = {0};
@@ -2047,8 +2047,8 @@ static void *base_thread (void *arg)
 			timeout.tv_sec = now_timeval.tv_sec + BASE_THREAD_LOOP_TIMEOUT_SEC;
 			timeout.tv_nsec = now_timeval.tv_usec * 1000;
 
-			n_rtn = pthread_cond_timedwait (&g_cond_base, &g_mutex_base, &timeout);
-			switch (n_rtn) {
+			rtn = pthread_cond_timedwait (&g_cond_base, &g_mutex_base, &timeout);
+			switch (rtn) {
 			case SYS_RETURN_NORMAL:
 				/* タイムアウト前に動き出した */
 				break;
@@ -2073,7 +2073,7 @@ static void *base_thread (void *arg)
 				break;
 
 			default:
-				THM_INNER_LOG_E ("Unexpected: pthread_cond_timedwait() => unexpected return value [%d]\n", n_rtn);
+				THM_INNER_LOG_E ("Unexpected: pthread_cond_timedwait() => unexpected return value [%d]\n", rtn);
 				break;
 			}
 
@@ -2088,8 +2088,8 @@ static void *base_thread (void *arg)
 		 */
 		rtn_que = deque_base (true);
 		if (rtn_que.is_used) {
-			switch (rtn_que.en_moni_type) {
-			case EN_MONI_TYPE_DEUnexpected:
+			switch (rtn_que.moni_type) {
+			case EN_MONI_TYPE_DEBUG:
 				dump_inner_info ();
 				dump_request_id_info ();
 				dump_ext_info_list ();
@@ -2098,8 +2098,8 @@ static void *base_thread (void *arg)
 
 				{
 					int i = 0;
-					for (i = 0; i < get_total_worker_thread_num(); ++ i) {
-						if (i == get_total_worker_thread_num() -1) {
+					for (i = 0; i < get_nr_total_worker_thread(); ++ i) {
+						if (i == get_nr_total_worker_thread() -1) {
 							// last
 							pthread_kill (g_inner_info[i].pthread_id, SIGRTMIN +2);
 						} else {
@@ -2135,7 +2135,7 @@ static void *base_thread (void *arg)
  */
 static void *sigwait_thread (void *arg)
 {
-	int n_sig = 0;
+	int sig = 0;
 	bool is_destroy = false;
 
 
@@ -2166,11 +2166,11 @@ static void *sigwait_thread (void *arg)
 
 
 	while (1) {
-		if (sigwait(&g_sigset, &n_sig) == SYS_RETURN_NORMAL) {
-			switch (n_sig) {
+		if (sigwait(&g_sigset, &sig) == SYS_RETURN_NORMAL) {
+			switch (sig) {
 			case SIGQUIT:
 				THM_INNER_FORCE_LOG_I ("catch SIGQUIT\n");
-				request_base_thread (EN_MONI_TYPE_DEUnexpected);
+				request_base_thread (EN_MONI_TYPE_DEBUG);
 				break;
 			case SIGINT:
 			case SIGTERM:
@@ -2202,11 +2202,11 @@ static void *sigwait_thread (void *arg)
  */
 static void check_wait_worker_thread (inner_info_t *inner_info)
 {
-	int n_rtn = 0;
-	EN_NEAREST_TIMEOUT en_timeout = EN_NEAREST_TIMEOUT_NONE;
-	request_id_info_t *p_req_id_info = NULL;
-	seq_info_t *p_seq_info = NULL;
-	struct timespec *p_timeout = NULL;
+	int rtn = 0;
+	EN_NEAREST_TIMEOUT timeout = EN_NEAREST_TIMEOUT_NONE;
+	request_id_info_t *req_id_info = NULL;
+	seq_info_t *seq_info = NULL;
+	struct timespec *set_timeout = NULL;
 	bool is_need_wait = true;
 
 	/* lock */
@@ -2221,8 +2221,8 @@ static void check_wait_worker_thread (inner_info_t *inner_info)
 
 		set_state (inner_info->thread_idx, EN_STATE_READY);
 
-		en_timeout = search_nearetimeout (inner_info->thread_idx, &p_req_id_info, &p_seq_info);
-		if (en_timeout == EN_NEAREST_TIMEOUT_NONE) {
+		timeout = search_nearetimeout (inner_info->thread_idx, &req_id_info, &seq_info);
+		if (timeout == EN_NEAREST_TIMEOUT_NONE) {
 			THM_INNER_LOG_D ("normal cond wait\n");
 
 			/*
@@ -2230,11 +2230,11 @@ static void check_wait_worker_thread (inner_info_t *inner_info)
 			 * pthread_cond_signal待ち
 			 */
 			while (is_need_wait) {
-				n_rtn = pthread_cond_wait (
+				rtn = pthread_cond_wait (
 					&g_cond_worker [inner_info->thread_idx],
 					&g_mutex_worker [inner_info->thread_idx]
 				);
-				switch (n_rtn) {
+				switch (rtn) {
 				case EINTR:
 					THM_INNER_LOG_W ("interrupt occured.\n");
 					break;
@@ -2247,25 +2247,25 @@ static void check_wait_worker_thread (inner_info_t *inner_info)
 		} else {
 			/* タイムアウト仕掛かり中です */
 
-			if (en_timeout == EN_NEAREST_TIMEOUT_REQ) {
+			if (timeout == EN_NEAREST_TIMEOUT_REQ) {
 				THM_INNER_LOG_D ("timeout cond wait (req_timeout)\n");
 
-				if (!p_req_id_info) {
-					THM_INNER_LOG_E ("Unexpected: p_req_id_info is null !!!\n");
+				if (!req_id_info) {
+					THM_INNER_LOG_E ("Unexpected: req_id_info is null !!!\n");
 					goto _F_END;
 				}
-				p_req_id_info->timeout.en_state = EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT;
-				p_timeout = &(p_req_id_info->timeout.time);
+				req_id_info->timeout.state = EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT;
+				set_timeout = &(req_id_info->timeout.time);
 
 			} else {
 				THM_INNER_LOG_D ("timeout cond wait (seq_timeout)\n");
 
-				if (!p_seq_info) {
-					THM_INNER_LOG_E ("Unexpected: p_seq_info is null !!!\n");
+				if (!seq_info) {
+					THM_INNER_LOG_E ("Unexpected: seq_info is null !!!\n");
 					goto _F_END;
 				}
-				p_seq_info->timeout.en_state = EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT;
-				p_timeout = &(p_seq_info->timeout.time);
+				seq_info->timeout.state = EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT;
+				set_timeout = &(seq_info->timeout.time);
 			}
 
 			/*
@@ -2273,28 +2273,28 @@ static void check_wait_worker_thread (inner_info_t *inner_info)
 			 * pthread_cond_signal待ち
 			 */
 			while (is_need_wait) {
-				n_rtn = pthread_cond_timedwait (
+				rtn = pthread_cond_timedwait (
 					&g_cond_worker [inner_info->thread_idx],
 					&g_mutex_worker [inner_info->thread_idx],
-					p_timeout
+					set_timeout
 				);
-				switch (n_rtn) {
+				switch (rtn) {
 				case SYS_RETURN_NORMAL:
 					/* タイムアウト前に動き出した */
 					is_need_wait = false;
-					if (en_timeout == EN_NEAREST_TIMEOUT_REQ) {
-						if (!p_req_id_info) {
-							THM_INNER_LOG_E ("Unexpected: p_req_id_info is null !!!\n");
+					if (timeout == EN_NEAREST_TIMEOUT_REQ) {
+						if (!req_id_info) {
+							THM_INNER_LOG_E ("Unexpected: req_id_info is null !!!\n");
 							goto _F_END;
 						}
-						p_req_id_info->timeout.en_state = EN_TIMEOUT_STATE_MEAS;
+						req_id_info->timeout.state = EN_TIMEOUT_STATE_MEAS;
 	
 					} else {
-						if (!p_seq_info) {
-							THM_INNER_LOG_E ("Unexpected: p_seq_info is null !!!\n");
+						if (!seq_info) {
+							THM_INNER_LOG_E ("Unexpected: seq_info is null !!!\n");
 							goto _F_END;
 						}
-						p_seq_info->timeout.en_state = EN_TIMEOUT_STATE_MEAS;
+						seq_info->timeout.state = EN_TIMEOUT_STATE_MEAS;
 					}
 					break;
 	
@@ -2304,21 +2304,21 @@ static void check_wait_worker_thread (inner_info_t *inner_info)
 					 * 自スレッドにタイムアウトのキューを入れる
 					 */
 					is_need_wait = false;
-					if (en_timeout == EN_NEAREST_TIMEOUT_REQ) {
-						if (!p_req_id_info) {
-							THM_INNER_LOG_E ("Unexpected: p_req_id_info is null !!!\n");
+					if (timeout == EN_NEAREST_TIMEOUT_REQ) {
+						if (!req_id_info) {
+							THM_INNER_LOG_E ("Unexpected: req_id_info is null !!!\n");
 							goto _F_END;
 						}
-						p_req_id_info->timeout.en_state = EN_TIMEOUT_STATE_PASSED;
-						enque_req_timeout (inner_info->thread_idx, p_req_id_info->id);
+						req_id_info->timeout.state = EN_TIMEOUT_STATE_PASSED;
+						enque_req_timeout (inner_info->thread_idx, req_id_info->id);
 	
 					} else {
-						if (!p_seq_info) {
-							THM_INNER_LOG_E ("Unexpected: p_seq_info is null !!!\n");
+						if (!seq_info) {
+							THM_INNER_LOG_E ("Unexpected: seq_info is null !!!\n");
 							goto _F_END;
 						}
-						p_seq_info->timeout.en_state = EN_TIMEOUT_STATE_PASSED;
-						enque_seq_timeout (inner_info->thread_idx, p_seq_info->seq_idx);
+						seq_info->timeout.state = EN_TIMEOUT_STATE_PASSED;
+						enque_seq_timeout (inner_info->thread_idx, seq_info->seq_idx);
 					}
 					break;
 	
@@ -2328,7 +2328,7 @@ static void check_wait_worker_thread (inner_info_t *inner_info)
 	
 				default:
 					is_need_wait = false;
-					THM_INNER_LOG_E ("Unexpected: pthread_cond_timedwait() => unexpected return value [%d]\n", n_rtn);
+					THM_INNER_LOG_E ("Unexpected: pthread_cond_timedwait() => unexpected return value [%d]\n", rtn);
 					break;
 				}
 			}
@@ -2348,9 +2348,9 @@ static void *worker_thread (void *arg)
 	uint8_t i = 0;
 	bool is_destroy = false;
 	inner_info_t *inner_info = (inner_info_t*)arg;
-	threadmgr_reg_tbl_t *p_tbl = gp_thm_reg_tbl [inner_info->thread_idx];
+	threadmgr_reg_tbl_t *tbl = gp_thm_reg_tbl [inner_info->thread_idx];
 	que_worker_t rtn_que;
-	threadmgr_src_info_t *p_thm_src_info = &g_thm_src_info [inner_info->thread_idx];
+	threadmgr_src_info_t *thm_src_info = &g_thm_src_info [inner_info->thread_idx];
 
 
 	inner_info->tid = get_task_id ();
@@ -2363,37 +2363,37 @@ static void *worker_thread (void *arg)
 
 
 	/* --- set thread name --- */
-	set_thread_name ((char*)p_tbl->name);
-	inner_info->name = (char*)p_tbl->name;
+	set_thread_name ((char*)tbl->name);
+	inner_info->name = (char*)tbl->name;
 
 	/* --- pthread_t id --- */
 	inner_info->pthread_id = pthread_self();
 
 	/* --- init que_worker --- */
-	uint8_t nr_que_worker = gp_thm_reg_tbl [inner_info->thread_idx]->nr_que;
-	que_worker_t st_que_worker [nr_que_worker]; // このスレッドのque実体
-	for (i = 0; i < nr_que_worker; ++ i) {
-		clear_que_worker (&st_que_worker [i]);
+	uint8_t nr_que_worker_max = gp_thm_reg_tbl [inner_info->thread_idx]->nr_que_max;
+	que_worker_t que_worker [nr_que_worker_max]; // このスレッドのque実体
+	for (i = 0; i < nr_que_worker_max; ++ i) {
+		clear_que_worker (&que_worker [i]);
 	}
-	inner_info->nr_que_worker = nr_que_worker;
-	inner_info->que_worker = &st_que_worker [0];
+	inner_info->nr_que_worker_max = nr_que_worker_max;
+	inner_info->que_worker = &que_worker [0];
 
 	/* --- init seq_info --- */
-	uint8_t nr_seq = gp_thm_reg_tbl [inner_info->thread_idx]->nr_seq;
-	seq_info_t st_seq_info [nr_seq]; // seq_info実体
+	uint8_t nr_seq = gp_thm_reg_tbl [inner_info->thread_idx]->nr_seq_max;
+	seq_info_t seq_info [nr_seq]; // seq_info実体
 	for (i = 0; i < nr_seq; ++ i) {
-		clear_seq_info (&st_seq_info [i]);
-		st_seq_info[i].seq_idx = i;
+		clear_seq_info (&seq_info [i]);
+		seq_info[i].seq_idx = i;
 	}
-	inner_info->nr_seq = nr_seq;
-	inner_info->seq_info = &st_seq_info [0];
+	inner_info->nr_seq_max = nr_seq;
+	inner_info->seq_info = &seq_info [0];
 
 
 	/* 
 	 * create
 	 * 登録されていれば行います
 	 */
-	if (gpfn_dispatcher || p_tbl->pcb_create) {
+	if (gpfn_dispatcher || tbl->create) {
 
 		if (gpfn_dispatcher) {
 
@@ -2407,7 +2407,7 @@ static void *worker_thread (void *arg)
 
 		} else {
 
-			(void) (p_tbl->pcb_create) ();
+			(void) (tbl->create) ();
 
 		}
 	}
@@ -2453,7 +2453,7 @@ static void *worker_thread (void *arg)
 		rtn_que = check2deque_worker (inner_info->thread_idx, true);
 		if (rtn_que.is_used) {
 
-			switch (rtn_que.en_que_type) {
+			switch (rtn_que.que_type) {
 			case EN_QUE_TYPE_SEQ_TIMEOUT:
 				/* Seqタイムアウトが無事終わったので タイムアウト情報クリア */
 				clear_seq_timeout (inner_info->thread_idx, rtn_que.dest_seq_idx);
@@ -2467,11 +2467,11 @@ static void *worker_thread (void *arg)
 				 * 登録されているシーケンスを実行します
 				 */
 
-				if (gpfn_dispatcher || ((p_tbl->seq_array)+rtn_que.dest_seq_idx)->pcb_seq) {
+				if (gpfn_dispatcher || ((tbl->seq_array)+rtn_que.dest_seq_idx)->pcb_seq) {
 
 					/* sect init のrequestキューを保存 */
 					//TODO EN_QUE_TYPE_REQUESTで分けるべきか
-					if (((inner_info->seq_info)+rtn_que.dest_seq_idx)->en_act == EN_THM_ACT_INIT) {
+					if (((inner_info->seq_info)+rtn_que.dest_seq_idx)->action == EN_THM_ACT_INIT) {
 						memcpy (
 							&(((inner_info->seq_info)+rtn_que.dest_seq_idx)->seq_init_que_worker),
 							&rtn_que,
@@ -2481,51 +2481,51 @@ static void *worker_thread (void *arg)
 
 					/*
 					 * 色々と使うから キューまるまる保存
-					 * これ以降 st_now_exec_que_workerをクリアするまでget_contextが有効
+					 * これ以降 now_exec_que_workerをクリアするまでget_contextが有効
 					 */
 					memcpy (&(inner_info->now_exec_que_worker), &rtn_que, sizeof(que_worker_t));
 
 					/* 引数g_thm_src_infoセット */
-					p_thm_src_info->thread_idx = rtn_que.src_thread_idx; /* どこのだれから来たのか分かるように */
-					p_thm_src_info->seq_idx = rtn_que.src_seq_idx; /* どこのだれから来たのか分かるように */
-					p_thm_src_info->req_id = rtn_que.req_id; /* 基本的にはreply時に使う */
-					p_thm_src_info->en_rslt = rtn_que.en_rslt; /* reqestの場合EN_THM_RSLT_IGNOREが入る 無効な値
+					thm_src_info->thread_idx = rtn_que.src_thread_idx; /* どこのだれから来たのか分かるように */
+					thm_src_info->seq_idx = rtn_que.src_seq_idx; /* どこのだれから来たのか分かるように */
+					thm_src_info->req_id = rtn_que.req_id; /* 基本的にはreply時に使う */
+					thm_src_info->result = rtn_que.result; /* reqestの場合EN_THM_RSLT_IGNOREが入る 無効な値
 																replyの場合その結果が入る
 																Reqタイムアウトの場合はEN_THM_RSLT_REQ_TIMEOUTが入る
 																Seqタイムアウトの場合はEN_THM_RSLT_SEQ_TIMEOUTが入る */
-					p_thm_src_info->client_id = rtn_que.client_id; /* NOTIFY_CLIENT_ID_BLANK が入る 無効な値 */
+					thm_src_info->client_id = rtn_que.client_id; /* NOTIFY_CLIENT_ID_BLANK が入る 無効な値 */
 					if (rtn_que.msg.is_used) {
-						p_thm_src_info->msg.msg = rtn_que.msg.msg;
-						p_thm_src_info->msg.size = rtn_que.msg.size;
+						thm_src_info->msg.msg = rtn_que.msg.msg;
+						thm_src_info->msg.size = rtn_que.msg.size;
 					}
 
 					/* 引数セット */
-					thm_if.src_info = p_thm_src_info;
-					thm_if.pfn_reply = reply;
-					thm_if.pfn_reg_notify = register_notify;
-					thm_if.pfn_unreg_notify = unregister_notify;
-					thm_if.pfn_notify = notify;
-					thm_if.pfn_set_sectid = set_sect_id;
-					thm_if.pfn_get_sectid = get_sect_id;
-					thm_if.pfn_set_timeout = set_timeout;
-					thm_if.pfn_clear_timeout = clear_timeout;
-					thm_if.pfn_enable_overwrite = enable_overwrite;
-					thm_if.pfn_disable_overwrite = disable_overwrite;
-					thm_if.pfn_lock = lock;
-					thm_if.pfn_unlock = unlock;
-					thm_if.pfn_get_seq_idx = get_seq_idx;
-					thm_if.pfn_get_seq_name = get_seq_name;
+					thm_if.src_info = thm_src_info;
+					thm_if.reply = reply;
+					thm_if.reg_notify = register_notify;
+					thm_if.unreg_notify = unregister_notify;
+					thm_if.notify = notify;
+					thm_if.set_sectid = set_section_id;
+					thm_if.get_sectid = get_section_id;
+					thm_if.set_timeout = set_timeout;
+					thm_if.clear_timeout = clear_timeout;
+					thm_if.enable_overwrite = enable_overwrite;
+					thm_if.disable_overwrite = disable_overwrite;
+					thm_if.lock = lock;
+					thm_if.unlock = unlock;
+					thm_if.get_seq_idx = get_seq_idx;
+					thm_if.get_seq_name = get_seq_name;
 
 
 					while (1) { // EN_THM_ACT_CONTINUE の為のloopです
 						
 						// 現在実行中のセクションid 保管します dump用
-						get_seq_info (inner_info->thread_idx, rtn_que.dest_seq_idx)->running_sect_id = get_seq_info (inner_info->thread_idx, rtn_que.dest_seq_idx)->sect_id;
+						get_seq_info (inner_info->thread_idx, rtn_que.dest_seq_idx)->running_section_id = get_seq_info (inner_info->thread_idx, rtn_que.dest_seq_idx)->section_id;
 						
 						/*
 						 * 関数実行
 						 * 主処理
-						 * ユーザ側で sect_id en_actをセットするはず
+						 * ユーザ側で section_id actionをセットするはず
 						 */
 						if (gpfn_dispatcher) {
 
@@ -2541,21 +2541,21 @@ static void *worker_thread (void *arg)
 
 						} else {
 
-							(void) (((p_tbl->seq_array)+rtn_que.dest_seq_idx)->pcb_seq) (&thm_if);
+							(void) (((tbl->seq_array)+rtn_que.dest_seq_idx)->pcb_seq) (&thm_if);
 
 						}
 
 						// 現在実行中のセクションid クリアします dump用
-						get_seq_info (inner_info->thread_idx, rtn_que.dest_seq_idx)->running_sect_id = SECT_ID_BLANK;
+						get_seq_info (inner_info->thread_idx, rtn_que.dest_seq_idx)->running_section_id = SECT_ID_BLANK;
 
 
-						if (((inner_info->seq_info)+rtn_que.dest_seq_idx)->en_act == EN_THM_ACT_CONTINUE) {
+						if (((inner_info->seq_info)+rtn_que.dest_seq_idx)->action == EN_THM_ACT_CONTINUE) {
 //TODO
 //							/* Seqタイムアウト関係ないとこでは一応クリアする */
 //							clear_seq_timeout (inner_info->thread_idx, rtn_que.n_dest_seq_idx);
 							continue;
 
-						} else if (((inner_info->seq_info)+rtn_que.dest_seq_idx)->en_act == EN_THM_ACT_WAIT) {
+						} else if (((inner_info->seq_info)+rtn_que.dest_seq_idx)->action == EN_THM_ACT_WAIT) {
 
 							if (((inner_info->seq_info)+rtn_que.dest_seq_idx)->timeout.val == SEQ_TIMEOUT_BLANK) {
 								/* 一応クリア */
@@ -2583,7 +2583,7 @@ static void *worker_thread (void *arg)
 					/* clear */
 					clear_que_worker (&(inner_info->now_exec_que_worker));
 					clear_thm_if (&thm_if);
-					clear_thm_src_info (p_thm_src_info);
+					clear_thm_src_info (thm_src_info);
 					clear_sync_reply_info (&g_sync_reply_info [inner_info->thread_idx]);
 				}
 
@@ -2593,38 +2593,38 @@ static void *worker_thread (void *arg)
 			case EN_QUE_TYPE_REPLY:
 				/* ここに来るのは非同期のreply */
 
-				if (p_tbl->p_recv_async_reply) {
+				if (tbl->recv_async_reply) {
 
-					//TODO inner_info->st_now_exec_que_worker の保存必要かどうか
+					//TODO inner_info->now_exec_que_worker の保存必要かどうか
 
 					/* 引数g_thm_src_infoセット */
-					p_thm_src_info->thread_idx = rtn_que.n_src_thread_idx; /* どこのだれから来たのか分かるように */
-					p_thm_src_info->seq_idx = rtn_que.n_src_seq_idx; /* どこのだれから来たのか分かるように */
-					p_thm_src_info->req_id = rtn_que.req_id; /* requestの時に生成したもの */
-					p_thm_src_info->en_rslt = rtn_que.en_rslt; /* 結果が入る */
-					p_thm_src_info->client_id = rtn_que.client_id; /* NOTIFY_CLIENT_ID_BLANK が入る 無効な値 */
+					thm_src_info->thread_idx = rtn_que.n_src_thread_idx; /* どこのだれから来たのか分かるように */
+					thm_src_info->seq_idx = rtn_que.n_src_seq_idx; /* どこのだれから来たのか分かるように */
+					thm_src_info->req_id = rtn_que.req_id; /* requestの時に生成したもの */
+					thm_src_info->result = rtn_que.result; /* 結果が入る */
+					thm_src_info->client_id = rtn_que.client_id; /* NOTIFY_CLIENT_ID_BLANK が入る 無効な値 */
 					if (rtn_que.msg.is_used) {
-						p_thm_src_info->msg = rtn_que.msg.msg;
+						thm_src_info->msg = rtn_que.msg.msg;
 					}
 
 					/* 引数セット */
-					thm_if.src_info = p_thm_src_info;
-					thm_if.pfn_reply = NULL;
-					thm_if.pfn_reg_notify = NULL;
-					thm_if.pfn_un_reg_notify = NULL;
-					thm_if.pfn_notify = notify;
-					thm_if.pfn_set_sect_id = NULL;
-					thm_if.pfn_get_sect_id = NULL;
-					thm_if.pfn_set_timeout = NULL;
+					thm_if.src_info = thm_src_info;
+					thm_if.reply = NULL;
+					thm_if.reg_notify = NULL;
+					thm_if.un_reg_notify = NULL;
+					thm_if.notify = notify;
+					thm_if.set_section_id = NULL;
+					thm_if.get_section_id = NULL;
+					thm_if.set_timeout = NULL;
 
 					/*
 					 * 主処理
 					 */
-					(void)(p_tbl->p_recv_async_reply) (&thm_if);
+					(void)(tbl->recv_async_reply) (&thm_if);
 
 					/* clear */
 					clear_thm_if (&thm_if);
-					clear_thm_src_info (p_thm_src_info);
+					clear_thm_src_info (thm_src_info);
 				}
 
 				break;
@@ -2633,35 +2633,35 @@ static void *worker_thread (void *arg)
 			case EN_QUE_TYPE_NOTIFY:
 				/* notifyがきました */
 
-				if (gpfn_dispatcher || p_tbl->pcb_recv_notify) {
+				if (gpfn_dispatcher || tbl->recv_notify) {
 
 					/* 引数g_thm_src_infoセット */
-					p_thm_src_info->thread_idx = rtn_que.src_thread_idx; /* どこのだれから来たのか分かるように */
-					p_thm_src_info->seq_idx = rtn_que.src_seq_idx; /* どこのだれから来たのか分かるように */
-					p_thm_src_info->req_id = rtn_que.req_id; /* REQUEST_ID_BLANKが入る 無効な値 */
-					p_thm_src_info->en_rslt = rtn_que.en_rslt; /* EN_THM_RSLT_IGNOREが入る 無効な値 */
-					p_thm_src_info->client_id = rtn_que.client_id; /* notify時に登録した値 */
+					thm_src_info->thread_idx = rtn_que.src_thread_idx; /* どこのだれから来たのか分かるように */
+					thm_src_info->seq_idx = rtn_que.src_seq_idx; /* どこのだれから来たのか分かるように */
+					thm_src_info->req_id = rtn_que.req_id; /* REQUEST_ID_BLANKが入る 無効な値 */
+					thm_src_info->result = rtn_que.result; /* EN_THM_RSLT_IGNOREが入る 無効な値 */
+					thm_src_info->client_id = rtn_que.client_id; /* notify時に登録した値 */
 					if (rtn_que.msg.is_used) {
-						p_thm_src_info->msg.msg = rtn_que.msg.msg;
-						p_thm_src_info->msg.size = rtn_que.msg.size;
+						thm_src_info->msg.msg = rtn_que.msg.msg;
+						thm_src_info->msg.size = rtn_que.msg.size;
 					}
 
 					/* 引数セット */
-					thm_if.src_info = p_thm_src_info;
-					thm_if.pfn_reply = NULL;
-					thm_if.pfn_reg_notify = NULL;
-					thm_if.pfn_unreg_notify = NULL;
-					thm_if.pfn_notify = notify;
-					thm_if.pfn_set_sectid = NULL;
-					thm_if.pfn_get_sectid = NULL;
-					thm_if.pfn_set_timeout = NULL;
-					thm_if.pfn_clear_timeout = NULL;
-					thm_if.pfn_enable_overwrite = NULL;
-					thm_if.pfn_disable_overwrite = NULL;
-					thm_if.pfn_lock = NULL;
-					thm_if.pfn_unlock = NULL;
-					thm_if.pfn_get_seq_idx = get_seq_idx;
-					thm_if.pfn_get_seq_name = get_seq_name;
+					thm_if.src_info = thm_src_info;
+					thm_if.reply = NULL;
+					thm_if.reg_notify = NULL;
+					thm_if.unreg_notify = NULL;
+					thm_if.notify = notify;
+					thm_if.set_sectid = NULL;
+					thm_if.get_sectid = NULL;
+					thm_if.set_timeout = NULL;
+					thm_if.clear_timeout = NULL;
+					thm_if.enable_overwrite = NULL;
+					thm_if.disable_overwrite = NULL;
+					thm_if.lock = NULL;
+					thm_if.unlock = NULL;
+					thm_if.get_seq_idx = get_seq_idx;
+					thm_if.get_seq_name = get_seq_name;
 
 					/*
 					 * 主処理
@@ -2677,12 +2677,12 @@ static void *worker_thread (void *arg)
 
 					} else {
 
-						(void) (p_tbl->pcb_recv_notify) (&thm_if);
+						(void) (tbl->recv_notify) (&thm_if);
 					}
 
 					/* clear */
 					clear_thm_if (&thm_if);
-					clear_thm_src_info (p_thm_src_info);
+					clear_thm_src_info (thm_src_info);
 				}
 
 				break;
@@ -2716,7 +2716,7 @@ static void *worker_thread (void *arg)
 	 * destroy
 	 * 登録されていれば行います
 	 */
-	if (gpfn_dispatcher || p_tbl->pcb_destroy) {
+	if (gpfn_dispatcher || tbl->destroy) {
 
 		if (gpfn_dispatcher) {
 
@@ -2730,7 +2730,7 @@ static void *worker_thread (void *arg)
 
 		} else {
 
-			(void) (p_tbl->pcb_destroy) ();
+			(void) (tbl->destroy) ();
 
 		}
 	}
@@ -2753,20 +2753,20 @@ static void clear_thm_if (threadmgr_if_t *p_if)
 	}
 
 	p_if->src_info = NULL;
-	p_if->pfn_reply = NULL;
-	p_if->pfn_reg_notify = NULL;
-	p_if->pfn_unreg_notify = NULL;
-	p_if->pfn_notify = NULL;
-	p_if->pfn_set_sectid = NULL;
-	p_if->pfn_get_sectid = NULL;
-	p_if->pfn_set_timeout = NULL;
-	p_if->pfn_clear_timeout = NULL;
-	p_if->pfn_enable_overwrite = NULL;
-	p_if->pfn_disable_overwrite = NULL;
-	p_if->pfn_lock = NULL;
-	p_if->pfn_unlock = NULL;
-	p_if->pfn_get_seq_idx = NULL;
-	p_if->pfn_get_seq_name = NULL;
+	p_if->reply = NULL;
+	p_if->reg_notify = NULL;
+	p_if->unreg_notify = NULL;
+	p_if->notify = NULL;
+	p_if->set_sectid = NULL;
+	p_if->get_sectid = NULL;
+	p_if->set_timeout = NULL;
+	p_if->clear_timeout = NULL;
+	p_if->enable_overwrite = NULL;
+	p_if->disable_overwrite = NULL;
+	p_if->lock = NULL;
+	p_if->unlock = NULL;
+	p_if->get_seq_idx = NULL;
+	p_if->get_seq_name = NULL;
 }
 
 /**
@@ -2781,7 +2781,7 @@ static void clear_thm_src_info (threadmgr_src_info_t *p)
 	p->thread_idx = THREAD_IDX_BLANK;
 	p->seq_idx = SEQ_IDX_BLANK;
 	p->req_id = REQUEST_ID_BLANK;
-	p->en_rslt = EN_THM_RSLT_IGNORE;
+	p->result = EN_THM_RSLT_IGNORE;
 	p->client_id = NOTIFY_CLIENT_ID_BLANK;
 	p->msg.msg = NULL;
 	p->msg.size= 0;
@@ -2790,13 +2790,13 @@ static void clear_thm_src_info (threadmgr_src_info_t *p)
 /**
  * request_base_thread
  */
-static bool request_base_thread (EN_MONI_TYPE en_type)
+static bool request_base_thread (EN_MONI_TYPE type)
 {
 	/* lock */
 	pthread_mutex_lock (&g_mutex_base);
 
 	/* キューに入れる */
-	if (!enque_base(en_type)) {
+	if (!enque_base(type)) {
 		/* unlock */
 		pthread_mutex_unlock (&g_mutex_base);
 
@@ -2870,7 +2870,7 @@ static bool request_inner (
  */
 bool request_sync (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg_size)
 {
-	if ((thread_idx < 0) || (thread_idx >= get_total_worker_thread_num())) {
+	if ((thread_idx < 0) || (thread_idx >= get_nr_total_worker_thread())) {
 		THM_INNER_LOG_E ("invalid arument\n");
 		return false;
 	}
@@ -2884,8 +2884,8 @@ bool request_sync (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg
 	}
 
 	uint32_t req_id = REQUEST_ID_BLANK;
-	request_id_info_t *p_tmp_req_id_info = NULL;
-	sync_reply_info_t *p_tmp_sync_reply_info = NULL;
+	request_id_info_t *tmp_req_id_info = NULL;
+	sync_reply_info_t *tmp_sync_reply_info = NULL;
 	external_control_info_t *ext_info = NULL;
 	int rtn = 0;
 	bool is_need_wait = true;
@@ -2979,11 +2979,11 @@ bool request_sync (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg
 	// 一度もクリアしてないので ここで一度msg をクリアします
 	// そもそもclear_sync_reply_infoをここでやればいいのかも
 	// clear_sync_reply_info 内のmsgのクリアのコメントも外せるかも
-	p_tmp_sync_reply_info = get_sync_reply_info (ctx.thread_idx);
-	if (p_tmp_sync_reply_info) {
-		memset (p_tmp_sync_reply_info->msg.msg, 0x00, MSG_SIZE);
-		p_tmp_sync_reply_info->msg.size = 0;
-		p_tmp_sync_reply_info->msg.is_used = false;
+	tmp_sync_reply_info = get_sync_reply_info (ctx.thread_idx);
+	if (tmp_sync_reply_info) {
+		memset (tmp_sync_reply_info->msg.msg, 0x00, MSG_SIZE);
+		tmp_sync_reply_info->msg.size = 0;
+		tmp_sync_reply_info->msg.is_used = false;
 	}
 
 	/* リクエスト投げる */
@@ -3004,11 +3004,11 @@ bool request_sync (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg
 
 	/* 自分はcond wait して固まる(Reply待ち) */
 	while (is_need_wait) {
-		n_rtn = pthread_cond_wait (
+		rtn = pthread_cond_wait (
 			&g_cond_sync_reply [ctx.thread_idx],
 			&g_mutex_sync_reply [ctx.thread_idx]
 		);
-		switch (n_rtn) {
+		switch (rtn) {
 		case EINTR:
 			THM_INNER_LOG_W ("interrupt occured.\n");
 			break;
@@ -3021,8 +3021,8 @@ bool request_sync (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg
 //	enable_req_timeout (ctx.thread_idx, req_id, REQUEST_TIMEOUT_FIX);
 	enable_req_timeout (ctx.thread_idx, req_id, g_inner_info[ctx.thread_idx].requetimeout_msec);
 
-	p_tmp_req_id_info = get_request_id_info (ctx.thread_idx, req_id);
-	if (!p_tmp_req_id_info) {
+	tmp_req_id_info = get_request_id_info (ctx.thread_idx, req_id);
+	if (!tmp_req_id_info) {
 		/* NULLリターンは起こりえないはず */
 		THM_INNER_LOG_E ("get_request_id_info is null\n");
 
@@ -3036,7 +3036,7 @@ bool request_sync (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg
 		return false;
 	}
 
-	if (p_tmp_req_id_info->timeout.en_state == EN_TIMEOUT_STATE_INIT) {
+	if (tmp_req_id_info->timeout.state == EN_TIMEOUT_STATE_INIT) {
 		THM_INNER_LOG_D ("request_sync... cond wait\n");
 
 		/* 自分はcond wait して固まる(Reply待ち) */
@@ -3063,7 +3063,7 @@ bool request_sync (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg
 			rtn = pthread_cond_timedwait (
 				&g_cond_sync_reply [ctx.thread_idx],
 				&g_mutex_sync_reply [ctx.thread_idx],
-				&(p_tmp_req_id_info->timeout.time)
+				&(tmp_req_id_info->timeout.time)
 			);
 			switch (rtn) {
 			case EINTR:
@@ -3077,7 +3077,7 @@ bool request_sync (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg
 	}
 #endif
 
-	p_tmp_sync_reply_info = get_sync_reply_info (ctx.thread_idx);
+	tmp_sync_reply_info = get_sync_reply_info (ctx.thread_idx);
 
 	switch (rtn) {
 	case SYS_RETURN_NORMAL:
@@ -3087,14 +3087,14 @@ bool request_sync (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg
 		 * リプライが来た
 		 * 結果をいれる
 		 */
-		if (p_tmp_sync_reply_info) {
+		if (tmp_sync_reply_info) {
 			g_thm_src_info [ctx.thread_idx].thread_idx = thread_idx;
 			g_thm_src_info [ctx.thread_idx].seq_idx = seq_idx;
 			g_thm_src_info [ctx.thread_idx].req_id = req_id;
-			g_thm_src_info [ctx.thread_idx].en_rslt = p_tmp_sync_reply_info->en_rslt;
-			if (p_tmp_sync_reply_info->msg.is_used) {
-				g_thm_src_info [ctx.thread_idx].msg.msg = p_tmp_sync_reply_info->msg.msg;
-				g_thm_src_info [ctx.thread_idx].msg.size = p_tmp_sync_reply_info->msg.size;
+			g_thm_src_info [ctx.thread_idx].result = tmp_sync_reply_info->result;
+			if (tmp_sync_reply_info->msg.is_used) {
+				g_thm_src_info [ctx.thread_idx].msg.msg = tmp_sync_reply_info->msg.msg;
+				g_thm_src_info [ctx.thread_idx].msg.size = tmp_sync_reply_info->msg.size;
 			} else {
 				g_thm_src_info [ctx.thread_idx].msg.msg = NULL;
 				g_thm_src_info [ctx.thread_idx].msg.size = 0;
@@ -3108,10 +3108,10 @@ bool request_sync (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg
 		/*
 		 * タイムアウトした
 		 */
-		if (p_tmp_sync_reply_info) {
+		if (tmp_sync_reply_info) {
 			clear_thm_src_info (&g_thm_src_info [ctx.thread_idx]);
 			// タイムアウトしたことだけわかるようにしておきます
-			g_thm_src_info [ctx.thread_idx].en_rslt = EN_THM_RSLT_REQ_TIMEOUT;
+			g_thm_src_info [ctx.thread_idx].result = EN_THM_RSLT_REQ_TIMEOUT;
 		}
 		break;
 
@@ -3145,13 +3145,12 @@ bool request_sync (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg
  * Request(非同期)
  *
  * 引数 thread_idx, seq_idx は宛先です
- * p_req_idはout引数です
  *
  * 公開用 external_if
  */
 bool request_async (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t msg_size, uint32_t *out_req_id)
 {
-	if ((thread_idx < 0) || (thread_idx >= get_total_worker_thread_num())) {
+	if ((thread_idx < 0) || (thread_idx >= get_nr_total_worker_thread())) {
 		THM_INNER_LOG_E ("invalid arument\n");
 		return false;
 	}
@@ -3241,7 +3240,6 @@ bool request_async (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t ms
 		}
 	}
 
-	/* 引数p_req_idに返却 */
 	if (out_req_id) {
 		*out_req_id = req_id;
 	}
@@ -3252,8 +3250,8 @@ bool request_async (uint8_t thread_idx, uint8_t seq_idx, uint8_t *msg, size_t ms
 	 * replyが返ってきたとき check2deque_worker()で照合するため
 	 */
 	if (ctx.is_valid) {
-		uint8_t n_context_seq_idx = ctx.seq_idx;
-		get_seq_info (ctx.thread_idx, n_context_seq_idx)->req_id = req_id;
+		uint8_t context_seq_idx = ctx.seq_idx;
+		get_seq_info (ctx.thread_idx, context_seq_idx)->req_id = req_id;
 	}
 #endif
 
@@ -3357,7 +3355,7 @@ static bool reply_inner (
 	uint8_t seq_idx,
 	uint32_t req_id,
 	context_t *context,
-	EN_THM_RSLT en_rslt,
+	EN_THM_RSLT result,
 	uint8_t *msg,
 	size_t msg_size,
 	bool is_sync
@@ -3365,7 +3363,7 @@ static bool reply_inner (
 {
 	if (is_sync) {
 		/* sync Reply */
-		if (!cache_sync_reply_info (thread_idx, en_rslt, msg, msg_size)) {
+		if (!cache_sync_reply_info (thread_idx, result, msg, msg_size)) {
 			THM_INNER_LOG_E ("cache_sync_reply_info() is failure.\n");
 			return false;
 		}
@@ -3388,9 +3386,9 @@ static bool reply_inner (
 #if 0
 #ifdef _REQUEST_TIMEOUT
 	/* Reqタイムアウトしてないか確認する */
-	EN_TIMEOUT_STATE en_state = get_req_timeout_state (thread_idx, req_id);
-	if ((en_state != EN_TIMEOUT_STATE_MEAS) && (en_state != EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT)) {
-		THM_INNER_FORCE_LOG_W ("get_req_timeout_state() is unexpected. [%d]   maybe timeout occured. not reply...\n", en_state);
+	EN_TIMEOUT_STATE state = get_req_timeout_state (thread_idx, req_id);
+	if ((state != EN_TIMEOUT_STATE_MEAS) && (state != EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT)) {
+		THM_INNER_FORCE_LOG_W ("get_req_timeout_state() is unexpected. [%d]   maybe timeout occured. not reply...\n", state);
 
 		/* unlock */
 		pthread_mutex_unlock (&g_mutex_worker [thread_idx]);
@@ -3402,7 +3400,7 @@ static bool reply_inner (
 
 	/* キューに入れる */
 	if (!enque_worker (thread_idx, seq_idx, EN_QUE_TYPE_REPLY,
-							context, req_id, en_rslt, NOTIFY_CLIENT_ID_BLANK, msg, msg_size)) {
+							context, req_id, result, NOTIFY_CLIENT_ID_BLANK, msg, msg_size)) {
 		/* unlock */
 		pthread_mutex_unlock (&g_mutex_worker [thread_idx]);
 
@@ -3431,7 +3429,7 @@ static bool reply_inner (
 static bool reply_outer (
 	uint32_t req_id,
 	context_t *context,
-	EN_THM_RSLT en_rslt,
+	EN_THM_RSLT result,
 	uint8_t *msg,
 	size_t msg_size
 )
@@ -3451,14 +3449,14 @@ static bool reply_outer (
 	/* 結果を入れます */
 	ext_info->thm_src_info.thread_idx = context->thread_idx;
 	ext_info->thm_src_info.seq_idx = context->seq_idx;
-	if (en_rslt == EN_THM_RSLT_REQ_TIMEOUT) {
+	if (result == EN_THM_RSLT_REQ_TIMEOUT) {
 		/* タイムアウトだったら ext_infoのreq_idクリア */
 		ext_info->req_id = REQUEST_ID_BLANK;
 		ext_info->thm_src_info.req_id = REQUEST_ID_BLANK;
 	} else {
 		ext_info->thm_src_info.req_id = req_id;
 	}
-	ext_info->thm_src_info.en_rslt = en_rslt;
+	ext_info->thm_src_info.result = result;
 	if (msg && msg_size > 0) {
 		memset (ext_info->msg_entity.msg, 0x00, MSG_SIZE);
 		memcpy (ext_info->msg_entity.msg, msg, msg_size < MSG_SIZE ? msg_size : MSG_SIZE);
@@ -3483,7 +3481,7 @@ static bool reply_outer (
  * Reply
  * 公開用
  */
-static bool reply (EN_THM_RSLT en_rslt, uint8_t *msg, size_t msg_size)
+static bool reply (EN_THM_RSLT result, uint8_t *msg, size_t msg_size)
 {
 	/*
 	 * get_context->自分のthread_idx取得->inner_infoを参照して返送先を得る
@@ -3518,7 +3516,7 @@ static bool reply (EN_THM_RSLT en_rslt, uint8_t *msg, size_t msg_size)
 		}
 
 		/* リプライ投げる */
-		if (!reply_outer (req_id, &ctx, en_rslt, msg, msg_size)) {
+		if (!reply_outer (req_id, &ctx, result, msg, msg_size)) {
 			return false;
 		}
 
@@ -3542,7 +3540,7 @@ static bool reply (EN_THM_RSLT en_rslt, uint8_t *msg, size_t msg_size)
 		is_sync = is_sync_reply_from_request_id (thread_idx, req_id);
 
 		/* リプライ投げる */
-		if (!reply_inner (thread_idx, seq_idx, req_id, &ctx, en_rslt, msg, msg_size, is_sync)) {
+		if (!reply_inner (thread_idx, seq_idx, req_id, &ctx, result, msg, msg_size, is_sync)) {
 			return false;
 		}
 	}
@@ -3560,18 +3558,18 @@ static context_t get_context (void)
 	context_t ctx;
 
 	/* pthread_self() */
-	pthread_t n_current_pthread_id = pthread_self();
+	pthread_t current_pthread_id = pthread_self();
 
 	/* init clear */
 	clear_context (&ctx);
 
-	for (i = 0; i < get_total_worker_thread_num(); ++ i) {
-		if (pthread_equal (g_inner_info [i].pthread_id, n_current_pthread_id)) {
+	for (i = 0; i < get_nr_total_worker_thread(); ++ i) {
+		if (pthread_equal (g_inner_info [i].pthread_id, current_pthread_id)) {
 			break;
 		}
 	}
 
-	if (i < get_total_worker_thread_num()) {
+	if (i < get_nr_total_worker_thread()) {
 		ctx.is_valid = true;
 		ctx.thread_idx = g_inner_info [i].thread_idx;
 		ctx.seq_idx = g_inner_info [i].now_exec_que_worker.dest_seq_idx;
@@ -3579,7 +3577,7 @@ static context_t get_context (void)
 	} else {
 		/* not found */
 		/* フレームワーク管理外のスレッドです */
-		THM_INNER_LOG_W ("this framework unmanaged thread. pthread_id:[%lu]\n", n_current_pthread_id);
+		THM_INNER_LOG_W ("this framework unmanaged thread. pthread_id:[%lu]\n", current_pthread_id);
 	}
 
 	return ctx;
@@ -3609,20 +3607,20 @@ static void clear_context (context_t *p)
  */
 static uint32_t get_request_id (uint8_t thread_idx, uint8_t seq_idx)
 {
-	if ((thread_idx < 0) || (thread_idx >= get_total_worker_thread_num())) {
+	if ((thread_idx < 0) || (thread_idx >= get_nr_total_worker_thread())) {
 //TODO 引数チェックおかしい?
 		/* 外部スレッドを考慮 */
 		THM_INNER_LOG_D ("external request\n");
 		thread_idx = THREAD_IDX_EXTERNAL;
 	} else {
 		// 内部から呼ばれた
-		if ((seq_idx < 0) || (seq_idx >= g_inner_info [thread_idx].nr_seq)) {
+		if ((seq_idx < 0) || (seq_idx >= g_inner_info [thread_idx].nr_seq_max)) {
 			THM_INNER_LOG_E ("invalid arument\n");
 			return REQUEST_ID_BLANK;
 		}
 	}
 
-	uint32_t n_rtreq_id = REQUEST_ID_BLANK;
+	uint32_t rtreq_id = REQUEST_ID_BLANK;
 	uint32_t n = 0;
 
 
@@ -3651,10 +3649,10 @@ static uint32_t get_request_id (uint8_t thread_idx, uint8_t seq_idx)
 		return REQUEST_ID_BLANK;
 	}
 
-	n_rtreq_id = g_nr_request_id_ind [thread_idx];
-	g_request_id_info [thread_idx][n_rtreq_id].id = n_rtreq_id;
-	g_request_id_info [thread_idx][n_rtreq_id].src_thread_idx = thread_idx;
-	g_request_id_info [thread_idx][n_rtreq_id].src_seq_idx = seq_idx;
+	rtreq_id = g_nr_request_id_ind [thread_idx];
+	g_request_id_info [thread_idx][rtreq_id].id = rtreq_id;
+	g_request_id_info [thread_idx][rtreq_id].src_thread_idx = thread_idx;
+	g_request_id_info [thread_idx][rtreq_id].src_seq_idx = seq_idx;
 
 
 	/* for next set */
@@ -3665,7 +3663,7 @@ static uint32_t get_request_id (uint8_t thread_idx, uint8_t seq_idx)
 	/* unlock */
 	pthread_mutex_unlock (&g_mutex_ope_request_id [thread_idx]);
 
-	return n_rtreq_id;
+	return rtreq_id;
 }
 
 /**
@@ -3682,7 +3680,7 @@ static void dump_request_id_info (void)
 
 	THM_LOG_I ("####  dump request_id_info  ####\n");
 
-	for (i = 0; i < get_total_worker_thread_num(); ++ i) {
+	for (i = 0; i < get_nr_total_worker_thread(); ++ i) {
 		THM_LOG_I (" --- thread:[%s]\n", g_inner_info [i].name);
 		for (j = 0; j < REQUEST_ID_MAX; ++ j) {
 			if (g_request_id_info [i][j].id != REQUEST_ID_BLANK) {
@@ -3691,7 +3689,7 @@ static void dump_request_id_info (void)
 					g_request_id_info [i][j].id,
 					g_request_id_info [i][j].src_thread_idx,
 					g_request_id_info [i][j].src_seq_idx,
-					gpsz_timeout_state [g_request_id_info [i][j].timeout.en_state]
+					g_timeout_state_strings [g_request_id_info [i][j].timeout.state]
 				);
 				is_found = true;
 			}
@@ -3710,7 +3708,7 @@ static void dump_request_id_info (void)
 				g_request_id_info [THREAD_IDX_EXTERNAL][j].id,
 				g_request_id_info [THREAD_IDX_EXTERNAL][j].src_thread_idx,
 				g_request_id_info [THREAD_IDX_EXTERNAL][j].src_seq_idx,
-				gpsz_timeout_state [g_request_id_info [THREAD_IDX_EXTERNAL][j].timeout.en_state]
+				g_timeout_state_strings [g_request_id_info [THREAD_IDX_EXTERNAL][j].timeout.state]
 			);
 			is_found = true;
 		}
@@ -3725,18 +3723,18 @@ static void dump_request_id_info (void)
  */
 static request_id_info_t *get_request_id_info (uint8_t thread_idx, uint32_t req_id)
 {
-	request_id_info_t *p_info = NULL;
+	request_id_info_t *info = NULL;
 
 	/* lock */
 //TODO 参照のみなのでmutexいらないかも
 	pthread_mutex_lock (&g_mutex_ope_request_id [thread_idx]);
 
-	p_info = &g_request_id_info [thread_idx][req_id];
+	info = &g_request_id_info [thread_idx][req_id];
 
 	/* unlock */
 	pthread_mutex_unlock (&g_mutex_ope_request_id [thread_idx]);
 
-	return p_info;
+	return info;
 }
 
 /**
@@ -3767,7 +3765,7 @@ static bool is_active_request_id (uint8_t thread_idx, uint32_t req_id)
  */
 static void enable_req_timeout (uint8_t thread_idx, uint32_t req_id, uint32_t timeout_msec)
 {
-	if ((thread_idx < 0) || (thread_idx >= get_total_worker_thread_num())) {
+	if ((thread_idx < 0) || (thread_idx >= get_nr_total_worker_thread())) {
 //TODO 引数チェックおかしい?
 		/* 外部スレッドを考慮 */
 		THM_INNER_LOG_D ("external\n");
@@ -3794,8 +3792,8 @@ static void enable_req_timeout (uint8_t thread_idx, uint32_t req_id, uint32_t ti
 	/* lock */
 	pthread_mutex_lock (&g_mutex_ope_request_id [thread_idx]);
 
-	if (g_request_id_info [thread_idx][req_id].timeout.en_state != EN_TIMEOUT_STATE_INIT) {
-		THM_INNER_LOG_E ("Unexpected: timeout.en_state != EN_TIMEOUT_STATE_INIT\n");
+	if (g_request_id_info [thread_idx][req_id].timeout.state != EN_TIMEOUT_STATE_INIT) {
+		THM_INNER_LOG_E ("Unexpected: timeout.state != EN_TIMEOUT_STATE_INIT\n");
 
 		/* unlock */
 		pthread_mutex_unlock (&g_mutex_ope_request_id [thread_idx]);
@@ -3815,7 +3813,7 @@ static void enable_req_timeout (uint8_t thread_idx, uint32_t req_id, uint32_t ti
 		g_request_id_info [thread_idx][req_id].timeout.time.tv_sec = now_timeval.tv_sec + (timeout_msec / 1000);
 		g_request_id_info [thread_idx][req_id].timeout.time.tv_nsec = usec * 1000; // nsec
 	}
-	g_request_id_info [thread_idx][req_id].timeout.en_state = EN_TIMEOUT_STATE_MEAS;
+	g_request_id_info [thread_idx][req_id].timeout.state = EN_TIMEOUT_STATE_MEAS;
 
 	/* unlock */
 	pthread_mutex_unlock (&g_mutex_ope_request_id [thread_idx]);
@@ -3838,7 +3836,7 @@ static void check_req_timeout (uint8_t thread_idx)
 
 	uint32_t i = 0; //req_id
 	for (i = 0; i < REQUEST_ID_MAX; ++ i) {
-		if (g_request_id_info [thread_idx][i].timeout.en_state == EN_TIMEOUT_STATE_MEAS) {
+		if (g_request_id_info [thread_idx][i].timeout.state == EN_TIMEOUT_STATE_MEAS) {
 			if (is_req_timeout_from_request_id (thread_idx, i)) {
 				if (thread_idx == THREAD_IDX_EXTERNAL) {
 					/*
@@ -3851,7 +3849,7 @@ static void check_req_timeout (uint8_t thread_idx)
 
 				} else {
 					/* 自スレッドにReqタイムアウトのキューを入れる */
-					g_request_id_info [thread_idx][i].timeout.en_state = EN_TIMEOUT_STATE_PASSED;
+					g_request_id_info [thread_idx][i].timeout.state = EN_TIMEOUT_STATE_PASSED;
 					enque_req_timeout (thread_idx, i);
 				}
 			}
@@ -3954,17 +3952,17 @@ static bool enque_req_timeout (uint8_t thread_idx, uint32_t req_id)
  */
 static EN_TIMEOUT_STATE get_req_timeout_state (uint8_t thread_idx, uint32_t req_id)
 {
-	EN_TIMEOUT_STATE en_state = EN_TIMEOUT_STATE_INIT;
+	EN_TIMEOUT_STATE state = EN_TIMEOUT_STATE_INIT;
 
 	/* lock */
 	pthread_mutex_lock (&g_mutex_ope_request_id [thread_idx]);
 
-	en_state = g_request_id_info [thread_idx][req_id].timeout.en_state;
+	state = g_request_id_info [thread_idx][req_id].timeout.state;
 
 	/* unlock */
 	pthread_mutex_unlock (&g_mutex_ope_request_id [thread_idx]);
 
-	return en_state;
+	return state;
 }
 
 /**
@@ -3982,7 +3980,7 @@ static request_id_info_t *search_nearest_req_timeout (uint8_t thread_idx)
 	time_t timeout_nsec_min = 0;
 	time_t timeout_sec = 0;
 	long timeout_nsec  = 0;
-	uint8_t n_rtreq_id = REQUEST_ID_MAX;
+	uint8_t rtreq_id = REQUEST_ID_MAX;
 
 	/* lock */
 //TODO 同スレッドからのみ呼ばれる 参照のみなのでmutexいらないかも
@@ -3990,13 +3988,13 @@ static request_id_info_t *search_nearest_req_timeout (uint8_t thread_idx)
 
 	int i = 0;
 	for (i = 0; i < REQUEST_ID_MAX; ++ i) {
-		if (g_request_id_info [thread_idx][i].timeout.en_state == EN_TIMEOUT_STATE_MEAS) {
+		if (g_request_id_info [thread_idx][i].timeout.state == EN_TIMEOUT_STATE_MEAS) {
 
 			if ((timeout_sec_min == 0) && (timeout_nsec_min == 0)) {
 				// for 1順目
 				timeout_sec_min = g_request_id_info [thread_idx][i].timeout.time.tv_sec;
 				timeout_nsec_min = g_request_id_info [thread_idx][i].timeout.time.tv_nsec;
-				n_rtreq_id = i;
+				rtreq_id = i;
 
 			} else {
 				timeout_sec = g_request_id_info [thread_idx][i].timeout.time.tv_sec;
@@ -4005,13 +4003,13 @@ static request_id_info_t *search_nearest_req_timeout (uint8_t thread_idx)
 				if (timeout_sec < timeout_sec_min) {
 					timeout_sec_min = timeout_sec;
 					timeout_nsec_min = timeout_nsec;
-					n_rtreq_id = i;
+					rtreq_id = i;
 
 				} else if (timeout_sec == timeout_sec_min) {
 					if (timeout_nsec < timeout_nsec_min) {
 						timeout_sec_min = timeout_sec;
 						timeout_nsec_min = timeout_nsec;
-						n_rtreq_id = i;
+						rtreq_id = i;
 					}
 				}
 			}
@@ -4022,11 +4020,11 @@ static request_id_info_t *search_nearest_req_timeout (uint8_t thread_idx)
 	pthread_mutex_unlock (&g_mutex_ope_request_id [thread_idx]);
 
 
-	if (n_rtreq_id == REQUEST_ID_MAX) {
+	if (rtreq_id == REQUEST_ID_MAX) {
 		/* タイムアウト仕掛かけてない */
 		return NULL;
 	} else {
-		return &g_request_id_info [thread_idx][n_rtreq_id];
+		return &g_request_id_info [thread_idx][rtreq_id];
 	}
 }
 
@@ -4038,7 +4036,7 @@ static request_id_info_t *search_nearest_req_timeout (uint8_t thread_idx)
  */
 static void release_request_id (uint8_t thread_idx, uint32_t req_id)
 {
-	if ((thread_idx < 0) || (thread_idx >= get_total_worker_thread_num())) {
+	if ((thread_idx < 0) || (thread_idx >= get_nr_total_worker_thread())) {
 //TODO 引数チェックおかしい?
 		/* 外部スレッドを考慮 */
 		THM_INNER_LOG_D ("external\n");
@@ -4079,7 +4077,7 @@ static void clear_request_id_info (request_id_info_t *p)
 	p->id = REQUEST_ID_BLANK;
 	p->src_thread_idx = THREAD_IDX_BLANK;
 	p->src_seq_idx = SEQ_IDX_BLANK;
-	p->timeout.en_state = EN_TIMEOUT_STATE_INIT;
+	p->timeout.state = EN_TIMEOUT_STATE_INIT;
 	memset (&(p->timeout.time), 0x00, sizeof(struct timespec));
 }
 
@@ -4138,7 +4136,7 @@ static sync_reply_info_t *get_sync_reply_info (uint8_t thread_idx)
  *
  * 引数 thread_idxは request元スレッドです
  */
-static bool cache_sync_reply_info (uint8_t thread_idx, EN_THM_RSLT en_rslt, uint8_t *msg, size_t msg_size)
+static bool cache_sync_reply_info (uint8_t thread_idx, EN_THM_RSLT result, uint8_t *msg, size_t msg_size)
 {
 	if (
 		(!g_sync_reply_info [thread_idx].is_used) ||
@@ -4152,7 +4150,7 @@ static bool cache_sync_reply_info (uint8_t thread_idx, EN_THM_RSLT en_rslt, uint
 	}
 
 	/* result 保存 */
-	g_sync_reply_info [thread_idx].en_rslt = en_rslt;
+	g_sync_reply_info [thread_idx].result = result;
 
 	/* message 保存 */
 	if (msg && msg_size > 0) {
@@ -4198,7 +4196,7 @@ static void clear_sync_reply_info (sync_reply_info_t *p)
 	}
 
 	p->req_id = REQUEST_ID_BLANK;
-	p->en_rslt = EN_THM_RSLT_IGNORE;
+	p->result = EN_THM_RSLT_IGNORE;
 //TODO 暫定回避
 // 受け渡し先がポインタなため 同期待受の最後で
 // これを呼ぶところでmsgが消えてしまう
@@ -4211,13 +4209,12 @@ static void clear_sync_reply_info (sync_reply_info_t *p)
 
 /**
  * Notify登録
- * 引数 p_client_id はout
  *
  * これを実行するコンテキストは登録先スレッドです(server側)
  * replyでclient_idを返してください
  * 複数クライアントからの登録は個々のスレッドでid管理しなくていはならない
  */
-static bool register_notify (uint8_t category, uint8_t *pclient_id)
+static bool register_notify (uint8_t category, uint8_t *out_client_id)
 {
 	/*
 	 * get_context->自分のthread_idx取得->inner_infoを参照して登録先を得る
@@ -4228,7 +4225,7 @@ static bool register_notify (uint8_t category, uint8_t *pclient_id)
 		return false;
 	}
 
-	if (!pclient_id) {
+	if (!out_client_id) {
 		THM_INNER_LOG_E( "invalid argument.\n" );
 		return false;
 	}
@@ -4253,9 +4250,8 @@ static bool register_notify (uint8_t category, uint8_t *pclient_id)
 		return false;
 	}
 
-	/* client_id 返す */
-	if (pclient_id) {
-		*pclient_id = id;
+	if (out_client_id) {
+		*out_client_id = id;
 	}
 
 	return true;
@@ -4378,7 +4374,7 @@ static bool notify_inner (
 		/* unlock */
 		pthread_mutex_unlock (&g_mutex_worker [thread_idx]);
 
-		THM_INNER_LOG_E ("en_que_worker() is failure.\n");
+		THM_INNER_LOG_E ("enque_worker() is failure.\n");
 		return false;
 	}
 
@@ -4493,68 +4489,68 @@ static void clear_notify_client_info (notify_client_info_t *p)
 }
 
 /**
- * set_sect_id
- * 次のsect_idをセットする
+ * set_section_id
+ * 次のsection_idをセットする
  * 公開用
  */
-static void set_sect_id (uint8_t n_sect_id, EN_THM_ACT en_act)
+static void set_section_id (uint8_t section_id, EN_THM_ACT action)
 {
-	if ((n_sect_id < SECT_ID_INIT) || (n_sect_id >= SECT_ID_MAX)) {
-		THM_INNER_LOG_E ("arg(sect_id) is invalid.\n");
+	if ((section_id < SECT_ID_INIT) || (section_id >= SECT_ID_MAX)) {
+		THM_INNER_LOG_E ("arg(section_id) is invalid.\n");
 		return;
 	}
 
-	if ((en_act < EN_THM_ACT_INIT) || (en_act >= EN_THM_ACT_MAX)) {
-		THM_INNER_LOG_E ("arg(en_act) is invalid.\n");
+	if ((action < EN_THM_ACT_INIT) || (action >= EN_THM_ACT_MAX)) {
+		THM_INNER_LOG_E ("arg(action) is invalid.\n");
 		return;
 	}
 
-	if (en_act == EN_THM_ACT_INIT) {
+	if (action == EN_THM_ACT_INIT) {
 		/* ユーザ自身でEN_THM_ACT_INITに設定はできない */
 		THM_INNER_LOG_E ("set EN_THM_ACT_INIT can not on their own.\n");
 		return;
 	}
 
-	if (en_act == EN_THM_ACT_DONE) {
-		en_act = EN_THM_ACT_INIT;
+	if (action == EN_THM_ACT_DONE) {
+		action = EN_THM_ACT_INIT;
 	}
 
 	context_t ctx = get_context();
 	if (ctx.is_valid) {
-		set_sect_id_inner (ctx.thread_idx, ctx.seq_idx, n_sect_id, en_act);
+		set_section_id_inner (ctx.thread_idx, ctx.seq_idx, section_id, action);
 	}
 }
 
 /**
- * set_sect_id_inner
+ * set_section_id_inner
  */
-static void set_sect_id_inner (uint8_t thread_idx, uint8_t seq_idx, uint8_t n_sect_id, EN_THM_ACT en_act)
+static void set_section_id_inner (uint8_t thread_idx, uint8_t seq_idx, uint8_t section_id, EN_THM_ACT action)
 {
-	get_seq_info (thread_idx, seq_idx)->sect_id = n_sect_id;
-	get_seq_info (thread_idx, seq_idx)->en_act = en_act;
+	get_seq_info (thread_idx, seq_idx)->section_id = section_id;
+	get_seq_info (thread_idx, seq_idx)->action = action;
 }
 
 /**
- * clear_sect_id
+ * clear_section_id
  */
-static void clear_sect_id (uint8_t thread_idx, uint8_t seq_idx)
+static void clear_section_id (uint8_t thread_idx, uint8_t seq_idx)
 {
-	set_sect_id_inner (thread_idx, seq_idx, SECT_ID_INIT, EN_THM_ACT_INIT);
+	set_section_id_inner (thread_idx, seq_idx, SECT_ID_INIT, EN_THM_ACT_INIT);
 }
 
 /**
- * get_sect_id
+ * get_section_id
  * 公開用
  */
-static uint8_t get_sect_id (void)
+static uint8_t get_section_id (void)
 {
 	context_t ctx = get_context();
 	if (ctx.is_valid) {
-		if (get_seq_info (ctx.thread_idx, ctx.seq_idx)->en_act == EN_THM_ACT_INIT) {
-			get_seq_info (ctx.thread_idx, ctx.seq_idx)->sect_id = SECT_ID_INIT;
+		if (get_seq_info (ctx.thread_idx, ctx.seq_idx)->action == EN_THM_ACT_INIT) {
+			get_seq_info (ctx.thread_idx, ctx.seq_idx)->section_id = SECT_ID_INIT;
 			return SECT_ID_INIT;
 		} else {
-			return get_seq_info (ctx.thread_idx, ctx.seq_idx)->sect_id;
+			return get_seq_info (ctx.thread_idx, ctx.seq_idx)->section_id;
 		}
 	} else {
 		return SECT_ID_INIT;
@@ -4625,7 +4621,7 @@ static void set_seq_timeout (uint32_t timeout_msec)
  */
 static void enable_seq_timeout (uint8_t thread_idx, uint8_t seq_idx)
 {
-	if (get_seq_info (thread_idx, seq_idx)->timeout.en_state != EN_TIMEOUT_STATE_INIT) {
+	if (get_seq_info (thread_idx, seq_idx)->timeout.state != EN_TIMEOUT_STATE_INIT) {
 		/*
 		 * set_timeoutしてsectionまたいでWAITしている時とかは
 		 * 既に設定済なので何もしない よって上書きされない
@@ -4634,9 +4630,9 @@ static void enable_seq_timeout (uint8_t thread_idx, uint8_t seq_idx)
 		return;
 	}
 
-	uint32_t n_timeout = get_seq_info (thread_idx, seq_idx)->timeout.val;
-	time_t add_sec = n_timeout / 1000;
-	long add_nsec  = (n_timeout % 1000) * 1000000;
+	uint32_t timeout = get_seq_info (thread_idx, seq_idx)->timeout.val;
+	time_t add_sec = timeout / 1000;
+	long add_nsec  = (timeout % 1000) * 1000000;
 	THM_INNER_LOG_D ("add_sec:%ld  add_nsec:%ld\n", add_sec, add_nsec);
 
 	struct timeval now_timeval = {0};
@@ -4646,7 +4642,7 @@ static void enable_seq_timeout (uint8_t thread_idx, uint8_t seq_idx)
 
 	get_seq_info (thread_idx, seq_idx)->timeout.time.tv_sec = now_sec + add_sec + ((now_nsec + add_nsec) / 1000000000);
 	get_seq_info (thread_idx, seq_idx)->timeout.time.tv_nsec = (now_nsec + add_nsec) % 1000000000;
-	get_seq_info (thread_idx, seq_idx)->timeout.en_state = EN_TIMEOUT_STATE_MEAS;
+	get_seq_info (thread_idx, seq_idx)->timeout.state = EN_TIMEOUT_STATE_MEAS;
 	THM_INNER_LOG_D (
 		"timeout.time.tv_sec:%ld  timeout.time.tv_nsec:%ld\n",
 		get_seq_info (thread_idx, seq_idx)->timeout.time.tv_sec,
@@ -4662,14 +4658,14 @@ static void enable_seq_timeout (uint8_t thread_idx, uint8_t seq_idx)
  */
 static void check_seq_timeout (uint8_t thread_idx)
 {
-	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq;
+	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq_max;
 	int i = 0;
 	for (i = 0; i < nr_seq; ++ i) {
 		/* EN_TIMEOUT_STATE_PASSEDの場合はすでにqueuingされてるはず */
-		if (get_seq_info (thread_idx, i)->timeout.en_state == EN_TIMEOUT_STATE_MEAS) {
+		if (get_seq_info (thread_idx, i)->timeout.state == EN_TIMEOUT_STATE_MEAS) {
 			if (is_seq_timeout_from_seq_idx (thread_idx, i)) {
 				/* 自スレッドにSeqタイムアウトのキューを入れる */
-				get_seq_info (thread_idx, i)->timeout.en_state = EN_TIMEOUT_STATE_PASSED;
+				get_seq_info (thread_idx, i)->timeout.state = EN_TIMEOUT_STATE_PASSED;
 				enque_seq_timeout (thread_idx, i);
 			}
 		}
@@ -4728,7 +4724,7 @@ static bool is_seq_timeout_from_seq_idx (uint8_t thread_idx, uint8_t seq_idx)
 }
 
 /**
- * en_que_seq_timeout
+ * enque_seq_timeout
  */
 static bool enque_seq_timeout (uint8_t thread_idx, uint8_t seq_idx)
 {
@@ -4736,7 +4732,7 @@ static bool enque_seq_timeout (uint8_t thread_idx, uint8_t seq_idx)
 
 	if (!enque_worker(thread_idx, seq_idx, EN_QUE_TYPE_SEQ_TIMEOUT,
 							&ctx, REQUEST_ID_BLANK, EN_THM_RSLT_SEQ_TIMEOUT, NOTIFY_CLIENT_ID_BLANK, NULL, 0)) {
-		THM_INNER_LOG_E ("en_que_worker() is failure.\n");
+		THM_INNER_LOG_E ("enque_worker() is failure.\n");
 		return false;
 	}
 
@@ -4758,18 +4754,18 @@ static seq_info_t *search_nearest_seq_timeout (uint8_t thread_idx)
 	time_t timeout_nsec_min = 0;
 	time_t timeout_sec = 0;
 	long timeout_nsec  = 0;
-	uint8_t n_rtseq_idx = SEQ_IDX_MAX;
+	uint8_t rtseq_idx = SEQ_IDX_MAX;
 
-	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq;
+	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq_max;
 	int i = 0;
 	for (i = 0; i < nr_seq; ++ i) {
-		if (get_seq_info (thread_idx, i)->timeout.en_state == EN_TIMEOUT_STATE_MEAS) {
+		if (get_seq_info (thread_idx, i)->timeout.state == EN_TIMEOUT_STATE_MEAS) {
 
 			if ((timeout_sec_min == 0) && (timeout_nsec_min == 0)) {
 				// 初回
 				timeout_sec_min = get_seq_info (thread_idx, i)->timeout.time.tv_sec;
 				timeout_nsec_min = get_seq_info (thread_idx, i)->timeout.time.tv_nsec;
-				n_rtseq_idx = i;
+				rtseq_idx = i;
 
 			} else {
 				timeout_sec = get_seq_info (thread_idx, i)->timeout.time.tv_sec;
@@ -4778,24 +4774,24 @@ static seq_info_t *search_nearest_seq_timeout (uint8_t thread_idx)
 				if (timeout_sec < timeout_sec_min) {
 					timeout_sec_min = timeout_sec;
 					timeout_nsec_min = timeout_nsec;
-					n_rtseq_idx = i;
+					rtseq_idx = i;
 
 				} else if (timeout_sec == timeout_sec_min) {
 					if (timeout_nsec < timeout_nsec_min) {
 						timeout_sec_min = timeout_sec;
 						timeout_nsec_min = timeout_nsec;
-						n_rtseq_idx = i;
+						rtseq_idx = i;
 					}
 				}
 			}
 		}
 	}
 
-	if (n_rtseq_idx == SEQ_IDX_MAX) {
+	if (rtseq_idx == SEQ_IDX_MAX) {
 		/* タイムアウト仕掛かけてない */
 		return NULL;
 	} else {
-		return get_seq_info (thread_idx, n_rtseq_idx);
+		return get_seq_info (thread_idx, rtseq_idx);
 	}
 }
 
@@ -4807,11 +4803,11 @@ static seq_info_t *search_nearest_seq_timeout (uint8_t thread_idx)
  */
 static void check_seq_timeout_from_cond_timedwait (uint8_t thread_idx)
 {
-	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq;
+	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq_max;
 	int i = 0;
 	int n = 0;
 	for (i = 0; i < nr_seq; ++ i) {
-		if (get_seq_info (thread_idx, i)->timeout.en_state == EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT) {
+		if (get_seq_info (thread_idx, i)->timeout.state == EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT) {
 			++ n;
 		}
 	}
@@ -4833,12 +4829,12 @@ static void check_seq_timeout_from_cond_timedwait (uint8_t thread_idx)
  */
 static void check_seq_timeout_from_not_cond_timedwait (uint8_t thread_idx)
 {
-	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq;
+	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq_max;
 	int i = 0;
 	int n = 0;
 	for (i = 0; i < nr_seq; ++ i) {
-		if (get_seq_info (thread_idx, i)->timeout.en_state == EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT) {
-			get_seq_info (thread_idx, i)->timeout.en_state = EN_TIMEOUT_STATE_MEAS;
+		if (get_seq_info (thread_idx, i)->timeout.state == EN_TIMEOUT_STATE_MEAS_COND_TIMEDWAIT) {
+			get_seq_info (thread_idx, i)->timeout.state = EN_TIMEOUT_STATE_MEAS;
 			++ n;
 		}
 	}
@@ -4867,14 +4863,14 @@ static void clear_timeout (void)
  */
 static void clear_seq_timeout (uint8_t thread_idx, uint8_t seq_idx)
 {
-	seq_info_t *p_seq_info = get_seq_info (thread_idx, seq_idx);
-	if (!p_seq_info) {
+	seq_info_t *seq_info = get_seq_info (thread_idx, seq_idx);
+	if (!seq_info) {
 		return;
 	}
 
-	p_seq_info->timeout.en_state = EN_TIMEOUT_STATE_INIT;
-	p_seq_info->timeout.val = SEQ_TIMEOUT_BLANK;
-	memset (&(p_seq_info->timeout.time), 0x00, sizeof(struct timespec));
+	seq_info->timeout.state = EN_TIMEOUT_STATE_INIT;
+	seq_info->timeout.val = SEQ_TIMEOUT_BLANK;
+	memset (&(seq_info->timeout.time), 0x00, sizeof(struct timespec));
 }
 
 /**
@@ -4898,8 +4894,8 @@ static void clear_seq_info (seq_info_t *p)
 
 	p->seq_idx = SEQ_IDX_BLANK;
 
-	p->sect_id = SECT_ID_INIT;
-	p->en_act = EN_THM_ACT_INIT;
+	p->section_id = SECT_ID_INIT;
+	p->action = EN_THM_ACT_INIT;
 #ifndef _MULTI_REQUESTING
 	p->req_id = REQUEST_ID_BLANK;
 #endif
@@ -4907,11 +4903,11 @@ static void clear_seq_info (seq_info_t *p)
 	p->is_overwrite = false;
 	p->is_lock = false;
 
-	p->timeout.en_state = EN_TIMEOUT_STATE_INIT;
+	p->timeout.state = EN_TIMEOUT_STATE_INIT;
 	p->timeout.val = SEQ_TIMEOUT_BLANK;
 	memset (&(p->timeout.time), 0x00, sizeof(struct timespec));
 
-	p->running_sect_id = SEQ_IDX_BLANK;
+	p->running_section_id = SEQ_IDX_BLANK;
 }
 
 /**
@@ -4943,12 +4939,12 @@ static void disable_overwrite (void)
  */
 static void set_overwrite (uint8_t thread_idx, uint8_t seq_idx, bool is_overwrite)
 {
-	seq_info_t *p_seq_info = get_seq_info (thread_idx, seq_idx);
-	if (!p_seq_info) {
+	seq_info_t *seq_info = get_seq_info (thread_idx, seq_idx);
+	if (!seq_info) {
 		return;
 	}
 
-	p_seq_info->is_overwrite = is_overwrite;
+	seq_info->is_overwrite = is_overwrite;
 }
 
 /**
@@ -4958,7 +4954,7 @@ static void set_overwrite (uint8_t thread_idx, uint8_t seq_idx, bool is_overwrit
 static bool is_lock (uint8_t thread_idx)
 {
 	bool r = false;
-	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq;
+	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq_max;
 	int i = 0;
 	int n = 0;
 
@@ -4983,7 +4979,7 @@ static bool is_lock (uint8_t thread_idx)
 static bool is_lock_seq (uint8_t thread_idx, uint8_t seq_idx)
 {
 	bool r = false;
-	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq;
+	uint8_t nr_seq = g_inner_info [thread_idx].nr_seq_max;
 	int i = 0;
 
 	for (i = 0; i < nr_seq; ++ i) {
@@ -5026,12 +5022,12 @@ static void unlock (void)
  */
 static void set_lock (uint8_t thread_idx, uint8_t seq_idx, bool is_lock)
 {
-	seq_info_t *p_seq_info = get_seq_info (thread_idx, seq_idx);
-	if (!p_seq_info) {
+	seq_info_t *seq_info = get_seq_info (thread_idx, seq_idx);
+	if (!seq_info) {
 		return;
 	}
 
-	p_seq_info->is_lock = is_lock;
+	seq_info->is_lock = is_lock;
 }
 
 /**
@@ -5044,51 +5040,51 @@ static void set_lock (uint8_t thread_idx, uint8_t seq_idx, bool is_lock)
  */
 static EN_NEAREST_TIMEOUT search_nearetimeout (
 	uint8_t thread_idx,
-	request_id_info_t **p_request_id_info,	// out
-	seq_info_t **p_seq_info		// out
+	request_id_info_t **out_request_id_info,	// out
+	seq_info_t **out_seq_info		// out
 )
 {
-	request_id_info_t *p_tmp_req_id_info = search_nearest_req_timeout (thread_idx);
-	seq_info_t *p_tmp_seq_info = search_nearest_seq_timeout (thread_idx);
+	request_id_info_t *tmp_req_id_info = search_nearest_req_timeout (thread_idx);
+	seq_info_t *tmp_seq_info = search_nearest_seq_timeout (thread_idx);
     time_t req_timeout_sec = 0;
     long req_timeout_nsec  = 0;
     time_t seq_timeout_sec = 0;
     long seq_timeout_nsec  = 0;
 
 
-	*p_request_id_info = NULL;
-	*p_seq_info = NULL;
+	*out_request_id_info = NULL;
+	*out_seq_info = NULL;
 
-	if (!p_tmp_req_id_info && !p_tmp_seq_info) {
+	if (!tmp_req_id_info && !tmp_seq_info) {
 		THM_INNER_LOG_D ("EN_NEAREST_TIMEOUT_NONE\n");
 		return EN_NEAREST_TIMEOUT_NONE;
 
-	} else if (p_tmp_req_id_info && !p_tmp_seq_info) {
+	} else if (tmp_req_id_info && !tmp_seq_info) {
 		THM_INNER_LOG_D ("EN_NEAREST_TIMEOUT_REQ\n");
-		*p_request_id_info = p_tmp_req_id_info;
+		*out_request_id_info = tmp_req_id_info;
 		return EN_NEAREST_TIMEOUT_REQ;
 
-	} else if (!p_tmp_req_id_info && p_tmp_seq_info) {
+	} else if (!tmp_req_id_info && tmp_seq_info) {
 		THM_INNER_LOG_D ("EN_NEAREST_TIMEOUT_SEQ\n");
-		*p_seq_info = p_tmp_seq_info;
+		*out_seq_info = tmp_seq_info;
 		return EN_NEAREST_TIMEOUT_SEQ;
 
 	} else {
 		/* Req,Seqタイムアウト両方とも仕掛かっているので 値を比較します */
 
-		req_timeout_sec = p_tmp_req_id_info->timeout.time.tv_sec;
-		req_timeout_nsec = p_tmp_req_id_info->timeout.time.tv_nsec;
-		seq_timeout_sec = p_tmp_seq_info->timeout.time.tv_sec;
-		seq_timeout_nsec = p_tmp_seq_info->timeout.time.tv_nsec;
+		req_timeout_sec = tmp_req_id_info->timeout.time.tv_sec;
+		req_timeout_nsec = tmp_req_id_info->timeout.time.tv_nsec;
+		seq_timeout_sec = tmp_seq_info->timeout.time.tv_sec;
+		seq_timeout_nsec = tmp_seq_info->timeout.time.tv_nsec;
 
 		if (req_timeout_sec < seq_timeout_sec) {
 			THM_INNER_LOG_D ("both timeout enabled. -> EN_NEAREST_TIMEOUT_REQ\n");
-			*p_request_id_info = p_tmp_req_id_info;
+			*out_request_id_info = tmp_req_id_info;
 			return EN_NEAREST_TIMEOUT_REQ;
 
 		} else if (req_timeout_sec > seq_timeout_sec) {
 			THM_INNER_LOG_D ("both timeout enabled. -> EN_NEAREST_TIMEOUT_SEQ\n");
-			*p_seq_info = p_tmp_seq_info;
+			*out_seq_info = tmp_seq_info;
 			return EN_NEAREST_TIMEOUT_SEQ;
 
 		} else {
@@ -5096,18 +5092,18 @@ static EN_NEAREST_TIMEOUT search_nearetimeout (
 
 			if (req_timeout_nsec < seq_timeout_nsec) {
 				THM_INNER_LOG_D ("both timeout enabled. -> EN_NEAREST_TIMEOUT_REQ (integer value equal)\n");
-				*p_request_id_info = p_tmp_req_id_info;
+				*out_request_id_info = tmp_req_id_info;
 				return EN_NEAREST_TIMEOUT_REQ;
 
 			} else if (req_timeout_nsec > seq_timeout_nsec) {
 				THM_INNER_LOG_D ("both timeout enabled. -> EN_NEAREST_TIMEOUT_SEQ (integer value equal)\n");
-				*p_seq_info = p_tmp_seq_info;
+				*out_seq_info = tmp_seq_info;
 				return EN_NEAREST_TIMEOUT_SEQ;
 
 			} else {
 				/* 小数点以下も同じ req_seq_timeoutを返しておく */
 				THM_INNER_LOG_D ("both timeout enabled. -> equal !!!\n");
-				*p_request_id_info = p_tmp_req_id_info;
+				*out_request_id_info = tmp_req_id_info;
 				return EN_NEAREST_TIMEOUT_REQ;
 			}
 		}
@@ -5322,8 +5318,8 @@ bool create_external_cp (void)
 	}
 
 
-	external_control_info_t *p_tmp = search_ext_info_list(pthread_self());
-	if (p_tmp) {
+	external_control_info_t *tmp = search_ext_info_list(pthread_self());
+	if (tmp) {
 		/* このスレッドではすでに登録されている 古いものは消します */
 		delete_ext_info_list (pthread_self());
 	}
@@ -5455,7 +5451,7 @@ static bool destroy_inner (uint8_t thread_idx)
 		/* unlock */
 		pthread_mutex_unlock (&g_mutex_worker [thread_idx]);
 
-		THM_INNER_LOG_E ("en_que_worker() is failure.\n");
+		THM_INNER_LOG_E ("enque_worker() is failure.\n");
 		return false;
 	}
 
@@ -5494,7 +5490,7 @@ static bool destroy_all_worker_thread (void)
 {
 	uint8_t i = 0;
 
-	for (i = 0; i < get_total_worker_thread_num(); ++ i) {
+	for (i = 0; i < get_nr_total_worker_thread(); ++ i) {
 		if (!destroy_worker_thread (i)) {
 			return false;
 		}
@@ -5514,7 +5510,7 @@ void wait_all (void)
 {
 	uint8_t i = 0;
 
-	for (i = 0; i < get_total_worker_thread_num(); ++ i) {
+	for (i = 0; i < get_nr_total_worker_thread(); ++ i) {
 		wait_worker_thread (i);
 	}
 

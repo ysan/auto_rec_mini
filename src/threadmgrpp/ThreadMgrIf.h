@@ -94,7 +94,7 @@ public:
 	}
 
 	result get_result (void) const {
-		return static_cast<result>(mp_info->en_rslt);
+		return static_cast<result>(mp_info->result);
 	}
 
 	uint8_t get_client_id (void) const {
@@ -129,67 +129,67 @@ public:
 	}
 
 	bool reply (result rslt) {
-		return m_if.pfn_reply (static_cast<EN_THM_RSLT>(rslt), NULL, 0);
+		return m_if.reply (static_cast<EN_THM_RSLT>(rslt), NULL, 0);
 	}
 
 	bool reply (result rslt, uint8_t *msg, size_t msglen) {
-		return m_if.pfn_reply (static_cast<EN_THM_RSLT>(rslt), msg, msglen);
+		return m_if.reply (static_cast<EN_THM_RSLT>(rslt), msg, msglen);
 	}
 
 	bool reg_notify (uint8_t category, uint8_t *pclient_id) {
-		return m_if.pfn_reg_notify (category, pclient_id);
+		return m_if.reg_notify (category, pclient_id);
 	}
 
 	bool unreg_notify (uint8_t category, uint8_t client_id) {
-		return m_if.pfn_unreg_notify (category, client_id);
+		return m_if.unreg_notify (category, client_id);
 	}
 
 	bool notify (uint8_t category) {
-		return m_if.pfn_notify (category, NULL, 0);
+		return m_if.notify (category, NULL, 0);
 	}
 
 	bool notify (uint8_t category, uint8_t *msg, size_t size) {
-		return m_if.pfn_notify (category, msg, size);
+		return m_if.notify (category, msg, size);
 	}
 
 	void set_section_id (section_id::type sect_id, action act) {
-		m_if.pfn_set_sectid (sect_id, static_cast<EN_THM_ACT>(act));
+		m_if.set_sectid (sect_id, static_cast<EN_THM_ACT>(act));
 	}
 
 	section_id::type get_section_id (void) const {
-		return m_if.pfn_get_sectid ();
+		return m_if.get_sectid ();
 	}
 
 	void set_timeout (uint32_t timeout_msec) {
-		m_if.pfn_set_timeout (timeout_msec);
+		m_if.set_timeout (timeout_msec);
 	}
 
 	void clear_timeout (void) {
-		m_if.pfn_clear_timeout ();
+		m_if.clear_timeout ();
 	}
 
 	void enable_overwrite (void) {
-		m_if.pfn_enable_overwrite ();
+		m_if.enable_overwrite ();
 	}
 
 	void disable_overwrite (void) {
-		m_if.pfn_disable_overwrite ();
+		m_if.disable_overwrite ();
 	}
 
 	void lock (void) {
-		m_if.pfn_lock ();
+		m_if.lock ();
 	}
 
 	void unlock (void) {
-		m_if.pfn_unlock ();
+		m_if.unlock ();
 	}
 
 	uint8_t get_sequence_idx (void) const {
-		return m_if.pfn_get_seq_idx ();
+		return m_if.get_seq_idx ();
 	}
 
 	const char* get_sequence_name (void) const {
-		return m_if.pfn_get_seq_name ();
+		return m_if.get_seq_name ();
 	}
 	
 

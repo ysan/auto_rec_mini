@@ -27,17 +27,17 @@
 FILE *g_fp_log = NULL;
 void (*__puts_log) (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_file,
-	const char *psz_func,
-	int n_line,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *file,
+	const char *func,
+	int line,
+	const char *format,
 	...
 ) = puts_log;
 void (*__puts_log_LW) (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *format,
 	...
 ) = puts_log_LW;
 
@@ -46,10 +46,10 @@ void (*__puts_log_LW) (
  */
 static char * strtok_r_impl (char *str, const char *delim, char **saveptr);
 void puts_sys_time (void); // extern
-static void get_sys_time (char *psz_out, size_t n_size);
-static void get_sys_time_ms (char *psz_out, size_t n_size);
+static void get_sys_time (char *out, size_t size);
+static void get_sys_time_ms (char *out, size_t size);
 void puts_thread_name (void); // extern
-void get_thread_name (char *psz_out, size_t n_size); // extern
+void get_thread_name (char *out, size_t size); // extern
 void get_time_of_day (struct timeval *p); //extern
 bool init_log (void); // extern
 void init_log_stdout (void); // extern
@@ -58,71 +58,71 @@ void set_log_fileptr (FILE *p); // extern
 FILE* get_log_fileptr (void);
 void set_alternative_log (void (*_fn)( // extern
 		FILE *p_fp,
-		EN_LOG_TYPE en_log_type,
-		const char *psz_file,
-		const char *psz_func,
-		int n_line,
-		const char *psz_format,
+		EN_LOG_TYPE log_type,
+		const char *file,
+		const char *func,
+		int line,
+		const char *format,
 		...
 	)
 );
 void puts_log ( // extern
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_file,
-	const char *psz_func,
-	int n_line,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *file,
+	const char *func,
+	int line,
+	const char *format,
 	...
 );
 static void puts_log_inner (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_file,
-	const char *psz_func,
-	int n_line,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *file,
+	const char *func,
+	int line,
+	const char *format,
 	va_list va
 );
 static void puts_log_fprintf (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_thread_name,
+	EN_LOG_TYPE log_type,
+	const char *thread_name,
 	char type,
-	const char *psz_time,
-	const char *psz_buf,
-	const char *psz_perror,
-	const char *psz_file,
-	const char *psz_func,
-	int n_line
+	const char *time,
+	const char *buf,
+	const char *perror,
+	const char *file,
+	const char *func,
+	int line
 );
 void set_alternative_log_LW (void (*_fn)( // extern
 		FILE *p_fp,
-		EN_LOG_TYPE en_log_type,
-		const char *psz_format,
+		EN_LOG_TYPE log_type,
+		const char *format,
 		...
 	)
 );
 void puts_log_LW ( // extern
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *format,
 	...
 );
 static void puts_log_inner_LW (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *format,
 	va_list va
 );
 static void puts_log_fprintf_LW (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_thread_name,
+	EN_LOG_TYPE log_type,
+	const char *thread_name,
 	char type,
-	const char *psz_time,
-	const char *psz_buf,
-	const char *psz_perror
+	const char *time,
+	const char *buf,
+	const char *perror
 );
 
 
@@ -184,17 +184,17 @@ char * strtok_r_impl (char *str, const char *delim, char **saveptr)
  */
 void puts_sys_time (void)
 {
-	char sz_time [SYSTIME_STRING_SIZE];
-	memset (sz_time, 0x00, SYSTIME_STRING_SIZE);
-	get_sys_time (sz_time, sizeof (sz_time));
-	fprintf (stdout, "%s", sz_time);
+	char time [SYSTIME_STRING_SIZE];
+	memset (time, 0x00, SYSTIME_STRING_SIZE);
+	get_sys_time (time, sizeof (time));
+	fprintf (stdout, "%s", time);
 }
 
 /**
  * システム現在時刻を取得
  * MM/dd HH:mm:ss形式
  */
-static void get_sys_time (char *psz_out, size_t n_size)
+static void get_sys_time (char *out, size_t size)
 {
 	time_t timer;
 	struct tm *pst_tm_local = NULL;
@@ -204,8 +204,8 @@ static void get_sys_time (char *psz_out, size_t n_size)
 	pst_tm_local = localtime_r (&timer, &st_tm_local_tmp); /* スレッドセーフ */
 
 	snprintf (
-		psz_out,
-		n_size,
+		out,
+		size,
 		"%02d/%02d %02d:%02d:%02d",
 		pst_tm_local->tm_mon+1,
 		pst_tm_local->tm_mday,
@@ -219,7 +219,7 @@ static void get_sys_time (char *psz_out, size_t n_size)
  * システム現在時刻を取得
  * MM/dd HH:mm:ss.sss形式
  */
-static void get_sys_time_ms (char *psz_out, size_t n_size)
+static void get_sys_time_ms (char *out, size_t size)
 {
 	struct tm *pst_tm_local = NULL;
 	struct tm st_tm_local_tmp;
@@ -229,8 +229,8 @@ static void get_sys_time_ms (char *psz_out, size_t n_size)
 	pst_tm_local = localtime_r (&ts.tv_sec, &st_tm_local_tmp); /* スレッドセーフ */
 
 	snprintf (
-		psz_out,
-		n_size,
+		out,
+		size,
 		"%02d/%02d %02d:%02d:%02d.%03ld",
 		pst_tm_local->tm_mon+1,
 		pst_tm_local->tm_mday,
@@ -247,27 +247,27 @@ static void get_sys_time_ms (char *psz_out, size_t n_size)
  */
 void puts_thread_name (void)
 {
-	char sz_put_name [THREAD_NAME_STRING_SIZE];
-	memset (sz_put_name, 0x00, THREAD_NAME_STRING_SIZE);
-	get_thread_name (sz_put_name, THREAD_NAME_STRING_SIZE);
-	fprintf (stdout, "%s", sz_put_name);
+	char put_name [THREAD_NAME_STRING_SIZE];
+	memset (put_name, 0x00, THREAD_NAME_STRING_SIZE);
+	get_thread_name (put_name, THREAD_NAME_STRING_SIZE);
+	fprintf (stdout, "%s", put_name);
 }
 
 /**
  * pthread名称を取得
  */
-void get_thread_name (char *psz_out, size_t n_size)
+void get_thread_name (char *out, size_t size)
 {
-	char sz_name[16];
-	memset (sz_name, 0x00, sizeof(sz_name));
-	pthread_getname_np (pthread_self(), sz_name, sizeof(sz_name));
+	char name[16];
+	memset (name, 0x00, sizeof(name));
+	pthread_getname_np (pthread_self(), name, sizeof(name));
 
-	strncpy (psz_out, sz_name, n_size -1);
-	uint32_t len = (uint32_t)strlen(psz_out);
+	strncpy (out, name, size -1);
+	uint32_t len = (uint32_t)strlen(out);
 	if (len < THREAD_NAME_STRING_SIZE -1) {
 		int i = 0;
 		for (i = 0; i < (THREAD_NAME_STRING_SIZE -1 -len); i ++) {
-			*(psz_out + len + i) = ' ';
+			*(out + len + i) = ' ';
 		}
 	}
 }
@@ -305,11 +305,11 @@ FILE* get_log_fileptr (void)
 
 void set_alternative_log (void (*_fn)(
 		FILE *p_fp,
-		EN_LOG_TYPE en_log_type,
-		const char *psz_file,
-		const char *psz_func,
-		int n_line,
-		const char *psz_format,
+		EN_LOG_TYPE log_type,
+		const char *file,
+		const char *func,
+		int line,
+		const char *format,
 		...
 	)
 )
@@ -323,11 +323,11 @@ void set_alternative_log (void (*_fn)(
  */
 void puts_log (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_file,
-	const char *psz_func,
-	int n_line,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *file,
+	const char *func,
+	int line,
+	const char *format,
 	...
 )
 {
@@ -336,8 +336,8 @@ void puts_log (
 	}
 
 	va_list va;
-	va_start (va, psz_format); 
-	puts_log_inner (p_fp, en_log_type, psz_file, psz_func, n_line, psz_format, va);
+	va_start (va, format); 
+	puts_log_inner (p_fp, log_type, file, func, line, format, va);
 	va_end (va);
 }
 
@@ -347,31 +347,31 @@ void puts_log (
  */
 void puts_log_inner (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_file,
-	const char *psz_func,
-	int n_line,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *file,
+	const char *func,
+	int line,
+	const char *format,
 	va_list va
 )
 {
-	if (!p_fp || !psz_file || !psz_func || !psz_format) {
+	if (!p_fp || !file || !func || !format) {
 		return ;
 	}
 
-	char sz_buf_va [LOG_STRING_SIZE];
-	char sz_time [SYSTIME_MS_STRING_SIZE];
-    char sz_thread_name [THREAD_NAME_STRING_SIZE];
+	char buf_va [LOG_STRING_SIZE];
+	char time [SYSTIME_MS_STRING_SIZE];
+    char thread_name [THREAD_NAME_STRING_SIZE];
 	char type;
-	char sz_perror[32];
-	char *psz_perror = NULL;
+	char buff_perror[32];
+	char *p_buff_perror = NULL;
 
-	memset (sz_buf_va, 0x00, sizeof (sz_buf_va));
-	memset (sz_time, 0x00, sizeof (sz_time));
-    memset (sz_thread_name, 0x00, sizeof (sz_thread_name));
-	memset (sz_perror, 0x00, sizeof (sz_perror));
+	memset (buf_va, 0x00, sizeof (buf_va));
+	memset (time, 0x00, sizeof (time));
+    memset (thread_name, 0x00, sizeof (thread_name));
+	memset (buff_perror, 0x00, sizeof (buff_perror));
 
-	switch (en_log_type) {
+	switch (log_type) {
 	case EN_LOG_TYPE_D:
 		type = 'D';
 		break;
@@ -404,7 +404,7 @@ void puts_log_inner (
 		fprintf (p_fp, THM_TEXT_BOLD_TYPE);
 		fprintf (p_fp, THM_TEXT_MAGENTA);
 #endif
-		psz_perror = strerror_r(errno, sz_perror, sizeof (sz_perror));
+		p_buff_perror = strerror_r(errno, buff_perror, sizeof (buff_perror));
 		break;
 
 	default:
@@ -412,26 +412,26 @@ void puts_log_inner (
 		break;
 	}
 
-	vsnprintf (sz_buf_va, sizeof(sz_buf_va), psz_format, va);
+	vsnprintf (buf_va, sizeof(buf_va), format, va);
 
-	get_sys_time_ms (sz_time, SYSTIME_MS_STRING_SIZE);
-	get_thread_name (sz_thread_name, THREAD_NAME_STRING_SIZE);
+	get_sys_time_ms (time, SYSTIME_MS_STRING_SIZE);
+	get_thread_name (thread_name, THREAD_NAME_STRING_SIZE);
 
 #if 0
-	delete_lF (sz_buf_va);
-	switch (en_log_type) {
+	delete_lF (buf_va);
+	switch (log_type) {
 	case EN_LOG_TYPE_PE:
 		fprintf (
 			p_fp,
 			"[%s] %c %s  %s: %s   src=[%s %s()] line=[%d]\n",
-			sz_thread_name,
+			thread_name,
 			type,
-			sz_time,
-			sz_buf_va,
-			psz_perror,
-			psz_file,
-			psz_func,
-			n_line
+			time,
+			buf_va,
+			perror,
+			file,
+			func,
+			line
 		);
 		break;
 
@@ -442,13 +442,13 @@ void puts_log_inner (
 		fprintf (
 			p_fp,
 			"[%s] %c %s  %s   src=[%s %s()] line=[%d]\n",
-			sz_thread_name,
+			thread_name,
 			type,
-			sz_time,
-			sz_buf_va,
-			psz_file,
-			psz_func,
-			n_line
+			time,
+			buf_va,
+			file,
+			func,
+			line
 		);
 		break;
 	}
@@ -457,23 +457,23 @@ void puts_log_inner (
 #else
 	char *token = NULL;
 	char *saveptr = NULL;
-	char *s = sz_buf_va;
+	char *s = buf_va;
 	int n = 0;
 	while (1) {
 		token = strtok_r_impl (s, "\n", &saveptr);
 		if (token == NULL) {
-			if (n == 0 && (int)strlen(sz_buf_va) > 0) {
+			if (n == 0 && (int)strlen(buf_va) > 0) {
 				puts_log_fprintf (
 					p_fp,
-					en_log_type,
-					sz_thread_name,
+					log_type,
+					thread_name,
 					type,
-					sz_time,
-					sz_buf_va,
-					psz_perror,
-					psz_file,
-					psz_func,
-					n_line
+					time,
+					buf_va,
+					p_buff_perror,
+					file,
+					func,
+					line
 				);
 			}
 			break;
@@ -481,15 +481,15 @@ void puts_log_inner (
 
 		puts_log_fprintf (
 			p_fp,
-			en_log_type,
-			sz_thread_name,
+			log_type,
+			thread_name,
 			type,
-			sz_time,
+			time,
 			token,
-			psz_perror,
-			psz_file,
-			psz_func,
-			n_line
+			p_buff_perror,
+			file,
+			func,
+			line
 		);
 
 		s = NULL;
@@ -509,34 +509,34 @@ void puts_log_inner (
  */
 void puts_log_fprintf (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_thread_name,
+	EN_LOG_TYPE log_type,
+	const char *thread_name,
 	char type,
-	const char *psz_time,
-	const char *psz_buf,
-	const char *psz_perror,
-	const char *psz_file,
-	const char *psz_func,
-	int n_line
+	const char *time,
+	const char *buf,
+	const char *perror,
+	const char *file,
+	const char *func,
+	int line
 )
 {
-	if (!p_fp || !psz_time || !psz_buf || !psz_file || !psz_func) {
+	if (!p_fp || !time || !buf || !file || !func) {
 		return ;
 	}
 
-	switch (en_log_type) {
+	switch (log_type) {
 	case EN_LOG_TYPE_PE:
 		fprintf (
 			p_fp,
 			"[%s] %c %s  %s: %s   src=[%s %s()] line=[%d]\n",
-			psz_thread_name,
+			thread_name,
 			type,
-			psz_time,
-			psz_buf,
-			psz_perror,
-			psz_file,
-			psz_func,
-			n_line
+			time,
+			buf,
+			perror,
+			file,
+			func,
+			line
 		);
 		break;
 
@@ -548,13 +548,13 @@ void puts_log_fprintf (
 		fprintf (
 			p_fp,
 			"[%s] %c %s  %s   src=[%s %s()] line=[%d]\n",
-			psz_thread_name,
+			thread_name,
 			type,
-			psz_time,
-			psz_buf,
-			psz_file,
-			psz_func,
-			n_line
+			time,
+			buf,
+			file,
+			func,
+			line
 		);
 		break;
 	}
@@ -564,8 +564,8 @@ void puts_log_fprintf (
 
 void set_alternative_log_LW (void (*_fn)(
 		FILE *p_fp,
-		EN_LOG_TYPE en_log_type,
-		const char *psz_format,
+		EN_LOG_TYPE log_type,
+		const char *format,
 		...
 	)
 )
@@ -580,8 +580,8 @@ void set_alternative_log_LW (void (*_fn)(
  */
 void puts_log_LW (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *format,
 	...
 )
 {
@@ -590,8 +590,8 @@ void puts_log_LW (
 	}
 
 	va_list va;
-	va_start (va, psz_format);
-	puts_log_inner_LW (p_fp, en_log_type, psz_format, va);
+	va_start (va, format);
+	puts_log_inner_LW (p_fp, log_type, format, va);
 	va_end (va);
 }
 
@@ -601,28 +601,28 @@ void puts_log_LW (
  */
 void puts_log_inner_LW (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_format,
+	EN_LOG_TYPE log_type,
+	const char *format,
 	va_list va
 )
 {
-	if (!p_fp || !psz_format) {
+	if (!p_fp || !format) {
 		return ;
 	}
 
-	char sz_buf_va [LOG_STRING_SIZE];
-	char sz_time [SYSTIME_MS_STRING_SIZE];
-    char sz_thread_name [THREAD_NAME_STRING_SIZE];
+	char buf_va [LOG_STRING_SIZE];
+	char time [SYSTIME_MS_STRING_SIZE];
+    char thread_name [THREAD_NAME_STRING_SIZE];
 	char type;
-	char sz_perror[32];
-	char *psz_perror = NULL;
+	char buff_perror[32];
+	char *p_buff_perror = NULL;
 
-	memset (sz_buf_va, 0x00, sizeof (sz_buf_va));
-	memset (sz_time, 0x00, sizeof (sz_time));
-    memset (sz_thread_name, 0x00, sizeof (sz_thread_name));
-	memset (sz_perror, 0x00, sizeof (sz_perror));
+	memset (buf_va, 0x00, sizeof (buf_va));
+	memset (time, 0x00, sizeof (time));
+    memset (thread_name, 0x00, sizeof (thread_name));
+	memset (buff_perror, 0x00, sizeof (buff_perror));
 
-	switch (en_log_type) {
+	switch (log_type) {
 	case EN_LOG_TYPE_D:
 		type = 'D';
 		break;
@@ -655,7 +655,7 @@ void puts_log_inner_LW (
 		fprintf (p_fp, THM_TEXT_BOLD_TYPE);
 		fprintf (p_fp, THM_TEXT_MAGENTA);
 #endif
-		psz_perror = strerror_r(errno, sz_perror, sizeof (sz_perror));
+		p_buff_perror = strerror_r(errno, buff_perror, sizeof (buff_perror));
 		break;
 
 	default:
@@ -663,23 +663,23 @@ void puts_log_inner_LW (
 		break;
 	}
 
-	vsnprintf (sz_buf_va, sizeof(sz_buf_va), psz_format, va);
+	vsnprintf (buf_va, sizeof(buf_va), format, va);
 
-	get_sys_time_ms (sz_time, SYSTIME_MS_STRING_SIZE);
-	get_thread_name (sz_thread_name, THREAD_NAME_STRING_SIZE);
+	get_sys_time_ms (time, SYSTIME_MS_STRING_SIZE);
+	get_thread_name (thread_name, THREAD_NAME_STRING_SIZE);
 
 #if 0
-	delete_lF (sz_buf_va);
-	switch (en_log_type) {
+	delete_lF (buf_va);
+	switch (log_type) {
 	case EN_LOG_TYPE_PE:
 		fprintf (
 			p_fp,
 			"[%s] %c %s  %s: %s\n",
-			sz_thread_name,
+			thread_name,
 			type,
-			sz_time,
-			sz_buf_va,
-			psz_perror
+			time,
+			buf_va,
+			perror
 		);
 		break;
 
@@ -690,10 +690,10 @@ void puts_log_inner_LW (
 		fprintf (
 			p_fp,
 			"[%s] %c %s  %s\n",
-			sz_thread_name,
+			thread_name,
 			type,
-			sz_time,
-			sz_buf_va
+			time,
+			buf_va
 		);
 		break;
 	}
@@ -702,20 +702,20 @@ void puts_log_inner_LW (
 #else
 	char *token = NULL;
 	char *saveptr = NULL;
-	char *s = sz_buf_va;
+	char *s = buf_va;
 	int n = 0;
 	while (1) {
 		token = strtok_r_impl (s, "\n", &saveptr);
 		if (token == NULL) {
-			if (n == 0 && (int)strlen(sz_buf_va) > 0) {
+			if (n == 0 && (int)strlen(buf_va) > 0) {
 				puts_log_fprintf_LW (
 					p_fp,
-					en_log_type,
-					sz_thread_name,
+					log_type,
+					thread_name,
 					type,
-					sz_time,
-					sz_buf_va,
-					psz_perror
+					time,
+					buf_va,
+					p_buff_perror
 				);
 			}
 			break;
@@ -723,12 +723,12 @@ void puts_log_inner_LW (
 
 		puts_log_fprintf_LW (
 			p_fp,
-			en_log_type,
-			sz_thread_name,
+			log_type,
+			thread_name,
 			type,
-			sz_time,
+			time,
 			token,
-			psz_perror
+			p_buff_perror
 		);
 
 		s = NULL;
@@ -749,28 +749,28 @@ void puts_log_inner_LW (
  */
 void puts_log_fprintf_LW (
 	FILE *p_fp,
-	EN_LOG_TYPE en_log_type,
-	const char *psz_thread_name,
+	EN_LOG_TYPE log_type,
+	const char *thread_name,
 	char type,
-	const char *psz_time,
-	const char *psz_buf,
-	const char *psz_perror
+	const char *time,
+	const char *buf,
+	const char *perror
 )
 {
-	if (!p_fp || !psz_time || !psz_buf) {
+	if (!p_fp || !time || !buf) {
 		return ;
 	}
 
-	switch (en_log_type) {
+	switch (log_type) {
 	case EN_LOG_TYPE_PE:
 		fprintf (
 			p_fp,
 			"[%s] %c %s  %s: %s\n",
-			psz_thread_name,
+			thread_name,
 			type,
-			psz_time,
-			psz_buf,
-			psz_perror
+			time,
+			buf,
+			perror
 		);
 		break;
 
@@ -782,10 +782,10 @@ void puts_log_fprintf_LW (
 		fprintf (
 			p_fp,
 			"[%s] %c %s  %s\n",
-			psz_thread_name,
+			thread_name,
 			type,
-			psz_time,
-			psz_buf
+			time,
+			buf
 		);
 		break;
 	}

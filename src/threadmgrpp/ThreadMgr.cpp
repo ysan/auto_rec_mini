@@ -99,12 +99,12 @@ bool CThreadMgr::setup (void)
 		threadmgr_reg_tbl_t *p = mp_reg_table + i;
 
 		p->name = gp_threads[i]->m_name;
-		p->pcb_create = NULL;										// not use
-		p->pcb_destroy = NULL;										// not use
-		p->nr_que = gp_threads[i]->m_que_max;
+		p->create = NULL;										// not use
+		p->destroy = NULL;										// not use
+		p->nr_que_max = gp_threads[i]->m_que_max;
 		p->seq_array = NULL;										// set after
-		p->nr_seq = gp_threads[i]->m_sequence_max;
-		p->pcb_recv_notify = NULL;									// not use
+		p->nr_seq_max = gp_threads[i]->m_sequence_max;
+		p->recv_notify = NULL;									// not use
 
 
 		// set seq name

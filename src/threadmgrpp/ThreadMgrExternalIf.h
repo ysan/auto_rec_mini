@@ -30,47 +30,47 @@ public:
 
 
 	bool request_sync (uint8_t thread_idx, uint8_t sequence_idx) {
-		return m_ext_if.pfn_request_sync (thread_idx, sequence_idx, NULL, 0);
+		return m_ext_if.request_sync (thread_idx, sequence_idx, NULL, 0);
 	}
 
 	bool request_sync (uint8_t thread_idx, uint8_t sequence_idx, uint8_t *msg, size_t msglen) {
-		return m_ext_if.pfn_request_sync (thread_idx, sequence_idx, msg, msglen);
+		return m_ext_if.request_sync (thread_idx, sequence_idx, msg, msglen);
 	}
 
 	bool request_async (uint8_t thread_idx, uint8_t sequence_idx) {
-		return m_ext_if.pfn_request_async (thread_idx, sequence_idx, NULL, 0, NULL);
+		return m_ext_if.request_async (thread_idx, sequence_idx, NULL, 0, NULL);
 	}
 
 	bool request_async (uint8_t thread_idx, uint8_t sequence_idx, uint32_t *p_out_req_id) {
-		return m_ext_if.pfn_request_async (thread_idx, sequence_idx, NULL, 0, p_out_req_id);
+		return m_ext_if.request_async (thread_idx, sequence_idx, NULL, 0, p_out_req_id);
 	}
 
 	bool request_async (uint8_t thread_idx, uint8_t sequence_idx, uint8_t *msg, size_t msglen) {
-		return m_ext_if.pfn_request_async (thread_idx, sequence_idx, msg, msglen, NULL);
+		return m_ext_if.request_async (thread_idx, sequence_idx, msg, msglen, NULL);
 	}
 
 	bool request_async (uint8_t thread_idx, uint8_t sequence_idx, uint8_t *msg, size_t msglen, uint32_t *p_out_req_id) {
-		return m_ext_if.pfn_request_async (thread_idx, sequence_idx, msg, msglen, p_out_req_id);
+		return m_ext_if.request_async (thread_idx, sequence_idx, msg, msglen, p_out_req_id);
 	}
 
 	void set_request_option (request_option::type option) {
-		m_ext_if.pfn_set_request_option (option);
+		m_ext_if.set_request_option (option);
 	}
 
 	request_option::type get_request_option (void) const {
-		return m_ext_if.pfn_get_request_option ();
+		return m_ext_if.get_request_option ();
 	}
 
 	bool create_external_cp (void) {
-		return m_ext_if.pfn_create_external_cp ();
+		return m_ext_if.create_external_cp ();
 	}
 
 	void destroy_external_cp (void) {
-		return m_ext_if.pfn_destroy_external_cp ();
+		return m_ext_if.destroy_external_cp ();
 	}
 
 	CSource& receive_external (void) {
-		threadmgr_src_info_t *info = m_ext_if.pfn_receive_external ();
+		threadmgr_src_info_t *info = m_ext_if.receive_external ();
 		m_source.set(info);
 		return m_source;
 	}
