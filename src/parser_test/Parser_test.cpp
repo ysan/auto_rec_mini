@@ -172,7 +172,7 @@ bool CParser_test::checkUnitSize (void)
 	memset (count, 0x00, sizeof(count));
 
 	while ((p_cur+188) < mp_bottom) {
-		if (*p_cur != SYNC_BYTE) {
+		if (*p_cur != TS_SYNC_BYTE) {
 			p_cur ++;
 			continue;
 		}
@@ -185,9 +185,9 @@ bool CParser_test::checkUnitSize (void)
 //printf("%p m=%d ", p_cur, m);
 
 		for (i = 188; i < m; i ++) {
-			if(*(p_cur+i) == SYNC_BYTE){
-				// 今見つかったSYNC_BYTEから以降の(320-188)byte間に
-				// SYNC_BYTEがあったら カウント
+			if(*(p_cur+i) == TS_SYNC_BYTE){
+				// 今見つかったTS_SYNC_BYTEから以降の(320-188)byte間に
+				// TS_SYNC_BYTEがあったら カウント
 				count [i-188] += 1;
 			}
 		}
@@ -200,7 +200,7 @@ bool CParser_test::checkUnitSize (void)
 //printf ("\n");
 	}
 
-	// 最大回数m をみてSYNC_BYTE出現間隔nを決める
+	// 最大回数m をみてTS_SYNC_BYTE出現間隔nを決める
 	m = 0;
 	n = 0;
 	for (i = 188; i < 320; i ++) {
@@ -236,13 +236,13 @@ uint8_t * CParser_test::getSyncTopAddr (uint8_t *pTop, uint8_t *p_btm, size_t un
 	p_btm -= unit_size * 8; // unit_size 8コ分のデータがある前提
 
 	while (pWork <= p_btm) {
-		if (*pWork == SYNC_BYTE) {
+		if (*pWork == TS_SYNC_BYTE) {
 			for (i = 0; i < 8; ++ i) {
-				if (*(pWork+(unit_size*(i+1))) != SYNC_BYTE) {
+				if (*(pWork+(unit_size*(i+1))) != TS_SYNC_BYTE) {
 					break;
 				}
 			}
-			// 以降 8回全てSYNC_BYTEで一致したら pWorkは先頭だ
+			// 以降 8回全てTS_SYNC_BYTEで一致したら pWorkは先頭だ
 			if (i == 8) {
 				return pWork;
 			}
@@ -304,7 +304,7 @@ bool CParser_test::parse (void)
 
 
 	while ((p_cur+unit_size) < p_btm) {
-		if ((*p_cur != SYNC_BYTE) && (*(p_cur+unit_size) != SYNC_BYTE)) {
+		if ((*p_cur != TS_SYNC_BYTE) && (*(p_cur+unit_size) != TS_SYNC_BYTE)) {
 //printf ("getSyncTopAddr\n");
 			p = getSyncTopAddr (p_cur, p_btm, unit_size);
 			if (!p) {
