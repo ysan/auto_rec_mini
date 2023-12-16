@@ -1273,6 +1273,11 @@ void CViewingManager::clean_dir (const char* path) const
 		}
 		entry = readdir(dp);
 	}
+
+	if (dp != NULL) {
+		closedir (dp);
+		dp = NULL;
+	}
 }
 
 //TODO ffmpegのログ出力
