@@ -188,8 +188,7 @@ public:
 			_UTL_LOG_I ("progress::post_process");
 
 			if (m_b25) {
-				m_b25->process_remaining();
-				m_b25->finalize();
+				m_b25->flush();
 				m_b25 = nullptr;
 			}
 
@@ -211,7 +210,7 @@ public:
 			_UTL_LOG_I ("progress::post_process_forcibly");
 
 			if (m_b25) {
-				m_b25->finalize();
+				m_b25->flush();
 				m_b25 = nullptr;
 			}
 

@@ -72,10 +72,10 @@ public:
 
 	void init () {
 
-		std::function<int(bool, uint8_t*)> _process = [this] (bool need_proc_inner_buff, uint8_t* p_buffer) {
+		std::function<int(const uint8_t*, size_t)> _process = [this] (const uint8_t* p_buffer, size_t length) {
 			int r = 0;
-			uint8_t* p = need_proc_inner_buff ? get_buffer() : p_buffer;
-			size_t len = need_proc_inner_buff ? get_buffered_position() : get_buffer_size();
+			uint8_t* p = const_cast<uint8_t*>(p_buffer);
+			size_t len = length;
 			if (len == 0) {
 				return 0;
 			}
@@ -163,25 +163,7 @@ public:
 			return 0;
 		};
 
-		std::function<void(void)> _finalize = [this] (void) {
-			finaliz_b25();
-
-			if (m_use_splitter) {
-				// finaliz tssplitter_lite
-				if (m_splitbuf.buffer) {
-					free (m_splitbuf.buffer);
-					m_splitbuf.buffer = NULL;
-					m_splitbuf.buffer_size = 0;
-				}
-				if (mp_splitter) {
-					split_shutdown(mp_splitter);
-					mp_splitter = NULL;
-				}
-			}
-		};
-
 		set_process_handler (_process);
-		set_finalize_handler (_finalize);
 	}
 
 	void init_b25 (void) {
@@ -260,24 +242,11 @@ public:
 		}
 	}
 
-	int process_remaining (void) override {
-		int r = 0;
-		r = CBufferedProcess::process_remaining();
-		if (r < 0) {
-			return r;
-		}
-		r = m_writer.flush();
-		if (r < 0) {
-			return r;
-		}
-		return 0;
+	void flush (void) {
+		CBufferedProcess::finalize();
+		m_writer.flush();
 	}
 
-	void finalize (void) override {
-		m_writer.release();
-		CBufferedProcess::finalize();
-	}
-	
 private:
 	ARIB_STD_B25 *mp_b25;
 	B_CAS_CARD *mp_b25cas;

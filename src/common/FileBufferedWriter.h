@@ -19,6 +19,7 @@ public:
 	}
 	
 	virtual ~CFileBufferedWriter (void) {
+		release();
 	}
 
 	void init (const std::string &output_name) {
@@ -31,13 +32,13 @@ public:
 			}
 		}
 
-		std::function<int(bool, uint8_t*)> _process = [this] (bool need_proc_inner_buff, uint8_t* p_buffer) {
+		std::function<int(const uint8_t*, size_t)> _process = [this] (const uint8_t* p_buffer, size_t  length) {
 			if (mp_file == nullptr) {
 				return -1;
 			}
 
-			uint8_t* p = need_proc_inner_buff ? get_buffer() : p_buffer;
-			size_t len = need_proc_inner_buff ? get_buffered_position() : get_buffer_size();
+			uint8_t* p = const_cast<uint8_t*>(p_buffer);
+			size_t len = length;
 
 			int r = 0;
 			while (len > 0) {
@@ -48,30 +49,27 @@ public:
 				len -= r;
 			}
 
+
 			return 0;
 		};
 
-		std::function<void(void)> _release = [this] (void) {
-			if (mp_file == nullptr) {
-				return ;
-			}
-			fflush (mp_file);
-			fclose (mp_file);
-		};
-
 		set_process_handler (_process);
-		set_finalize_handler (_release);
 	}
 
-	int flush (void) {
-		return process_remaining();
-	}
-
-	void release (void) {
-		finalize();
+	void flush (void) {
+		CBufferedProcess::finalize();
+		fflush (mp_file);
 	}
 
 private:
+	void release (void) {
+		if (mp_file == nullptr) {
+			return ;
+		}
+		fclose (mp_file);
+		mp_file = nullptr;
+	}
+
 
 	FILE *mp_file;
 };
@@ -104,7 +102,6 @@ int main (int argc, char *argv[])
 	CFileBufferedWriter writer (128, std::string("out"));
 	writer.put((uint8_t*)ss.str().c_str(), ss.str().length());
 	writer.flush();
-	writer.release();
 
 	ifs.close();
 	ss.clear();

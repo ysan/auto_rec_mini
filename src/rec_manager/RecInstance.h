@@ -109,7 +109,7 @@ public:
 			_UTL_LOG_I ("progress::PRE_PROCESS");
 
 			std::unique_ptr<CRecAribB25> b25 (new CRecAribB25(8192, m_recording_tmpfile, m_service_id, m_use_splitter));
-			msp_b25.swap (b25);
+			msp_b25 = std::move(b25);
 
 			RECORDING_NOTICE_t _notice = {m_rec_progress, m_group_id};
 			mp_ext_if->request_async (
@@ -174,8 +174,8 @@ public:
 		case progress::POST_PROCESS: {
 			_UTL_LOG_I ("progress::POST_PROCESS");
 
-			msp_b25->process_remaining();
-			msp_b25->finalize();
+			msp_b25->flush();
+			msp_b25 = nullptr;
 
 			RECORDING_NOTICE_t _notice = {m_rec_progress, m_group_id};
 			mp_ext_if->request_async (

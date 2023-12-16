@@ -14,7 +14,6 @@ class CBufferedProcess
 protected:
 	CBufferedProcess (size_t size) 
 		: m_process (nullptr)
-		, m_finalize (nullptr)
 		, m_buffer_size (0)
 		, m_buffered_pos (0)
 	{
@@ -26,23 +25,22 @@ protected:
 	virtual ~CBufferedProcess (void) {
 	}
 
-	void set_process_handler (std::function<int(bool need_proc_inner_buff, uint8_t* p_buffer)> _handler) {
+	void set_process_handler (std::function<int(const uint8_t* p_buffer, size_t length)> _handler) {
 		m_process = _handler;
-	}
-	void set_finalize_handler (std::function<void(void)> _handler) {
-		m_finalize = _handler;
 	}
 
 public:
-	virtual int put (uint8_t *p_buffer, size_t length) {
+	int put (uint8_t *p_buffer, size_t length) {
 		if (m_process == nullptr) {
+			//TODO exception
 			return -1;
 		}
 
 		int r = 0;
 		if (m_buffered_pos + length > m_buffer_size) {
 			// proccess first inner buffer data
-			r = m_process (true, nullptr);
+			r = m_process (m_buffer.get(), m_buffered_pos);
+			//TODO exception
 			if (r < 0) {
 				return r;
 			}
@@ -50,8 +48,9 @@ public:
 			
 			while (length >= m_buffer_size) {
 				// directly process the data passed as an argument
-				r = m_process (false, p_buffer);
+				r = m_process (p_buffer, m_buffer_size);
 				if (r < 0) {
+					//TODO exception
 					return r;
 				}
 				p_buffer += m_buffer_size;
@@ -68,30 +67,8 @@ public:
 		}
 	}
 
-	virtual int process_remaining (void) {
-		if (m_process == nullptr) {
-			return -1;
-		}
-
-		int r;
-		if (m_buffered_pos > 0) {
-			// process remain inner buffer data
-			r = m_process(true, nullptr);
-			if(r < 0)  {
-				return r;
-			}
-			m_buffered_pos = 0;
-		}
-
-		return 0;
-	}
-
-	virtual void finalize (void) {
-		if (m_finalize == nullptr) {
-			return;
-		}
-
-		m_finalize ();
+	void finalize (void) {
+		process_remaining();
 	}
 
 protected:
@@ -108,6 +85,26 @@ protected:
 	}
 
 private:
+	int process_remaining (void) {
+		if (m_process == nullptr) {
+			//TODO exception
+			return -1;
+		}
+
+		int r;
+		if (m_buffered_pos > 0) {
+			// process remain inner buffer data
+			r = m_process(m_buffer.get(), m_buffered_pos);
+			if(r < 0)  {
+				//TODO exception
+				return r;
+			}
+			m_buffered_pos = 0;
+		}
+
+		return 0;
+	}
+
 	void buffering (uint8_t *p_buffer, size_t length) {
 		if (p_buffer && length > 0) {
 			memcpy(m_buffer.get() + m_buffered_pos, p_buffer, length);
@@ -115,8 +112,7 @@ private:
 		}
 	}
 
-	std::function<int(bool need_proc_inner_buff, uint8_t* p_buffer)> m_process;
-	std::function<void()> m_finalize;
+	std::function<int(const uint8_t* p_buffer, size_t length)> m_process;
 
 	std::unique_ptr<uint8_t[]> m_buffer;
 	size_t m_buffer_size;
