@@ -209,6 +209,7 @@ void CTuneThread::on_tune (threadmgr::CThreadMgrIf *p_if)
 				_UTL_LOG_I ("req stoped. (timeout check)");
 				break;
 			}
+			continue;
 		}
 
 		// read stdout
