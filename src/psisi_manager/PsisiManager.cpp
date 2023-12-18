@@ -47,7 +47,7 @@ CPsisiManager::CPsisiManager (std::string name, uint8_t que_max, uint8_t group_i
 	,m_state (CPsisiManagerIf::psisi_state::not_ready)
 	,mPAT (16)
 	,mEIT_H (4096*100, 100)
-	,mCDT (4096*100)
+	,mCDT ((size_t)4096*100)
 	,mEIT_H_sched (4096*100, 100, this)
 	,m_is_enable_EIT_sched (false)
 {
