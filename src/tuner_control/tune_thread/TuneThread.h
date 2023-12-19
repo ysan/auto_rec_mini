@@ -1,6 +1,7 @@
 #ifndef _TUNE_THREAD_H_
 #define _TUNE_THREAD_H_
 
+#include <functional>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,6 +45,33 @@ public:
 		CTunerControlIf::ITsReceiveHandler ** p_ts_receive_handlers;
 		bool *p_is_req_stop;
 	} tune_param_t;
+
+	class Bps {
+	public:
+		explicit Bps (int interval_sec) : m_interval_sec(interval_sec) {
+		}
+		virtual ~Bps(void) = default;
+
+		void start (uint64_t nr_bytes=0) {
+			m_start_tp = std::chrono::steady_clock::now();
+			m_nr_bytes = nr_bytes;
+		}
+
+		void update (uint64_t nr_bytes, std::function<void(float Bps)> interval_cb) {
+			auto now = std::chrono::steady_clock::now();
+			auto diff = std::chrono::duration_cast<std::chrono::seconds>(now - m_start_tp).count();
+			if (diff > m_interval_sec) {
+				float Bps = (float)(nr_bytes - m_nr_bytes) / diff;
+				interval_cb(Bps);
+				start(nr_bytes);
+			}
+		}
+
+	private:
+		int m_interval_sec;
+		std::chrono::steady_clock::time_point m_start_tp;
+		uint64_t m_nr_bytes;
+	};
 
 public:
 	CTuneThread (std::string name, uint8_t que_max, uint8_t group_id);

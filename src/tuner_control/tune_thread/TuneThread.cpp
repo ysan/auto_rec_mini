@@ -16,6 +16,7 @@
 #include "Group.h"
 #include "TuneThread.h"
 
+#include "Utils.h"
 #include "modules.h"
 
 
@@ -70,7 +71,7 @@ void CTuneThread::on_module_up (threadmgr::CThreadMgrIf *p_if)
 	section_id = p_if->get_section_id();
 	_UTL_LOG_D ("(%s) section_id %d\n", p_if->get_sequence_name(), section_id);
 
-//
+////
 // do something
 //
 
@@ -191,7 +192,14 @@ void CTuneThread::on_tune (threadmgr::CThreadMgrIf *p_if)
 	fd_set _fds;
 	struct timeval _timeout;
 
+	Bps _Bps(60*2);
+	_Bps.start();
+
 	while (1) {
+		_Bps.update(_total_size, [](float Bps){
+			_UTL_LOG_I("receiving stream... %.3f MiB/sec", Bps/1024/1024);
+		});
+
 		FD_ZERO (&_fds);
 		FD_SET (fd, &_fds);
 		FD_SET (fd_err, &_fds);
