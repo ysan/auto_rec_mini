@@ -7,10 +7,10 @@ auto_rec_mini
 
 Digital broadcast recording system for Japan. This middleware is a tiny and minimal implementation.  
 Recording, EPG acquisition, keyword search recording reservation are the main functions.  
-(Real-time viewing function (playback in browser by HLS) is also planned.)  
+(+ Real-time viewing function (in browser by HLS).)  
 Simple to build and use.  
   
-For studying MPEG-2 TS and ARIB.  
+For self studying MPEG-2 TS and ARIB.  
 
 <!--
 ![demo](https://github.com/ysan/auto_rec_mini/blob/master/etc/demo.gif)
@@ -29,6 +29,10 @@ Features
   * Introduced tssplitter_lite.
 * EPG
   * Perform scheduled EPG acquisition.
+* Viewing (*Platform dependent)
+  * View broadcasts in real time on your browser using ffmpeg HLS.
+  * Simultaneous viewing with multiple tuners.
+  * Introduced tssplitter_lite.
 * Broadcaster logo download
   * Save what fell during song selection in PNG format.
   * Since palette information (CLUT common fixed color) is added, it can be viewed as it is. (It should be possible.)
@@ -37,9 +41,6 @@ Features
 
 Future tasks
 ------------
-* Live viewing function. (HLS, ffmpeg real-time encoding)
-* Become a RESTful service.
-* Client App. (with React...)
 * BS/CS compatible.
 * BML-related functions for data broadcasting. (Implementation of dsmcc)
 
@@ -57,11 +58,18 @@ Anything that works with other PLEX tuners or `recdvb` should work.
 ### Platforms ###
 Will work on generic linux destributions. (confirmed worked on `Ubuntu`, `Fedora`, `Raspberry Pi OS`)  
   
-I usually use `Raspberry Pi model B` to check the operation,  
+I usually use `Raspberry Pi3 model B` to check the operation,  
 If the back EPG acquisition runs during recording, or if multiple simultaneous recordings are performed,  
-Packet loss occurs, block noise and image skipping are likely to occur.  
+packet loss may occur, causing block noise and image skipping..  
 ~~There was a case that ts could not be taken because of insufficient power at the start of tuning.~~  
 As a remedy, using a 5V4A power adapter has improved somewhat.
+These will also be improved on Pi4.
+  
+Regarding the viewing function, we use ffmpeg to encode in H.264 and view it in a browser using the HLS streaming method.  
+H.264 assumes HW encoding on Raspberry Pi4 (h264_omx), but encoding could not keep up with the playback speed on Pi3.  
+It also depends on the version of ffmpeg, and operation has been confirmed with versions below 4.1.  
+(For versions 4.2 and above, an error will occur due to the subtitle stream.)  
+(On Raspberry Pi OS, when using Buster, ffmpeg 4.1 series is installed by default.)  
   
 Also using B-CAS card with IC card reader.
 
@@ -84,8 +92,7 @@ Please install as appropriate.
 	$ make
 	$ sudo make install
 
-*Install firmware for PLEX tuners.
-(isdbt_rio.inp -- arch all)*
+*Install firmware for PLEX tuners. (isdbt_rio.inp)*
 
 	$ wget http://plex-net.co.jp/plex/px-s1ud/PX-S1UD_driver_Ver.1.0.1.zip
 	$ unzip PX-S1UD_driver_Ver.1.0.1.zip
@@ -122,11 +129,13 @@ Installation files:
 	    ├── libpsisimanager.so
 	    ├── libpsisiparser.so
 	    ├── librecmanager.so
+	    ├── libstreamhandler.so
 	    ├── libthreadmgr.so
 	    ├── libthreadmgrpp.so
 	    ├── libtunercontrol.so
 	    ├── libtunerservice.so
-	    └── libtunethread.so
+	    ├── libtunethread.so
+	    └── libviewingmanager.so
 
 ### Running as a Linux service (use systemd) ###
 Copy the configuration file(`settings.json`) to /opt/auto_rec_mini/ .
@@ -177,31 +186,37 @@ settings.json
 
 `settings.json` is a configuration file.  
 Read at `auto_rec_mini` process startup.  
+There are no default values, and settings are made by reading this file.  
 Please you set according to the environment.
 
-| item | description |
-|:-----|:------------|
-| `is_syslog_output` | switch whether to output log to `syslog`. |
-| `command_server_port` | `command server` listen port. |
-| `tuner_hal_allocates` | assign the tuner hal command. |
-| `channels_json_path` | save/load destination of channel scan result. |
-| `rec_reserves_json_path` | save/load destination of recording reservation. |
-| `rec_results_json_path` | save/load destination of recording result. |
-| `rec_ts_path` | save destination of recording stream. |
+| items | descriptions |
+|:------|:-------------|
+| `is_syslog_output` | Switch whether to output log to `syslog`. |
+| `command_server_port` | Listening port of `command server`. |
+| `tuner_hal_allocates` | Assign the tuner hal command. |
+| `channels_json_path` | Save/load destination of channel scan result. |
+| `rec_reserves_json_path` | Save/load destination of recording reservation. |
+| `rec_results_json_path` | Save/load destination of recording result. |
+| `rec_ts_path` | Save destination of recording stream. |
 | `rec_disk_space_low_limit_MB` | Threshold of the remaining capacity of the file system for recording. (MBytes) |
 | `rec_use_splitter` | Toggles whether to apply tssplitter_lite to the recording stream. |
 | `dummy_tuner_ts_path` | unused |
-| `event_schedule_cache_is_enable` | switch to enable EPG. |
+| `event_schedule_cache_is_enable` | Switch to enable EPG. |
 | `event_schedule_cache_start_interval_day` | EPG cache execution interval date. |
 | `event_schedule_cache_start_time` | EPG cache start time. (HH:mm) |
 | `event_schedule_cache_timeout_min` | EPG cache timeout minute. |
 | `event_schedule_cache_retry_interval_min` | EPG cache retry interval minute. |
-| `event_schedule_cache_data_json_path` | save/load EPG cached json data. |
-| `event_schedule_cache_histories_json_path` | save/load destination of EPG cache history. |
-| `event_name_keywords_json_path` | save/load destination of keywords for `event name` search. |
-| `extended_event_keywords_json_path` | save/load destination of keywords for `extended event` search. |
-| `event_name_search_histories_json_path` | save/load destination of `event name` search history. |
-| `extended_event_search_histories_json_path` | save/load destination of `extended event` search history. |
+| `event_schedule_cache_data_json_path` | Save/load EPG cached json data. |
+| `event_schedule_cache_histories_json_path` | Save/load destination of EPG cache history. |
+| `event_name_keywords_json_path` | Save/load destination of keywords for `event name` search. |
+| `extended_event_keywords_json_path` | Save/load destination of keywords for `extended event` search. |
+| `event_name_search_histories_json_path` | Save/load destination of `event name` search history. |
+| `extended_event_search_histories_json_path` | Save/load destination of `extended event` search history. |
+| `viewing_stream_command_format` | Write the viewing stream command. |
+| `viewing_stream_data_path` | Path to write/read the viewing stream file. |
+| `viewing_use_splitter` | Toggle whether to apply tssplitter_lite to the viewing stream. |
+| `http_server_port` | listening port of the HTTP server. |
+| `http_server_static_contents_path` | Location where Web UI content is placed and corresponds to the document root. |
 | `logo_path` | save/load destination of broadcaster logo png. |
 
 ### tuner_hal_allocates ###
@@ -241,6 +256,23 @@ No limit to the number of keywords.
 	        "野球"
 	    ]
 	}
+
+### viewing_stream_command_format ###
+
+As an initial value, we have included a command to encode in H264 using ffmpeg's HLS method.  
+
+
+Client app
+------------
+### Build and install ###
+Using Create React App.
+
+	$ cd client
+	$ npm ci
+	$ npm run build
+
+Please place the index.html and static directory generated in the build directory under `http_server_static_contents_path` described in `settings.json`.
+
 
 How to use CLI
 ------------

@@ -7,9 +7,10 @@ auto_rec_mini
 
 最小機能のTV録画ミドルウェア。  
 録画、EPG取得、キーワード検索録画予約が主な機能です。  
-（リアルタイム視聴機能（HLSによるブラウザ再生）追加予定。）  
+（+ リアルタイム視聴機能（HLSによるブラウザ視聴）。）  
 構築と使用が簡単。  
   
+このジャンルもう何番煎じか不明ですが..
 MPEG-2TSやARIBの勉強のため。  
 
 <!--
@@ -29,6 +30,10 @@ Features
   * tssplitter_liteを導入。
 * EPG
   * 定時EPG取得を行います。
+* 視聴 (※プラットフォーム依存有り)
+  * ffmpeg HLSによりブラウザで放送をリアルタイム視聴します。
+  * 複数チューナーによる同時視聴。
+  * tssplitter_liteを導入。
 * 放送局ロゴダウンロード
   * 選曲中に降ってきたものをPNG形式で保存します。
   * パレット情報（CLUT共通固定色）を付加するのでそのまま閲覧できます。(できるはず、。)
@@ -37,9 +42,6 @@ Features
 
 Future tasks
 ------------
-* ライブ視聴機能。(HLS、ffmpegリアルタイムエンコード)
-* RESTfulサービス化。
-* クライアントアプリ。(Reactで...)
 * BS/CS対応。
 * データ放送のBML関連機能。(dsmccの実装)
 
@@ -57,11 +59,17 @@ System requirements
 ### Platforms ###
 一般的なLinuxであれば問題なく動作すると思います。(`Ubuntu`, `Fedora`, `Raspberry Pi OS`で確認済。)  
   
-普段動作確認で使用しているのは`Raspberry Pi model B`ですが、  
+普段動作確認で使用しているのは`Raspberry Pi3 model B`ですが、  
 録画中に裏EPG取得が走る場合や、複数同時録画している場合は、  
-パケットロスが起こり、ブロックノイズ、画飛びが起きやすいです。。  
+パケットロスが起こり、ブロックノイズ、画飛びが起きることがあります。。  
 ~~また選局開始時に電力が足りないせいかtsが取れないことがあります。~~  
 改善策として5V4Aの電源アダプターを使用することでそれなりに改善が見られました。
+またPi4でもこれらは改善されます。
+  
+視聴機能に関してはffmpegを使いH.264でエンコードしHLSのストリーム方式によりブラウザで視聴する方式をとっています。  
+H.264はRaspberry Pi4でのHWエンコードを前提としています(h264_omx)、Pi3では再生の速度にエンコードが追いつきませんでした。  
+またffmpegのバージョンにも依存あり4.1以下で動作確認できています。(4.2以上では字幕ストリームの関係でエラーとなってしまいます。)  
+(Raspberry Pi OSにおいてはBusterを使用すると標準で4.1系のffmpegがインストールされています。)  
   
 B-CASカードは別途USB接続のICカードリーダを用意して使用しています。
 
@@ -84,8 +92,7 @@ B-CASカードは別途USB接続のICカードリーダを用意して使用し�
 	$ make
 	$ sudo make install
 
-*PLEX社製チューナー向けファームウェアをインストールします。
-(isdbt_rio.inp -- arch all)*
+*PLEX社製チューナー向けファームウェアをインストールします。(isdbt_rio.inp)*
 
 	$ wget http://plex-net.co.jp/plex/px-s1ud/PX-S1UD_driver_Ver.1.0.1.zip
 	$ unzip PX-S1UD_driver_Ver.1.0.1.zip
@@ -122,11 +129,13 @@ Installation files:
 	    ├── libpsisimanager.so
 	    ├── libpsisiparser.so
 	    ├── librecmanager.so
+	    ├── libstreamhandler.so
 	    ├── libthreadmgr.so
 	    ├── libthreadmgrpp.so
 	    ├── libtunercontrol.so
 	    ├── libtunerservice.so
-	    └── libtunethread.so
+	    ├── libtunethread.so
+	    └── libviewingmanager.so
 
 ### Running as a Linux service (use systemd) ###
 設定ファイル(`settings.json`) を /opt/auto_rec_mini/ にコピーします。
@@ -176,10 +185,11 @@ settings.json
 
 `settings.json`は設定ファイルです。  
 `auto_rec_mini` プロセスの起動時に読み込みます。  
+デフォルト値等は持たせておらず本ファイルを読み取ることによって設定します。  
 環境に合わせてお好みで設定できます。
 
-| item | description |
-|:-----|:------------|
+| items | descriptions |
+|:------|:-------------|
 | `is_syslog_output` | ログを`syslog`に出力するかどうかを切り替えます。 |
 | `command_server_port` | `command server` の待受ポートです。 |
 | `tuner_hal_allocates` | チューナーHALコマンドを割り当てます。 |
@@ -190,17 +200,22 @@ settings.json
 | `rec_disk_space_low_limit_MB` | 録画を実行するファイルシステムの残容量の閾値です。(MBytes) |
 | `rec_use_splitter` | 録画ストリームにtssplitter_liteを適用するか切り替えます。 |
 | `dummy_tuner_ts_path` | unused |
-| `event_schedule_cache_is_enable` | EPGを有効にするスイッチ。 |
-| `event_schedule_cache_start_interval_day` | EPG取得の間隔日。 |
-| `event_schedule_cache_start_time` | EPG取得の開始時間。(HH:mm) |
-| `event_schedule_cache_timeout_min` | EPG取得タイムアウト時間。(分) |
-| `event_schedule_cache_retry_interval_min` | EPG取得リトライ間隔。(分) |
+| `event_schedule_cache_is_enable` | EPGを有効にするスイッチです。 |
+| `event_schedule_cache_start_interval_day` | EPG取得の間隔日です。 |
+| `event_schedule_cache_start_time` | EPG取得の開始時間です。(HH:mm) |
+| `event_schedule_cache_timeout_min` | EPG取得タイムアウト時間です。(分) |
+| `event_schedule_cache_retry_interval_min` | EPG取得リトライ間隔です。(分) |
 | `event_schedule_cache_data_json_path` | 取得したEPGデータの書き込み/読み込み先パスです。 | 
 | `event_schedule_cache_histories_json_path` | EPG取得履歴の書き込み/読み込み先パスです。 |
 | `event_name_keywords_json_path` | `event name` 検索のキーワードリストの書き込み/読み込み先パスです。 |
 | `extended_event_keywords_json_path` | `extended event` 検索のキーワードリストの書き込み/読み込み先パスです。 |
 | `event_name_search_histories_json_path` | `event name` 検索履歴の書き込み/読み込み先パスです。 |
 | `extended_event_search_histories_json_path` | `extended event` 検索履歴の書き込み/読み込み先パスです。 |
+| `viewing_stream_command_format` | 視聴ストリームコマンドを記述します。 |
+| `viewing_stream_data_path` | 視聴ストリームファイルの書き込み/読み込み先パスです。 |
+| `viewing_use_splitter` | 視聴ストリームにtssplitter_liteを適用するか切り替えます。 |
+| `http_server_port` | HTTPサーバーの待ち受けポートです。 |
+| `http_server_static_contents_path` | Web UIコンテンツの配置先であり、ドキュメントルートに当たります。 |
 | `logo_path` | 放送局ロゴの書き込み/読み込み先パスです。 |
 
 ### tuner_hal_allocates ###
@@ -238,6 +253,22 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 	        "野球"
 	    ]
 	}
+
+### viewing_stream_command_format ###
+
+初期値としてffmpegのHLS方式を使用してH264でエンコードするコマンドを入れています。  
+
+
+Client app
+------------
+### Build and install ###
+Create React Appを利用しています。
+
+	$ cd client
+	$ npm ci
+	$ npm run build
+
+buildディレクトリに生成されたindex.htmlとstaticディレクトリを`settings.json`に記述した`http_server_static_contents_path`以下に配置してください。
 
 
 How to use CLI
