@@ -7,7 +7,7 @@ export const Top: React.FC = () => {
   const history = useHistory();
 
   const handleClick = () => {
-    history.push('/app/manualviewing');
+    history.push('/manualviewing');
   };
 
   return (

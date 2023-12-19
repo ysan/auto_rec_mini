@@ -181,7 +181,7 @@ export const ManualViewing: React.FC = () => {
     //});
 
     history.push({
-      pathname: '/app/viewer',
+      pathname: '/viewer',
       state: {
         original_network_id: channels[idx].original_network_id,
         transport_stream_id: channels[idx].transport_stream_id,

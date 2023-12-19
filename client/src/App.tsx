@@ -9,15 +9,15 @@ const App: React.FC = () => {
   return (
     <>
       <BrowserRouter>
-        <Route exact path="/app">
+        <Route exact path="/">
           <Top />
         </Route>
 
-        <Route exact path="/app/manualviewing">
+        <Route exact path="/manualviewing">
           <ManualViewing />
         </Route>
 
-        <Route exact path="/app/viewer">
+        <Route exact path="/viewer">
           <Viewer />
         </Route>
       </BrowserRouter>
