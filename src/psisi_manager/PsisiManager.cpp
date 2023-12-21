@@ -2372,6 +2372,8 @@ bool CPsisiManager::on_pre_ts_receive (void)
 	opt |= REQUEST_OPTION__WITHOUT_REPLY;
 	get_external_if()->set_request_option (opt);
 
+	m_parser.reset();
+
 	return true;
 }
 
@@ -2393,7 +2395,7 @@ bool CPsisiManager::on_ts_received (void *p_ts_data, int length)
 {
 
 	// ts parser processing
-	m_parser.run ((uint8_t*)p_ts_data, length);
+	m_parser.put ((uint8_t*)p_ts_data, length);
 
 	return true;
 }

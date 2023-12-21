@@ -4,43 +4,57 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "TsAribCommon.h"
 #include "TsParser.h"
 #include "Utils.h"
 
 
 CTsParser::CTsParser (void)
-	:mp_top (NULL)
-	,mp_current (NULL)
-	,mp_bottom (NULL)
-	,m_buff_size (0)
-	,m_parse_remain_len (0)
-	,mp_listener (NULL)
+	: mp_top (nullptr)
+	, mp_current (nullptr)
+	, mp_bottom (nullptr)
+	, m_parse_remain_len (0)
+	, mp_listener (nullptr)
 {
-	std::unique_ptr<uint8_t[]> up (new uint8_t[INNER_BUFF_SIZE]);
-	m_inner_buff.swap(up);
+	reset();
+
+	m_bitrate.set_interval(60*2, [](double bitrate, uint64_t bytes, uint64_t clocks){
+		_UTL_LOG_I("bitrate -- %.3f bps (%llu bytes * 8 / (%llu clocks * 27MHz))", bitrate, bytes, clocks);
+	});
 }
 
 CTsParser::CTsParser (IParserListener *p_listener)
-	:mp_top (NULL)
-	,mp_current (NULL)
-	,mp_bottom (NULL)
-	,m_buff_size (0)
-	,m_parse_remain_len (0)
-	,mp_listener (NULL)
+	: mp_top (nullptr)
+	, mp_current (nullptr)
+	, mp_bottom (nullptr)
+	, m_parse_remain_len (0)
+	, mp_listener (nullptr)
 {
 	if (p_listener) {
 		mp_listener = p_listener;
 	}
 
-	std::unique_ptr<uint8_t[]> up (new uint8_t[INNER_BUFF_SIZE]);
-	m_inner_buff.swap(up);
+	reset();
+
+	m_bitrate.set_interval(60*2, [](double bitrate, uint64_t bytes, uint64_t clocks){
+		_UTL_LOG_I("bitrate -- %.3f bps (%llu bytes * 8 / (%llu clocks * 27MHz))", bitrate, bytes, clocks);
+	});
 }
 
-CTsParser::~CTsParser (void)
+void CTsParser::reset (void)
 {
+	std::unique_ptr<uint8_t[]> up (new uint8_t[INNER_BUFF_SIZE]);
+	m_inner_buff = std::move(up);
+
+	mp_top = nullptr;
+	mp_current = nullptr;
+	mp_bottom = nullptr;
+	m_parse_remain_len = 0;
+
+	m_bitrate.reset();
 }
 
-void CTsParser::run (uint8_t *p_buff, size_t size)
+void CTsParser::put (uint8_t *p_buff, size_t size)
 {
 	if ((!p_buff) || (size == 0)) {
 		return ;
@@ -131,14 +145,14 @@ int CTsParser::get_unit_size (void) const
 uint8_t * CTsParser::get_sync_top_addr (uint8_t *p_start, uint8_t *p_end, size_t unit_size) const
 {
 	if ((!p_start) || (!p_end) || (unit_size == 0)) {
-		return NULL;
+		return nullptr;
 	}
 
 	if ((uint32_t)(p_end - p_start) >= (unit_size * 8)) {
 		// unit_size 8コ分のデータがあること
 		p_end -= unit_size * 8;
 	} else {
-		return NULL;
+		return nullptr;
 	}
 
 	int i = 0;
@@ -157,7 +171,7 @@ uint8_t * CTsParser::get_sync_top_addr (uint8_t *p_start, uint8_t *p_end, size_t
 		++ p_start ;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 int CTsParser::check_unit_size (void)
@@ -195,7 +209,8 @@ bool CTsParser::parse (void)
 	int unit_size = 0;
 	int err_cnt = 0;
 	TS_HEADER ts_header = {0};
-	uint8_t *p_payload = NULL;
+	adaptation_field_header_t af_header = {0};
+	uint8_t *p_payload = nullptr;
 	uint8_t *p_cur = mp_current;
 	uint8_t *p_btm = mp_bottom;
 	size_t payload_size = 0;
@@ -222,17 +237,31 @@ bool CTsParser::parse (void)
 		}
 
 		ts_header.parse (p_cur);
+		af_header.clear();
 
-		p_payload = p_cur + TS_HEADER_LEN;
+		m_bitrate.update_size(unit_size);
 
 		// adaptation_field_control 2bit
 		// 00 ISO/IECによる将来の使用のために予約されている。
 		// 01 アダプテーションフィールドなし、ペイロードのみ
 		// 10 アダプテーションフィールドのみ、ペイロードなし
 		// 11 アダプテーションフィールドの次にペイロード
-		if ((ts_header.adaptation_field_control & 0x02) == 0x02) {
+		if ((ts_header.adaptation_field_control & 0x2) == 0x2) {
 			// アダプテーションフィールド付き
-			p_payload += *p_payload + 1; // lengthとそれ自身の1byte分進める
+			size_t adaptation_field_length = *(p_cur + TS_HEADER_LEN);
+			p_payload += adaptation_field_length + 1; // lengthとそれ自身の1byte分進める
+
+			if (adaptation_field_length > 0) {
+				af_header.parse(p_cur + TS_HEADER_LEN + 1);
+				if (af_header.PCR_flag) {
+					pcr_t pcr(p_cur + TS_HEADER_LEN + 2);
+					m_bitrate.update_pcr(pcr.pcr);
+				}
+			}
+
+		} else {
+			// アダプテーションフィールドなし
+			p_payload = p_cur + TS_HEADER_LEN;
 		}
 
 		// TTS(Timestamped TS)(total192bytes) や
@@ -241,9 +270,11 @@ bool CTsParser::parse (void)
 //		payload_size = TS_PACKET_LEN - (p_payload - p_cur);
 		payload_size = TS_PACKET_LEN - TS_HEADER_LEN;
 
-
-		if (mp_listener) {
-			mp_listener->on_ts_packet_available (&ts_header, p_payload, payload_size);
+		if (ts_header.adaptation_field_control != 0x2) {
+			// ペイロード有る時のみ
+			if (mp_listener) {
+				mp_listener->on_ts_packet_available (&ts_header, p_payload, payload_size);
+			}
 		}
 
 		p_cur += unit_size;

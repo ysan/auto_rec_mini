@@ -233,6 +233,76 @@ typedef struct _ts_header {
 
 } TS_HEADER;
 
+struct adaptation_field_header_t {
+	void parse (const uint8_t* p_src) {
+		if (!p_src) {
+			return;
+		}
+		discontinuity_indicator             = (*(p_src) >> 7) & 0x1;
+		random_access_indicator             = (*(p_src) >> 6) & 0x1;
+		elemetary_stream_priority_indicator = (*(p_src) >> 5) & 0x1;
+		PCR_flag                            = (*(p_src) >> 4) & 0x1;
+		OPCR_flag                           = (*(p_src) >> 3) & 0x1;
+		splicing_point_flag                 = (*(p_src) >> 2) & 0x1;
+		transport_private_data_flag         = (*(p_src) >> 1) & 0x1;
+		adaptation_field_extension_flag     =  *(p_src)       & 0x1;
+	}
+
+	void clear (void) {
+		discontinuity_indicator             = 0;
+		random_access_indicator             = 0;
+		elemetary_stream_priority_indicator = 0;
+		PCR_flag                            = 0;
+		OPCR_flag                           = 0;
+		splicing_point_flag                 = 0;
+		transport_private_data_flag         = 0;
+		adaptation_field_extension_flag     = 0;
+	}
+
+	void dump (void) const {
+		_UTL_LOG_I (
+			"af-hdr: di:[%d] rai:[%d] espi:[%d] PCR:[%d] OPCR:[%d] spf:[%d] tpdf:[%d] afef:[%d]\n",
+			discontinuity_indicator,
+			random_access_indicator,
+			elemetary_stream_priority_indicator,
+			PCR_flag,
+			OPCR_flag,
+			splicing_point_flag,
+			transport_private_data_flag,
+			adaptation_field_extension_flag
+		);
+	}
+
+	uint8_t discontinuity_indicator;
+	uint8_t random_access_indicator;
+	uint8_t elemetary_stream_priority_indicator;
+	uint8_t PCR_flag;
+	uint8_t OPCR_flag;
+	uint8_t splicing_point_flag;
+	uint8_t transport_private_data_flag;
+	uint8_t adaptation_field_extension_flag;
+};
+
+struct pcr_t {
+	explicit pcr_t (const uint8_t* p_src) {
+		parse(p_src);
+	}
+	virtual ~pcr_t (void) = default;
+
+	void parse (const uint8_t* p_src) {
+		if (!p_src) {
+			return;
+		}
+		uint32_t dw = *(p_src+0) << 24 | *(p_src+1) << 16 | *(p_src+2) << 8 | *(p_src+3);
+		uint16_t w = *(p_src+4) << 8 | *(p_src+5);
+		uint64_t base = (uint64_t)dw << 1 | ((w >> 15) & 0x1);
+		uint64_t extension = (uint64_t)w & 0x1ff;
+        pcr = base * 300 + extension;
+	}
+
+	uint64_t pcr;
+};
+
 typedef struct _section_header {
 
 	void dump (void) const {
