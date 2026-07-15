@@ -8,9 +8,8 @@ auto_rec_mini
 最小機能のTV録画ミドルウェア。  
 録画、EPG取得、キーワード検索録画予約が主な機能です。  
 （+ リアルタイム視聴機能（HLSによるブラウザ視聴）。）  
-構築と使用が簡単。  
+構築等をシンプルに。  
   
-このジャンルもう何番煎じか不明ですが..
 MPEG-2TSやARIBの勉強のため。  
 
 <!--
@@ -215,7 +214,7 @@ settings.json
 | `viewing_stream_data_path` | 視聴ストリームファイルの書き込み/読み込み先パスです。 |
 | `viewing_use_splitter` | 視聴ストリームにtssplitter_liteを適用するか切り替えます。 |
 | `http_server_port` | HTTPサーバーの待ち受けポートです。 |
-| `http_server_static_contents_path` | Web UIコンテンツの配置先であり、ドキュメントルートに当たります。 |
+| `http_server_static_contents_path` | Web UIコンテンツの配置先であり、ドキュメントルートに当たります。Web UI（クライアント）は [auto_rec_mini_trials](https://github.com/ysan/auto_rec_mini_trials) にあります。そちらでビルドし、生成物をここに配置してください。 |
 | `logo_path` | 放送局ロゴの書き込み/読み込み先パスです。 |
 
 ### tuner_hal_allocates ###
@@ -257,22 +256,6 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 ### viewing_stream_command_format ###
 
 初期値としてffmpegのHLS方式を使用してH264でエンコードするコマンドを入れています。  
-
-
-Client app
-------------
-クライアントアプリおよび UI / 再生まわりの試作コードは別リポジトリに分離しました:
-[auto_rec_mini_trials](https://github.com/ysan/auto_rec_mini_trials)。
-
-### Build and install ###
-Create React Appを利用しています。
-
-	$ git clone https://github.com/ysan/auto_rec_mini_trials.git
-	$ cd auto_rec_mini_trials/client
-	$ npm ci
-	$ npm run build
-
-buildディレクトリに生成されたindex.htmlとstaticディレクトリを`settings.json`に記述した`http_server_static_contents_path`以下に配置してください。
 
 
 How to use CLI

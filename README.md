@@ -216,7 +216,7 @@ Please you set according to the environment.
 | `viewing_stream_data_path` | Path to write/read the viewing stream file. |
 | `viewing_use_splitter` | Toggle whether to apply tssplitter_lite to the viewing stream. |
 | `http_server_port` | listening port of the HTTP server. |
-| `http_server_static_contents_path` | Location where Web UI content is placed and corresponds to the document root. |
+| `http_server_static_contents_path` | Location where Web UI content is placed and corresponds to the document root. The Web UI (client) is provided by [auto_rec_mini_trials](https://github.com/ysan/auto_rec_mini_trials); build it there and place the output here. |
 | `logo_path` | save/load destination of broadcaster logo png. |
 
 ### tuner_hal_allocates ###
@@ -260,22 +260,6 @@ No limit to the number of keywords.
 ### viewing_stream_command_format ###
 
 As an initial value, we have included a command to encode in H264 using ffmpeg's HLS method.  
-
-
-Client app
-------------
-The client app and other UI / playback trials have been moved to a separate repository:
-[auto_rec_mini_trials](https://github.com/ysan/auto_rec_mini_trials).
-
-### Build and install ###
-Using Create React App.
-
-	$ git clone https://github.com/ysan/auto_rec_mini_trials.git
-	$ cd auto_rec_mini_trials/client
-	$ npm ci
-	$ npm run build
-
-Please place the index.html and static directory generated in the build directory under `http_server_static_contents_path` described in `settings.json`.
 
 
 How to use CLI
