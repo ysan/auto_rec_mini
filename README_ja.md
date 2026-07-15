@@ -261,10 +261,14 @@ EPG取得後に番組詳細にキーワードが含まれる番組を検索し�
 
 Client app
 ------------
+クライアントアプリおよび UI / 再生まわりの試作コードは別リポジトリに分離しました:
+[auto_rec_mini_trials](https://github.com/ysan/auto_rec_mini_trials)。
+
 ### Build and install ###
 Create React Appを利用しています。
 
-	$ cd client
+	$ git clone https://github.com/ysan/auto_rec_mini_trials.git
+	$ cd auto_rec_mini_trials/client
 	$ npm ci
 	$ npm run build
 

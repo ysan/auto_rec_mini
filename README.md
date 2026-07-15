@@ -264,10 +264,14 @@ As an initial value, we have included a command to encode in H264 using ffmpeg's
 
 Client app
 ------------
+The client app and other UI / playback trials have been moved to a separate repository:
+[auto_rec_mini_trials](https://github.com/ysan/auto_rec_mini_trials).
+
 ### Build and install ###
 Using Create React App.
 
-	$ cd client
+	$ git clone https://github.com/ysan/auto_rec_mini_trials.git
+	$ cd auto_rec_mini_trials/client
 	$ npm ci
 	$ npm run build
 
