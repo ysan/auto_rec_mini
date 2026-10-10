@@ -7,17 +7,19 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "Defs.h"
-#include "TsAribCommon.h"
-#include "ProgramAssociationTable.h"
-#include "ProgramMapTable.h"
-#include "TimeOffsetTable.h"
-#include "EventInformationTable.h"
-#include "NetworkInformationTable.h"
-#include "ServiceDescriptionTable.h"
-#include "RunningStatusTable.h"
-#include "BroadcasterInformationTable.h"
-#include "Dsmcc.h"
+#include "defs.h"
+#include "ts_arib_common.h"
+#include "program_association_table.h"
+#include "program_map_table.h"
+#include "time_offset_table.h"
+#include "event_information_table.h"
+#include "network_information_table.h"
+#include "service_description_table.h"
+#include "running_status_table.h"
+#include "broadcaster_information_table.h"
+#include "dsmcc.h"
+
+using namespace parser;
 
 
 #define INNER_BUFF_SIZE		(65535*5)
@@ -38,7 +40,7 @@ public:
 	}
 
 	uint16_t pid;
-	CProgramMapTable *mpPMT;
+	parser::program_map_table *mpPMT;
 	bool isUsed;
 };
 
@@ -57,7 +59,7 @@ public:
 	}
 
 	uint16_t pid;
-	CDsmcc *mpDsmcc;
+	parser::dsmcc *mpDsmcc;
 	bool isUsed;
 };
 
@@ -93,22 +95,22 @@ private:
 	uint8_t *mp_bottom ;
 	size_t m_buff_size ;
 	int m_unit_size;
-	int m_parse_remain_len;
+	int parse_remain_len_;
 
-	uint8_t m_inner_buff [INNER_BUFF_SIZE];
+	uint8_t inner_buff_ [INNER_BUFF_SIZE];
 
 
 
-	CProgramAssociationTable mPAT;
-	CProgramAssociationTable::CTable mPatTables [4 * 8];
-	CTimeOffsetTable mTOT;
-	CEventInformationTable mEIT_H;
-	CEventInformationTable mEIT_M;
-	CEventInformationTable mEIT_L;
-	CNetworkInformationTable mNIT;
-	CServiceDescriptionTable mSDT;
-	CRunningStatusTable mRST;
-	CBroadcasterInformationTable mBIT;
+	parser::program_association_table mPAT;
+	parser::program_association_table::table mPatTables [4 * 8];
+	parser::time_offset_table mTOT;
+	parser::event_information_table mEIT_H;
+	parser::event_information_table mEIT_M;
+	parser::event_information_table mEIT_L;
+	parser::network_information_table mNIT;
+	parser::service_description_table mSDT;
+	parser::running_status_table mRST;
+	parser::broadcaster_information_table mBIT;
 
 	CProgramCache mProgramCaches [16];
 	CDsmccControl mDsmccCtls [256];

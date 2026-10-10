@@ -8,14 +8,14 @@ CFLAGS		:=	-std=c++11 -Wno-psabi
 
 INCLUDES	:= \
 	-I$(ROOTDIR)/ \
-	-I$(ROOTDIR)/threadmgr \
-	-I$(ROOTDIR)/threadmgrpp \
+	-I$(ROOTDIR)/third_party/coseq/coseq \
+	-I$(ROOTDIR)/third_party/coseq/coseqpp \
 	-I$(ROOTDIR)/common \
 	-I$(ROOTDIR)/tuner_control/tune_thread \
 	-I$(ROOTDIR)/tuner_control \
 	-I$(ROOTDIR)/parser \
-	-I$(ROOTDIR)/parser/aribstr \
-	-I$(ROOTDIR)/parser/tssplitter_lite \
+	-I$(ROOTDIR)/parser/third_party/aribstr \
+	-I$(ROOTDIR)/parser/third_party/tssplitter_lite \
 	-I$(ROOTDIR)/parser/psisi \
 	-I$(ROOTDIR)/parser/psisi/descriptor \
 	-I$(ROOTDIR)/parser/dsmcc \
@@ -32,30 +32,30 @@ INCLUDES	:= \
 	-I./ \
 
 LIBS		:= \
-	-L$(ROOTDIR)/threadmgr -lthreadmgr \
-	-L$(ROOTDIR)/threadmgrpp -lthreadmgrpp \
+	-L$(ROOTDIR)/third_party/coseq/coseq -lcoseq \
+	-L$(ROOTDIR)/third_party/coseq/coseqpp -lcoseqpp \
 	-L$(ROOTDIR)/common -lcommon \
-	-L$(ROOTDIR)/tuner_control/tune_thread -ltunethread \
-	-L$(ROOTDIR)/tuner_control -ltunercontrol \
+	-L$(ROOTDIR)/tuner_control/tune_thread -ltune_thread \
+	-L$(ROOTDIR)/tuner_control -ltuner_control \
 	-L$(ROOTDIR)/parser -lparser \
 	-L$(ROOTDIR)/parser/psisi -lpsisiparser \
 	-L$(ROOTDIR)/parser/dsmcc -ldsmccparser \
-	-L$(ROOTDIR)/psisi_manager -lpsisimanager \
-	-L$(ROOTDIR)/tuner_service -ltunerservice \
-	-L$(ROOTDIR)/rec_manager -lrecmanager \
-	-L$(ROOTDIR)/channel_manager -lchannelmanager \
-	-L$(ROOTDIR)/event_schedule_manager -leventschedulemanager \
-	-L$(ROOTDIR)/event_search -leventsearch \
-	-L$(ROOTDIR)/viewing_manager -lviewingmanager \
-	-L$(ROOTDIR)/command_server -lcommandserver \
-	-L$(ROOTDIR)/stream_handler -lstreamhandler \
+	-L$(ROOTDIR)/psisi_manager -lpsisi_manager \
+	-L$(ROOTDIR)/tuner_service -ltuner_service \
+	-L$(ROOTDIR)/rec_manager -lrec_manager \
+	-L$(ROOTDIR)/channel_manager -lchannel_manager \
+	-L$(ROOTDIR)/event_schedule_manager -levent_schedule_manager \
+	-L$(ROOTDIR)/event_search -levent_search \
+	-L$(ROOTDIR)/viewing_manager -lviewing_manager \
+	-L$(ROOTDIR)/command_server -lcommand_server \
+	-L$(ROOTDIR)/stream_handler -lstream_handler \
 	-larib25 \
 	-lpthread \
 	-lpcsclite \
 
 SUBDIRS		:= \
-	threadmgr \
-	threadmgrpp \
+	third_party/coseq/coseq \
+	third_party/coseq/coseqpp \
 	common \
 	parser \
 	parser_test \

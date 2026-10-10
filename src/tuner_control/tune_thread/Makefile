@@ -8,16 +8,16 @@ CFLAGS		:=	-std=c++11
 
 INCLUDES	:= \
 	-I$(ROOTDIR) \
-	-I$(ROOTDIR)/threadmgr \
-	-I$(ROOTDIR)/threadmgrpp \
+	-I$(ROOTDIR)/third_party/coseq/coseq \
+	-I$(ROOTDIR)/third_party/coseq/coseqpp \
 	-I$(ROOTDIR)/common \
 	-I$(ROOTDIR)/parser \
 	-I./ \
 	-I../ \
 
 LIBS		:= \
-	-L$(ROOTDIR)/threadmgr -lthreadmgr \
-	-L$(ROOTDIR)/threadmgrpp -lthreadmgrpp \
+	-L$(ROOTDIR)/third_party/coseq/coseq -lcoseq \
+	-L$(ROOTDIR)/third_party/coseq/coseqpp -lcoseqpp \
 	-L$(ROOTDIR)/common -lcommon \
 	-lpthread \
 
@@ -29,7 +29,7 @@ SUBDIRS		:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	tunethread
+TARGET_NAME	:=	tune_thread
 
 #
 #   Target type
@@ -41,7 +41,7 @@ TARGET_TYPE	:=	SHARED
 #   Compile sources
 #
 SRCS_CPP	:= \
-	TuneThread.cpp \
+	tune_thread.cpp \
 
 
 #

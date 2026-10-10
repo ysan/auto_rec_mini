@@ -9,34 +9,35 @@
 #include <getopt.h>
 #include <utility>
 #include <memory>
+#include <chrono>
+#include <signal.h>
 
 #include "http_server.h"
 
-#include "ThreadMgrpp.h"
+#include "coseqpp.h"
 
-#include "CommandServerIf.h"
-#include "TunerControlIf.h"
-#include "PsisiManagerIf.h"
-#include "TunerServiceIf.h"
-#include "RecManagerIf.h"
-#include "ChannelManagerIf.h"
-#include "EventScheduleManagerIf.h"
-#include "EventSearchIf.h"
-#include "ViewingManagerIf.h"
+#include "command_server_if.h"
+#include "tuner_control_if.h"
+#include "psisi_manager_if.h"
+#include "tuner_service_if.h"
+#include "rec_manager_if.h"
+#include "channel_manager_if.h"
+#include "event_schedule_manager_if.h"
+#include "event_search_if.h"
+#include "viewing_manager_if.h"
 
-#include "threadmgr_util.h"
 #include "tssplitter_lite.h"
 
-#include "Utils.h"
-#include "Forker.h"
+#include "utils.h"
+#include "forker.h"
 #include "modules.h"
-#include "Settings.h"
+#include "settings.h"
 
-#include "StreamHandler.h"
+#include "stream_handler.h"
 
 
-static CLogger s_logger;
-static CShared<> s_shared;
+static arec::common::logger s_logger;
+static arec::common::shared<> s_shared;
 
 static void _usage (char* _arg_0)
 {
@@ -51,73 +52,31 @@ static void _usage (char* _arg_0)
 	printf ("        print usage.\n\n");
 }
 
-void threadmgr_log (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFile,
-	const char *pszFunc,
-	int nLine,
-	const char *pszFormat,
-	...
-)
+// coseq 内部ログを app ロガーへ流すコールバック (旧 threadmgr_log / _LW 相当)
+static void coseq_log_to_app (coseq::log_level level, const std::string &msg)
 {
-	char buff [256] = {0};
-	va_list va;
-	va_start (va, pszFormat);
-	vsnprintf (buff, sizeof(buff), pszFormat, va);
-	switch ((int)enLogType) {
-	case EN_LOG_TYPE_D:
-		_UTL_LOG_D ("(%s,%s(),%d) %s", pszFile, pszFunc, nLine, buff);
+	switch (level) {
+	case coseq::log_level::debug:
+		_UTL_LOG_D ("%s", msg.c_str());
 		break;
-	case EN_LOG_TYPE_I:
-		_UTL_LOG_I ("(%s,%s(),%d) %s", pszFile, pszFunc, nLine, buff);
+	case coseq::log_level::info:
+		_UTL_LOG_I ("%s", msg.c_str());
 		break;
-	case EN_LOG_TYPE_W:
-		_UTL_LOG_W ("(%s,%s(),%d) %s", pszFile, pszFunc, nLine, buff);
+	case coseq::log_level::warn:
+		_UTL_LOG_W ("%s", msg.c_str());
 		break;
-	case EN_LOG_TYPE_E:
-		_UTL_LOG_E ("(%s,%s(),%d) %s", pszFile, pszFunc, nLine, buff);
-		break;
-	case EN_LOG_TYPE_PE:
-		_UTL_PERROR ("(%s,%s(),%d) %s", pszFile, pszFunc, nLine, buff);
+	case coseq::log_level::error:
+		_UTL_LOG_E ("%s", msg.c_str());
 		break;
 	default:
 		break;
 	}
-	va_end (va);
 }
 
-void threadmgr_log_lw (
-	FILE *pFp,
-	EN_LOG_TYPE enLogType,
-	const char *pszFormat,
-	...
-)
+// SIGINT/SIGTERM でシャットダウン要求(v1 の wait_all 解除 相当のトリガ)
+static void on_shutdown_signal (int)
 {
-	char buff [256] = {0};
-	va_list va;
-	va_start (va, pszFormat);
-	vsnprintf (buff, sizeof(buff), pszFormat, va);
-	switch ((int)enLogType) {
-	case EN_LOG_TYPE_D:
-		_UTL_LOG_D (buff);
-		break;
-	case EN_LOG_TYPE_I:
-		_UTL_LOG_I (buff);
-		break;
-	case EN_LOG_TYPE_W:
-		_UTL_LOG_W (buff);
-		break;
-	case EN_LOG_TYPE_E:
-		_UTL_LOG_E (buff);
-		break;
-	case EN_LOG_TYPE_PE:
-		_UTL_PERROR (buff);
-		break;
-	default:
-		break;
-	}
-	va_end (va);
+	modules::request_shutdown();
 }
 
 int splitter_log (FILE *fp, const char* format, ...)
@@ -185,7 +144,7 @@ int main (int argc, char *argv[])
 		struct stat _s;
 		if (stat(change_directory_path.c_str(), &_s) != 0) {
 			printf ("mkdir [%s]\n", change_directory_path.c_str());
-			int r = CUtils::makedir (change_directory_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+			int r = arec::common::utils::makedir (change_directory_path.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
 			if (r == 0) {
 				printf ("mkdir success [%s]\n", change_directory_path.c_str());
 			} else {
@@ -208,7 +167,7 @@ int main (int argc, char *argv[])
 
 
 	// ----- load settings.json -----
-	CSettings *s = CSettings::get_instance ();
+	arec::settings *s = arec::settings::get_instance ();
 	if (!s->load (settings_json_path)) {
 		printf ("Invalid settings.json.\n");
 		exit (EXIT_FAILURE);
@@ -216,47 +175,45 @@ int main (int argc, char *argv[])
 
 
 	// ----- log settings -----
-	s_logger.set_log_level(CLogger::level::info);
+	s_logger.set_log_level(arec::common::logger::level::info);
 	s_logger.append_handler(stdout);
-	CUtils::set_logger(&s_logger);
+	arec::common::utils::set_logger(&s_logger);
 
-	set_alternative_log (threadmgr_log);
-	set_alternative_log_LW (threadmgr_log_lw);
+	coseq::set_log_cb (coseq_log_to_app);
 
 	if (s->get_params().is_syslog_output()) {
-		auto syslog = std::make_shared<CSyslog> ("/dev/log", LOG_USER, "auto_rec_mini");
+		auto syslog = std::make_shared<arec::common::syslog_util> ("/dev/log", LOG_USER, "auto_rec_mini");
 		s_logger.set_syslog(syslog);
 	}
 
 	split_set_printf_cb (splitter_log);
 
 
-	CUtils::set_shared(&s_shared);
+	arec::common::utils::set_shared(&s_shared);
 	s->get_params().dump ();
 
 
 	// ----- setup thread manager -----
-	threadmgr::CThreadMgr *mgr = threadmgr::CThreadMgr::get_instance();
-	if (!mgr->setup (modules::get_modules(), static_cast<int>(modules::module_id::max))) {
+	coseq::manager mgr;
+	if (!mgr.setup (modules::get_modules())) {
 		exit (EXIT_FAILURE);
 	}
+	modules::set_manager (&mgr);
 
-	mgr->get_external_if()->create_external_cp();
 
-
-	CCommandServerIf com_svr_if (mgr->get_external_if());
-	std::unique_ptr<CTunerControlIf> tuner_ctl_if[CGroup::GROUP_MAX];
-	std::unique_ptr<CPsisiManagerIf> psisi_mgr_if [CGroup::GROUP_MAX];
-	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-		tuner_ctl_if [_gr] = std::unique_ptr<CTunerControlIf>(new CTunerControlIf(mgr->get_external_if(), _gr));
-		psisi_mgr_if [_gr] = std::unique_ptr<CPsisiManagerIf>(new CPsisiManagerIf(mgr->get_external_if(), _gr));
+	arec::command_server::client_iface com_svr_if (&mgr);
+	std::unique_ptr<arec::tuner_control::client_iface> tuner_ctl_if[arec::group::GROUP_MAX];
+	std::unique_ptr<arec::psisi::client_iface> psisi_mgr_if [arec::group::GROUP_MAX];
+	for (uint8_t _gr = 0; _gr < arec::group::GROUP_MAX; ++ _gr) {
+		tuner_ctl_if [_gr] = std::unique_ptr<arec::tuner_control::client_iface>(new arec::tuner_control::client_iface(&mgr, _gr));
+		psisi_mgr_if [_gr] = std::unique_ptr<arec::psisi::client_iface>(new arec::psisi::client_iface(&mgr, _gr));
 	}
-	CTunerServiceIf tuner_svc_if (mgr->get_external_if());
-	CRecManagerIf rec_mgr_if (mgr->get_external_if());
-	CChannelManagerIf ch_mgr_if (mgr->get_external_if());
-	CEventScheduleManagerIf sched_mgr_if (mgr->get_external_if());
-	CEventSearchIf search_if (mgr->get_external_if());
-	CViewingManagerIf view_mgr_if (mgr->get_external_if());
+	arec::tuner_service::client_iface tuner_svc_if (&mgr);
+	arec::rec::client_iface rec_mgr_if (&mgr);
+	arec::channel::client_iface ch_mgr_if (&mgr);
+	arec::event_schedule::client_iface sched_mgr_if (&mgr);
+	arec::event_search::client_iface search_if (&mgr);
+	arec::viewing::client_iface view_mgr_if (&mgr);
 
 
 //	uint32_t opt = mgr->get_external_if()->get_request_option ();
@@ -268,113 +225,102 @@ int main (int argc, char *argv[])
 //	mgr->get_external_if()->set_request_option (opt);
 
 	// ----- modules up -----
+	// request_module_up() は request_sync 化済み(完了を待って bool を返す)
 	{
-		com_svr_if.request_module_up();
-		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
-		if (r.get_result() != threadmgr::result::success) {
+		if (!com_svr_if.request_module_up()) {
 			_UTL_LOG_E ("commnd server module up failed.");
 			exit (EXIT_FAILURE);
 		}
 		_UTL_LOG_I ("commnd server module up done.");
 	}
-	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-		tuner_ctl_if[_gr]->request_module_up();
-		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
-		if (r.get_result() != threadmgr::result::success) {
+	for (uint8_t _gr = 0; _gr < arec::group::GROUP_MAX; ++ _gr) {
+		if (!tuner_ctl_if[_gr]->request_module_up()) {
 			_UTL_LOG_E ("tuner control %d module up failed.", _gr);
 			exit (EXIT_FAILURE);
 		}
 		_UTL_LOG_I ("tuner control %d module up done.", _gr);
 	}
-	for (uint8_t _gr = 0; _gr < CGroup::GROUP_MAX; ++ _gr) {
-		psisi_mgr_if[_gr]->request_module_up();
-		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
-		if (r.get_result() != threadmgr::result::success) {
+	for (uint8_t _gr = 0; _gr < arec::group::GROUP_MAX; ++ _gr) {
+		if (!psisi_mgr_if[_gr]->request_module_up()) {
 			_UTL_LOG_E ("psisi manager %d module up failed.", _gr);
 			exit (EXIT_FAILURE);
 		}
 		_UTL_LOG_I ("psisi manager %d module up done.", _gr);
 	}
 	{
-		tuner_svc_if.request_module_up();
-		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
-		if (r.get_result() != threadmgr::result::success) {
+		if (!tuner_svc_if.request_module_up()) {
 			_UTL_LOG_E ("tuner service module up failed.");
 			exit (EXIT_FAILURE);
 		}
 		_UTL_LOG_I ("tuner service module up done.");
 	}
 	{
-		rec_mgr_if.request_module_up();
-		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
-		if (r.get_result() != threadmgr::result::success) {
+		if (!rec_mgr_if.request_module_up()) {
 			_UTL_LOG_E ("rec manager module up failed.");
 			exit (EXIT_FAILURE);
 		}
 		_UTL_LOG_I ("rec manager module up done.");
 	}
 	{
-		ch_mgr_if.request_module_up();
-		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
-		if (r.get_result() != threadmgr::result::success) {
+		if (!ch_mgr_if.request_module_up()) {
 			_UTL_LOG_E ("channel manager module up failed.");
 			exit (EXIT_FAILURE);
 		}
 		_UTL_LOG_I ("channel manager module up done.");
 	}
 	{
-		sched_mgr_if.request_module_up();
-		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
-		if (r.get_result() != threadmgr::result::success) {
+		if (!sched_mgr_if.request_module_up()) {
 			_UTL_LOG_E ("event schedule manager module up failed.");
 			exit (EXIT_FAILURE);
 		}
 		_UTL_LOG_I ("event schedule manager module up done.");
 	}
 	{
-		search_if.request_module_up();
-		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
-		if (r.get_result() != threadmgr::result::success) {
+		if (!search_if.request_module_up()) {
 			_UTL_LOG_E ("event search module up failed.");
 			exit (EXIT_FAILURE);
 		}
 		_UTL_LOG_I ("event search module up done.");
 	}
 	{
-		view_mgr_if.request_module_up();
-		threadmgr::CSource& r = mgr->get_external_if()-> receive_external();
-		if (r.get_result() != threadmgr::result::success) {
+		if (!view_mgr_if.request_module_up()) {
 			_UTL_LOG_E ("viewing manager module up failed.");
 			exit (EXIT_FAILURE);
 		}
 		_UTL_LOG_I ("viewing manager module up done.");
 	}
-	
+
 	// reset without-reply
 //	opt &= ~REQUEST_OPTION__WITH_TIMEOUT_MSEC;
 //	opt &= ~REQUEST_OPTION__WITHOUT_REPLY;
 //	mgr->get_external_if()->set_request_option (opt);
 
-	if (!stream_handler_funcs::setup_instance(mgr->get_external_if())) {
+	if (!stream_handler_funcs::setup_instance(&mgr)) {
 		_UTL_LOG_E ("stream handlers setup_instance failed.");
 	}
 	_UTL_LOG_I ("stream handlers setup_instance done.");
 
-	uint16_t port = CSettings::get_instance()->get_params().get_http_server_port();
-	http_server http{port, mgr->get_external_if()};
+	uint16_t port = arec::settings::get_instance()->get_params().get_http_server_port();
+	http_server http{port, &mgr};
 	std::thread t([&http]{
 		http.up();
 	});
 
 
-	mgr->wait ();
+	// SIGINT/SIGTERM をシャットダウン契機に
+	signal (SIGINT,  on_shutdown_signal);
+	signal (SIGTERM, on_shutdown_signal);
+
+	// v1 の mgr->wait() 相当: シャットダウン要求(シグナル / command_server 等)を待つ
+	while (!modules::is_shutdown_requested()) {
+		std::this_thread::sleep_for (std::chrono::milliseconds (200));
+	}
 
 
 	http.down();
 	t.join();
 
-	mgr->get_external_if()->destroy_external_cp();
-	mgr->teardown();
+	mgr.teardown();
 
 
 	exit (EXIT_SUCCESS);

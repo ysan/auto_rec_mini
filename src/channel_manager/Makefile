@@ -8,8 +8,8 @@ CFLAGS		:=	-std=c++11
 
 INCLUDES	:= \
 	-I$(ROOTDIR) \
-	-I$(ROOTDIR)/threadmgr \
-	-I$(ROOTDIR)/threadmgrpp \
+	-I$(ROOTDIR)/third_party/coseq/coseq \
+	-I$(ROOTDIR)/third_party/coseq/coseqpp \
 	-I$(ROOTDIR)/common \
 	-I$(ROOTDIR)/command_server \
 	-I$(ROOTDIR)/tuner_service \
@@ -18,8 +18,8 @@ INCLUDES	:= \
 	-I./ \
 
 LIBS		:= \
-	-L$(ROOTDIR)/threadmgr -lthreadmgr \
-	-L$(ROOTDIR)/threadmgrpp -lthreadmgrpp \
+	-L$(ROOTDIR)/third_party/coseq/coseq -lcoseq \
+	-L$(ROOTDIR)/third_party/coseq/coseqpp -lcoseqpp \
 	-L$(ROOTDIR)/common -lcommon \
 	-lpthread \
 
@@ -30,7 +30,7 @@ SUBDIRS		:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	channelmanager
+TARGET_NAME	:=	channel_manager
 
 #
 #   Target type
@@ -42,8 +42,8 @@ TARGET_TYPE	:=	SHARED
 #   Compile sources
 #
 SRCS_CPP	:= \
-	ChannelManager.cpp \
-	ChannelManagerCommands.cpp \
+	channel_manager.cpp \
+	channel_manager_commands.cpp \
 
 
 #

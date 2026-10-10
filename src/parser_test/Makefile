@@ -12,7 +12,7 @@ INCLUDES	:= \
 	-I../ \
 	-I../common \
 	-I../parser \
-	-I../parser/aribstr/ \
+	-I../parser/third_party/aribstr/ \
 	-I../parser/psisi/ \
 	-I../parser/psisi/descriptor \
 	-I../parser/dsmcc/ \
@@ -22,7 +22,7 @@ INCLUDES	:= \
 LIBS		:= \
 	-lpthread \
 	-lpcsclite \
-	-L../parser/aribstr -laribstr \
+	-L../parser/third_party/aribstr -laribstr \
 	-L../parser/psisi -lpsisiparser \
 	-L../parser/dsmcc -ldsmccparser \
 	-L../parser -lparser \

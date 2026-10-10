@@ -10,8 +10,8 @@ INCLUDES	:= \
 	-I$(ROOTDIR)/ \
 	-I$(ROOTDIR)/common \
 	-I./ \
-	-I./aribstr/ \
-	-I./tssplitter_lite/ \
+	-I./third_party/aribstr/ \
+	-I./third_party/tssplitter_lite/ \
 	-I./psisi/ \
 	-I./psisi/descriptor \
 	-I./dsmcc/ \
@@ -20,16 +20,16 @@ INCLUDES	:= \
 
 LIBS		:= \
 	-L$(ROOTDIR)/common -lcommon \
-	-L./aribstr -laribstr \
-	-L./tssplitter_lite -ltssplitter_lite \
+	-L./third_party/aribstr -laribstr \
+	-L./third_party/tssplitter_lite -ltssplitter_lite \
 	-L./psisi -lpsisiparser \
 	-L./dsmcc -ldsmccparser \
 	-lpthread \
 	-lpcsclite \
 
 SUBDIRS		:= \
-	aribstr \
-	tssplitter_lite \
+	third_party/aribstr \
+	third_party/tssplitter_lite \
 	psisi \
 	dsmcc \
 
@@ -50,9 +50,9 @@ TARGET_TYPE	:=	SHARED
 SRCS		:=
 
 SRCS_CPP	:= \
-	TsParser.cpp \
-	SectionParser.cpp \
-	TsAribCommon.cpp \
+	ts_parser.cpp \
+	section_parser.cpp \
+	ts_arib_common.cpp \
 
 
 #
