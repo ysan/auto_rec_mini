@@ -11,10 +11,10 @@ INCLUDES	:= \
 	-I./ \
 	-I../ \
 	-I../../ \
-	-I../../aribstr \
+	-I../../third_party/aribstr \
 
 LIBS		:= \
-	-L../aribstr -laribstr \
+	-L../third_party/aribstr -laribstr \
 	-L$(ROOTDIR)/common -lcommon \
 
 
@@ -35,7 +35,7 @@ TARGET_TYPE	:=	OBJECT
 SRCS		:=
 
 SRCS_CPP	:= \
-	DsmccDescriptor.cpp \
+	dsmcc_descriptor.cpp \
 
 #
 #   Configurations

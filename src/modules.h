@@ -1,8 +1,10 @@
 #ifndef _MODULES_H_
 #define _MODULES_H_
 
+#include <vector>
+#include <memory>
 
-#include "ThreadMgrBase.h"
+#include "coseqpp.h"
 
 namespace modules {
 
@@ -34,8 +36,19 @@ enum class module_id : uint8_t {
 };
 
 
-extern threadmgr::CThreadMgrBase **get_modules (void);
-extern threadmgr::CThreadMgrBase *get_module (module_id id);
+extern std::vector<std::shared_ptr<coseq::module_base>> &get_modules (void);
+extern coseq::module_base *get_module (module_id id);
+
+// 外部スレッド/ブロッキングなコマンド処理から他モジュールへ同期要求するための
+// manager アクセサ(v1 の base->get_external_if() 相当を app 側で提供)。
+// main が setup 後に set_manager() する。
+extern void            set_manager (coseq::manager *mgr);
+extern coseq::manager *get_manager (void);
+
+// アプリ終了要求(v1 の mgr->wait() 相当を app 側で実現)。
+// command_server の quit 系で request_shutdown() し、main がこれを待って teardown する。
+extern void request_shutdown      (void);
+extern bool is_shutdown_requested (void);
 
 
 }; // namespace modules

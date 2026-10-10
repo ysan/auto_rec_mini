@@ -12,11 +12,11 @@ INCLUDES	:= \
 	-I./ \
 	-I./descriptor \
 	-I../ \
-	-I../aribstr \
+	-I../third_party/aribstr \
 
 LIBS		:= \
 	-L$(ROOTDIR)/common -lcommon \
-	-L../aribstr -laribstr \
+	-L../third_party/aribstr -laribstr \
 
 
 APPEND_OBJS := ./descriptor/descriptor.o
@@ -40,17 +40,17 @@ TARGET_TYPE	:=	SHARED
 SRCS		:=
 
 SRCS_CPP	:= \
-	ProgramAssociationTable.cpp \
-	ProgramMapTable.cpp \
-	TimeOffsetTable.cpp \
-	EventInformationTable.cpp \
-	EventInformationTable_sched.cpp \
-	NetworkInformationTable.cpp \
-	ServiceDescriptionTable.cpp \
-	RunningStatusTable.cpp \
-	BroadcasterInformationTable.cpp \
-	ConditionalAccessTable.cpp \
-	CommonDataTable.cpp \
+	program_association_table.cpp \
+	program_map_table.cpp \
+	time_offset_table.cpp \
+	event_information_table.cpp \
+	event_information_table_sched.cpp \
+	network_information_table.cpp \
+	service_description_table.cpp \
+	running_status_table.cpp \
+	broadcaster_information_table.cpp \
+	conditional_access_table.cpp \
+	common_data_table.cpp \
 
 
 #

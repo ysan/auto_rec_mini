@@ -5,7 +5,7 @@
 #include <errno.h>
 
 #include "Parser_test.h"
-#include "Utils.h"
+#include "utils.h"
 
 
 CParser_test::CParser_test (void)
@@ -14,13 +14,13 @@ CParser_test::CParser_test (void)
 	,mp_bottom (NULL)
 	,m_buff_size (0)
 	,m_unit_size (0)
-	,m_parse_remain_len (0)
+	,parse_remain_len_ (0)
 	,mTOT (5)
 	,mEIT_H (4096*20, 20)
 	,mEIT_M (4096*20, 20)
 	,mEIT_L (4096*20, 20)
 {
-	memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
+	memset (inner_buff_, 0x00, INNER_BUFF_SIZE);
 }
 
 CParser_test::~CParser_test (void)
@@ -40,19 +40,19 @@ void CParser_test::run (uint8_t *pBuff, size_t size)
 	parse ();
 
 #else
-	mp_top = &m_inner_buff[0];
+	mp_top = &inner_buff_[0];
 	if (copyInnerBuffer (pBuff, size)) {
 
 		mp_current = mp_top;
 		checkUnitSize ();
 		parse ();
 
-		if (m_parse_remain_len > 0) {
-			memcpy (m_inner_buff, mp_bottom - m_parse_remain_len, m_parse_remain_len);
-			mp_bottom = &m_inner_buff[0] + m_parse_remain_len;
+		if (parse_remain_len_ > 0) {
+			memcpy (inner_buff_, mp_bottom - parse_remain_len_, parse_remain_len_);
+			mp_bottom = &inner_buff_[0] + parse_remain_len_;
 		} else {
-			memset (m_inner_buff, 0x00, INNER_BUFF_SIZE);
-			mp_bottom = &m_inner_buff[0];
+			memset (inner_buff_, 0x00, INNER_BUFF_SIZE);
+			mp_bottom = &inner_buff_[0];
 		}
 
 		if (copyInnerBuffer (pBuff, size)) {
@@ -77,7 +77,7 @@ bool CParser_test::allocInnerBuffer (uint8_t *pBuff, size_t size)
 	if (m_buff_size >= totalDataSize) {
 		// 	実コピー
 		memcpy (mp_bottom, pBuff, size);
-		mp_current = mp_bottom - m_parse_remain_len;  // current update
+		mp_current = mp_bottom - parse_remain_len_;  // current update
 		mp_bottom += size;
 		_UTL_LOG_D ("copyInnerBuffer size=%lu remain=%lu\n", m_buff_size, m_buff_size-totalDataSize);
 		return true;
@@ -114,7 +114,7 @@ bool CParser_test::allocInnerBuffer (uint8_t *pBuff, size_t size)
 
 	// 	実コピー
 	memcpy (mp_bottom, pBuff, size);
-	mp_current = mp_bottom - m_parse_remain_len;  // current update
+	mp_current = mp_bottom - parse_remain_len_;  // current update
 	mp_bottom += size;
 
 	_UTL_LOG_D ("copyInnerBuffer(malloc) top=%p bottom=%p size=%lu remain=%lu\n", mp_top, mp_bottom, m_buff_size, m_buff_size-totalDataSize);
@@ -138,7 +138,7 @@ bool CParser_test::copyInnerBuffer (uint8_t *pBuff, size_t size)
 		remain = INNER_BUFF_SIZE - (mp_bottom - mp_top);
 
 		if (remain >= (int)size) {
-			memcpy (m_inner_buff + (mp_bottom - mp_top), pBuff, size);
+			memcpy (inner_buff_ + (mp_bottom - mp_top), pBuff, size);
 			mp_bottom = mp_bottom + size;
 			return false;
 
@@ -150,7 +150,7 @@ bool CParser_test::copyInnerBuffer (uint8_t *pBuff, size_t size)
 	} else {
 		remain = INNER_BUFF_SIZE;
 
-		memcpy (m_inner_buff , pBuff, size);
+		memcpy (inner_buff_ , pBuff, size);
 		mp_bottom = mp_top + size;
 		return false;
 	}
@@ -321,7 +321,7 @@ bool CParser_test::parse (void)
 		switch (ts_header.pid) {
 		case PID_PAT:
 			_UTL_LOG_D ("###############  PAT  ###############");
-			CUtils::dumper (p_cur, 188);
+			arec::common::utils::dumper (p_cur, 188);
 //			dumpTsHeader (&ts_header);
 			ts_header.dump();
 			isCheck = true;
@@ -329,7 +329,7 @@ bool CParser_test::parse (void)
 
 		case PID_TOT:
 			_UTL_LOG_D ("###############  TOT  ###############");
-			CUtils::dumper (p_cur, 188);
+			arec::common::utils::dumper (p_cur, 188);
 //			dumpTsHeader (&ts_header);
 			ts_header.dump();
 
@@ -338,7 +338,7 @@ bool CParser_test::parse (void)
 
 		case PID_EIT_H:
 			_UTL_LOG_D ("###############  EIT_H  ###############");
-			CUtils::dumper (p_cur, 188);
+			arec::common::utils::dumper (p_cur, 188);
 //			dumpTsHeader (&ts_header);
 			ts_header.dump();
 			isCheck = true;
@@ -346,7 +346,7 @@ bool CParser_test::parse (void)
 
 		case PID_EIT_M:
 			_UTL_LOG_D ("###############  EIT_M  ###############");
-			CUtils::dumper (p_cur, 188);
+			arec::common::utils::dumper (p_cur, 188);
 //			dumpTsHeader (&ts_header);
 			ts_header.dump();
 			isCheck = true;
@@ -354,7 +354,7 @@ bool CParser_test::parse (void)
 
 		case PID_EIT_L:
 			_UTL_LOG_D ("###############  EIT_L  ###############");
-			CUtils::dumper (p_cur, 188);
+			arec::common::utils::dumper (p_cur, 188);
 //			dumpTsHeader (&ts_header);
 			ts_header.dump();
 			isCheck = true;
@@ -362,7 +362,7 @@ bool CParser_test::parse (void)
 
 		case PID_NIT:
 			_UTL_LOG_D ("###############  NIT  ###############");
-			CUtils::dumper (p_cur, 188);
+			arec::common::utils::dumper (p_cur, 188);
 //			dumpTsHeader (&ts_header);
 			ts_header.dump();
 			isCheck = true;
@@ -370,7 +370,7 @@ bool CParser_test::parse (void)
 
 		case PID_SDT:
 			_UTL_LOG_D ("###############  SDT  ###############");
-			CUtils::dumper (p_cur, 188);
+			arec::common::utils::dumper (p_cur, 188);
 //			dumpTsHeader (&ts_header);
 			ts_header.dump();
 			isCheck = true;
@@ -378,7 +378,7 @@ bool CParser_test::parse (void)
 
 		case PID_RST:
 			_UTL_LOG_D ("###############  RST  ###############");
-			CUtils::dumper (p_cur, 188);
+			arec::common::utils::dumper (p_cur, 188);
 //			dumpTsHeader (&ts_header);
 			ts_header.dump();
 			isCheck = true;
@@ -386,7 +386,7 @@ bool CParser_test::parse (void)
 
 		case PID_BIT:
 			_UTL_LOG_D ("###############  BIT  ###############");
-			CUtils::dumper (p_cur, 188);
+			arec::common::utils::dumper (p_cur, 188);
 //			dumpTsHeader (&ts_header);
 			ts_header.dump();
 			isCheck = true;
@@ -401,7 +401,7 @@ bool CParser_test::parse (void)
 				}
 				if (ts_header.pid == p_curProgramCache->pid) {
 					_UTL_LOG_D ("###############  PMT  ###############");
-//					CUtils::dumper (p_cur, 188);
+//					arec::common::utils::dumper (p_cur, 188);
 //					dumpTsHeader (&ts_header);
 					ts_header.dump();
 					isCheck = true;
@@ -418,7 +418,7 @@ bool CParser_test::parse (void)
 				}
 				if (ts_header.pid == p_curDsmccCtl->pid) {
 					_UTL_LOG_D ("###############  DSMCC  ###############");
-					CUtils::dumper (p_cur, 188);
+					arec::common::utils::dumper (p_cur, 188);
 //					dumpTsHeader (&ts_header);
 					ts_header.dump();
 					isCheck = true;
@@ -452,16 +452,16 @@ bool CParser_test::parse (void)
 
 			if (ts_header.pid == PID_PAT) {
 
-				if (mPAT.checkSection (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
+				if (mPAT.check_section (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
 
 //					memset (mPatTables, 0x00, sizeof(mPatTables));
 //					int n = mPAT.getTableNum ();
 //					mPAT.getTable (mPatTables, 32);
-//					mPAT.dumpTable (mPatTables, n);
+//					mPAT.dump_table (mPatTables, n);
 
-					std::vector<CProgramAssociationTable::CTable*>::const_iterator iter = mPAT.getTables()->end();
-					CProgramAssociationTable::CTable* pLatestTable = *(-- iter);
-					std::vector<CProgramAssociationTable::CTable::CProgram>::const_iterator iter_prog = pLatestTable->programs.begin();
+					std::vector<parser::program_association_table::table*>::const_iterator iter = mPAT.get_tables ()->end();
+					parser::program_association_table::table* pLatestTable = *(-- iter);
+					std::vector<parser::program_association_table::table::program>::const_iterator iter_prog = pLatestTable->programs.begin();
 					for (; iter_prog != pLatestTable->programs.end(); ++ iter_prog) {
 						if (iter_prog->program_number == 0) {
 							continue;
@@ -479,7 +479,7 @@ bool CParser_test::parse (void)
 							for (i = 0; i < 16; ++ i) {
 								if (!mProgramCaches[i].isUsed) {
 									mProgramCaches[i].pid = iter_prog->program_map_PID;
-									mProgramCaches[i].mpPMT = new CProgramMapTable ();
+									mProgramCaches[i].mpPMT = new parser::program_map_table ();
 									mProgramCaches[i].isUsed = true;
 									break;
 								}
@@ -494,46 +494,46 @@ bool CParser_test::parse (void)
 
 			} else if (ts_header.pid == PID_TOT) {
 
-				mTOT.checkSection (&ts_header, p_payload, payload_size);
+				mTOT.check_section (&ts_header, p_payload, payload_size);
 
 			} else if (ts_header.pid == PID_EIT_H) {
 
-				mEIT_H.checkSection (&ts_header, p_payload, payload_size);
+				mEIT_H.check_section (&ts_header, p_payload, payload_size);
 
 			} else if (ts_header.pid == PID_EIT_M) {
 
-				mEIT_M.checkSection (&ts_header, p_payload, payload_size);
+				mEIT_M.check_section (&ts_header, p_payload, payload_size);
 
 			} else if (ts_header.pid == PID_EIT_L) {
 
-				mEIT_L.checkSection (&ts_header, p_payload, payload_size);
+				mEIT_L.check_section (&ts_header, p_payload, payload_size);
 
 			} else if (ts_header.pid == PID_NIT) {
 
-				mNIT.checkSection (&ts_header, p_payload, payload_size);
+				mNIT.check_section (&ts_header, p_payload, payload_size);
 
 			} else if (ts_header.pid == PID_SDT) {
 
-				mSDT.checkSection (&ts_header, p_payload, payload_size);
+				mSDT.check_section (&ts_header, p_payload, payload_size);
 
 			} else if (ts_header.pid == PID_RST) {
 
-				mRST.checkSection (&ts_header, p_payload, payload_size);
+				mRST.check_section (&ts_header, p_payload, payload_size);
 
 			} else if (ts_header.pid == PID_BIT) {
 
-				mBIT.checkSection (&ts_header, p_payload, payload_size);
+				mBIT.check_section (&ts_header, p_payload, payload_size);
 
 			} else if (ts_header.pid == p_curProgramCache->pid) {
 
 				if (p_curProgramCache->mpPMT) {
-					if (p_curProgramCache->mpPMT->checkSection (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
+					if (p_curProgramCache->mpPMT->check_section (&ts_header, p_payload, payload_size) == EN_CHECK_SECTION__COMPLETED) {
 
 						// stream_typeからDSMCCのPIDを取得する //////////
-						std::vector<CProgramMapTable::CTable*>::const_iterator iter = p_curProgramCache->mpPMT->getTables()->begin();
-						for (; iter != p_curProgramCache->mpPMT->getTables()->end(); ++ iter) {
-							CProgramMapTable::CTable *pTable = *iter;
-							std::vector<CProgramMapTable::CTable::CStream>::const_iterator iter_strm = pTable->streams.begin();
+						std::vector<parser::program_map_table::table*>::const_iterator iter = p_curProgramCache->mpPMT->get_tables ()->begin();
+						for (; iter != p_curProgramCache->mpPMT->get_tables ()->end(); ++ iter) {
+							parser::program_map_table::table *pTable = *iter;
+							std::vector<parser::program_map_table::table::stream>::const_iterator iter_strm = pTable->streams.begin();
 							for (; iter_strm != pTable->streams.end(); ++ iter_strm) {
 								if ((iter_strm->stream_type == 0x0b) || (iter_strm->stream_type == 0x0d)) {
 									bool isExisted = false;
@@ -548,7 +548,7 @@ bool CParser_test::parse (void)
 										for (i = 0; i < 256; ++ i) {
 											if (!mDsmccCtls[i].isUsed) {
 												mDsmccCtls[i].pid = iter_strm->elementary_PID;
-												mDsmccCtls[i].mpDsmcc = new CDsmcc (65535);
+												mDsmccCtls[i].mpDsmcc = new parser::dsmcc (65535);
 												mDsmccCtls[i].isUsed = true;
 												break;
 											}
@@ -569,7 +569,7 @@ bool CParser_test::parse (void)
 
 			} else if (ts_header.pid == p_curDsmccCtl->pid) {
 				if (p_curDsmccCtl->mpDsmcc) {
-					p_curDsmccCtl->mpDsmcc->checkSection (&ts_header, p_payload, payload_size);
+					p_curDsmccCtl->mpDsmcc->check_section (&ts_header, p_payload, payload_size);
 				}
 			}
 
@@ -581,8 +581,8 @@ bool CParser_test::parse (void)
 		p_cur += unit_size;
 	}
 
-	m_parse_remain_len = p_btm - p_cur;
-	_UTL_LOG_D ("m_parse_remain_len=[%d]\n", m_parse_remain_len);
+	parse_remain_len_ = p_btm - p_cur;
+	_UTL_LOG_D ("parse_remain_len_=[%d]\n", parse_remain_len_);
 
 
 	return true;

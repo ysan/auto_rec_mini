@@ -8,9 +8,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "Defs.h"
+#include "defs.h"
 #include "Parser_test.h"
-#include "Utils.h"
+#include "utils.h"
 
 
 char g_optFile [PATH_MAX] = {0};
@@ -67,9 +67,9 @@ int main (int argc, char *argv[])
 	while (1) {
 
 		memset (buff, 0x00, sizeof(buff));
-		readSize = CUtils::readFile (fd, buff, sizeof(buff));
+		readSize = arec::common::utils::read_file (fd, buff, sizeof(buff));
 		if (readSize < 0) {
-			fprintf (stdout, "CUtils::readFile() is failure.\n");
+			fprintf (stdout, "arec::common::utils::read_file() is failure.\n");
 		} else if (readSize == 0) {
 			break;
 		}

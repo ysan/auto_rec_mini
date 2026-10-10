@@ -14,7 +14,7 @@ INCLUDES	:= \
 	-I../ \
 
 LIBS		:= \
-	-L../aribstr -laribstr \
+	-L../third_party/aribstr -laribstr \
 	-L$(ROOTDIR)/common -lcommon \
 
 
@@ -39,7 +39,7 @@ TARGET_TYPE	:=	SHARED
 SRCS		:=
 
 SRCS_CPP	:= \
-	Dsmcc.cpp \
+	dsmcc.cpp \
 
 
 #

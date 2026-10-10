@@ -7,8 +7,8 @@ ROOTDIR		:=	$(BASEDIR)/src/
 CFLAGS		:=	-std=c++11
 
 INCLUDES	:= \
-	-I$(ROOTDIR)/threadmgr \
-	-I$(ROOTDIR)/threadmgrpp \
+	-I$(ROOTDIR)/third_party/coseq/coseq \
+	-I$(ROOTDIR)/third_party/coseq/coseqpp \
 	-I$(ROOTDIR)/common \
 	-I$(ROOTDIR)/tuner_control \
 	-I$(ROOTDIR)/psisi_manager \
@@ -22,8 +22,8 @@ INCLUDES	:= \
 	-I../ \
 
 LIBS		:= \
-	-L$(ROOTDIR)/threadmgr -lthreadmgr \
-	-L$(ROOTDIR)/threadmgrpp -lthreadmgrpp \
+	-L$(ROOTDIR)/third_party/coseq/coseq -lcoseq \
+	-L$(ROOTDIR)/third_party/coseq/coseqpp -lcoseqpp \
 	-L$(ROOTDIR)/common -lcommon \
 	-lpthread \
 
@@ -33,7 +33,7 @@ USERDEFS	:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	commandserver
+TARGET_NAME	:=	command_server
 
 #
 #   Target type
@@ -45,8 +45,8 @@ TARGET_TYPE	:=	SHARED
 #   Compile sources
 #
 SRCS_CPP	:= \
-	CommandServer.cpp \
-	CommandTables.cpp \
+	command_server.cpp \
+	command_tables.cpp \
 
 
 #

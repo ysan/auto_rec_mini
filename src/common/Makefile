@@ -35,8 +35,8 @@ TARGET_TYPE	:=	SHARED
 SRCS		:=
 
 SRCS_CPP	:= \
-	Utils.cpp \
-	Etime.cpp \
+	utils.cpp \
+	etime.cpp \
 
 
 #

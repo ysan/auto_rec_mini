@@ -58,6 +58,11 @@ ifeq ($(WITH_COVERAGE), 1)
 CFLAGS		+=	--coverage
 endif
 
+# third_party (vendored header-only libs: cereal / nlohmann / httplib)
+ifneq ($(ROOTDIR),)
+INCLUDES	+=	-I$(ROOTDIR)/third_party
+endif
+
 
 # EXIST_SRCS
 EXIST_SRCS		:=	FALSE

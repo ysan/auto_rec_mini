@@ -7,12 +7,12 @@ ROOTDIR		:=	$(BASEDIR)/src/
 CFLAGS		:=	-std=c++11
 
 INCLUDES	:= \
-	-I$(ROOTDIR)/threadmgr \
-	-I$(ROOTDIR)/threadmgrpp \
+	-I$(ROOTDIR)/third_party/coseq/coseq \
+	-I$(ROOTDIR)/third_party/coseq/coseqpp \
 	-I$(ROOTDIR)/common \
 	-I$(ROOTDIR)/command_server \
 	-I$(ROOTDIR)/parser \
-	-I$(ROOTDIR)/parser/aribstr \
+	-I$(ROOTDIR)/parser/third_party/aribstr \
 	-I$(ROOTDIR)/parser/psisi \
 	-I$(ROOTDIR)/parser/psisi/descriptor \
 	-I$(ROOTDIR)/psisi_manager \
@@ -22,13 +22,13 @@ INCLUDES	:= \
 	-I../ \
 
 LIBS		:= \
-	-L$(ROOTDIR)/threadmgr -lthreadmgr \
-	-L$(ROOTDIR)/threadmgrpp -lthreadmgrpp \
+	-L$(ROOTDIR)/third_party/coseq/coseq -lcoseq \
+	-L$(ROOTDIR)/third_party/coseq/coseqpp -lcoseqpp \
 	-L$(ROOTDIR)/common -lcommon \
 	-L$(ROOTDIR)/parser -lparser \
-	-L$(ROOTDIR)/parser/aribstr -laribstr \
-	-L$(ROOTDIR)/psisi_manager -lpsisimanager \
-	-L$(ROOTDIR)/tuner_service -ltunerservice \
+	-L$(ROOTDIR)/parser/third_party/aribstr -laribstr \
+	-L$(ROOTDIR)/psisi_manager -lpsisi_manager \
+	-L$(ROOTDIR)/tuner_service -ltuner_service \
 	-lpthread \
 
 USERDEFS	:= \
@@ -37,7 +37,7 @@ USERDEFS	:= \
 #
 #   Target object
 #
-TARGET_NAME	:=	eventschedulemanager
+TARGET_NAME	:=	event_schedule_manager
 
 #
 #   Target type
@@ -49,9 +49,9 @@ TARGET_TYPE	:=	SHARED
 #   Compile sources
 #
 SRCS_CPP	:= \
-	EventScheduleManager.cpp \
-	EventScheduleManagerCommands.cpp \
-	EventScheduleContainer.cpp \
+	event_schedule_manager.cpp \
+	event_schedule_manager_commands.cpp \
+	event_schedule_container.cpp \
 
 
 #
