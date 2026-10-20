@@ -64,6 +64,9 @@ flowchart TB
         VM["Viewing Manager<br/>(viewing)"]:::mod
       end
 
+      REC["Rec Instance x N<br/>libarib25 / libpcsclite*"]:::lib
+      SH["stream_handler<br/>(viewing)"]:::lib
+
       TS["Tuner Service<br/>(tuning / tuner-resource manager)"]:::mod
 
       subgraph TUN["tuner instance x4 (group0-3)"]
@@ -80,6 +83,8 @@ flowchart TB
       RECFS["recfsusb2i"]:::proc2
     end
 
+    PCSCD["pcscd"]:::proc2
+    BCAS["B-CAS"]:::hw
     DEV1["PX-S1UD V2.0"]:::hw
     DEV2["KTV-FSUSB2/V3"]:::hw
 
@@ -95,6 +100,10 @@ flowchart TB
     ESM --> TS
     RM --> TS
     VM --> TS
+    RM --> REC
+    VM --> SH
+    REC -->|PC/SC| PCSCD
+    PCSCD --> BCAS
     TS --> PSI
     TS --> TC
     TC --> TT
@@ -139,8 +148,6 @@ flowchart LR
 
     RECFILE["recording file"]:::proc2
     VIEWER["ffmpeg (HLS)"]:::proc2
-    PCSCD["pcscd"]:::proc2
-    BCAS["B-CAS"]:::hw
 
     DEV -->|TS| RECPROC
     RECPROC -->|TS| TT
@@ -148,8 +155,6 @@ flowchart LR
     TT -->|m2ts| REC
     TT -->|m2ts| SH
     REC --> RECFILE
-    REC -->|PC/SC| PCSCD
-    PCSCD --> BCAS
     SH --> VIEWER
 
     classDef mod fill:#f8cbad,stroke:#d00,stroke-width:2px,color:#000;
