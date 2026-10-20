@@ -52,7 +52,6 @@ flowchart TB
 
     subgraph PROC["auto_rec_mini process"]
       direction TB
-
       CS["Command Server"]:::mod
       HTTP["http server<br/>(non-module thread)"]:::thread
 
@@ -65,17 +64,13 @@ flowchart TB
         VM["Viewing Manager<br/>(viewing)"]:::mod
       end
 
-      REC["Rec Instance x N<br/>libarib25 / libpcsclite*"]:::lib
-      VIEWER["ffmpeg"]:::proc2
-
-      TS["Tuner Service<br/>(tuning)"]:::mod
+      TS["Tuner Service<br/>(tuning / tuner-resource manager)"]:::mod
 
       subgraph TUN["tuner instance x4 (group0-3)"]
-        direction TB
+        direction LR
         PSI["PSI/SI Manager"]:::mod
         TC["Tuner Control"]:::mod
         TT["Tune Thread"]:::mod
-        TC --> TT
       end
     end
 
@@ -85,43 +80,24 @@ flowchart TB
       RECFS["recfsusb2i"]:::proc2
     end
 
-    PCSCD["pcscd"]:::proc2
-    BCAS["B-CAS"]:::hw
     DEV1["PX-S1UD V2.0"]:::hw
     DEV2["KTV-FSUSB2/V3"]:::hw
 
-    %% inputs
     cmdline -->|TCP/IP| CS
     kwjson --> ES
     webcli -->|HTTP| HTTP
-
-    %% Command Server sends commands to all modules (edges omitted; see "How to use CLI")
     HTTP --> VM
     HTTP --> CM
-
-    %% application-level flow
     ESM --> ES
     ES --> RM
     ESM --> RM
-
-    %% modules converge into tuner service
     CM --> TS
     ESM --> TS
     RM --> TS
     VM --> TS
-
-    %% recording / viewing outputs
-    RM --> REC
-    VM -->|stream| VIEWER
-    REC -->|PC/SC| PCSCD
-    PCSCD --> BCAS
-
-    %% tuner service drives the tuner instances below it
     TS --> PSI
     TS --> TC
-    TT -->|m2ts| TS
-
-    %% tune thread forks external tuner processes
+    TC --> TT
     TT -.fork.-> RECDVB
     TT -.fork.-> RECFS
     RECDVB --> DEV1
@@ -142,10 +118,47 @@ flowchart TB
     classDef thread fill:#fff2cc,stroke:#bf9000,stroke-dasharray:4 2,color:#000;
 ```
 
-> **Tuner Service** is the hub of the diagram: it owns and allocates the tuner groups (0-3), and every module that needs tuning converges into it.
+> **Tuner Service** sits at the center of this diagram. It looks after the tuner groups (0-3) and their allocation, and modules that need tuning go through it.
 
 > The Command Server accepts CLI connections (`command line`) and sends operation / debug commands to **every module**. The per-module edges are omitted here to keep the diagram readable — see [How to use CLI](#how-to-use-cli) for the full command set.
 
+**Stream (m2ts) data flow**
+
+```mermaid
+flowchart LR
+    DEV["tuner device<br/>(PX-S1UD / KTV-FSUSB2)"]:::hw
+    RECPROC["recdvb / recfsusb2i<br/>(forked)"]:::proc2
+    TT["Tune Thread"]:::mod
+
+    subgraph HANDLERS["stream receivers"]
+      direction TB
+      PSI["PSI/SI Manager"]:::mod
+      REC["Rec Instance<br/>libarib25 / libpcsclite*"]:::lib
+      SH["stream_handler<br/>(viewing)"]:::lib
+    end
+
+    RECFILE["recording file"]:::proc2
+    VIEWER["ffmpeg (HLS)"]:::proc2
+    PCSCD["pcscd"]:::proc2
+    BCAS["B-CAS"]:::hw
+
+    DEV -->|TS| RECPROC
+    RECPROC -->|TS| TT
+    TT -->|m2ts| PSI
+    TT -->|m2ts| REC
+    TT -->|m2ts| SH
+    REC --> RECFILE
+    REC -->|PC/SC| PCSCD
+    PCSCD --> BCAS
+    SH --> VIEWER
+
+    classDef mod fill:#f8cbad,stroke:#d00,stroke-width:2px,color:#000;
+    classDef lib fill:#2e75b6,stroke:#1f4e79,color:#fff;
+    classDef proc2 fill:#d9d9d9,stroke:#808080,color:#000;
+    classDef hw fill:#bdd7ee,stroke:#2e75b6,color:#000;
+```
+
+> The m2ts stream from **Tune Thread** is delivered to the three components that receive it — **PSI/SI Manager**, **Rec Instance**, and **stream_handler** (viewing).
 
 Future tasks
 ------------
