@@ -40,7 +40,7 @@ jobs:
     - name: build libarib25
       working-directory: ./libarib25/build
       run: |
-        cmake ..
+        cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
         make
         sudo make install
     - name: build
