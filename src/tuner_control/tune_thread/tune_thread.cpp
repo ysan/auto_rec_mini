@@ -136,7 +136,7 @@ void tune_thread::on_tune (coseq::iface *iface)
 	{ //---------------------------
 		_UTL_LOG_I ("on_pre_ts_receive");
 		std::lock_guard<std::mutex> lock (*param.p_mutex_ts_receive_handlers);
-		client_iface::ITsReceiveHandler **p_handlers = param.p_ts_receive_handlers;
+		client_iface::i_ts_receive_handler **p_handlers = param.p_ts_receive_handlers;
 		for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
 			if (p_handlers[i]) {
 				(p_handlers[i])->on_pre_ts_receive ();
@@ -204,7 +204,7 @@ void tune_thread::on_tune (coseq::iface *iface)
 
 				{ //---------------------------
 					std::lock_guard<std::mutex> lock (*param.p_mutex_ts_receive_handlers);
-					client_iface::ITsReceiveHandler **p_handlers = param.p_ts_receive_handlers;
+					client_iface::i_ts_receive_handler **p_handlers = param.p_ts_receive_handlers;
 					for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
 						if (p_handlers[i]) {
 							(p_handlers[i])->on_ts_received (buff, _size);
@@ -254,7 +254,7 @@ void tune_thread::on_tune (coseq::iface *iface)
 	{ //---------------------------
 		_UTL_LOG_I ("on_post_ts_receive");
 		std::lock_guard<std::mutex> lock (*param.p_mutex_ts_receive_handlers);
-		client_iface::ITsReceiveHandler **p_handlers = param.p_ts_receive_handlers;
+		client_iface::i_ts_receive_handler **p_handlers = param.p_ts_receive_handlers;
 		for (int i = 0; i < TS_RECEIVE_HANDLER_REGISTER_NUM_MAX; ++ i) {
 			if (p_handlers[i]) {
 				(p_handlers[i])->on_post_ts_receive ();

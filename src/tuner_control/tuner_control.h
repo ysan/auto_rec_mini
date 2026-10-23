@@ -50,12 +50,12 @@ public:
 		return &mutex_ts_receive_handlers_;
 	}
 
-	client_iface::ITsReceiveHandler** get_ts_receive_handlers (void) {
+	client_iface::i_ts_receive_handler** get_ts_receive_handlers (void) {
 		return reg_ts_receive_handlers_;
 	}
 
 private:
-	int register_ts_receive_handler (client_iface::ITsReceiveHandler *p_handler);
+	int register_ts_receive_handler (client_iface::i_ts_receive_handler *p_handler);
 	void unregister_ts_receive_handler (int id);
 	void set_state (client_iface::tuner_state s);
 
@@ -63,7 +63,7 @@ private:
 	uint32_t freq_;
 
 	std::mutex mutex_ts_receive_handlers_;
-	client_iface::ITsReceiveHandler *reg_ts_receive_handlers_ [TS_RECEIVE_HANDLER_REGISTER_NUM_MAX];
+	client_iface::i_ts_receive_handler *reg_ts_receive_handlers_ [TS_RECEIVE_HANDLER_REGISTER_NUM_MAX];
 
 	client_iface::tuner_state state_;
 	bool is_req_stop_;

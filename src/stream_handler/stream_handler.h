@@ -31,7 +31,7 @@
 namespace arec {
 namespace stream_handler {
 
-class handler : public arec::tuner_control::client_iface::ITsReceiveHandler
+class handler : public arec::tuner_control::client_iface::i_ts_receive_handler
 {
 public:
 	enum class progress : int {
@@ -84,23 +84,23 @@ public:
 	}
 
 
-	// arec::tuner_control::client_iface::ITsReceiveHandler::on_pre_ts_receive
+	// arec::tuner_control::client_iface::i_ts_receive_handler::on_pre_ts_receive
 	bool on_pre_ts_receive (void) override {
 		// coseq: request_async は元来 fire-and-forget のため option/外部CP 操作は不要
 		return true;
 	}
 
-	// arec::tuner_control::client_iface::ITsReceiveHandler::on_post_ts_receive
+	// arec::tuner_control::client_iface::i_ts_receive_handler::on_post_ts_receive
 	void on_post_ts_receive (void) override {
 		// coseq: 上記同様に不要
 	}
 
-	// arec::tuner_control::client_iface::ITsReceiveHandler::on_check_ts_receive_loop
+	// arec::tuner_control::client_iface::i_ts_receive_handler::on_check_ts_receive_loop
 	bool on_check_ts_receive_loop (void) override {
 		return true;
 	}
 
-	// arec::tuner_control::client_iface::ITsReceiveHandler::on_ts_received
+	// arec::tuner_control::client_iface::i_ts_receive_handler::on_ts_received
 	bool on_ts_received (void *p_ts_data, int length) override {
 		switch (progress_) {
 		case progress::init: {

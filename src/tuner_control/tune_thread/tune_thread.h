@@ -45,7 +45,7 @@ public:
 	typedef struct tune_param {
 		uint32_t freq;
 		std::mutex * p_mutex_ts_receive_handlers;
-		client_iface::ITsReceiveHandler ** p_ts_receive_handlers;
+		client_iface::i_ts_receive_handler ** p_ts_receive_handlers;
 		bool *p_is_req_stop;
 	} tune_param_t;
 

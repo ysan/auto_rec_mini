@@ -153,7 +153,7 @@ void manager::on_module_up (coseq::iface *iface)
 
 	// register ts receive handler
 	{
-		_UTL_LOG_I ("arec::tuner_control::client_iface::ITsReceiveHandler %p", ts_handler_);
+		_UTL_LOG_I ("arec::tuner_control::client_iface::i_ts_receive_handler %p", ts_handler_);
 		coseq::source &r = iface->request (
 			static_cast<uint8_t>(modules::module_id::tuner_control) + get_group_id(),
 			static_cast<uint8_t>(arec::tuner_control::client_iface::sequence::reg_ts_receive_handler),
@@ -1946,7 +1946,7 @@ void manager::store_logo (void)
 
 
 
-//////////  arec::tuner_control::client_iface::ITsReceiveHandler  //////////
+//////////  arec::tuner_control::client_iface::i_ts_receive_handler  //////////
 
 bool manager::on_pre_ts_receive (void)
 {

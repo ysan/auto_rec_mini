@@ -709,7 +709,7 @@ void manager::on_receive_notify (coseq::iface *iface)
 					// ######################################### //
 
 					// 自ら呼び出します(内部の自リクエストは coseq では send=fire-and-forget)
-					// PAT途絶 -> ts_receive_handlerは動いていない前提
+					// PAT途絶 -> i_ts_receive_handlerは動いていない前提
 					stream_handler_funcs::get_instance(_gr)->on_ts_received (nullptr, 0);
 				}
 			}
