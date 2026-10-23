@@ -233,7 +233,7 @@ void manager::on_module_up_by_group_id (coseq::iface *iface)
 
 	// register ts receive handler
 	{
-		_UTL_LOG_I ("arec::tuner_control::client_iface::ITsReceiveHandler %p", rec_instances_[group_id].get());
+		_UTL_LOG_I ("arec::tuner_control::client_iface::i_ts_receive_handler %p", rec_instances_[group_id].get());
 		coseq::source &r = iface->request (
 			static_cast<uint8_t>(modules::module_id::tuner_control) + group_id,
 			static_cast<uint8_t>(arec::tuner_control::client_iface::sequence::reg_ts_receive_handler),
@@ -1338,7 +1338,7 @@ void manager::on_receive_notify (coseq::iface *iface)
 					recordings_[_gr].state |= RESERVE_STATE__END_ERROR__INTERNAL_ERR;
 
 					// 自ら呼び出します(内部の自リクエストは coseq では send=fire-and-forget)
-					// PAT途絶して ts_receive_handler は動いていない前提
+					// PAT途絶して i_ts_receive_handler は動いていない前提
 					rec_instances_[_gr]->on_ts_received (NULL, 0);
 
 				}
@@ -2022,7 +2022,7 @@ void manager::clear_results (void)
 
 
 #if 0
-//////////  arec::tuner_control::client_iface::ITsReceiveHandler  //////////
+//////////  arec::tuner_control::client_iface::i_ts_receive_handler  //////////
 
 bool manager::on_pre_ts_receive (void)
 {

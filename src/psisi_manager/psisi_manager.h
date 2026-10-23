@@ -466,7 +466,7 @@ private:
 class manager
 	:public coseq::module_base
 	,public arec::group
-	,public arec::tuner_control::client_iface::ITsReceiveHandler
+	,public arec::tuner_control::client_iface::i_ts_receive_handler
 	,public parser::ts_parser::IParserListener
 	,public parser::event_information_table_sched::IEventScheduleHandler
 {
@@ -572,7 +572,7 @@ private:
 	void store_logo (void);
 
 
-	// arec::tuner_control::client_iface::ITsReceiveHandler
+	// arec::tuner_control::client_iface::i_ts_receive_handler
 	bool on_pre_ts_receive (void) override;
 	void on_post_ts_receive (void) override;
 	bool on_check_ts_receive_loop (void) override;
@@ -587,7 +587,7 @@ private:
 
 	arec::settings *settings_;
 
-	arec::tuner_control::client_iface::ITsReceiveHandler *ts_handler_;
+	arec::tuner_control::client_iface::i_ts_receive_handler *ts_handler_;
 
 	parser::ts_parser parser_;
 

@@ -284,7 +284,7 @@ void manager::on_register_ts_receive_handler (coseq::iface *iface)
 	_UTL_LOG_D ("(%s)\n", iface->get_sequence_name());
 
 
-	client_iface::ITsReceiveHandler *p_handler = *(client_iface::ITsReceiveHandler**)(iface->get_source().get_message().data());
+	client_iface::i_ts_receive_handler *p_handler = *(client_iface::i_ts_receive_handler**)(iface->get_source().get_message().data());
 	_UTL_LOG_I ("p_handler %p\n", p_handler);
 
 	int r = register_ts_receive_handler (p_handler);
@@ -316,7 +316,7 @@ void manager::on_get_state (coseq::iface *iface)
 	iface->reply (coseq::result::success, (uint8_t*)&state_, sizeof(state_));
 }
 
-int manager::register_ts_receive_handler (client_iface::ITsReceiveHandler *p_handler)
+int manager::register_ts_receive_handler (client_iface::i_ts_receive_handler *p_handler)
 {
 	if (!p_handler) {
 		_UTL_LOG_E ("p_handler is null.");

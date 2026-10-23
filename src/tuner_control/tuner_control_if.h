@@ -21,9 +21,9 @@ namespace tuner_control {
 class client_iface : public arec::client_iface_base, public arec::group
 {
 public:
-	class ITsReceiveHandler {
+	class i_ts_receive_handler {
 	public:
-		virtual ~ITsReceiveHandler (void) {};
+		virtual ~i_ts_receive_handler (void) {};
 		virtual bool on_pre_ts_receive (void) = 0;
 		virtual void on_post_ts_receive (void) = 0;
 		virtual bool on_check_ts_receive_loop (void) = 0;
@@ -106,8 +106,8 @@ public:
 		return request_async (module_id_ + get_group_id(), sequence, (uint8_t*)&_id, sizeof(_id));
 	};
 
-	arec::client_reply request_register_ts_receive_handler (ITsReceiveHandler **p_handler) {
-		ITsReceiveHandler **p = p_handler;
+	arec::client_reply request_register_ts_receive_handler (i_ts_receive_handler **p_handler) {
+		i_ts_receive_handler **p = p_handler;
 		int sequence = static_cast<int>(sequence::reg_ts_receive_handler);
 		return request_async (module_id_ + get_group_id(), sequence, (uint8_t*)p, sizeof(p));
 	};

@@ -31,7 +31,7 @@
 namespace arec {
 namespace rec {
 
-class instance : public arec::tuner_control::client_iface::ITsReceiveHandler
+class instance : public arec::tuner_control::client_iface::i_ts_receive_handler
 {
 public:
 	enum class progress : int {
@@ -83,7 +83,7 @@ public:
 	}
 
 
-	// arec::tuner_control::client_iface::ITsReceiveHandler
+	// arec::tuner_control::client_iface::i_ts_receive_handler
 	bool on_pre_ts_receive (void) override {
 		// coseq: request_async は fire-and-forget のため option/外部CP 操作は不要
 		return true;

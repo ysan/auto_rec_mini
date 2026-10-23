@@ -220,7 +220,7 @@ public:
 
 class manager
 	:public coseq::module_base
-////	,public arec::tuner_control::client_iface::ITsReceiveHandler
+////	,public arec::tuner_control::client_iface::i_ts_receive_handler
 {
 public:
 	manager (std::string name, uint8_t que_max);
@@ -291,7 +291,7 @@ private:
 	void clear_results (void);
 
 
-	// arec::tuner_control::client_iface::ITsReceiveHandler
+	// arec::tuner_control::client_iface::i_ts_receive_handler
 ////	bool on_pre_ts_receive (void) override;
 ////	void on_post_ts_receive (void) override;
 ////	bool on_check_ts_receive_loop (void) override;
@@ -328,7 +328,7 @@ private:
 ////	unique_ptr<arib_b25> b25_;
 
 	std::unique_ptr <instance> rec_instances_ [arec::group::GROUP_MAX];
-	arec::tuner_control::client_iface::ITsReceiveHandler *ts_handlers_ [arec::group::GROUP_MAX];
+	arec::tuner_control::client_iface::i_ts_receive_handler *ts_handlers_ [arec::group::GROUP_MAX];
 
 	int tuner_resource_max_;
 };
