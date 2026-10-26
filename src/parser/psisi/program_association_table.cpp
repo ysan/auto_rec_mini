@@ -215,31 +215,23 @@ bool program_association_table::refresh_sub_tables_by_version_number (table* p_n
 			(new_tsid == p_table->header.table_id_extension) &&
 			(new_sec_num == p_table->header.section_number)
 		) {
-			uint8_t ver_tmp = p_table->header.version_number;
-			++ ver_tmp;
-			ver_tmp &= 0x1f;
+			// PAT も現在送出中のものを「最新受信」として採用する。
+			// version_number は 5bit 循環 (0..31) で、版が若返る (減少する) ことが
+			// あり、単純な大小比較では新旧を判定できない。
+			// そのため版が異なれば新しい受信として差し替え、同一版のみ重複として扱う。
+			if (new_ver != p_table->header.version_number) {
 
-			if (new_ver >= ver_tmp) {
-
-				// new version
+				// version changed -> replace with the latest received
 				p_erase = p_table;
 				break;
 
 			} else {
-				if (new_ver == p_table->header.version_number) {
-					// duplicate sections should be checked by section_parser
-					_UTL_LOG_E (
-						"BUG: same version.  new_ver:[0x%02x]  p_table->header.version_number:[0x%02x]",
-						new_ver,
-						p_table->header.version_number
-					);
-				} else {
-					_UTL_LOG_E (
-						"BUG: unexpected version.  new_ver:[0x%02x]  p_table->header.version_number:[0x%02x]",
-						new_ver,
-						p_table->header.version_number
-					);
-				}
+				// duplicate sections should be checked by section_parser
+				_UTL_LOG_E (
+					"BUG: same version.  new_ver:[0x%02x]  p_table->header.version_number:[0x%02x]",
+					new_ver,
+					p_table->header.version_number
+				);
 			}
 		}
 	}
