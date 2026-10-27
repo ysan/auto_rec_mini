@@ -150,6 +150,9 @@ private:
 	void check_detach_fifo_section_list (void);
 	section_info* check_delete_fifo_section_list (void);
 
+	// pool full 時に最古(先頭)の COMPLETE セクションを1つ退避して領域を空ける
+	bool evict_oldest_section (void);
+
 
 	EN_CHECK_SECTION check_section_first (uint8_t *p_payload, size_t payload_size);
 	EN_CHECK_SECTION check_section_follow (uint8_t *p_payload, size_t payload_size);

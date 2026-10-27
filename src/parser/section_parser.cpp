@@ -406,11 +406,17 @@ section_info* section_parser::attach_section_list (uint8_t *p_buff, size_t size)
 
 	section_info* p_rtn = NULL;
 
-	size_t remain = pool_size_ - pool_ind_;
-	if (remain < size) {
-		// pool full
-		_UTL_LOG_E ("pid:[0x%04x] pool full!!  pool_size_:[%lu] pool_ind_:[%lu] remain:[%lu] attach_size:[%lu]", pid_, pool_size_, pool_ind_, remain, size);
-		return NULL;
+	if ((pool_size_ - pool_ind_) < size) {
+		// pool full: 最古(先頭)の COMPLETE セクションを退避して領域を空ける (自己回復)。
+		// 完了済みセクションは同一再送の検知用に保持しているだけなので、
+		// 空きが必要になったら古いものから捨ててよい (上位は version 単位で重複排除する)。
+		while ((pool_size_ - pool_ind_) < size) {
+			if (!evict_oldest_section ()) {
+				// 退避できる COMPLETE セクションが無い (先頭が受信中など)
+				_UTL_LOG_E ("pid:[0x%04x] pool full!!  pool_size_:[%lu] pool_ind_:[%lu] remain:[%lu] attach_size:[%lu]", pid_, pool_size_, pool_ind_, pool_size_ - pool_ind_, size);
+				return NULL;
+			}
+		}
 	}
 
 
@@ -844,6 +850,56 @@ section_info* section_parser::check_delete_fifo_section_list (void)
 	}
 
 	return p_del;
+}
+
+/**
+ * evict_oldest_section
+ * pool full 時に、最古(先頭=最低アドレス)の COMPLETE セクションを1つ退避して
+ * pool を間詰めする。先頭が受信中(未完了)の場合は中間退避となり pool 圧縮の
+ * 前提(先頭から詰める)が崩れるため退避しない。
+ * 退避できたら true、できなければ false。
+ */
+bool section_parser::evict_oldest_section (void)
+{
+	if (!sect_list_top_) {
+		return false;
+	}
+
+	// pool は追加順=アドレス順なので先頭が最低アドレス。圧縮が成立するのは先頭退避のみ。
+	section_info *p_del = sect_list_top_;
+
+	// 受信中のセクションは退避しない (再組立中のため)
+	if (p_del->state_ != EN_SECTION_STATE__COMPLETE) {
+		return false;
+	}
+
+	// リストの先頭から切り離す
+	section_info *p_unlinked = check_delete_fifo_section_list ();
+	if (p_unlinked != p_del) {
+		// 想定外 (先頭以外が返った)
+		return false;
+	}
+
+	// pool から消す - 間詰める (check_detach_fifo_section_list と同じ圧縮)
+	std::vector<uint8_t> tmp (pool_size_, 0);
+	size_t cpsize = pool_ + pool_size_ - p_del->tail_;
+	memcpy (tmp.data(), p_del->tail_, cpsize);
+	memcpy (p_del->raw_, tmp.data(), cpsize);
+
+	uint32_t shift = p_del->tail_ - p_del->raw_;
+	pool_ind_ -= shift;
+
+	// 残りのセクションのアドレスをずらす
+	shift_all_section_list (shift);
+
+	// pool 消す時はセットで
+	if (p_del == work_sect_info_) {
+		work_sect_info_ = NULL;
+	}
+
+	delete p_del;
+
+	return true;
 }
 
 /**
